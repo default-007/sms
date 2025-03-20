@@ -1,0 +1,41 @@
+graph TB
+    subgraph Client Layer
+        A[Web Browser] --> B[Angular Frontend]
+        M[Mobile App] --> B
+    end
+
+    subgraph Load Balancer
+        B --> C[NGINX Load Balancer]
+    end
+
+    subgraph Application Layer
+        C --> D[API Gateway]
+        D --> E[Authentication Service]
+        D --> F[User Service]
+        D --> G[Student Service]
+        D --> H[Teacher Service]
+        D --> I[Course Service]
+        D --> J[Finance Service]
+        D --> K[Library Service]
+        D --> L[Transport Service]
+    end
+
+    subgraph Caching Layer
+        E & F & G & H & I & J & K & L --> N[Redis Cache]
+    end
+
+    subgraph Database Layer
+        E & F & G & H & I & J & K & L --> O[PostgreSQL Primary]
+        O --> P[PostgreSQL Replica]
+    end
+
+    subgraph Storage Layer
+        E & F & G & H & I & J & K & L --> Q[File Storage]
+    end
+
+    subgraph External Services
+        R[Email Service]
+        S[SMS Gateway]
+        T[Payment Gateway]
+        E & F & G & H & I & J & K & L --> R & S & T
+    end

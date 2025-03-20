@@ -1,0 +1,78 @@
+school-management-system/
+├── frontend/                      # Angular frontend application
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── core/             # Core module (guards, interceptors, services)
+│   │   │   │   ├── auth/
+│   │   │   │   ├── guards/
+│   │   │   │   ├── interceptors/
+│   │   │   │   └── services/
+│   │   │   ├── shared/           # Shared module (components, directives, pipes)
+│   │   │   │   ├── components/
+│   │   │   │   ├── directives/
+│   │   │   │   └── pipes/
+│   │   │   ├── features/         # Feature modules
+│   │   │   │   ├── dashboard/
+│   │   │   │   ├── students/
+│   │   │   │   ├── teachers/
+│   │   │   │   ├── courses/
+│   │   │   │   ├── exams/
+│   │   │   │   ├── library/
+│   │   │   │   ├── transport/
+│   │   │   │   └── finance/
+│   │   │   ├── layouts/         # Layout components
+│   │   │   └── models/          # Interfaces and types
+│   │   ├── assets/
+│   │   └── environments/
+│   ├── e2e/                     # End-to-end tests
+│   └── tests/                   # Unit tests
+│
+├── backend/                     # Python backend application
+│   ├── app/
+│   │   ├── api/                # API endpoints
+│   │   │   ├── v1/
+│   │   │   │   ├── auth.py
+│   │   │   │   ├── users.py
+│   │   │   │   ├── students.py
+│   │   │   │   ├── teachers.py
+│   │   │   │   ├── courses.py
+│   │   │   │   ├── exams.py
+│   │   │   │   ├── library.py
+│   │   │   │   ├── transport.py
+│   │   │   │   └── finance.py
+│   │   │   └── middleware/
+│   │   ├── core/              # Core functionality
+│   │   │   ├── config.py
+│   │   │   ├── database.py
+│   │   │   ├── security.py
+│   │   │   └── logging.py
+│   │   ├── models/           # Database models
+│   │   │   ├── user.py
+│   │   │   ├── student.py
+│   │   │   ├── teacher.py
+│   │   │   ├── course.py
+│   │   │   └── ...
+│   │   ├── schemas/          # Pydantic schemas
+│   │   ├── services/         # Business logic
+│   │   ├── utils/            # Utility functions
+│   │   └── tests/            # Unit tests
+│   ├── alembic/             # Database migrations
+│   └── scripts/             # Deployment and utility scripts
+│
+├── nginx/                   # NGINX configuration
+│   ├── conf.d/
+│   └── nginx.conf
+│
+├── docker/                  # Docker configuration
+│   ├── frontend/
+│   │   └── Dockerfile
+│   ├── backend/
+│   │   └── Dockerfile
+│   └── docker-compose.yml
+│
+├── docs/                    # Documentation
+│   ├── api/
+│   ├── setup/
+│   └── deployment/
+│
+└── README.md

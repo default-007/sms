@@ -1,0 +1,190 @@
+{% extends 'auth_base.html' %}
+
+{% block title %}Register | School Management System{% endblock %}
+
+{% block auth_content %}
+<div x-data="registrationForm()">
+  <h2 class="auth-form-title">Create an Account</h2>
+  <p class="auth-form-subtitle">Fill in your details to create your account</p>
+
+  <form id="registration-form" method="post" action="{% url 'accounts:register' %}" @submit.prevent="submitForm">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger">
+      {% for error in form.non_field_errors %}
+      {{ error }}
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label for="id_first_name" class="form-label">First Name</label>
+        <input type="text" name="first_name" id="id_first_name"
+          class="form-control {% if form.first_name.errors %}is-invalid{% endif %}" placeholder="Enter your first name"
+          required x-model="firstName">
+        {% if form.first_name.errors %}
+        <div class="invalid-feedback">
+          {% for error in form.first_name.errors %}
+          {{ error }}
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="col-md-6 mb-3">
+        <label for="id_last_name" class="form-label">Last Name</label>
+        <input type="text" name="last_name" id="id_last_name"
+          class="form-control {% if form.last_name.errors %}is-invalid{% endif %}" placeholder="Enter your last name"
+          required x-model="lastName">
+        {% if form.last_name.errors %}
+        <div class="invalid-feedback">
+          {% for error in form.last_name.errors %}
+          {{ error }}
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label for="id_email" class="form-label">Email Address</label>
+      <input type="email" name="email" id="id_email"
+        class="form-control {% if form.email.errors %}is-invalid{% endif %}" placeholder="Enter your email address"
+        required x-model="email">
+      {% if form.email.errors %}
+      <div class="invalid-feedback">
+        {% for error in form.email.errors %}
+        {{ error }}
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="mb-3">
+      <label for="id_username" class="form-label">Username</label>
+      <input type="text" name="username" id="id_username"
+        class="form-control {% if form.username.errors %}is-invalid{% endif %}" placeholder="Choose a username" required
+        x-model="username">
+      {% if form.username.errors %}
+      <div class="invalid-feedback">
+        {% for error in form.username.errors %}
+        {{ error }}
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="mb-3">
+      <label for="id_password1" class="form-label">Password</label>
+      <div class="input-group">
+        <input type="password" name="password1" id="id_password1"
+          class="form-control {% if form.password1.errors %}is-invalid{% endif %}" placeholder="Create a password"
+          required x-model="password1">
+        <button class="btn btn-outline-secondary" type="button" @click="togglePassword('password1')">
+          <i :class="showPassword1 ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+        </button>
+      </div>
+      {% if form.password1.errors %}
+      <div class="invalid-feedback">
+        {% for error in form.password1.errors %}
+        {{ error }}
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="form-text">
+        <ul class="mb-0 ps-3 small">
+          <li>Your password must contain at least 8 characters.</li>
+          <li>Your password can't be a commonly used password.</li>
+          <li>Your password can't be entirely numeric.</li>
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="mb-3">
+      <label for="id_password2" class="form-label">Confirm Password</label>
+      <div class="input-group">
+        <input type="password" name="password2" id="id_password2"
+          class="form-control {% if form.password2.errors %}is-invalid{% endif %}" placeholder="Confirm your password"
+          required x-model="password2">
+        <button class="btn btn-outline-secondary" type="button" @click="togglePassword('password2')">
+          <i :class="showPassword2 ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+        </button>
+      </div>
+      {% if form.password2.errors %}
+      <div class="invalid-feedback">
+        {% for error in form.password2.errors %}
+        {{ error }}
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="mb-3 form-check">
+      <input type="checkbox" name="terms" id="id_terms" class="form-check-input" required x-model="terms">
+      <label class="form-check-label" for="id_terms">
+        I agree to the <a href="{% url 'pages:terms' %}" target="_blank">Terms of Service</a> and <a
+          href="{% url 'pages:privacy' %}" target="_blank">Privacy Policy</a>
+      </label>
+    </div>
+
+    <div class="mb-3">
+      <button type="submit" class="btn btn-primary w-100" :disabled="isSubmitting || !terms">
+        <template x-if="isSubmitting">
+          <span>
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            Registering...
+          </span>
+        </template>
+        <template x-if="!isSubmitting">
+          <span>
+            <i class="fas fa-user-plus me-2"></i> Register
+          </span>
+        </template>
+      </button>
+    </div>
+  </form>
+
+  <div class="auth-footer">
+    Already have an account? <a href="{% url 'accounts:login' %}">Login here</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function registrationForm() {
+    return {
+      firstName: '',
+      lastName: '',
+      email: '',
+      username: '',
+      password1: '',
+      password2: '',
+      terms: false,
+      showPassword1: false,
+      showPassword2: false,
+      isSubmitting: false,
+
+      togglePassword(field) {
+        if (field === 'password1') {
+          this.showPassword1 = !this.showPassword1;
+          const passwordInput = document.getElementById('id_password1');
+          passwordInput.type = this.showPassword1 ? 'text' : 'password';
+        } else {
+          this.showPassword2 = !this.showPassword2;
+          const passwordInput = document.getElementById('id_password2');
+          passwordInput.type = this.showPassword2 ? 'text' : 'password';
+        }
+      },
+
+      submitForm() {
+        this.isSubmitting = true;
+        document.getElementById('registration-form').submit();
+      }
+    };
+  }
+</script>
+{% endblock %}

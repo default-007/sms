@@ -38,8 +38,9 @@ INSTALLED_APPS = [
     "src.accounts",
     "src.api",
     "src.core",
-    # "src.students",
-    # "src.teachers",
+    "src.students",
+    "src.teachers",
+    "src.courses",
 ]
 
 MIDDLEWARE = [

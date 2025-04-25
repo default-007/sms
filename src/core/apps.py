@@ -8,3 +8,7 @@ class CoreConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "src.core"
     verbose_name = _("Core")
+
+    def ready(self):
+        """Register signals when the app is ready."""
+        import src.core.signals

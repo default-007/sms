@@ -2,7 +2,19 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.utils.translation import gettext_lazy as _
-
+from src.courses.models import (
+    Department,
+    AcademicYear,
+    Grade,
+    Section,
+    Class,
+    Subject,
+    Syllabus,
+    TimeSlot,
+    Timetable,
+    Assignment,
+    AssignmentSubmission,
+)
 from src.accounts.models import UserRole, UserRoleAssignment
 
 User = get_user_model()
@@ -163,3 +175,103 @@ class UserLoginSerializer(serializers.Serializer):
 
     username = serializers.CharField(required=True)
     password = serializers.CharField(required=True, style={"input_type": "password"})
+
+
+class DepartmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Department
+        fields = "__all__"
+
+
+class AcademicYearSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AcademicYear
+        fields = "__all__"
+
+
+class GradeSerializer(serializers.ModelSerializer):
+    department_name = serializers.ReadOnlyField(source="department.name")
+
+    class Meta:
+        model = Grade
+        fields = "__all__"
+
+
+class SectionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Section
+        fields = "__all__"
+
+
+class ClassSerializer(serializers.ModelSerializer):
+    grade_name = serializers.ReadOnlyField(source="grade.name")
+    section_name = serializers.ReadOnlyField(source="section.name")
+    academic_year_name = serializers.ReadOnlyField(source="academic_year.name")
+    class_teacher_name = serializers.ReadOnlyField(
+        source="class_teacher.user.get_full_name"
+    )
+
+    class Meta:
+        model = Class
+        fields = "__all__"
+
+
+class SubjectSerializer(serializers.ModelSerializer):
+    department_name = serializers.ReadOnlyField(source="department.name")
+
+    class Meta:
+        model = Subject
+        fields = "__all__"
+
+
+class SyllabusSerializer(serializers.ModelSerializer):
+    subject_name = serializers.ReadOnlyField(source="subject.name")
+    grade_name = serializers.ReadOnlyField(source="grade.name")
+    academic_year_name = serializers.ReadOnlyField(source="academic_year.name")
+    created_by_name = serializers.ReadOnlyField(source="created_by.get_full_name")
+    last_updated_by_name = serializers.ReadOnlyField(
+        source="last_updated_by.get_full_name"
+    )
+
+    class Meta:
+        model = Syllabus
+        fields = "__all__"
+
+
+class TimeSlotSerializer(serializers.ModelSerializer):
+    day_display = serializers.ReadOnlyField(source="get_day_of_week_display")
+
+    class Meta:
+        model = TimeSlot
+        fields = "__all__"
+
+
+class TimetableSerializer(serializers.ModelSerializer):
+    class_name = serializers.ReadOnlyField(source="class_obj.__str__")
+    subject_name = serializers.ReadOnlyField(source="subject.name")
+    teacher_name = serializers.ReadOnlyField(source="teacher.user.get_full_name")
+    time_slot_display = serializers.ReadOnlyField(source="time_slot.__str__")
+
+    class Meta:
+        model = Timetable
+        fields = "__all__"
+
+
+class AssignmentSerializer(serializers.ModelSerializer):
+    class_name = serializers.ReadOnlyField(source="class_obj.__str__")
+    subject_name = serializers.ReadOnlyField(source="subject.name")
+    teacher_name = serializers.ReadOnlyField(source="teacher.user.get_full_name")
+
+    class Meta:
+        model = Assignment
+        fields = "__all__"
+
+
+class AssignmentSubmissionSerializer(serializers.ModelSerializer):
+    student_name = serializers.ReadOnlyField(source="student.user.get_full_name")
+    assignment_title = serializers.ReadOnlyField(source="assignment.title")
+    graded_by_name = serializers.ReadOnlyField(source="graded_by.user.get_full_name")
+
+    class Meta:
+        model = AssignmentSubmission
+        fields = "__all__"

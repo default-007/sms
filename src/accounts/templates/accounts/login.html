@@ -1,118 +1,183 @@
-{% extends 'auth_base.html' %}
+{% load static %}
 
-{% block title %}Login | School Management System{% endblock %}
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-bs-theme="light" data-color-theme="Blue_Theme" data-layout="vertical">
 
-{% block auth_content %}
-<div x-data="loginForm()">
-  <h2 class="auth-form-title">Login to Your Account</h2>
-  <p class="auth-form-subtitle">Enter your credentials to access the system</p>
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <form id="login-form" method="post" action="{% url 'accounts:login' %}" @submit.prevent="submitForm">
-    {% csrf_token %}
+    <!-- Favicon icon-->
+    <link rel="shortcut icon" type="image/png" href="{% static 'assets/images/logos/favicon.png' %}" />
 
-    {% if form.non_field_errors %}
-    <div class="alert alert-danger">
-      {% for error in form.non_field_errors %}
-      {{ error }}
-      {% endfor %}
+    <!-- Core Css -->
+    <link rel="stylesheet" href="{% static 'assets/css/styles.css' %}" />
+    <title>Mentura Admin</title>
+  </head>
+
+  <body>
+    <!-- Preloader -->
+    <div class="preloader">
+      <img src="{% static 'assets/images/logos/favicon.png' %}" alt="loader" class="lds-ripple img-fluid" />
     </div>
-    {% endif %}
+    <div id="main-wrapper">
+      <div class="position-relative overflow-hidden radial-gradient min-vh-100 w-100">
+        <div class="position-relative z-index-5">
+          <div class="row">
+            <div class="col-lg-6 col-xl-7 col-xxl-6 position-relative overflow-hidden bg-dark d-none d-lg-block">
+              <div class="circle-top"></div>
+              <div>
+                <img src="{% static 'assets/images/logos/logo-icon.svg' %}" class="circle-bottom" alt="Logo-Dark" />
+              </div>
+              <div class="d-lg-flex align-items-center z-index-5 position-relative h-n80">
+                <div class="row justify-content-center w-100">
+                  <div class="col-lg-7">
+                    <h2 class="text-white fs-10 mb-3">
+                      Welcome to
+                      <br />
+                      Mentura
+                    </h2>
+                    <span class="opacity-75 fs-4 text-white d-block mb-3">Mentura helps developers to build organized
+                      and well
+                      coded dashboards full of beautiful and rich modules.
+                    </span>
+                    <a href="../landingpage/index.html" class="btn btn-primary">Learn More</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-6 col-xl-5 col-xxl-6">
+              <div
+                class="min-vh-100 bg-body row justify-content-center justify-content-lg-start align-items-center p-5">
+                <div class="col-sm-8 col-md-9 col-xxl-6 auth-card">
+                  <a href="../index.html" class="text-nowrap logo-img d-block w-100">
+                    <img src="../assets/images/logos/logo-icon.svg" class="dark-logo" alt="Logo-Dark" />
+                  </a>
+                  <h2 class="mb-2 mt-4 fs-7 fw-bolder">Sign In</h2>
+                  <p class="mb-9">Your Admin Dashboard</p>
+                  <div class="row">
+                    <div class="col-6 mb-2 mb-sm-0">
+                      <a class="btn btn-link border border-muted d-flex align-items-center justify-content-center rounded-2 py-8 text-decoration-none"
+                        href="javascript:void(0)" role="button">
+                        <img src="../assets/images/svgs/google-icon.svg" alt="MaterialM-img" class="img-fluid me-2"
+                          width="18" height="18" />
+                        Google
+                      </a>
+                    </div>
+                    <div class="col-6">
+                      <a class="btn btn-link border border-muted d-flex align-items-center justify-content-center rounded-2 py-8 text-decoration-none"
+                        href="javascript:void(0)" role="button">
+                        <img src="../assets/images/svgs/facebook-icon.svg" alt="MaterialM-img" class="img-fluid me-2"
+                          width="18" height="18" />
+                        Facebook
+                      </a>
+                    </div>
+                  </div>
+                  <div class="position-relative text-center my-4">
+                    <p class="mb-0 fs-4 px-3 d-inline-block bg-body text-dark z-index-5 position-relative">
+                      or sign in with
+                    </p>
+                    <span class="border-top w-100 position-absolute top-50 start-50 translate-middle"></span>
+                  </div>
 
-    <div class="mb-3">
-      <label for="id_username" class="form-label">Username or Email</label>
-      <div class="input-group">
-        <span class="input-group-text"><i class="fas fa-user"></i></span>
-        <input type="text" name="username" id="id_username"
-          class="form-control {% if form.username.errors %}is-invalid{% endif %}"
-          placeholder="Enter your username or email" required x-model="username">
+                  <form id="login-form" method="post" action="{% url 'accounts:login' %}" @submit.prevent="submitForm">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                      {% for error in form.non_field_errors %}
+                      {{ error }}
+                      {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                      <label for="id_username" class="form-label">Username or Email</label>
+                      <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                        <input type="text" name="username" id="id_username"
+                          class="form-control {% if form.username.errors %}is-invalid{% endif %}"
+                          placeholder="Enter your username or email" required x-model="username">
+                      </div>
+                      {% if form.username.errors %}
+                      <div class="invalid-feedback">
+                        {% for error in form.username.errors %}
+                        {{ error }}
+                        {% endfor %}
+                      </div>
+                      {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="id_password" class="form-label">Password</label>
+                      <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                        <input type="password" name="password" id="id_password"
+                          class="form-control {% if form.password.errors %}is-invalid{% endif %}"
+                          placeholder="Enter your password" required x-model="password">
+                        <button class="btn btn-outline-secondary" type="button" @click="togglePassword">
+                          <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                        </button>
+                      </div>
+                      {% if form.password.errors %}
+                      <div class="invalid-feedback">
+                        {% for error in form.password.errors %}
+                        {{ error }}
+                        {% endfor %}
+                      </div>
+                      {% endif %}
+                    </div>
+
+                    <div class="mb-3 d-flex justify-content-between align-items-center">
+                      <div class="form-check">
+                        <input type="checkbox" name="remember" id="id_remember" class="form-check-input"
+                          x-model="remember">
+                        <label class="form-check-label" for="id_remember">Remember me</label>
+                      </div>
+                      <a href="{% url 'accounts:password_reset' %}" class="text-primary small">Forgot Password?</a>
+                    </div>
+
+                    <div class="mb-3">
+                      <button type="submit" class="btn btn-primary w-100" :disabled="isSubmitting">
+                        <template x-if="isSubmitting">
+                          <span>
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            Logging in...
+                          </span>
+                        </template>
+                        <template x-if="!isSubmitting">
+                          <span>
+                            <i class="fas fa-sign-in-alt me-2"></i> Login
+                          </span>
+                        </template>
+                      </button>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-center">
+                      <p class="fs-4 mb-0 fw-medium">New to MaterialM?</p>
+                      <a class="text-primary fw-medium ms-2" href="">Create an
+                        account</a>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      {% if form.username.errors %}
-      <div class="invalid-feedback">
-        {% for error in form.username.errors %}
-        {{ error }}
-        {% endfor %}
-      </div>
-      {% endif %}
     </div>
+    <div class="dark-transparent sidebartoggler"></div>
+    <!-- Import Js Files -->
+    <script src="{% static 'assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'assets/libs/simplebar/dist/simplebar.min.js' %}"></script>
+    <script src="{% static 'assets/js/theme/app.init.js' %}"></script>
+    <script src="{% static 'assets/js/theme/theme.js' %}"></script>
+    <script src="{% static 'assets/js/theme/app.min.js' %}"></script>
 
-    <div class="mb-3">
-      <label for="id_password" class="form-label">Password</label>
-      <div class="input-group">
-        <span class="input-group-text"><i class="fas fa-lock"></i></span>
-        <input type="password" name="password" id="id_password"
-          class="form-control {% if form.password.errors %}is-invalid{% endif %}" placeholder="Enter your password"
-          required x-model="password">
-        <button class="btn btn-outline-secondary" type="button" @click="togglePassword">
-          <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
-        </button>
-      </div>
-      {% if form.password.errors %}
-      <div class="invalid-feedback">
-        {% for error in form.password.errors %}
-        {{ error }}
-        {% endfor %}
-      </div>
-      {% endif %}
-    </div>
+    <!-- solar icons -->
+    <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
+  </body>
 
-    <div class="mb-3 d-flex justify-content-between align-items-center">
-      <div class="form-check">
-        <input type="checkbox" name="remember" id="id_remember" class="form-check-input" x-model="remember">
-        <label class="form-check-label" for="id_remember">Remember me</label>
-      </div>
-      <a href="{% url 'accounts:password_reset' %}" class="text-primary small">Forgot Password?</a>
-    </div>
-
-    <div class="mb-3">
-      <button type="submit" class="btn btn-primary w-100" :disabled="isSubmitting">
-        <template x-if="isSubmitting">
-          <span>
-            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-            Logging in...
-          </span>
-        </template>
-        <template x-if="!isSubmitting">
-          <span>
-            <i class="fas fa-sign-in-alt me-2"></i> Login
-          </span>
-        </template>
-      </button>
-    </div>
-  </form>
-
-  <div class="auth-divider">
-    <span class="auth-divider-text">or login with</span>
-  </div>
-
-
-
-  <div class="auth-footer">
-    Don't have an account? <a href="">Register here</a>
-  </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-  function loginForm() {
-    return {
-      username: '',
-      password: '',
-      remember: false,
-      showPassword: false,
-      isSubmitting: false,
-
-      togglePassword() {
-        this.showPassword = !this.showPassword;
-        const passwordInput = document.getElementById('id_password');
-        passwordInput.type = this.showPassword ? 'text' : 'password';
-      },
-
-      submitForm() {
-        this.isSubmitting = true;
-        document.getElementById('login-form').submit();
-      }
-    };
-  }
-</script>
-{% endblock %}
+</html>

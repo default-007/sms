@@ -35,10 +35,11 @@ INSTALLED_APPS = [
     "django_filters",
     "drf_yasg",
     # Local apps
-    "src.accounts.apps.AccountsConfig",
-    "src.api.apps.ApiConfig",
-    "src.core.apps.CoreConfig",
-    # Additional apps will be added as needed
+    "src.accounts",
+    "src.api",
+    "src.core",
+    # "src.students",
+    # "src.teachers",
 ]
 
 MIDDLEWARE = [
@@ -177,10 +178,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8000",
 ]
 
-# Login settings
-LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "dashboard"
-LOGOUT_REDIRECT_URL = "login"
+# Authentication settings
+LOGIN_URL = "accounts:login"
+LOGIN_REDIRECT_URL = "core:dashboard"
+LOGOUT_REDIRECT_URL = "accounts:login"
 
 # Email settings (configure for your environment)
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

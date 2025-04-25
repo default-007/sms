@@ -14,7 +14,7 @@ from drf_yasg import openapi
 # API documentation setup
 schema_view = get_schema_view(
     openapi.Info(
-        title="School Management System API",
+        title="Mentura School Management System API",
         default_version="v1",
         description="API for School Management System",
         terms_of_service="https://www.schoolmanagementsystem.com/terms/",
@@ -40,10 +40,11 @@ urlpatterns = [
         "api/redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"
     ),
     # Web app URLs
-    path("accounts/", include("src.accounts.urls")),
-    # Add other app URLs here as they're developed
+    path("accounts/", include(("src.accounts.urls", "accounts"), namespace="accounts")),
+    path("core/", include(("src.core.urls", "core"), namespace="core")),
     # Redirect root URL to dashboard or login
-    path("", RedirectView.as_view(pattern_name="login"), name="root"),
+    # path("", include("src.accounts.urls")),
+    path("", RedirectView.as_view(pattern_name="accounts:login"), name="root"),
 ]
 
 # Serve static and media files in development

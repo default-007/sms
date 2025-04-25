@@ -5,6 +5,17 @@ from django.utils import timezone
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from .models import SystemSetting, AuditLog
+from django.db import DatabaseError, ProgrammingError
+
+
+def safe_get_count(model_class):
+    """
+    Safely get the count of a model's objects, returning 0 if the table doesn't exist yet.
+    """
+    try:
+        return model_class.objects.count()
+    except (DatabaseError, ProgrammingError):
+        return 0
 
 
 def generate_unique_id(prefix="", length=8):

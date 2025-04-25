@@ -11,7 +11,10 @@ class ClassService:
 
     @staticmethod
     def get_class_students(class_obj):
-        return class_obj.students.all()
+        try:
+            return class_obj.students.all()
+        except (DatabaseError, ProgrammingError):
+            return []
 
     @staticmethod
     def get_class_timetable(class_obj, day=None):

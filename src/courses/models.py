@@ -64,7 +64,7 @@ class Class(models.Model):
     room_number = models.CharField(max_length=20, blank=True)
     capacity = models.PositiveIntegerField(default=30)
     class_teacher = models.ForeignKey(
-        "teachers.Teacher",
+        to="teachers.Teacher",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

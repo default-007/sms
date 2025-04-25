@@ -9,6 +9,10 @@ from django.apps import apps
 from .models import SystemSetting, AuditLog, Document
 from .decorators import role_required, audit_log
 from .utils import get_system_setting
+from src.core.utils import safe_get_count
+
+from src.students.models import Student
+from src.teachers.models import Teacher
 
 
 @login_required
@@ -26,8 +30,8 @@ def dashboard(request):
 
         context.update(
             {
-                "total_students": Student.objects.count(),
-                "total_teachers": Teacher.objects.count(),
+                "total_students": safe_get_count(Student),
+                "total_teachers": safe_get_count(Teacher),
                 "recent_activities": AuditLog.objects.order_by("-timestamp")[:10],
             }
         )
@@ -65,7 +69,7 @@ def dashboard(request):
             }
         )
 
-    return render(request, "core/dashboard.html", context)
+    return render(request, "dashboard.html", context)
 
 
 @method_decorator(login_required, name="dispatch")

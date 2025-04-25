@@ -9,13 +9,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- Favicon icon-->
-    <link rel="shortcut icon" type="image/png" href="../assets/images/logos/favicon.png" />
+    <link rel="shortcut icon" type="image/png" href="{% static 'assets/images/logos/favicon.png' %}" />
 
     <!-- Core Css -->
-    <link rel="stylesheet" href="../assets/css/styles.css" />
+    <link rel="stylesheet" href="{% static 'assets/css/styles.css' %}" />
     <title>Mentora Admin</title>
     <!-- Jvectormap  -->
-    <link rel="stylesheet" href="../assets/libs/jvectormap/jquery-jvectormap.css" />
+    <link rel="stylesheet" href="{% static 'assets/libs/jvectormap/jquery-jvectormap.css' %}" />
   </head>
 
   <body>
@@ -34,7 +34,7 @@
     </div>
     <!-- Preloader -->
     <div class="preloader">
-      <img src="../assets/images/logos/favicon.png" alt="loader" class="lds-ripple img-fluid" />
+      <img src="{% static 'assets/images/logos/favicon.png' %}" alt="loader" class="lds-ripple img-fluid" />
     </div>
     <div id="main-wrapper">
       <!-- Sidebar Start -->
@@ -47,7 +47,7 @@
             <div class="mini-nav">
               <div class="brand-logo d-flex align-items-center justify-content-between justify-content-lg-center">
                 <a href="../main/index.html" class="text-nowrap logo-img">
-                  <img src="../assets/images/logos/logo-icon.svg" alt="Logo" />
+                  <img src="{% static 'assets/images/logos/logo-icon.svg' %}" alt="Logo" />
                 </a>
                 <a href="javascript:void(0)"
                   class="sidebartoggler close-btn ms-auto text-decoration-none fs-5 d-flex d-xl-none align-items-center justify-content-center text-danger">
@@ -156,8 +156,8 @@
                     <div
                       class="d-flex align-items-center justify-content-center gap-2 lh-base hover-border p-1 mx-auto rounded-circle"
                       width="35">
-                      <img src="../assets/images/profile/user-1.jpg" class="rounded-circle" width="35" height="35"
-                        alt="MaterialM-img" />
+                      <img src="{% static 'assets/images/profile/user-1.jpg' %}" class="rounded-circle" width="35"
+                        height="35" alt="MaterialM-img" />
                     </div>
                   </a>
                   <div class="dropdown-menu content-dd dropdown-menu-end dropdown-menu-animate-up shadow-lg"
@@ -3587,18 +3587,18 @@
     <div class="dark-transparent sidebartoggler"></div>
     <script src="{% static 'assets/js/vendor.min.js' %}"></script>
     <!-- Import Js Files -->
-    <script src="../assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../assets/libs/simplebar/dist/simplebar.min.js"></script>
-    <script src="../assets/js/theme/app.init.js"></script>
-    <script src="../assets/js/theme/theme.js"></script>
-    <script src="../assets/js/theme/app.min.js"></script>
-    <script src="../assets/js/theme/sidebarmenu.js"></script>
+    <script src="{% static 'assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'assets/libs/simplebar/dist/simplebar.min.js' %}"></script>
+    <script src="{% static 'assets/js/theme/app.init.js' %}"></script>
+    <script src="{% static 'assets/js/theme/theme.js' %}"></script>
+    <script src="{% static 'assets/js/theme/app.min.js' %}"></script>
+    <script src="{% static 'assets/js/theme/sidebarmenu.js' %}"></script>
 
     <!-- solar icons -->
     <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
 
     <!-- highlight.js (code view) -->
-    <script src="../assets/js/highlights/highlight.min.js"></script>
+    <script src="{% static 'assets/js/highlights/highlight.min.js' %}"></script>
     <script>
       hljs.initHighlightingOnLoad();
 
@@ -3607,10 +3607,10 @@
         codeBlock.textContent = codeBlock.innerHTML;
       });
     </script>
-    <script src="../assets/libs/apexcharts/dist/apexcharts.min.js"></script>
-    <script src="../assets/libs/jvectormap/jquery-jvectormap.min.js"></script>
-    <script src="../assets/js/jvectormap/jquery-jvectormap-us-aea-en.js"></script>
-    <script src="../assets/js/dashboards/dashboard1.js"></script>
+    <script src="{% static 'assets/libs/apexcharts/dist/apexcharts.min.js' %}"></script>
+    <script src="{% static 'assets/libs/jvectormap/jquery-jvectormap.min.js' %}"></script>
+    <script src="{% static 'assets/js/jvectormap/jquery-jvectormap-us-aea-en.js' %}"></script>
+    <script src="{% static 'assets/js/dashboards/dashboard1.js' %}"></script>
   </body>
 
 </html>

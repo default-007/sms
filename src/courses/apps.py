@@ -6,5 +6,5 @@ class CoursesConfig(AppConfig):
     name = "src.courses"
     verbose_name = "Courses & Classes"
 
-    def ready(self):
-        import src.courses.signals
+    """ def ready(self):
+        import src.courses.signals """

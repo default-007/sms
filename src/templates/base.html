@@ -58,37 +58,37 @@
                 <!-- --------------------------------------------------------------------------------------------------------- -->
                 <!-- Dashboards -->
                 <!-- --------------------------------------------------------------------------------------------------------- -->
-                <li class="mini-nav-item" id="mini-1">
-                  <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
+                <li class="{% if request.path == '/' %}active{% endif %} mini-nav-item" id="mini-1">
+                  <a href="{% url 'core:dashboard' %}" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
                     data-bs-placement="right" data-bs-title="Dashboards">
-                    <iconify-icon icon="solar:layers-line-duotone" class="fs-7"></iconify-icon>
+                    <iconify-icon icon="solar:home-2-line-duotone" class="fs-7"></iconify-icon>
                   </a>
                 </li>
                 <!-- --------------------------------------------------------------------------------------------------------- -->
-                <!-- Landingpage -->
+                <!-- users -->
                 <!-- --------------------------------------------------------------------------------------------------------- -->
-                <li class="mini-nav-item" id="mini-2">
-                  <a href="../landingpage/index.html" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
-                    data-bs-placement="right" data-bs-title="Landingpage">
-                    <iconify-icon icon="solar:widget-add-line-duotone" class="fs-7"></iconify-icon>
+                <li class="{% if 'users' in request.path %}active{% endif %} mini-nav-item" id="mini-2">
+                  <a href="#" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip" data-bs-placement="right"
+                    data-bs-title="Users">
+                    <iconify-icon icon="solar:users-group-rounded-line-duotone" class="fs-7"></iconify-icon>
                   </a>
                 </li>
                 <!-- --------------------------------------------------------------------------------------------------------- -->
-                <!-- Pages -->
+                <!-- Students -->
                 <!-- --------------------------------------------------------------------------------------------------------- -->
-                <li class="mini-nav-item" id="mini-3">
+                <li class="{% if 'students' in request.path %}active{% endif %} mini-nav-item" id="mini-3">
                   <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
-                    data-bs-placement="right" data-bs-title="Pages">
-                    <iconify-icon icon="solar:notes-line-duotone" class="fs-7"></iconify-icon>
+                    data-bs-placement="right" data-bs-title="Students">
+                    <iconify-icon icon="solar:user-rounded-line-duotone" class="fs-7"></iconify-icon>
                   </a>
                 </li>
                 <!-- --------------------------------------------------------------------------------------------------------- -->
-                <!-- Forms  -->
+                <!-- Teachers  -->
                 <!-- --------------------------------------------------------------------------------------------------------- -->
                 <li class="mini-nav-item" id="mini-4">
                   <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
-                    data-bs-placement="right" data-bs-title="Forms">
-                    <iconify-icon icon="solar:palette-round-line-duotone" class="fs-7"></iconify-icon>
+                    data-bs-placement="right" data-bs-title="Teachers">
+                    <iconify-icon icon="solar:medal-ribbons-star-line-duotone" class="fs-7"></iconify-icon>
                   </a>
                 </li>
 
@@ -96,57 +96,75 @@
                   <span class="sidebar-divider lg"></span>
                 </li>
                 <!-- --------------------------------------------------------------------------------------------------------- -->
-                <!-- Tables -->
+                <!-- Academics -->
                 <!-- --------------------------------------------------------------------------------------------------------- -->
                 <li class="mini-nav-item" id="mini-5">
                   <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
-                    data-bs-placement="right" data-bs-title="Tables">
-                    <iconify-icon icon="solar:tuning-square-2-line-duotone" class="fs-7"></iconify-icon>
+                    data-bs-placement="right" data-bs-title="Academics">
+                    <iconify-icon icon="solar:notebook-line-duotone" class="fs-7"></iconify-icon>
                   </a>
                 </li>
                 <!-- --------------------------------------------------------------------------------------------------------- -->
-                <!-- Charts -->
+                <!-- Exams -->
                 <!-- --------------------------------------------------------------------------------------------------------- -->
                 <li class="mini-nav-item" id="mini-6">
                   <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
-                    data-bs-placement="right" data-bs-title="Charts">
+                    data-bs-placement="right" data-bs-title="Exams">
+                    <iconify-icon icon="solar:clipboard-list-line-duotone" class="fs-7"></iconify-icon>
+                  </a>
+                </li>
+                <!-- --------------------------------------------------------------------------------------------------------- -->
+                <!-- Finance -->
+                <!-- --------------------------------------------------------------------------------------------------------- -->
+                <li class="mini-nav-item" id="mini-7">
+                  <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
+                    data-bs-placement="right" data-bs-title="Finance">
+                    <iconify-icon icon="solar:dollar-line-duotone" class="fs-7"></iconify-icon>
+                  </a>
+                </li>
+                <!-- --------------------------------------------------------------------------------------------------------- -->
+                <!-- Library -->
+                <!-- --------------------------------------------------------------------------------------------------------- -->
+                <li class="mini-nav-item" id="mini-8">
+                  <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
+                    data-bs-placement="right" data-bs-title="Library">
+                    <iconify-icon icon="solar:book-line-duotone" class="fs-7"></iconify-icon>
+                  </a>
+                </li>
+                <!-- --------------------------------------------------------------------------------------------------------- -->
+                <!-- Transport -->
+                <!-- --------------------------------------------------------------------------------------------------------- -->
+                <li class="mini-nav-item" id="mini-9">
+                  <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
+                    data-bs-placement="right" data-bs-title="Transport">
+                    <iconify-icon icon="solar:bus-line-duotone" class="fs-7"></iconify-icon>
+                  </a>
+                </li>
+                <!-- --------------------------------------------------------------------------------------------------------- -->
+                <!-- Communications -->
+                <!-- --------------------------------------------------------------------------------------------------------- -->
+                <li class="mini-nav-item" id="mini-10">
+                  <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
+                    data-bs-placement="right" data-bs-title="Comms &amp; Other">
+                    <iconify-icon icon="solar:chat-round-line-duotone" class="fs-7"></iconify-icon>
+                  </a>
+                </li>
+                <!-- --------------------------------------------------------------------------------------------------------- -->
+                <!-- Reports -->
+                <!-- --------------------------------------------------------------------------------------------------------- -->
+                <li class="mini-nav-item" id="mini-11">
+                  <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
+                    data-bs-placement="right" data-bs-title="Reports">
                     <iconify-icon icon="solar:chart-line-duotone" class="fs-7"></iconify-icon>
                   </a>
                 </li>
                 <!-- --------------------------------------------------------------------------------------------------------- -->
-                <!-- Ui -->
+                <!-- Settings -->
                 <!-- --------------------------------------------------------------------------------------------------------- -->
-                <li class="mini-nav-item" id="mini-7">
+                <li class="mini-nav-item" id="mini-12">
                   <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
-                    data-bs-placement="right" data-bs-title="Ui Components">
-                    <iconify-icon icon="solar:widget-6-line-duotone" class="fs-7"></iconify-icon>
-                  </a>
-                </li>
-                <!-- --------------------------------------------------------------------------------------------------------- -->
-                <!-- Components -->
-                <!-- --------------------------------------------------------------------------------------------------------- -->
-                <li class="mini-nav-item" id="mini-8">
-                  <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
-                    data-bs-placement="right" data-bs-title="Components">
-                    <iconify-icon icon="solar:archive-line-duotone" class="fs-7"></iconify-icon>
-                  </a>
-                </li>
-                <!-- --------------------------------------------------------------------------------------------------------- -->
-                <!-- Auth -->
-                <!-- --------------------------------------------------------------------------------------------------------- -->
-                <li class="mini-nav-item" id="mini-9">
-                  <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
-                    data-bs-placement="right" data-bs-title="Authentication Pages">
-                    <iconify-icon icon="solar:lock-keyhole-line-duotone" class="fs-7"></iconify-icon>
-                  </a>
-                </li>
-                <!-- --------------------------------------------------------------------------------------------------------- -->
-                <!-- Multi level -->
-                <!-- --------------------------------------------------------------------------------------------------------- -->
-                <li class="mini-nav-item" id="mini-10">
-                  <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
-                    data-bs-placement="right" data-bs-title="Docs &amp; Other">
-                    <iconify-icon icon="solar:mirror-left-line-duotone" class="fs-7"></iconify-icon>
+                    data-bs-placement="right" data-bs-title="Settings">
+                    <iconify-icon icon="solar:settings-line-duotone" class="fs-7"></iconify-icon>
                   </a>
                 </li>
               </ul>
@@ -232,26 +250,13 @@
                   <!-- ---------------------------------- -->
                   <!-- Dashboard -->
                   <!-- ---------------------------------- -->
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/index2.html" aria-expanded="false">
-                      <iconify-icon icon="solar:widget-add-line-duotone" class=""></iconify-icon>
-                      <span class="hide-menu">eCommerce</span>
+                  <li class="sidebar-item {% if request.path == '/' %}mm-active{% endif %}">
+                    <a class="sidebar-link {% if request.path == '/' %}active{% endif %}"
+                      href="{% url 'core:dashboard' %}" aria-expanded="false">
+                      <iconify-icon icon="solar:home-2-line-duotone" class=""></iconify-icon>
+                      <span class="hide-menu">Dashboard</span>
                     </a>
                   </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="" id="get-url" aria-expanded="false">
-                      <iconify-icon icon="solar:chart-line-duotone" class=""></iconify-icon>
-                      <span class="hide-menu">Analytics</span>
-                    </a>
-                  </li>
-
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/index3.html" aria-expanded="false">
-                      <iconify-icon icon="solar:layers-line-duotone" class=""></iconify-icon>
-                      <span class="hide-menu">CRM</span>
-                    </a>
-                  </li>
-
                   <li class="sidebar-item">
                     <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                       <iconify-icon icon="solar:home-angle-line-duotone"></iconify-icon>
@@ -270,34 +275,47 @@
                           About Us
                         </a>
                       </li>
+                    </ul>
+                  </li>
+
+                  <li>
+                    <span class="sidebar-divider lg"></span>
+                  </li>
+                  <li class="nav-small-cap">
+                    <span class="hide-menu">Apps</span>
+                  </li>
+
+                </ul>
+              </nav>
+              <!-- sidebar -->
+              <nav class="sidebar-nav" id="menu-right-mini-2" data-simplebar>
+                <ul class="sidebar-menu" id="sidebarnav">
+                  <!-- ---------------------------------- -->
+                  <!-- Home -->
+                  <!-- ---------------------------------- -->
+                  <li class="nav-small-cap">
+                    <span class="hide-menu">User Management</span>
+                  </li>
+                  <!-- ---------------------------------- -->
+                  <!-- User -->
+                  <!-- ---------------------------------- -->
+                  <li class="sidebar-item {% if 'users' in request.path %}mm-active{% endif %}">
+                    <a class="sidebar-link has-arrow {% if 'users' in request.path %}active{% endif %}"
+                      href="javascript:void(0)" aria-expanded="false">
+                      <iconify-icon icon="solar:users-group-rounded-line-duotone"></iconify-icon>
+                      <span class="hide-menu">User Management</span>
+                    </a>
+                    <ul aria-expanded="false" class="collapse first-level">
                       <li class="sidebar-item">
-                        <a class="sidebar-link" href="../main/frontend-blogpage.html">
+                        <a class="sidebar-link" href="../main/frontend-landingpage.html">
                           <span class="icon-small"></span>
-                          Blog
+                          All Users
                         </a>
                       </li>
                       <li class="sidebar-item">
-                        <a class="sidebar-link" href="../main/frontend-blogdetailpage.html">
+                        <a class="sidebar-link" href="../main/frontend-aboutpage.html">
                           <span class="icon-small"></span>
-                          Blog Details
-                        </a>
-                      </li>
-                      <li class="sidebar-item">
-                        <a class="sidebar-link" href="../main/frontend-contactpage.html">
-                          <span class="icon-small"></span>
-                          Contact Us
-                        </a>
-                      </li>
-                      <li class="sidebar-item">
-                        <a class="sidebar-link" href="../main/frontend-portfoliopage.html">
-                          <span class="icon-small"></span>
-                          Portfolio
-                        </a>
-                      </li>
-                      <li class="sidebar-item">
-                        <a class="sidebar-link" href="../main/frontend-pricingpage.html">
-                          <span class="icon-small"></span>
-                          Pricing
+                          Roles & Permissions
                         </a>
                       </li>
                     </ul>
@@ -310,120 +328,6 @@
                     <span class="hide-menu">Apps</span>
                   </li>
 
-                  <li class="sidebar-item">
-                    <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
-                      <iconify-icon icon="solar:cart-3-line-duotone" class=""></iconify-icon>
-                      <span class="hide-menu">Ecommerce</span>
-                    </a>
-                    <ul aria-expanded="false" class="collapse first-level">
-                      <li class="sidebar-item">
-                        <a class="sidebar-link" href="../main/eco-shop.html">
-                          <span class="icon-small"></span> Shop
-                        </a>
-                      </li>
-                      <li class="sidebar-item">
-                        <a class="sidebar-link" href="../main/eco-shop-detail.html">
-                          <span class="icon-small"></span>Details
-                        </a>
-                      </li>
-                      <li class="sidebar-item">
-                        <a class="sidebar-link" href="../main/eco-product-list.html">
-                          <span class="icon-small"></span>List
-                        </a>
-                      </li>
-                      <li class="sidebar-item">
-                        <a class="sidebar-link" href="../main/eco-checkout.html">
-                          <span class="icon-small"></span>Checkout
-                        </a>
-                      </li>
-                      <li class="sidebar-item">
-                        <a class="sidebar-link" href="../main/eco-add-product.html">
-                          <span class="icon-small"></span>Add Product
-                        </a>
-                      </li>
-                      <li class="sidebar-item">
-                        <a class="sidebar-link" href="../main/eco-edit-product.html">
-                          <span class="icon-small"></span>Edit Product
-                        </a>
-                      </li>
-                    </ul>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
-                      <iconify-icon icon="solar:widget-4-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Blog</span>
-                    </a>
-                    <ul aria-expanded="false" class="collapse first-level">
-                      <li class="sidebar-item">
-                        <a class="sidebar-link" href="../main/blog-posts.html">
-                          <span class="icon-small"></span>Blog
-                          Posts
-                        </a>
-                      </li>
-                      <li class="sidebar-item">
-                        <a class="sidebar-link" href="../main/blog-detail.html">
-                          <span class="icon-small"></span>Blog
-                          Details
-                        </a>
-                      </li>
-                    </ul>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/page-user-profile.html" aria-expanded="false">
-                      <iconify-icon icon="solar:shield-user-line-duotone"></iconify-icon>
-                      User Profile
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/app-email.html"><iconify-icon
-                        icon="solar:letter-line-duotone"></iconify-icon>Email</a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/app-calendar.html"><iconify-icon
-                        icon="solar:calendar-mark-line-duotone"></iconify-icon>Calendar</a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/app-kanban.html"><iconify-icon
-                        icon="solar:airbuds-case-minimalistic-line-duotone"></iconify-icon>Kanban</a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/app-chat.html"><iconify-icon
-                        icon="solar:chat-round-line-line-duotone"></iconify-icon>Chat</a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/app-notes.html"><iconify-icon
-                        icon="solar:document-text-line-duotone"></iconify-icon>Notes</a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/app-contact.html"><iconify-icon
-                        icon="solar:iphone-line-duotone"></iconify-icon>Contact Table</a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/app-contact2.html"><iconify-icon
-                        icon="solar:phone-line-duotone"></iconify-icon>Contact List</a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/app-invoice.html"><iconify-icon
-                        icon="solar:bill-list-line-duotone"></iconify-icon>Invoice</a>
-                  </li>
-                </ul>
-              </nav>
-              <!-- sidebar -->
-              <nav class="sidebar-nav" id="menu-right-mini-2" data-simplebar>
-                <ul class="sidebar-menu" id="sidebarnav">
-                  <!-- ---------------------------------- -->
-                  <!-- Home -->
-                  <!-- ---------------------------------- -->
-                  <li class="nav-small-cap">
-                    <span class="hide-menu">LandingPage</span>
-                  </li>
-                  <!-- ---------------------------------- -->
-                  <!-- Dashboard -->
-                  <!-- ---------------------------------- -->
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../landingpage/index.html"><iconify-icon
-                        icon="solar:bill-list-line-duotone"></iconify-icon> Landingpage</a>
-                  </li>
                 </ul>
               </nav>
               <!-- sidebar -->
@@ -432,134 +336,7 @@
                   <!-- ---------------------------------- -->
                   <!-- Home -->
                   <!-- ---------------------------------- -->
-                  <li class="nav-small-cap">
-                    <span class="hide-menu">Pages</span>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/pages-animation.html" class="sidebar-link">
-                      <iconify-icon icon="solar:accessibility-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Animation</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/pages-search-result.html" class="sidebar-link">
-                      <iconify-icon icon="solar:card-search-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Search Result</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/pages-gallery.html" class="sidebar-link">
-                      <iconify-icon icon="solar:gallery-bold-duotone"></iconify-icon>
-                      <span class="hide-menu">Gallery</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/pages-treeview.html" class="sidebar-link">
-                      <iconify-icon icon="solar:mask-happly-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Treeview</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/pages-block-ui.html" class="sidebar-link">
-                      <iconify-icon icon="solar:quit-full-screen-square-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Block-Ui</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/pages-session-timeout.html" class="sidebar-link">
-                      <iconify-icon icon="solar:sort-by-time-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Session Timeout</span>
-                    </a>
-                  </li>
 
-                  <li class="sidebar-item">
-                    <a href="../main/page-pricing.html" class="sidebar-link">
-                      <iconify-icon icon="solar:dollar-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Pricing</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/page-faq.html" class="sidebar-link">
-                      <iconify-icon icon="solar:question-circle-line-duotone"></iconify-icon>
-                      <span class="hide-menu">FAQ</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/page-account-settings.html" class="sidebar-link">
-                      <iconify-icon icon="solar:settings-minimalistic-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Account Setting</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/starter.html" class="sidebar-link">
-                      <iconify-icon icon="solar:file-text-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Starter</span>
-                    </a>
-                  </li>
-                  <li>
-                    <span class="sidebar-divider lg"></span>
-                  </li>
-                  <li class="nav-small-cap">
-                    <span class="hide-menu">Icons</span>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link sidebar-link" href="../main/icon-tabler.html" aria-expanded="false">
-                      <iconify-icon icon="solar:sticker-smile-circle-2-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Tabler Icon</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link sidebar-link" href="../main/icon-solar.html" aria-expanded="false">
-                      <iconify-icon icon="solar:sticker-smile-circle-2-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Solar Icon</span>
-                    </a>
-                  </li>
-                  <li>
-                    <span class="sidebar-divider lg"></span>
-                  </li>
-                  <li class="nav-small-cap">
-                    <span class="hide-menu">Widgets</span>
-                  </li>
-
-                  <!-- ---------------------------------- -->
-                  <!-- Widgets -->
-                  <!-- ---------------------------------- -->
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/widgets-cards.html">
-                      <iconify-icon icon="solar:cardholder-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Cards</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/widgets-banners.html">
-                      <iconify-icon icon="solar:align-vertical-spacing-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Banner</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/widgets-charts.html">
-                      <iconify-icon icon="solar:chart-square-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Charts</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/widgets-feeds.html">
-                      <iconify-icon icon="solar:feed-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Feeds</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/widgets-apps.html">
-                      <iconify-icon icon="solar:clapperboard-text-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Apps</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/widgets-data.html">
-                      <iconify-icon icon="solar:database-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Data</span>
-                    </a>
-                  </li>
 
                 </ul>
               </nav>
@@ -570,223 +347,7 @@
                     <!-- ---------------------------------- -->
                     <!-- Home -->
                     <!-- ---------------------------------- -->
-                    <li class="nav-small-cap">
-                      <span class="hide-menu">Forms</span>
-                    </li>
-                    <!-- ---------------------------------- -->
-                    <!-- Form elements -->
-                    <!-- ---------------------------------- -->
-                    <li class="sidebar-item">
-                      <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
-                        <iconify-icon icon="solar:text-selection-line-duotone"></iconify-icon>
-                        <span class="hide-menu">Forms Elements</span>
-                      </a>
-                      <ul aria-expanded="false" class="collapse first-level">
-                        <li class="sidebar-item">
-                          <a href="../main/form-inputs.html" class="sidebar-link">
-                            <span class="icon-small"></span>
-                            <span class="hide-menu">Forms Input</span>
-                          </a>
-                        </li>
-                        <li class="sidebar-item">
-                          <a href="../main/form-input-groups.html" class="sidebar-link">
-                            <span class="icon-small"></span>
-                            <span class="hide-menu">Input Groups</span>
-                          </a>
-                        </li>
-                        <li class="sidebar-item">
-                          <a href="../main/form-input-grid.html" class="sidebar-link">
-                            <span class="icon-small"></span>
-                            <span class="hide-menu">Input Grid</span>
-                          </a>
-                        </li>
-                        <li class="sidebar-item">
-                          <a href="../main/form-checkbox-radio.html" class="sidebar-link">
-                            <span class="icon-small"></span>
-                            <span class="hide-menu">Checkbox & Radios</span>
-                          </a>
-                        </li>
-                        <li class="sidebar-item">
-                          <a href="../main/form-bootstrap-switch.html" class="sidebar-link">
-                            <span class="icon-small"></span>
-                            <span class="hide-menu">BT Switch</span>
-                          </a>
-                        </li>
-                        <li class="sidebar-item">
-                          <a href="../main/form-select2.html" class="sidebar-link">
-                            <span class="icon-small"></span>
-                            <span class="hide-menu">Select2</span>
-                          </a>
-                        </li>
-                      </ul>
-                    </li>
-                    <!-- ---------------------------------- -->
-                    <!-- Form Input -->
-                    <!-- ---------------------------------- -->
-                    <li class="sidebar-item">
-                      <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
-                        <iconify-icon icon="solar:password-minimalistic-input-line-duotone"></iconify-icon>
-                        <span class="hide-menu">Forms Inputs</span>
-                      </a>
-                      <ul aria-expanded="false" class="collapse first-level">
-                        <li class="sidebar-item">
-                          <a href="../main/form-basic.html" class="sidebar-link">
-                            <span class="icon-small"></span>
-                            <span class="hide-menu">Basic Form</span>
-                          </a>
-                        </li>
-                        <li class="sidebar-item">
-                          <a href="../main/form-vertical.html" class="sidebar-link">
-                            <span class="icon-small"></span>
-                            <span class="hide-menu">Form Vertical</span>
-                          </a>
-                        </li>
-                        <li class="sidebar-item">
-                          <a href="../main/form-horizontal.html" class="sidebar-link">
-                            <span class="icon-small"></span>
-                            <span class="hide-menu">Form Horizontal</span>
-                          </a>
-                        </li>
-                        <li class="sidebar-item">
-                          <a href="../main/form-actions.html" class="sidebar-link">
-                            <span class="icon-small"></span>
-                            <span class="hide-menu">Form Actions</span>
-                          </a>
-                        </li>
-                        <li class="sidebar-item">
-                          <a href="../main/form-row-separator.html" class="sidebar-link">
-                            <span class="icon-small"></span>
-                            <span class="hide-menu">Row Separator</span>
-                          </a>
-                        </li>
-                        <li class="sidebar-item">
-                          <a href="../main/form-bordered.html" class="sidebar-link">
-                            <span class="icon-small"></span>
-                            <span class="hide-menu">Form Bordered</span>
-                          </a>
-                        </li>
-                        <li class="sidebar-item">
-                          <a href="../main/form-detail.html" class="sidebar-link">
-                            <span class="icon-small"></span>
-                            <span class="hide-menu">Form Detail</span>
-                          </a>
-                        </li>
-                        <li class="sidebar-item">
-                          <a href="../main/form-striped-row.html" class="sidebar-link">
-                            <span class="icon-small"></span>
-                            <span class="hide-menu">Striped Rows</span>
-                          </a>
-                        </li>
-                        <li class="sidebar-item">
-                          <a href="../main/form-floating-input.html" class="sidebar-link">
-                            <span class="icon-small"></span>
-                            <span class="hide-menu">Form Floating Input</span>
-                          </a>
-                        </li>
-                      </ul>
-                    </li>
-                    <li class="sidebar-item">
-                      <a href="../main/form-wizard.html" class="sidebar-link">
-                        <iconify-icon icon="solar:archive-line-duotone"></iconify-icon>
-                        <span class="hide-menu">Form Wizard</span>
-                      </a>
-                    </li>
-                    <li class="sidebar-item">
-                      <a href="../main/form-repeater.html" class="sidebar-link">
-                        <iconify-icon icon="solar:repeat-one-minimalistic-bold-duotone"></iconify-icon>
-                        <span class="hide-menu">Form Repeater</span>
-                      </a>
-                    </li>
-                    <li>
-                      <span class="sidebar-divider lg"></span>
-                    </li>
-                    <li class="nav-small-cap">
-                      <span class="hide-menu">Addons</span>
-                    </li>
-                    <li class="sidebar-item">
-                      <a href="../main/form-dropzone.html" class="sidebar-link">
-                        <iconify-icon icon="solar:flip-horizontal-line-duotone"></iconify-icon>
-                        <span class="hide-menu">Dropzone</span>
-                      </a>
-                    </li>
-                    <li class="sidebar-item">
-                      <a href="../main/form-mask.html" class="sidebar-link">
-                        <iconify-icon icon="solar:mask-happly-line-duotone"></iconify-icon>
-                        <span class="hide-menu">Form Mask</span>
-                      </a>
-                    </li>
-                    <li class="sidebar-item">
-                      <a href="../main/form-typeahead.html" class="sidebar-link">
-                        <iconify-icon icon="solar:high-quality-line-duotone"></iconify-icon>
-                        <span class="hide-menu">Form Typehead</span>
-                      </a>
-                    </li>
-                    <li>
-                      <span class="sidebar-divider lg"></span>
-                    </li>
-                    <li class="nav-small-cap">
-                      <span class="hide-menu">Validation</span>
-                    </li>
-                    <li class="sidebar-item">
-                      <a href="../main/form-bootstrap-validation.html" class="sidebar-link">
-                        <iconify-icon icon="solar:shield-warning-line-duotone"></iconify-icon>
-                        <span class="hide-menu">Bootstrap Validation</span>
-                      </a>
-                    </li>
-                    <li class="sidebar-item">
-                      <a href="../main/form-custom-validation.html" class="sidebar-link">
-                        <iconify-icon icon="solar:shield-warning-line-duotone"></iconify-icon>
-                        <span class="hide-menu">Custom Validation</span>
-                      </a>
-                    </li>
-                    <li>
-                      <span class="sidebar-divider lg"></span>
-                    </li>
-                    <li class="nav-small-cap">
-                      <span class="hide-menu">Pickers</span>
-                    </li>
-                    <li class="sidebar-item">
-                      <a href="../main/form-picker-colorpicker.html" class="sidebar-link">
-                        <iconify-icon icon="solar:waterdrop-line-duotone"></iconify-icon>
-                        <span class="hide-menu">Colorpicker</span>
-                      </a>
-                    </li>
-                    <li class="sidebar-item">
-                      <a href="../main/form-picker-bootstrap-rangepicker.html" class="sidebar-link">
-                        <iconify-icon icon="solar:square-transfer-horizontal-line-duotone"></iconify-icon>
-                        <span class="hide-menu">Rangepicker</span>
-                      </a>
-                    </li>
-                    <li class="sidebar-item">
-                      <a href="../main/form-picker-bootstrap-datepicker.html" class="sidebar-link">
-                        <iconify-icon icon="solar:calendar-date-line-duotone"></iconify-icon>
-                        <span class="hide-menu">BT Datepicker</span>
-                      </a>
-                    </li>
-                    <li class="sidebar-item">
-                      <a href="../main/form-picker-material-datepicker.html" class="sidebar-link">
-                        <iconify-icon icon="solar:smartphone-update-line-duotone"></iconify-icon>
-                        <span class="hide-menu">MT Datepicker</span>
-                      </a>
-                    </li>
-                    <li>
-                      <span class="sidebar-divider lg"></span>
-                    </li>
-                    <li class="nav-small-cap">
-                      <span class="hide-menu">Editors</span>
-                    </li>
-                    <li class="sidebar-item">
-                      <a href="../main/form-editor-quill.html" class="sidebar-link">
-                        <iconify-icon icon="solar:clapperboard-edit-line-duotone"></iconify-icon>
-                        <span class="hide-menu">Quill Editor</span>
-                      </a>
-                    </li>
-                    <li class="sidebar-item">
-                      <a href="../main/form-editor-tinymce.html" class="sidebar-link">
-                        <iconify-icon icon="solar:clapperboard-edit-line-duotone"></iconify-icon>
-                        <span class="hide-menu">Tinymce Edtor</span>
-                      </a>
-                    </li>
+
                   </ul>
                 </div>
               </nav>
@@ -796,61 +357,7 @@
                   <!-- ---------------------------------- -->
                   <!-- Home -->
                   <!-- ---------------------------------- -->
-                  <li class="nav-small-cap">
-                    <span class="hide-menu">Bootstrap Tables</span>
-                  </li>
-                  <!-- ---------------------------------- -->
-                  <!-- Dashboard -->
-                  <!-- ---------------------------------- -->
 
-                  <li class="sidebar-item">
-                    <a href="../main/table-basic.html" class="sidebar-link">
-                      <iconify-icon icon="solar:tablet-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Basic Table</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/table-dark-basic.html" class="sidebar-link">
-                      <iconify-icon icon="solar:tablet-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Dark Table</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/table-sizing.html" class="sidebar-link">
-                      <iconify-icon icon="solar:tablet-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Sizing Table</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/table-layout-coloured.html" class="sidebar-link">
-                      <iconify-icon icon="solar:tablet-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Coloured Table</span>
-                    </a>
-                  </li>
-                  <li>
-                    <span class="sidebar-divider lg"></span>
-                  </li>
-                  <li class="nav-small-cap">
-                    <span class="hide-menu">Datatables</span>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/table-datatable-basic.html" class="sidebar-link">
-                      <iconify-icon icon="solar:align-horizonta-spacing-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Basic</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/table-datatable-api.html" class="sidebar-link">
-                      <iconify-icon icon="solar:align-horizonta-spacing-line-duotone"></iconify-icon>
-                      <span class="hide-menu">API</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/table-datatable-advanced.html" class="sidebar-link">
-                      <iconify-icon icon="solar:align-horizonta-spacing-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Advanced</span>
-                    </a>
-                  </li>
                 </ul>
               </nav>
               <!-- sidebar -->
@@ -859,54 +366,7 @@
                   <!-- ---------------------------------- -->
                   <!-- Home -->
                   <!-- ---------------------------------- -->
-                  <li class="nav-small-cap">
-                    <span class="hide-menu">Charts</span>
-                  </li>
-                  <!-- ---------------------------------- -->
-                  <!-- Dashboard -->
-                  <!-- ---------------------------------- -->
 
-                  <li class="sidebar-item">
-                    <a href="../main/chart-apex-line.html" class="sidebar-link">
-                      <iconify-icon icon="solar:chart-square-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Line Chart</span>
-                    </a>
-                  </li>
-
-                  <li class="sidebar-item">
-                    <a href="../main/chart-apex-area.html" class="sidebar-link">
-                      <iconify-icon icon="solar:pie-chart-3-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Area Chart</span>
-                    </a>
-                  </li>
-
-                  <li class="sidebar-item">
-                    <a href="../main/chart-apex-bar.html" class="sidebar-link">
-                      <iconify-icon icon="solar:chart-2-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Bar Chart</span>
-                    </a>
-                  </li>
-
-                  <li class="sidebar-item">
-                    <a href="../main/chart-apex-pie.html" class="sidebar-link">
-                      <iconify-icon icon="solar:pie-chart-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Pie Chart</span>
-                    </a>
-                  </li>
-
-                  <li class="sidebar-item">
-                    <a href="../main/chart-apex-radial.html" class="sidebar-link">
-                      <iconify-icon icon="solar:chart-square-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Radial Chart</span>
-                    </a>
-                  </li>
-
-                  <li class="sidebar-item">
-                    <a href="../main/chart-apex-radar.html" class="sidebar-link">
-                      <iconify-icon icon="solar:round-graph-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Radar Chart</span>
-                    </a>
-                  </li>
                 </ul>
               </nav>
               <!-- sidebar -->
@@ -915,133 +375,7 @@
                   <!-- ---------------------------------- -->
                   <!-- Home -->
                   <!-- ---------------------------------- -->
-                  <li class="nav-small-cap">
-                    <span class="hide-menu">Ui</span>
-                  </li>
-                  <!-- ---------------------------------- -->
-                  <!-- Dashboard -->
-                  <!-- ---------------------------------- -->
 
-                  <li class="sidebar-item">
-                    <a href="../main/ui-accordian.html" class="sidebar-link">
-                      <iconify-icon icon="solar:waterdrops-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Accordian</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-badge.html" class="sidebar-link">
-                      <iconify-icon icon="solar:tag-horizontal-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Badge</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-buttons.html" class="sidebar-link">
-                      <iconify-icon icon="solar:airbuds-case-minimalistic-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Buttons</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-dropdowns.html" class="sidebar-link">
-                      <iconify-icon icon="solar:airbuds-case-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Dropdowns</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-modals.html" class="sidebar-link">
-                      <iconify-icon icon="solar:bolt-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Modals</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-tab.html" class="sidebar-link">
-                      <iconify-icon icon="solar:box-minimalistic-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Tab</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-tooltip-popover.html" class="sidebar-link">
-                      <iconify-icon icon="solar:feed-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Tooltip & Popover</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-notification.html" class="sidebar-link">
-                      <iconify-icon icon="solar:flag-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Notification</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-progressbar.html" class="sidebar-link">
-                      <iconify-icon icon="solar:programming-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Progressbar</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-pagination.html" class="sidebar-link">
-                      <iconify-icon icon="solar:waterdrops-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Pagination</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-typography.html" class="sidebar-link">
-                      <iconify-icon icon="solar:text-bold-duotone"></iconify-icon>
-                      <span class="hide-menu">Typography</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-bootstrap-ui.html" class="sidebar-link">
-                      <iconify-icon icon="solar:balloon-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Bootstrap UI</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-breadcrumb.html" class="sidebar-link">
-                      <iconify-icon icon="solar:slider-minimalistic-horizontal-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Breadcrumb</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-offcanvas.html" class="sidebar-link">
-                      <iconify-icon icon="solar:laptop-minimalistic-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Offcanvas</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-lists.html" class="sidebar-link">
-                      <iconify-icon icon="solar:checklist-bold-duotone"></iconify-icon>
-                      <span class="hide-menu">Lists</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-grid.html" class="sidebar-link">
-                      <iconify-icon icon="solar:layers-minimalistic-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Grid</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-carousel.html" class="sidebar-link">
-                      <iconify-icon icon="solar:align-horizonta-spacing-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Carousel</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-scrollspy.html" class="sidebar-link">
-                      <iconify-icon icon="solar:multiple-forward-right-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Scrollspy</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-spinner.html" class="sidebar-link">
-                      <iconify-icon icon="solar:soundwave-bold-duotone"></iconify-icon>
-                      <span class="hide-menu">Spinner</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-link.html" class="sidebar-link">
-                      <iconify-icon icon="solar:link-round-angle-bold-duotone"></iconify-icon>
-                      <span class="hide-menu">Link</span>
-                    </a>
-                  </li>
                 </ul>
               </nav>
               <!-- sidebar -->
@@ -1050,72 +384,7 @@
                   <!-- ---------------------------------- -->
                   <!-- Home -->
                   <!-- ---------------------------------- -->
-                  <li class="nav-small-cap">
-                    <span class="hide-menu">Components</span>
-                  </li>
-                  <!-- ---------------------------------- -->
-                  <!-- Dashboard -->
-                  <!-- ---------------------------------- -->
-                  <li class="sidebar-item">
-                    <a href="../main/component-sweetalert.html" class="sidebar-link">
-                      <iconify-icon icon="solar:star-fall-minimalistic-2-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Sweet Alert</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/component-nestable.html" class="sidebar-link">
-                      <iconify-icon icon="solar:speaker-minimalistic-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Nestable</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/component-noui-slider.html" class="sidebar-link">
-                      <iconify-icon icon="solar:watch-square-minimalistic-charge-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Noui slider</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/component-rating.html" class="sidebar-link">
-                      <iconify-icon icon="solar:stars-minimalistic-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Rating</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/component-toastr.html" class="sidebar-link">
-                      <iconify-icon icon="solar:station-minimalistic-bold-duotone"></iconify-icon>
-                      <span class="hide-menu">Toastr</span>
-                    </a>
-                  </li>
-                  <li>
-                    <span class="sidebar-divider lg"></span>
-                  </li>
-                  <li class="nav-small-cap">
-                    <span class="hide-menu">Cards</span>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-cards.html" class="sidebar-link">
-                      <iconify-icon icon="solar:bookmark-square-minimalistic-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Basic Cards</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-card-customs.html" class="sidebar-link">
-                      <iconify-icon icon="solar:bookmark-square-minimalistic-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Custom Cards</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-card-weather.html" class="sidebar-link">
-                      <iconify-icon icon="solar:cloud-snowfall-minimalistic-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Weather Cards</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/ui-card-draggable.html" class="sidebar-link">
-                      <iconify-icon icon="solar:password-minimalistic-input-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Draggable Cards</span>
-                    </a>
-                  </li>
+
                 </ul>
               </nav>
               <!-- sidebar -->
@@ -1124,178 +393,14 @@
                   <!-- ---------------------------------- -->
                   <!-- Home -->
                   <!-- ---------------------------------- -->
-                  <li class="nav-small-cap">
-                    <span class="hide-menu">Auth</span>
-                  </li>
-                  <!-- ---------------------------------- -->
-                  <!-- Dashboard -->
-                  <!-- ---------------------------------- -->
 
-                  <li class="sidebar-item">
-                    <a href="../main/authentication-error.html" class="sidebar-link">
-                      <iconify-icon icon="solar:bug-minimalistic-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Error</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/authentication-login.html" class="sidebar-link">
-                      <iconify-icon icon="solar:login-3-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Side Login</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/authentication-login2.html" class="sidebar-link">
-                      <iconify-icon icon="solar:login-3-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Boxed Login</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/authentication-register.html" class="sidebar-link">
-                      <iconify-icon icon="solar:user-plus-rounded-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Side Register</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/authentication-register2.html" class="sidebar-link">
-                      <iconify-icon icon="solar:user-plus-rounded-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Boxed Register</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/authentication-forgot-password.html" class="sidebar-link">
-                      <iconify-icon icon="solar:password-outline"></iconify-icon>
-                      <span class="hide-menu">Side Forgot Pwd</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/authentication-forgot-password2.html" class="sidebar-link">
-                      <iconify-icon icon="solar:password-outline"></iconify-icon>
-                      <span class="hide-menu">Boxed Forgot Pwd</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/authentication-two-steps.html" class="sidebar-link">
-                      <iconify-icon icon="solar:siderbar-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Side Two Steps</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/authentication-two-steps2.html" class="sidebar-link">
-                      <iconify-icon icon="solar:siderbar-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Boxed Two Steps</span>
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../main/authentication-maintenance.html" class="sidebar-link">
-                      <iconify-icon icon="solar:settings-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Maintenance</span>
-                    </a>
-                  </li>
 
                 </ul>
               </nav>
               <!-- sidebar -->
               <nav class="sidebar-nav scroll-sidebar" id="menu-right-mini-10" data-simplebar>
                 <ul class="sidebar-menu" id="sidebarnav">
-                  <li class="nav-small-cap">
-                    <span class="hide-menu">Documentation</span>
-                  </li>
-                  <li class="sidebar-item">
-                    <a href="../docs/index.html" class="sidebar-link">
-                      <iconify-icon icon="solar:settings-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Getting Started</span>
-                    </a>
-                  </li>
-                  <li>
-                    <span class="sidebar-divider"></span>
-                  </li>
-                  <li class="nav-small-cap">
-                    <span class="hide-menu">Multi level</span>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link has-arrow primary-hover-bg" href="javascript:void(0)" aria-expanded="false">
-                      <iconify-icon icon="solar:align-left-line-duotone"></iconify-icon>
-                      <span class="hide-menu">Menu Level</span>
-                    </a>
-                    <ul aria-expanded="false" class="collapse first-level">
-                      <li class="sidebar-item">
-                        <a href="javascript:void(0)" class="sidebar-link">
-                          <span class="icon-small"></span>
-                          <span class="hide-menu">Level 1</span>
-                        </a>
-                      </li>
-                      <li class="sidebar-item">
-                        <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
-                          <span class="icon-small"></span>
-                          <span class="hide-menu">Level 1.1</span>
-                        </a>
-                        <ul aria-expanded="false" class="collapse two-level">
-                          <li class="sidebar-item">
-                            <a href="javascript:void(0)" class="sidebar-link">
-                              <span class="icon-small"></span>
-                              <span class="hide-menu">Level 2</span>
-                            </a>
-                          </li>
-                          <li class="sidebar-item">
-                            <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
-                              <span class="icon-small"></span>
-                              <span class="hide-menu">Level 2.1</span>
-                            </a>
-                            <ul aria-expanded="false" class="collapse three-level">
-                              <li class="sidebar-item">
-                                <a href="javascript:void(0)" class="sidebar-link">
-                                  <span class="icon-small"></span>
-                                  <span class="hide-menu">Level 3</span>
-                                </a>
-                              </li>
-                              <li class="sidebar-item">
-                                <a href="javascript:void(0)" class="sidebar-link">
-                                  <span class="icon-small"></span>
-                                  <span class="hide-menu">Level 3.1</span>
-                                </a>
-                              </li>
-                            </ul>
-                          </li>
-                        </ul>
-                      </li>
-                    </ul>
-                  </li>
-                  <li>
-                    <span class="sidebar-divider"></span>
-                  </li>
-                  <li class="nav-small-cap">
-                    <span class="hide-menu">More Options</span>
-                  </li>
-                  <li class="sidebar-item">
-                    <div class="sidebar-link">
-                      <span class="circle-shape bg-primary rounded-pill"></span>
-                      <span class="hide-menu">Applications</span>
-                    </div>
-                  </li>
-                  <li class="sidebar-item">
-                    <div class="sidebar-link">
-                      <span class="circle-shape bg-secondary rounded-pill"></span>
-                      <span class="hide-menu">Form Options</span>
-                    </div>
-                  </li>
-                  <li class="sidebar-item">
-                    <div class="sidebar-link">
-                      <span class="circle-shape bg-danger rounded-pill"></span>
-                      <span class="hide-menu">Table Variations</span>
-                    </div>
-                  </li>
-                  <li class="sidebar-item">
-                    <div class="sidebar-link">
-                      <span class="circle-shape bg-warning rounded-pill"></span>
-                      <span class="hide-menu">Charts Selection</span>
-                    </div>
-                  </li>
-                  <li class="sidebar-item">
-                    <div class="sidebar-link">
-                      <span class="circle-shape bg-success rounded-pill"></span>
-                      <span class="hide-menu">Widgets</span>
-                    </div>
-                  </li>
+
                 </ul>
               </nav>
             </div>
@@ -1456,30 +561,7 @@
                                 <a class="fw-semibold bg-hover-primary" href="../main/page-pricing.html">Pricing
                                   Page</a>
                               </li>
-                              <li class="mb-3">
-                                <a class="fw-semibold bg-hover-primary"
-                                  href="../main/authentication-login.html">Authentication
-                                  Design</a>
-                              </li>
-                              <li class="mb-3">
-                                <a class="fw-semibold bg-hover-primary"
-                                  href="../main/authentication-register.html">Register Now</a>
-                              </li>
-                              <li class="mb-3">
-                                <a class="fw-semibold bg-hover-primary" href="../main/authentication-error.html">404
-                                  Error Page</a>
-                              </li>
-                              <li class="mb-3">
-                                <a class="fw-semibold bg-hover-primary" href="../main/app-notes.html">Notes App</a>
-                              </li>
-                              <li class="mb-3">
-                                <a class="fw-semibold bg-hover-primary" href="../main/page-user-profile.html">User
-                                  Application</a>
-                              </li>
-                              <li class="mb-3">
-                                <a class="fw-semibold bg-hover-primary"
-                                  href="../main/page-account-settings.html">Account Settings</a>
-                              </li>
+
                             </ul>
                           </div>
                         </div>
@@ -1490,8 +572,10 @@
               </ul>
 
               <div class="d-block d-lg-none">
-                <img src="../assets/images/logos/dark-logo.svg" class="dark-logo" width="180" alt="MaterialM-img" />
-                <img src="../assets/images/logos/light-logo.svg" class="light-logo" width="180" alt="MaterialM-img" />
+                <img src="{% static 'assets/images/logos/dark-logo.svg' %}" class="dark-logo" width="180"
+                  alt="Mentura-img" />
+                <img src="{% static 'assets/images/logos/light-logo.svg' %}" class="light-logo" width="180"
+                  alt="Mentura-img" />
               </div>
               <a class="navbar-toggler p-0 border-0 nav-icon-hover" href="javascript:void(0)" data-bs-toggle="collapse"
                 data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false"

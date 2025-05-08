@@ -325,6 +325,7 @@ students/
 └── views.py                     # Views
 ```
 
+
 ## Environment Configuration
 
 The project uses multiple environment configurations to handle different deployment scenarios:

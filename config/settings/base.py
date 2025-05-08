@@ -5,17 +5,15 @@ Base settings for School Management System.
 import os
 from pathlib import Path
 from datetime import timedelta
+from decouple import config, Csv
 
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-change-this-in-production")
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+# Security settings
+SECRET_KEY = config("SECRET_KEY")
+DEBUG = config("DEBUG", default=False, cast=bool)
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv())
 
 # Application definition
 INSTALLED_APPS = [
@@ -34,6 +32,8 @@ INSTALLED_APPS = [
     "corsheaders",
     "django_filters",
     "drf_yasg",
+    "celery",
+    "django_celery_beat",
     # Local apps
     "src.accounts",
     "src.api",
@@ -41,6 +41,13 @@ INSTALLED_APPS = [
     "src.students",
     "src.teachers",
     "src.courses",
+    "src.exams",
+    "src.attendance",
+    "src.finance",
+    "src.library",
+    "src.transport",
+    "src.communications",
+    "src.reports",
 ]
 
 MIDDLEWARE = [
@@ -148,7 +155,7 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
-    "DEFAULT_PAGINATION_CLASS": "src.api.pagination.StandardResultsSetPagination",
+    "DEFAULT_PAGINATION_CLASS": "src.api.paginations.StandardResultsSetPagination",
     "PAGE_SIZE": 100,
     "DEFAULT_FILTER_BACKENDS": (
         "django_filters.rest_framework.DjangoFilterBackend",
@@ -188,3 +195,11 @@ LOGOUT_REDIRECT_URL = "accounts:login"
 # Email settings (configure for your environment)
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = "noreply@schoolmanagementsystem.com"
+
+# Celery settings
+CELERY_BROKER_URL = config("REDIS_URL")
+CELERY_RESULT_BACKEND = config("REDIS_URL")
+CELERY_ACCEPT_CONTENT = ["application/json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = "UTC"

@@ -32,6 +32,7 @@ from .forms import (
 )
 from .services import RoleService
 from .decorators import admin_required, permission_required
+from accounts import models
 
 
 class CustomLoginView(LoginView):

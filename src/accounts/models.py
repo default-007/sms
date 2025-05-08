@@ -75,6 +75,47 @@ class User(AbstractBaseUser, PermissionsMixin):
         """Check if the user has a specific role."""
         return self.role_assignments.filter(role__name=role_name).exists()
 
+    def get_initials(self):
+        """Return the user's initials."""
+        initials = ""
+        if self.first_name:
+            initials += self.first_name[0]
+        if self.last_name:
+            initials += self.last_name[0]
+        return initials.upper()
+
+    def get_age(self):
+        """Return the user's age based on date of birth."""
+        from datetime import date
+
+        if not self.date_of_birth:
+            return None
+        today = date.today()
+        return (
+            today.year
+            - self.date_of_birth.year
+            - (
+                (today.month, today.day)
+                < (self.date_of_birth.month, self.date_of_birth.day)
+            )
+        )
+
+    def is_admin(self):
+        """Check if the user has admin role."""
+        return self.is_superuser or self.has_role("Admin")
+
+    def get_permissions(self):
+        """Get all permissions from the user's roles."""
+        from accounts.services import RoleService
+
+        return RoleService.get_user_permissions(self)
+
+    def has_permission(self, resource, action):
+        """Check if the user has a specific permission."""
+        from accounts.services import RoleService
+
+        return RoleService.check_permission(self, resource, action)
+
 
 class UserRole(models.Model):
     """Role model for role-based access control."""

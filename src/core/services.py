@@ -1,11 +1,14 @@
 import os
 import json
+import zipfile
+import io
 from datetime import datetime, timedelta
 from django.conf import settings
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.apps import apps
-from .models import SystemSetting, Document
+from django.db.models import Q
+from .models import SystemSetting, Document, AuditLog
 from .utils import get_system_setting
 
 
@@ -168,3 +171,119 @@ class DocumentService:
     def get_recent_public_documents(limit=10):
         """Get recent public documents."""
         return Document.objects.filter(is_public=True).order_by("-upload_date")[:limit]
+
+    # Add this method to DocumentService class
+
+
+@staticmethod
+def get_documents_by_category(category, limit=None, user=None):
+    """Get documents by category with optional user-based filtering."""
+    queryset = Document.objects.filter(category=category)
+
+    # If user is provided and not staff, limit to public and own documents
+    if user and not user.is_staff:
+        queryset = queryset.filter(Q(is_public=True) | Q(uploaded_by=user))
+
+    # Apply limit if provided
+    if limit is not None:
+        queryset = queryset[:limit]
+
+    return queryset.order_by("-upload_date")
+
+
+@staticmethod
+def archive_documents(document_ids, archive_name=None):
+    """Create a ZIP archive of selected documents."""
+    if not archive_name:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        archive_name = f"documents_archive_{timestamp}.zip"
+
+    # Get the documents
+    documents = Document.objects.filter(id__in=document_ids)
+
+    # Create in-memory zip file
+    zip_io = io.BytesIO()
+    with zipfile.ZipFile(zip_io, "w") as zip_file:
+        for document in documents:
+            # Only include if file exists
+            if document.file_path and os.path.exists(document.file_path.path):
+                # Get file name (without path)
+                file_name = os.path.basename(document.file_path.name)
+
+                # Add to zip with original file name
+                zip_file.write(document.file_path.path, file_name)
+
+    # Reset pointer to start of buffer
+    zip_io.seek(0)
+    return zip_io, archive_name
+
+
+# Create a notification service for the core module
+class NotificationService:
+    """Service for sending system notifications."""
+
+    @staticmethod
+    def send_email_notification(
+        recipients, subject, template_name, context, attachments=None
+    ):
+        """Send email notification using a template."""
+        # Get From email from settings
+        from_email = get_system_setting("school_email", settings.DEFAULT_FROM_EMAIL)
+
+        # Prepare HTML content
+        html_content = render_to_string(template_name, context)
+
+        # Create message
+        msg = EmailMultiAlternatives(
+            subject, strip_tags(html_content), from_email, recipients
+        )
+        msg.attach_alternative(html_content, "text/html")
+
+        # Add attachments if provided
+        if attachments:
+            for attachment in attachments:
+                name, content, mimetype = attachment
+                msg.attach(name, content, mimetype)
+
+        # Send the email
+        msg.send()
+
+    @staticmethod
+    def send_system_notification(
+        user_ids,
+        title,
+        content,
+        notification_type,
+        reference_id=None,
+        priority="Medium",
+    ):
+        """Send in-app notification to multiple users."""
+        # Import Notification model dynamically to avoid circular imports
+        try:
+            Notification = apps.get_model("communications", "Notification")
+            User = apps.get_model("auth", "User")
+
+            # Get users
+            users = User.objects.filter(id__in=user_ids)
+
+            # Create notifications
+            notifications = []
+            for user in users:
+                notifications.append(
+                    Notification(
+                        user=user,
+                        title=title,
+                        content=content,
+                        notification_type=notification_type,
+                        reference_id=reference_id,
+                        priority=priority,
+                    )
+                )
+
+            # Bulk create
+            if notifications:
+                Notification.objects.bulk_create(notifications)
+
+            return True, len(notifications)
+        except Exception as e:
+            return False, str(e)

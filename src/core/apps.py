@@ -7,8 +7,16 @@ class CoreConfig(AppConfig):
 
     default_auto_field = "django.db.models.BigAutoField"
     name = "src.core"
-    verbose_name = _("Core")
+    verbose_name = "Core System"
 
     def ready(self):
-        """Register signals when the app is ready."""
         import src.core.signals
+        from src.core.services import SystemSettingService
+
+        # Initialize default settings
+        try:
+            SystemSettingService.initialize_default_settings()
+        except Exception as e:
+            # Handle initialization errors gracefully
+            # This might occur during migrations
+            pass

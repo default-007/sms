@@ -285,11 +285,6 @@ Each Django app follows a modular and consistent structure. Let's look at a more
 ```
 students/
 ├── migrations/                  # Database migrations
-├── api/                         # API specific code
-│   ├── __init__.py
-│   ├── serializers.py           # API serializers
-│   ├── views.py                 # API views
-│   └── urls.py                  # API URL patterns
 ├── constants/                   # Constants and enums
 │   ├── __init__.py
 │   └── choices.py               # Choice fields
@@ -357,7 +352,7 @@ The project includes Docker configuration for containerized deployment:
 
 ```yaml
 # docker-compose.yml
-version: '3.8'
+version: "3.8"
 
 services:
   web:
@@ -465,7 +460,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
+
     # Third-party apps
     'rest_framework',
     'rest_framework.authtoken',
@@ -474,7 +469,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'celery',
     'django_celery_beat',
-    
+
     # Local apps
     'src.core',
     'src.accounts',

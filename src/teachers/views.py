@@ -1,3 +1,4 @@
+# src/teachers/views.py
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import (
     ListView,
@@ -10,9 +11,11 @@ from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib import messages
 from django.db.models import Q
+from django.utils import timezone
 
 from .models import Teacher, TeacherClassAssignment, TeacherEvaluation
 from .forms import TeacherForm, TeacherClassAssignmentForm, TeacherEvaluationForm
+from .services import TeacherService, EvaluationService
 
 
 class TeacherListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
@@ -72,12 +75,18 @@ class TeacherDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView)
             teacher=teacher
         ).select_related("class_instance", "subject", "academic_year")
 
+        # Get timetable for current teacher
+        from src.courses.services.timetable_service import TimetableService
+
+        context["timetable"] = TimetableService.get_teacher_timetable(teacher=teacher)
+
         # Get evaluations if user has permission
         if self.request.user.has_perm("teachers.view_teacherevaluation"):
-            context["evaluations"] = (
-                TeacherEvaluation.objects.filter(teacher=teacher)
-                .select_related("evaluator")
-                .order_by("-evaluation_date")
+            context["evaluations"] = EvaluationService.get_evaluations_by_teacher(
+                teacher
+            )
+            context["performance"] = TeacherService.calculate_teacher_performance(
+                teacher
             )
 
         return context
@@ -171,7 +180,13 @@ class TeacherEvaluationCreateView(
         teacher_id = self.kwargs.get("teacher_id")
         if teacher_id:
             initial["teacher"] = teacher_id
+            initial["evaluation_date"] = timezone.now().date()
         return initial
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
 
     def form_valid(self, form):
         form.instance.evaluator = self.request.user

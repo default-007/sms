@@ -19,7 +19,7 @@ from django.utils import timezone
 from datetime import timedelta
 import csv
 
-from courses.models import Grade
+from src.courses.models import Grade
 
 from .models import (
     FeeCategory,

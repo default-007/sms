@@ -1,4 +1,6 @@
 from src.courses.models import Assignment, AssignmentSubmission
+from django.db import DatabaseError
+from django.db.utils import ProgrammingError
 from django.utils import timezone
 
 

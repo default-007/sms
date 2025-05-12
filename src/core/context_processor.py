@@ -1,16 +1,34 @@
 from django.conf import settings
+from functools import lru_cache
 from .utils import get_system_setting
+
+
+# Use caching to prevent repeated queries
+@lru_cache(maxsize=32)
+def _get_cached_setting(key, default=None):
+    """Cache system settings to reduce DB queries"""
+    from .models import SystemSetting
+
+    try:
+        setting = SystemSetting.objects.get(setting_key=key)
+        if setting.data_type == "boolean":
+            return setting.setting_value.lower() in ("true", "yes", "1")
+        else:
+            return setting.setting_value
+    except Exception:
+        return default
 
 
 def global_settings(request):
     """Make settings available in all templates."""
+    # Don't access the database during import, defer until the function is called
     return {
-        "SITE_NAME": get_system_setting("site_name", "School Management System"),
-        "SCHOOL_ADDRESS": get_system_setting("school_address", ""),
-        "SCHOOL_PHONE": get_system_setting("school_phone", ""),
-        "SCHOOL_EMAIL": get_system_setting("school_email", ""),
-        "CURRENT_ACADEMIC_YEAR": get_system_setting("current_academic_year", ""),
-        "ENABLE_NOTIFICATIONS": get_system_setting("enable_notifications", True),
+        "SITE_NAME": _get_cached_setting("site_name", "School Management System"),
+        "SCHOOL_ADDRESS": _get_cached_setting("school_address", ""),
+        "SCHOOL_PHONE": _get_cached_setting("school_phone", ""),
+        "SCHOOL_EMAIL": _get_cached_setting("school_email", ""),
+        "CURRENT_ACADEMIC_YEAR": _get_cached_setting("current_academic_year", ""),
+        "ENABLE_NOTIFICATIONS": _get_cached_setting("enable_notifications", True),
     }
 
 

@@ -70,7 +70,7 @@ TEMPLATES = [
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
-                "accounts.context_processors.user_roles",
+                "src.accounts.context_processors.user_roles",
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
@@ -155,7 +155,7 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
-    "DEFAULT_PAGINATION_CLASS": "src.api.paginations.StandardResultsSetPagination",
+    "DEFAULT_PAGINATION_CLASS": "src.api.pagination.StandardResultsSetPagination",
     "PAGE_SIZE": 100,
     "DEFAULT_FILTER_BACKENDS": (
         "django_filters.rest_framework.DjangoFilterBackend",

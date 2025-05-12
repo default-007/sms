@@ -1,3 +1,4 @@
+# src/teachers/forms.py
 from django import forms
 from django.contrib.auth import get_user_model
 from .models import Teacher, TeacherClassAssignment, TeacherEvaluation
@@ -6,10 +7,18 @@ User = get_user_model()
 
 
 class TeacherForm(forms.ModelForm):
-    first_name = forms.CharField(max_length=100)
-    last_name = forms.CharField(max_length=100)
-    email = forms.EmailField()
-    phone_number = forms.CharField(max_length=20)
+    first_name = forms.CharField(
+        max_length=100, widget=forms.TextInput(attrs={"class": "form-control"})
+    )
+    last_name = forms.CharField(
+        max_length=100, widget=forms.TextInput(attrs={"class": "form-control"})
+    )
+    email = forms.EmailField(widget=forms.EmailInput(attrs={"class": "form-control"}))
+    phone_number = forms.CharField(
+        max_length=20,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
 
     class Meta:
         model = Teacher
@@ -25,6 +34,22 @@ class TeacherForm(forms.ModelForm):
             "contract_type",
             "status",
         )
+        widgets = {
+            "employee_id": forms.TextInput(attrs={"class": "form-control"}),
+            "joining_date": forms.DateInput(
+                attrs={"class": "form-control", "type": "date"}
+            ),
+            "qualification": forms.TextInput(attrs={"class": "form-control"}),
+            "experience_years": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.1"}
+            ),
+            "specialization": forms.TextInput(attrs={"class": "form-control"}),
+            "department": forms.Select(attrs={"class": "form-select"}),
+            "position": forms.TextInput(attrs={"class": "form-control"}),
+            "salary": forms.NumberInput(attrs={"class": "form-control"}),
+            "contract_type": forms.Select(attrs={"class": "form-select"}),
+            "status": forms.Select(attrs={"class": "form-select"}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -67,13 +92,22 @@ class TeacherClassAssignmentForm(forms.ModelForm):
             "academic_year",
             "is_class_teacher",
         )
+        widgets = {
+            "teacher": forms.HiddenInput(),
+            "class_instance": forms.Select(attrs={"class": "form-select"}),
+            "subject": forms.Select(attrs={"class": "form-select"}),
+            "academic_year": forms.Select(attrs={"class": "form-select"}),
+            "is_class_teacher": forms.CheckboxInput(
+                attrs={"class": "form-check-input"}
+            ),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # If teacher is preselected, make it readonly
         teacher_id = kwargs.get("initial", {}).get("teacher")
         if teacher_id:
-            self.fields["teacher"].widget.attrs["readonly"] = True
+            self.fields["teacher"].widget = forms.HiddenInput()
 
 
 class TeacherEvaluationForm(forms.ModelForm):
@@ -88,17 +122,21 @@ class TeacherEvaluationForm(forms.ModelForm):
             "followup_actions",
         )
         widgets = {
-            "criteria": forms.Textarea(attrs={"rows": 4}),
-            "remarks": forms.Textarea(attrs={"rows": 4}),
-            "followup_actions": forms.Textarea(attrs={"rows": 4}),
+            "teacher": forms.HiddenInput(),
+            "evaluation_date": forms.DateInput(
+                attrs={"class": "form-control", "type": "date"}
+            ),
+            "criteria": forms.HiddenInput(),
+            "score": forms.HiddenInput(),
+            "remarks": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+            "followup_actions": forms.Textarea(
+                attrs={"class": "form-control", "rows": 4}
+            ),
         }
 
     def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
-        # If teacher is preselected, make it readonly
-        teacher_id = kwargs.get("initial", {}).get("teacher")
-        if teacher_id:
-            self.fields["teacher"].widget.attrs["readonly"] = True
 
         # Default criteria structure if empty
         if not self.instance.pk:
@@ -109,3 +147,12 @@ class TeacherEvaluationForm(forms.ModelForm):
                 "student_engagement": {"score": 0, "max_score": 10, "comments": ""},
                 "professional_conduct": {"score": 0, "max_score": 10, "comments": ""},
             }
+            self.fields["evaluation_date"].initial = timezone.now().date()
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.user and not instance.evaluator_id:
+            instance.evaluator = self.user
+        if commit:
+            instance.save()
+        return instance

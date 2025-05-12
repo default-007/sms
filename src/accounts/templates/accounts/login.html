@@ -53,34 +53,16 @@
                 class="min-vh-100 bg-body row justify-content-center justify-content-lg-start align-items-center p-5">
                 <div class="col-sm-8 col-md-9 col-xxl-6 auth-card">
                   <a href="../index.html" class="text-nowrap logo-img d-block w-100">
-                    <img src="../assets/images/logos/logo-icon.svg" class="dark-logo" alt="Logo-Dark" />
+                    <img src="{% static 'assets/images/logos/logo-icon.svg' %}" class="dark-logo" alt="Logo-Dark" />
                   </a>
                   <h2 class="mb-2 mt-4 fs-7 fw-bolder">Sign In</h2>
-                  <p class="mb-9">Your Admin Dashboard</p>
-                  <div class="row">
-                    <div class="col-6 mb-2 mb-sm-0">
-                      <a class="btn btn-link border border-muted d-flex align-items-center justify-content-center rounded-2 py-8 text-decoration-none"
-                        href="javascript:void(0)" role="button">
-                        <img src="../assets/images/svgs/google-icon.svg" alt="MaterialM-img" class="img-fluid me-2"
-                          width="18" height="18" />
-                        Google
-                      </a>
-                    </div>
-                    <div class="col-6">
-                      <a class="btn btn-link border border-muted d-flex align-items-center justify-content-center rounded-2 py-8 text-decoration-none"
-                        href="javascript:void(0)" role="button">
-                        <img src="../assets/images/svgs/facebook-icon.svg" alt="MaterialM-img" class="img-fluid me-2"
-                          width="18" height="18" />
-                        Facebook
-                      </a>
-                    </div>
-                  </div>
+                  <!-- <p class="mb-9">Your Admin Dashboard</p>
                   <div class="position-relative text-center my-4">
                     <p class="mb-0 fs-4 px-3 d-inline-block bg-body text-dark z-index-5 position-relative">
                       or sign in with
                     </p>
                     <span class="border-top w-100 position-absolute top-50 start-50 translate-middle"></span>
-                  </div>
+                  </div> -->
 
                   <form id="login-form" method="post" action="{% url 'accounts:login' %}" @submit.prevent="submitForm">
                     {% csrf_token %}

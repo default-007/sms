@@ -59,7 +59,7 @@
                 <!-- Dashboards -->
                 <!-- --------------------------------------------------------------------------------------------------------- -->
                 <li class="{% if request.path == '/' %}active{% endif %} mini-nav-item" id="mini-1">
-                  <a href="{% url 'core:dashboard' %}" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
+                  <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
                     data-bs-placement="right" data-bs-title="Dashboards">
                     <iconify-icon icon="solar:home-2-line-duotone" class="fs-7"></iconify-icon>
                   </a>
@@ -68,8 +68,8 @@
                 <!-- users -->
                 <!-- --------------------------------------------------------------------------------------------------------- -->
                 <li class="{% if 'users' in request.path %}active{% endif %} mini-nav-item" id="mini-2">
-                  <a href="#" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip" data-bs-placement="right"
-                    data-bs-title="Users">
+                  <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
+                    data-bs-placement="right" data-bs-title="Users">
                     <iconify-icon icon="solar:users-group-rounded-line-duotone" class="fs-7"></iconify-icon>
                   </a>
                 </li>
@@ -303,11 +303,11 @@
                     <a class="sidebar-link has-arrow {% if 'users' in request.path %}active{% endif %}"
                       href="javascript:void(0)" aria-expanded="false">
                       <iconify-icon icon="solar:users-group-rounded-line-duotone"></iconify-icon>
-                      <span class="hide-menu">User Management</span>
+                      <span class="hide-menu">Users</span>
                     </a>
                     <ul aria-expanded="false" class="collapse first-level">
                       <li class="sidebar-item">
-                        <a class="sidebar-link" href="../main/frontend-landingpage.html">
+                        <a class="sidebar-link" href="{% url 'accounts:user_list' %}">
                           <span class="icon-small"></span>
                           All Users
                         </a>
@@ -315,7 +315,7 @@
                       <li class="sidebar-item">
                         <a class="sidebar-link" href="../main/frontend-aboutpage.html">
                           <span class="icon-small"></span>
-                          Roles & Permissions
+                          Create User
                         </a>
                       </li>
                     </ul>
@@ -324,8 +324,48 @@
                   <li>
                     <span class="sidebar-divider lg"></span>
                   </li>
+
                   <li class="nav-small-cap">
-                    <span class="hide-menu">Apps</span>
+                    <span class="hide-menu">Roles & permissions</span>
+                  </li>
+                  <!-- ---------------------------------- -->
+                  <!-- User -->
+                  <!-- ---------------------------------- -->
+                  <li class="sidebar-item {% if 'users' in request.path %}mm-active{% endif %}">
+                    <a class="sidebar-link has-arrow {% if 'users' in request.path %}active{% endif %}"
+                      href="javascript:void(0)" aria-expanded="false">
+                      <iconify-icon icon="solar:users-group-rounded-line-duotone"></iconify-icon>
+                      <span class="hide-menu">Roles</span>
+                    </a>
+                    <ul aria-expanded="false" class="collapse first-level">
+                      <li class="sidebar-item">
+                        <a class="sidebar-link" href="{% url 'accounts:user_list' %}">
+                          <span class="icon-small"></span>
+                          All Roles
+                        </a>
+                      </li>
+                      <li class="sidebar-item">
+                        <a class="sidebar-link" href="../main/frontend-aboutpage.html">
+                          <span class="icon-small"></span>
+                          Create User
+                        </a>
+                      </li>
+                    </ul>
+                  </li>
+
+                  <li>
+                    <span class="sidebar-divider lg"></span>
+                  </li>
+
+                  <li class="nav-small-cap">
+                    <span class="hide-menu">Profile</span>
+                  </li>
+                  <li class="sidebar-item {% if request.path == 'profile' %}mm-active{% endif %}">
+                    <a class="sidebar-link {% if request.path == 'profile' %}active{% endif %}"
+                      href="{% url 'accounts:profile' %}" aria-expanded="false">
+                      <iconify-icon icon="solar:home-2-line-duotone" class=""></iconify-icon>
+                      <span class="hide-menu">My Profile</span>
+                    </a>
                   </li>
 
                 </ul>
@@ -336,6 +376,33 @@
                   <!-- ---------------------------------- -->
                   <!-- Home -->
                   <!-- ---------------------------------- -->
+                  <li class="nav-small-cap">
+                    <span class="hide-menu">Student Management</span>
+                  </li>
+                  <!-- ---------------------------------- -->
+                  <!-- Student -->
+                  <!-- ---------------------------------- -->
+                  <li class="sidebar-item {% if 'students' in request.path %}mm-active{% endif %}">
+                    <a class="sidebar-link has-arrow {% if 'students' in request.path %}active{% endif %}"
+                      href="javascript:void(0)" aria-expanded="false">
+                      <iconify-icon icon="solar:users-group-rounded-line-duotone"></iconify-icon>
+                      <span class="hide-menu">Student List</span>
+                    </a>
+                    <ul aria-expanded="false" class="collapse first-level">
+                      <li class="sidebar-item">
+                        <a class="sidebar-link" href="{% url 'students:student-list' %}">
+                          <span class="icon-small"></span>
+                          All Students
+                        </a>
+                      </li>
+                      <li class="sidebar-item">
+                        <a class="sidebar-link" href="../main/frontend-aboutpage.html">
+                          <span class="icon-small"></span>
+                          Roles & Permissions
+                        </a>
+                      </li>
+                    </ul>
+                  </li>
 
 
                 </ul>

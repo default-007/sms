@@ -27,6 +27,9 @@ def generate_unique_id(prefix="", length=8):
 
 def get_system_setting(key, default=None):
     """Get a system setting value by key."""
+    # Import inside the function to avoid circular imports
+    from .models import SystemSetting
+
     try:
         setting = SystemSetting.objects.get(setting_key=key)
 
@@ -42,7 +45,7 @@ def get_system_setting(key, default=None):
 
         # Default to string
         return setting.setting_value
-    except ObjectDoesNotExist:
+    except Exception:
         return default
 
 

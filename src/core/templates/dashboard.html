@@ -2,6 +2,588 @@
 
 {% load static %}
 {% block content %}
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <h1 class="my-4">Dashboard</h1>
+
+      {% if current_academic_year %}
+      <div class="alert alert-info">
+        <strong>Current Academic Year:</strong> {{ current_academic_year.name }}
+        ({{ current_academic_year.start_date|date:"M d, Y" }} - {{ current_academic_year.end_date|date:"M d, Y" }})
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Admin Dashboard -->
+  {% if user.is_staff %}
+  <div class="row">
+    <!-- Statistics Cards -->
+    <div class="col-md-3">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Students</h5>
+          <h2 class="text-primary">{{ total_students }}</h2>
+          <div class="progress mt-2">
+            <div class="progress-bar bg-primary" role="progressbar" style="width: 100%"></div>
+          </div>
+          <a href="{% url 'students:student-list' %}" class="btn btn-sm btn-outline-primary mt-3">View All</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Teachers</h5>
+          <h2 class="text-success">{{ total_teachers }}</h2>
+          <div class="progress mt-2">
+            <div class="progress-bar bg-success" role="progressbar" style="width: 100%"></div>
+          </div>
+          <a href="{% url 'teachers:teacher-list' %}" class="btn btn-sm btn-outline-success mt-3">View All</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Classes</h5>
+          <h2 class="text-info">{{ total_classes }}</h2>
+          <div class="progress mt-2">
+            <div class="progress-bar bg-info" role="progressbar" style="width: 100%"></div>
+          </div>
+          <a href="{% url 'courses:class-list' %}" class="btn btn-sm btn-outline-info mt-3">View All</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Attendance Rate</h5>
+          <h2 class="text-warning">{{ attendance_rate }}%</h2>
+          <div class="progress mt-2">
+            <div class="progress-bar bg-warning" role="progressbar" style="width: {{ attendance_rate }}%"></div>
+          </div>
+          <a href="#" class="btn btn-sm btn-outline-warning mt-3">View Report</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Student Demographics -->
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">Student Status Distribution</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="studentStatusChart" height="250"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">Gender Distribution</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="genderChart" height="250"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Academic and Financial Metrics -->
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">Monthly Admissions</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="admissionsChart" height="250"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">Fee Collection Statistics</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="text-center mb-4">
+                <h6>Collection Rate</h6>
+                <div class="position-relative d-inline-block">
+                  <canvas id="collectionRateChart" height="150"></canvas>
+                  <div class="position-absolute top-50 start-50 translate-middle">
+                    <h3>{{ collection_rate }}%</h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="stats-details">
+                <div class="mb-3">
+                  <h6>Total Invoiced</h6>
+                  <h4>${{ total_invoiced|floatformat:2 }}</h4>
+                </div>
+                <div>
+                  <h6>Total Collected</h6>
+                  <h4>${{ total_collected|floatformat:2 }}</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Attendance and Teacher Stats -->
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card mb-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">Attendance Trend (Last 30 Days)</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="attendanceChart" height="250"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card mb-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">Teacher Experience</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="experienceChart" height="250"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart Initialization JavaScript -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Student Status Chart
+      var statusCtx = document.getElementById('studentStatusChart').getContext('2d');
+      var statusChart = new Chart(statusCtx, {
+        type: 'pie',
+        data: {
+          labels: [{% for item in student_status %}'{{ item.status }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+      datasets: [{
+        data: [{% for item in student_status %}{{ item.count }}{% if not forloop.last %}, {% endif %} {% endfor %}],
+    backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b']
+              }]
+          },
+    options: {
+      responsive: true,
+        maintainAspectRatio: false,
+          legend: {
+        position: 'right'
+      }
+    }
+      });
+
+    // Gender Distribution Chart
+    var genderCtx = document.getElementById('genderChart').getContext('2d');
+    var genderLabels = [];
+    var genderData = [];
+
+    {% for item in gender_distribution %}
+    {% if item.user__gender == 'M' %}
+    genderLabels.push('Male');
+    {% elif item.user__gender == 'F' %}
+    genderLabels.push('Female');
+    {% else %}
+    genderLabels.push('Other');
+    {% endif %}
+    genderData.push({{ item.count }});
+    {% endfor %}
+
+    var genderChart = new Chart(genderCtx, {
+      type: 'doughnut',
+      data: {
+        labels: genderLabels,
+        datasets: [{
+          data: genderData,
+          backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        legend: {
+          position: 'right'
+        }
+      }
+    });
+
+    // Monthly Admissions Chart
+    var admissionsCtx = document.getElementById('admissionsChart').getContext('2d');
+    var admissionsLabels = [];
+    var admissionsData = [];
+
+    {% for item in monthly_admissions %}
+    admissionsLabels.push('{{ item.month|date:"M Y" }}');
+    admissionsData.push({{ item.count }});
+    {% endfor %}
+
+    var admissionsChart = new Chart(admissionsCtx, {
+      type: 'bar',
+      data: {
+        labels: admissionsLabels,
+        datasets: [{
+          label: 'New Students',
+          data: admissionsData,
+          backgroundColor: '#4e73df'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          yAxes: [{
+            ticks: {
+              beginAtZero: true,
+              precision: 0
+            }
+          }]
+        }
+      }
+    });
+
+    // Collection Rate Chart
+    var collectionCtx = document.getElementById('collectionRateChart').getContext('2d');
+    var collectionRate = {{ collection_rate }};
+
+    var collectionChart = new Chart(collectionCtx, {
+      type: 'doughnut',
+      data: {
+        datasets: [{
+          data: [collectionRate, 100 - collectionRate],
+          backgroundColor: ['#1cc88a', '#e9ecef'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        cutoutPercentage: 85,
+        responsive: true,
+        maintainAspectRatio: false,
+        tooltips: {
+          enabled: false
+        },
+        legend: {
+          display: false
+        }
+      }
+    });
+
+    // Attendance Trend Chart
+    var attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+    var attendanceDates = [];
+    var presentData = [];
+    var absentData = [];
+    var lateData = [];
+
+    {% for item in attendance_trend %}
+    attendanceDates.push('{{ item.date|date:"M d" }}');
+    presentData.push({{ item.present }});
+    absentData.push({{ item.absent }});
+    lateData.push({{ item.late }});
+    {% endfor %}
+
+    var attendanceChart = new Chart(attendanceCtx, {
+      type: 'line',
+      data: {
+        labels: attendanceDates,
+        datasets: [
+          {
+            label: 'Present',
+            data: presentData,
+            borderColor: '#1cc88a',
+            backgroundColor: 'rgba(28, 200, 138, 0.1)',
+            pointBackgroundColor: '#1cc88a',
+            lineTension: 0.3,
+            pointRadius: 3
+          },
+          {
+            label: 'Absent',
+            data: absentData,
+            borderColor: '#e74a3b',
+            backgroundColor: 'rgba(231, 74, 59, 0.1)',
+            pointBackgroundColor: '#e74a3b',
+            lineTension: 0.3,
+            pointRadius: 3
+          },
+          {
+            label: 'Late',
+            data: lateData,
+            borderColor: '#f6c23e',
+            backgroundColor: 'rgba(246, 194, 62, 0.1)',
+            pointBackgroundColor: '#f6c23e',
+            lineTension: 0.3,
+            pointRadius: 3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          xAxes: [{
+            gridLines: {
+              display: false
+            }
+          }],
+          yAxes: [{
+            ticks: {
+              beginAtZero: true,
+              precision: 0
+            }
+          }]
+        }
+      }
+    });
+
+    // Teacher Experience Chart
+    var experienceCtx = document.getElementById('experienceChart').getContext('2d');
+    var experienceLabels = [];
+    var experienceData = [];
+
+    {% for range, count in experience_levels.items %}
+    experienceLabels.push('{{ range }}');
+    experienceData.push({{ count }});
+    {% endfor %}
+
+    var experienceChart = new Chart(experienceCtx, {
+      type: 'pie',
+      data: {
+        labels: experienceLabels,
+        datasets: [{
+          data: experienceData,
+          backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        legend: {
+          position: 'bottom'
+        }
+      }
+    });
+  });
+  </script>
+  {% endif %}
+
+  <!-- Teacher Dashboard -->
+  {% if teacher %}
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">Your Classes</h5>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            {% for class in assigned_classes %}
+            <div class="list-group-item px-0">
+              <h6 class="mb-1">{{ class.grade.name }} - {{ class.section.name }}</h6>
+              <p class="mb-1 small">Academic Year: {{ class.academic_year.name }}</p>
+              {% if class.class_teacher == teacher %}
+              <span class="badge bg-success">Class Teacher</span>
+              {% endif %}
+            </div>
+            {% empty %}
+            <p class="text-muted">No classes assigned</p>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">Pending Assignments</h5>
+        </div>
+        <div class="card-body">
+          <h2 class="text-primary">{{ pending_assignments }}</h2>
+          <a href="{% url 'courses:assignment-list' %}" class="btn btn-sm btn-outline-primary">View Assignments</a>
+        </div>
+      </div>
+
+      {% if upcoming_evaluations %}
+      <div class="card mb-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">Upcoming Evaluations</h5>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            {% for evaluation in upcoming_evaluations %}
+            <div class="list-group-item px-0">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">Evaluation</h6>
+                <small class="text-muted">{{ evaluation.evaluation_date|date:"M d, Y" }}</small>
+              </div>
+              <p class="mb-1 small">
+                Evaluator: {{ evaluation.evaluator.get_full_name }}
+              </p>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Parent Dashboard -->
+  {% if parent %}
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card mb-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">Your Children</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% for child in children %}
+            <div class="col-md-4">
+              <div class="card mb-3">
+                <div class="card-body">
+                  <h5 class="card-title">{{ child.get_full_name }}</h5>
+                  <h6 class="card-subtitle mb-2 text-muted">{{ child.admission_number }}</h6>
+                  <p class="mb-1">
+                    <strong>Class:</strong>
+                    {% if child.current_class %}
+                    {{ child.current_class.grade.name }} - {{ child.current_class.section.name }}
+                    {% else %}
+                    Not assigned
+                    {% endif %}
+                  </p>
+                  <p class="mb-1">
+                    <strong>Status:</strong>
+                    <span class="badge {% if child.status == 'Active' %}bg-success{% else %}bg-secondary{% endif %}">
+                      {{ child.status }}
+                    </span>
+                  </p>
+                  <a href="{% url 'students:student-detail' child.id %}"
+                    class="btn btn-sm btn-outline-primary mt-2">View Details</a>
+                </div>
+              </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+              <p class="text-muted">No children registered</p>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if pending_invoices %}
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">Fee Information</h5>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-warning">
+            <strong>Pending Payments:</strong> {{ pending_invoices }} invoice(s) require attention
+          </div>
+          <a href="{% url 'finance:invoice-list' %}" class="btn btn-sm btn-outline-primary">View Invoices</a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Student Dashboard -->
+  {% if student %}
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">Pending Assignments</h5>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            {% for assignment in pending_assignments %}
+            <div class="list-group-item px-0">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">{{ assignment.title }}</h6>
+                <small
+                  class="text-{% if assignment.due_date|date:'Y-m-d' < now|date:'Y-m-d' %}danger{% else %}muted{% endif %}">
+                  Due: {{ assignment.due_date|date:"M d, Y" }}
+                </small>
+              </div>
+              <p class="mb-1 small">
+                {{ assignment.subject.name }} | {{ assignment.total_marks }} marks
+              </p>
+              <div>
+                {% if assignment.is_submitted %}
+                <span class="badge bg-success">Submitted</span>
+                {% else %}
+                <span class="badge bg-warning">Not Submitted</span>
+                {% endif %}
+                <a href="{% url 'courses:assignment-detail' assignment.id %}" class="btn btn-sm btn-link">View</a>
+              </div>
+            </div>
+            {% empty %}
+            <p class="text-muted">No pending assignments</p>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">Upcoming Exams</h5>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            {% for exam in upcoming_exams %}
+            <div class="list-group-item px-0">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">{{ exam.subject.name }}</h6>
+                <small class="text-muted">{{ exam.date|date:"M d, Y" }}</small>
+              </div>
+              <p class="mb-1 small">
+                {{ exam.start_time }} - {{ exam.end_time }} | Room: {{ exam.room }}
+              </p>
+              <p class="mb-1 small">
+                Total Marks: {{ exam.total_marks }} | Passing Marks: {{ exam.passing_marks }}
+              </p>
+            </div>
+            {% empty %}
+            <p class="text-muted">No upcoming exams</p>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
 <div class="body-wrapper">
   <div class="container-fluid">
     <!--  Row -->

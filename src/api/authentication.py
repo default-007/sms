@@ -1,32 +1,22 @@
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.authentication import SessionAuthentication
+from src.accounts.services.authentication_service import AuthenticationService
 
 
 class CustomJWTAuthentication(JWTAuthentication):
-    """
-    Custom JWT authentication class with additional features.
-    """
+    """Custom JWT authentication that updates last login time."""
 
     def authenticate(self, request):
-        """
-        Authenticate the request and return a two-tuple of (user, token).
-        """
-        result = super().authenticate(request)
-        if result is not None:
-            user, token = result
-            # We could add additional checks or logging here
-            return user, token
+        auth_tuple = super().authenticate(request)
+        if auth_tuple:
+            user, token = auth_tuple
+            # Update last login timestamp
+            AuthenticationService.update_last_login(user)
+            return auth_tuple
         return None
 
 
-class CsrfExemptSessionAuthentication(SessionAuthentication):
-    """
-    Session authentication that skips CSRF validation.
-    Only use in contexts where CSRF protection is handled elsewhere or not needed.
-    """
+class DefaultAuthentication:
+    """Default authentication classes to use for API views."""
 
-    def enforce_csrf(self, request):
-        """
-        Do not enforce CSRF validation.
-        """
-        return
+    authentication_classes = [CustomJWTAuthentication, SessionAuthentication]

@@ -32,7 +32,6 @@ from .forms import (
 )
 from .services import RoleService
 from .decorators import admin_required, permission_required
-from accounts import models
 
 
 class CustomLoginView(LoginView):
@@ -83,7 +82,7 @@ class UserListView(ListView):
     """View for listing users."""
 
     model = User
-    template_name = "accounts/user_list.html"
+    template_name = "user_list.html"
     context_object_name = "users"
     paginate_by = 10
 
@@ -374,6 +373,6 @@ def profile_view(request):
 
     return render(
         request,
-        "accounts/profile.html",
+        "profile.html",
         {"form": form, "user_roles": request.user.role_assignments.all()},
     )

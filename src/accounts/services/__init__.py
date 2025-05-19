@@ -1,4 +1,4 @@
-from .authentication_service import AuthenticationService
 from .role_service import RoleService
+from .authentication_service import AuthenticationService
 
-__all__ = ["AuthenticationService", "RoleService"]
+__all__ = ["RoleService", "AuthenticationService"]

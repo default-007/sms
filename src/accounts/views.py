@@ -1,3 +1,4 @@
+from django.db.models import Q, Count, Prefetch
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
@@ -19,7 +20,6 @@ from django.contrib.auth.views import (
     PasswordResetConfirmView,
 )
 from django.db import transaction
-from django.db.models import Q, Count
 from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
 from django.utils import timezone
@@ -30,7 +30,7 @@ import json
 import csv
 from io import StringIO
 
-from .models import User, UserRole, UserRoleAssignment, UserAuditLog
+from .models import User, UserProfile, UserRole, UserRoleAssignment, UserAuditLog
 from .forms import (
     CustomAuthenticationForm,
     CustomUserCreationForm,
@@ -306,7 +306,15 @@ class UserListView(ListView):
         """Enhanced queryset with optimizations and filtering."""
         queryset = (
             User.objects.select_related("profile")
-            .prefetch_related("role_assignments__role")
+            .prefetch_related(
+                Prefetch(
+                    "role_assignments",
+                    queryset=UserRoleAssignment.objects.select_related("role").filter(
+                        is_active=True
+                    ),
+                    to_attr="active_roles",
+                )
+            )
             .order_by("-date_joined")
         )
 
@@ -874,3 +882,102 @@ def profile_view(request):
     }
 
     return render(request, "accounts/profile.html", context)
+
+
+# Role Management Views
+@method_decorator(admin_required, name="dispatch")
+class RoleListView(ListView):
+    """View for listing user roles."""
+
+    model = UserRole
+    template_name = "accounts/role_list.html"
+    context_object_name = "roles"
+    paginate_by = 12
+
+    def get_queryset(self):
+        return UserRole.objects.annotate(
+            user_count=Count(
+                "user_assignments", filter=Q(user_assignments__is_active=True)
+            )
+        ).order_by("name")
+
+
+@method_decorator(admin_required, name="dispatch")
+class RoleDetailView(DetailView):
+    """View for displaying role details."""
+
+    model = UserRole
+    template_name = "accounts/role_detail.html"
+    context_object_name = "role"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["role_users"] = self.object.user_assignments.filter(
+            is_active=True
+        ).select_related("user")
+        context["permissions"] = self.object.permissions
+        return context
+
+
+@method_decorator(admin_required, name="dispatch")
+class RoleCreateView(CreateView):
+    """View for creating new roles."""
+
+    model = UserRole
+    template_name = "accounts/role_form.html"
+    fields = ["name", "description", "permissions"]
+    success_url = reverse_lazy("accounts:role_list")
+
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        messages.success(
+            self.request, f'Role "{form.instance.name}" created successfully!'
+        )
+        return super().form_valid(form)
+
+
+@method_decorator(admin_required, name="dispatch")
+class RoleUpdateView(UpdateView):
+    """View for updating roles."""
+
+    model = UserRole
+    template_name = "accounts/role_form.html"
+    fields = ["name", "description", "permissions"]
+    success_url = reverse_lazy("accounts:role_list")
+
+    def dispatch(self, request, *args, **kwargs):
+        role = self.get_object()
+        if role.is_system_role:
+            messages.error(request, "System roles cannot be modified.")
+            return redirect("accounts:role_list")
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        messages.success(
+            self.request, f'Role "{form.instance.name}" updated successfully!'
+        )
+        return super().form_valid(form)
+
+
+@method_decorator(admin_required, name="dispatch")
+class RoleDeleteView(DeleteView):
+    """View for deleting roles."""
+
+    model = UserRole
+    template_name = "accounts/role_confirm_delete.html"
+    success_url = reverse_lazy("accounts:role_list")
+    context_object_name = "role"
+
+    def dispatch(self, request, *args, **kwargs):
+        role = self.get_object()
+        if role.is_system_role:
+            messages.error(request, "System roles cannot be deleted.")
+            return redirect("accounts:role_list")
+        return super().dispatch(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        role = self.get_object()
+        role_name = role.name
+        response = super().delete(request, *args, **kwargs)
+        messages.success(request, f'Role "{role_name}" deleted successfully!')
+        return response

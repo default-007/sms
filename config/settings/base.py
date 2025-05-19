@@ -71,7 +71,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "CUSTOM_MIDDLEWARE",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -110,10 +109,6 @@ DATABASES = {
         "PASSWORD": os.environ.get("DB_PASSWORD", "expandebles7"),
         "HOST": os.environ.get("DB_HOST", "localhost"),
         "PORT": os.environ.get("DB_PORT", "5432"),
-        "OPTIONS": {
-            "MAX_CONNS": 20,
-            "CONN_MAX_AGE": 600,
-        },
     }
 }
 

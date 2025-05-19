@@ -141,6 +141,16 @@ class UserManager(BaseUserManager):
         """Bulk require password change for users."""
         return self.filter(id__in=user_ids).update(requires_password_change=True)
 
+    def bulk_create_users(self, user_data_list):
+        """Efficiently create multiple users."""
+        users = []
+        for data in user_data_list:
+            password = data.pop("password")
+            user = self.model(**data)
+            user.set_password(password)
+            users.append(user)
+        return self.bulk_create(users)
+
 
 class UserRoleManager(models.Manager):
     """Enhanced manager for UserRole model."""

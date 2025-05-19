@@ -17,7 +17,11 @@ from .views import (
     RoleCreateView,
     RoleUpdateView,
     RoleDeleteView,
+    bulk_user_action,
+    export_users,
     profile_view,
+    reset_user_password,
+    toggle_user_status,
 )
 
 app_name = "accounts"
@@ -63,4 +67,16 @@ urlpatterns = [
     path("roles/<int:pk>/delete/", RoleDeleteView.as_view(), name="role_delete"),
     # Profile view
     path("profile/", profile_view, name="profile"),
+    path(
+        "users/<int:user_id>/toggle-status/",
+        toggle_user_status,
+        name="toggle_user_status",
+    ),
+    path(
+        "users/<int:user_id>/reset-password/",
+        reset_user_password,
+        name="reset_user_password",
+    ),
+    path("bulk-action/", bulk_user_action, name="bulk_action"),
+    path("export/", export_users, name="export_users"),
 ]

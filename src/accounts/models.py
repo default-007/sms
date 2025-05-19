@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils import timezone
@@ -370,6 +371,12 @@ class UserRoleAssignment(models.Model):
         cache.delete(f"user_permissions_{user_pk}")
         cache.delete(f"user_roles_{user_pk}")
 
+    def by_user(self, user):
+        """Get assignments for a specific user with optimized queries."""
+        return self.filter(user=user, is_active=True).select_related(
+            "role", "assigned_by"
+        )
+
     def is_expired(self):
         """Check if this role assignment has expired."""
         if self.expires_at:
@@ -470,7 +477,7 @@ class UserAuditLog(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="audit_logs",
+        related_name="user_audit_logs",
         verbose_name=_("user"),
     )
     action = models.CharField(_("action"), max_length=20, choices=ACTION_CHOICES)

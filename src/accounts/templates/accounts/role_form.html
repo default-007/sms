@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+{% if object %}Edit Role - {{ object.name }}{% else %}Add New Role{% endif %} | School Management System
+{% endblock %}
+
+{% block content %}
+<div class="body-wrapper">
+  <div class="container-fluid">
+    <!-- Breadcrumb -->
+    <div class="card card-body">
+      <div class="row align-items-center">
+        <div class="col-12">
+          <div class="d-sm-flex align-items-center justify-space-between">
+            <h4 class="fw-semibold fs-4 mb-4 mb-md-0 card-title">
+              {% if object %}Edit Role{% else %}Add New Role{% endif %}
+            </h4>
+            <nav aria-label="breadcrumb" class="ms-auto">
+              <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                  <a class="text-muted text-decoration-none" href="{% url 'core:dashboard' %}">
+                    <iconify-icon icon="solar:home-2-line-duotone" class="fs-6"></iconify-icon>
+                  </a>
+                </li>
+                <li class="breadcrumb-item">
+                  <a href="{% url 'accounts:role_list' %}">Roles</a>
+                </li>
+                <li class="breadcrumb-item" aria-current="page">
+                  <span class="badge fw-medium fs-2 bg-primary-subtle text-primary">
+                    {% if object %}Edit{% else %}Add New{% endif %}
+                  </span>
+                </li>
+              </ol>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <form method="post" id="role-form">
+      {% csrf_token %}
+
+      <div class="row">
+        <!-- Main Form -->
+        <div class="col-lg-8">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <iconify-icon icon="solar:user-id-bold-duotone" class="me-2"></iconify-icon>
+                Role Information
+              </h5>
+            </div>
+            <div class="card-body">
+              <!-- Role Name -->
+              <div class="mb-3">
+                <label for="{{ form.name.id_for_label }}" class="form-label">
+                  {{ form.name.label }} <span class="text-danger">*</span>
+                </label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                <div class="text-danger mt-1">
+                  {% for error in form.name.errors %}
+                  <small>{{ error }}</small>
+                  {% endfor %}
+                </div>
+                {% endif %}
+                {% if object.is_system_role %}
+                <small class="text-muted">System roles cannot be renamed</small>
+                {% endif %}
+              </div>
+
+              <!-- Description -->
+              <div class="mb-3">
+                <label for="{{ form.description.id_for_label }}" class="form-label">
+                  {{ form.description.label }}
+                </label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                <div class="text-danger mt-1">
+                  {% for error in form.description.errors %}
+                  <small>{{ error }}</small>
+                  {% endfor %}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Permissions -->
+          <div class="card mt-4">
+            <div class="card-header">
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                  <iconify-icon icon="solar:shield-keyhole-bold-duotone" class="me-2"></iconify-icon>
+                  Permissions
+                </h5>
+                <div class="btn-group" role="group">
+                  <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllPermissions()">
+                    Select All
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearAllPermissions()">
+                    Clear All
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                {% for field in form %}
+                {% if '_permissions' in field.name %}
+                <div class="col-md-6 mb-4">
+                  <div class="card h-100">
+                    <div class="card-header bg-light">
+                      <h6 class="mb-0">{{ field.label }}</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="permission-group">
+                        {% for choice in field %}
+                        <div class="form-check">
+                          {{ choice.tag }}
+                          <label class="form-check-label" for="{{ choice.id_for_label }}">
+                            {{ choice.choice_label }}
+                          </label>
+                        </div>
+                        {% endfor %}
+                      </div>
+                      {% if field.errors %}
+                      <div class="text-danger mt-2">
+                        {% for error in field.errors %}
+                        <small>{{ error }}</small>
+                        {% endfor %}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+              </div>
+
+              {% comment %}
+              <!-- Fallback: If no permission fields are found, show a message -->
+              {% if not form|length %}
+              <div class="col-12">
+                <div class="alert alert-info">
+                  <iconify-icon icon="solar:info-circle-bold-duotone" class="me-2"></iconify-icon>
+                  No permission fields found. Please check the form configuration.
+                </div>
+              </div>
+              {% endif %}
+              {% endcomment %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+          <!-- Role Info -->
+          {% if object %}
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <iconify-icon icon="solar:info-circle-bold-duotone" class="me-2"></iconify-icon>
+                Role Information
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="mb-3">
+                <small class="text-muted">Created</small>
+                <div>{{ object.created_at|date:"M d, Y" }}</div>
+              </div>
+              <div class="mb-3">
+                <small class="text-muted">Last Updated</small>
+                <div>{{ object.updated_at|date:"M d, Y" }}</div>
+              </div>
+              <div class="mb-3">
+                <small class="text-muted">Current Users</small>
+                <div>{{ object.user_assignments.count }}</div>
+              </div>
+              <div class="mb-3">
+                <small class="text-muted">Total Permissions</small>
+                <div>{{ object.get_permission_count }}</div>
+              </div>
+              {% if object.is_system_role %}
+              <div class="alert alert-warning">
+                <iconify-icon icon="solar:shield-warning-bold-duotone" class="me-2"></iconify-icon>
+                This is a system role with restricted modifications.
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Form Actions -->
+          <div class="card">
+            <div class="card-body">
+              <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary">
+                  <iconify-icon icon="solar:check-circle-bold-duotone" class="me-2"></iconify-icon>
+                  {% if object %}Update Role{% else %}Create Role{% endif %}
+                </button>
+
+                <a href="{% url 'accounts:role_list' %}" class="btn btn-outline-secondary">
+                  <iconify-icon icon="solar:arrow-left-line-duotone" class="me-2"></iconify-icon>
+                  Cancel
+                </a>
+
+                {% if object and not object.is_system_role %}
+                <div class="dropdown">
+                  <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button"
+                    data-bs-toggle="dropdown" aria-expanded="false">
+                    More Actions
+                  </button>
+                  <ul class="dropdown-menu w-100">
+                    <li>
+                      <a class="dropdown-item" href="{% url 'accounts:role_detail' object.pk %}">
+                        <iconify-icon icon="solar:eye-line-duotone" class="me-2"></iconify-icon>
+                        View Details
+                      </a>
+                    </li>
+                    <li>
+                      <hr class="dropdown-divider">
+                    </li>
+                    <li>
+                      <a class="dropdown-item text-danger" href="{% url 'accounts:role_delete' object.pk %}">
+                        <iconify-icon icon="solar:trash-bin-line-duotone" class="me-2"></iconify-icon>
+                        Delete Role
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function selectAllPermissions() {
+    document.querySelectorAll('.permission-group input[type="checkbox"]').forEach(checkbox => {
+      checkbox.checked = true;
+    });
+  }
+
+  function clearAllPermissions() {
+    document.querySelectorAll('.permission-group input[type="checkbox"]').forEach(checkbox => {
+      checkbox.checked = false;
+    });
+  }
+
+  // Form submission handling
+  document.getElementById('role-form').addEventListener('submit', function (e) {
+    const submitBtn = document.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
+  });
+
+  // Debug: Log form fields to console
+  console.log('Form fields:', {{ form.fields.keys | safe }});
+</script>
+
+<style>
+  .permission-group {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .permission-group .form-check {
+    margin-bottom: 0.5rem;
+  }
+
+  .permission-group .form-check:last-child {
+    margin-bottom: 0;
+  }
+
+  .form-check-input {
+    margin-top: 0.25rem;
+  }
+
+  .card.h-100 {
+    height: 100% !important;
+  }
+</style>
+{% endblock content %}

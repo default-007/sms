@@ -1,0 +1,717 @@
+<!-- students/templates/students/bulk_export.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Bulk Export{% endblock %}
+
+{% block extra_css %}
+<style>
+  .export-card {
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+  }
+
+  .export-card:hover {
+    border-color: #007bff;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .export-option {
+    cursor: pointer;
+    padding: 20px;
+    border-radius: 10px;
+    background: #f8f9fa;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+  }
+
+  .export-option:hover {
+    background: #e9ecef;
+  }
+
+  .export-option.selected {
+    background: #007bff;
+    color: white;
+  }
+
+  .format-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+  }
+
+  .format-option {
+    text-align: center;
+    padding: 20px;
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .format-option:hover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+  }
+
+  .format-option.selected {
+    border-color: #007bff;
+    background-color: #007bff;
+    color: white;
+  }
+
+  .preview-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 20px;
+  }
+
+  .filter-section {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .step-indicator {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 30px;
+  }
+
+  .step {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    position: relative;
+  }
+
+  .step::after {
+    content: '';
+    position: absolute;
+    top: 25px;
+    right: -50%;
+    width: 100%;
+    height: 2px;
+    background: #dee2e6;
+    z-index: -1;
+  }
+
+  .step:last-child::after {
+    display: none;
+  }
+
+  .step.active {
+    color: #007bff;
+    font-weight: bold;
+  }
+
+  .step.completed {
+    color: #28a745;
+  }
+
+  .step.completed::after {
+    background: #28a745;
+  }
+
+  .step-number {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #dee2e6;
+    color: #6c757d;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+
+  .step.active .step-number {
+    background: #007bff;
+    color: white;
+  }
+
+  .step.completed .step-number {
+    background: #28a745;
+    color: white;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+  <h1 class="mt-4">Bulk Export</h1>
+  <ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'students:student-list' %}">Students</a></li>
+    <li class="breadcrumb-item active">Bulk Export</li>
+  </ol>
+
+  <div class="row">
+    <div class="col-xl-12">
+      <!-- Step Indicator -->
+      <div class="step-indicator">
+        <div class="step active" id="step1">
+          <div class="step-number">1</div>
+          <div>Select Type</div>
+        </div>
+        <div class="step" id="step2">
+          <div class="step-number">2</div>
+          <div>Choose Format</div>
+        </div>
+        <div class="step" id="step3">
+          <div class="step-number">3</div>
+          <div>Configure Options</div>
+        </div>
+        <div class="step" id="step4">
+          <div class="step-number">4</div>
+          <div>Export</div>
+        </div>
+      </div>
+
+      <form method="post" id="exportForm">
+        {% csrf_token %}
+
+        <!-- Step 1: Export Type Selection -->
+        <div class="export-step" id="exportStep1">
+          <div class="card export-card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-list me-2"></i>Step 1: Select Export Type
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                {% for value, label in export_types %}
+                <div class="col-md-4">
+                  <div class="export-option" data-value="{{ value }}">
+                    <div class="text-center">
+                      {% if value == 'students' %}
+                      <i class="fas fa-user-graduate fa-3x mb-3"></i>
+                      {% elif value == 'parents' %}
+                      <i class="fas fa-users fa-3x mb-3"></i>
+                      {% elif value == 'relationships' %}
+                      <i class="fas fa-sitemap fa-3x mb-3"></i>
+                      {% endif %}
+                      <h6>{{ label }}</h6>
+                      <p class="text-muted small mb-0">
+                        {% if value == 'students' %}
+                        Export all student records with academic and personal information
+                        {% elif value == 'parents' %}
+                        Export parent/guardian information and contact details
+                        {% elif value == 'relationships' %}
+                        Export student-parent relationships and permissions
+                        {% endif %}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+              <input type="hidden" name="export_type" id="export_type" required>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Format Selection -->
+        <div class="export-step d-none" id="exportStep2">
+          <div class="card export-card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-file-export me-2"></i>Step 2: Choose Export Format
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="format-grid">
+                {% for value, label in format_types %}
+                <div class="format-option" data-value="{{ value }}">
+                  {% if value == 'csv' %}
+                  <i class="fas fa-file-csv fa-3x mb-3"></i>
+                  {% elif value == 'xlsx' %}
+                  <i class="fas fa-file-excel fa-3x mb-3"></i>
+                  {% elif value == 'pdf' %}
+                  <i class="fas fa-file-pdf fa-3x mb-3"></i>
+                  {% endif %}
+                  <h6>{{ label }}</h6>
+                  <p class="text-muted small mb-0">
+                    {% if value == 'csv' %}
+                    Comma-separated values, compatible with spreadsheet applications
+                    {% elif value == 'xlsx' %}
+                    Microsoft Excel format with formatting
+                    {% elif value == 'pdf' %}
+                    Formatted document for printing and viewing
+                    {% endif %}
+                  </p>
+                </div>
+                {% endfor %}
+              </div>
+              <input type="hidden" name="format" id="format" required>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Export Options -->
+        <div class="export-step d-none" id="exportStep3">
+          <div class="card export-card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-cogs me-2"></i>Step 3: Configure Export Options
+              </h5>
+            </div>
+            <div class="card-body">
+              <!-- Student Filters -->
+              <div id="studentFilters" class="filter-section d-none">
+                <h6><i class="fas fa-filter me-2"></i>Student Filters</h6>
+                <div class="row">
+                  <div class="col-md-3">
+                    <div class="mb-3">
+                      <label for="status" class="form-label">Status</label>
+                      <select name="status" id="status" class="form-control">
+                        <option value="">All Statuses</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                        <option value="Graduated">Graduated</option>
+                        <option value="Suspended">Suspended</option>
+                        <option value="Expelled">Expelled</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="mb-3">
+                      <label for="class" class="form-label">Class</label>
+                      <select name="class" id="class" class="form-control">
+                        <option value="">All Classes</option>
+                        <!-- Classes will be populated via AJAX -->
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="mb-3">
+                      <label for="blood_group" class="form-label">Blood Group</label>
+                      <select name="blood_group" id="blood_group" class="form-control">
+                        <option value="">All Blood Groups</option>
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="mb-3">
+                      <label for="admission_year" class="form-label">Admission Year</label>
+                      <select name="admission_year" id="admission_year" class="form-control">
+                        <option value="">All Years</option>
+                        <!-- Years will be populated via JavaScript -->
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Parent Filters -->
+              <div id="parentFilters" class="filter-section d-none">
+                <h6><i class="fas fa-filter me-2"></i>Parent Filters</h6>
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="relation" class="form-label">Relation</label>
+                      <select name="relation" id="relation" class="form-control">
+                        <option value="">All Relations</option>
+                        <option value="Father">Father</option>
+                        <option value="Mother">Mother</option>
+                        <option value="Guardian">Guardian</option>
+                        <option value="Grandparent">Grandparent</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="emergency_contact" class="form-label">Emergency Contact</label>
+                      <select name="emergency_contact" id="emergency_contact" class="form-control">
+                        <option value="">All</option>
+                        <option value="true">Emergency Contacts Only</option>
+                        <option value="false">Non-Emergency Contacts</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Export Options -->
+              <div class="filter-section">
+                <h6><i class="fas fa-sliders-h me-2"></i>Export Options</h6>
+                <div class="row">
+                  <div class="col-md-12">
+                    <div class="form-check mb-3">
+                      <input class="form-check-input" type="checkbox" name="include_photos" id="include_photos">
+                      <label class="form-check-label" for="include_photos">
+                        Include Photos <small class="text-muted">(PDF format only)</small>
+                      </label>
+                    </div>
+                    <div class="form-check mb-3">
+                      <input class="form-check-input" type="checkbox" name="include_sensitive" id="include_sensitive">
+                      <label class="form-check-label" for="include_sensitive">
+                        Include Sensitive Information <small class="text-muted">(Financial details, medical
+                          conditions)</small>
+                      </label>
+                    </div>
+                    <div class="form-check mb-3">
+                      <input class="form-check-input" type="checkbox" name="include_contact" id="include_contact"
+                        checked>
+                      <label class="form-check-label" for="include_contact">
+                        Include Contact Information
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Preview Section -->
+              <div class="preview-section">
+                <h6><i class="fas fa-eye me-2"></i>Export Preview</h6>
+                <div id="exportPreview">
+                  <p class="text-muted">Select export type and format to see preview...</p>
+                </div>
+                <div id="recordCount" class="mt-3">
+                  <span class="badge bg-info">Records to export: <span id="recordCountValue">0</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: Export Confirmation -->
+        <div class="export-step d-none" id="exportStep4">
+          <div class="card export-card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-check me-2"></i>Step 4: Confirm Export
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <h6>Export Summary</h6>
+                  <ul class="list-unstyled">
+                    <li><strong>Type:</strong> <span id="summaryType">-</span></li>
+                    <li><strong>Format:</strong> <span id="summaryFormat">-</span></li>
+                    <li><strong>Records:</strong> <span id="summaryRecords">-</span></li>
+                    <li><strong>Filters Applied:</strong> <span id="summaryFilters">None</span></li>
+                  </ul>
+                </div>
+                <div class="col-md-6">
+                  <h6>Export Options</h6>
+                  <ul class="list-unstyled" id="summaryOptions">
+                    <!-- Options will be populated via JavaScript -->
+                  </ul>
+                </div>
+              </div>
+
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Note:</strong> Large exports may take several minutes to process.
+                You will receive a download link once the export is complete.
+              </div>
+
+              <div class="progress d-none" id="exportProgress">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
+                  style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="d-flex justify-content-between mt-4">
+          <button type="button" class="btn btn-secondary d-none" id="prevBtn">
+            <i class="fas fa-arrow-left me-2"></i>Previous
+          </button>
+          <div></div>
+          <div>
+            <button type="button" class="btn btn-primary" id="nextBtn">
+              Next <i class="fas fa-arrow-right ms-2"></i>
+            </button>
+            <button type="submit" class="btn btn-success d-none" id="exportBtn">
+              <i class="fas fa-download me-2"></i>Export Now
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Export Progress Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-download me-2"></i>Export in Progress
+        </h5>
+      </div>
+      <div class="modal-body text-center">
+        <div class="spinner-border text-primary mb-3" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p>Your export is being processed. Please wait...</p>
+        <div class="progress">
+          <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"
+            id="modalProgressBar"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    let currentStep = 1;
+    const totalSteps = 4;
+
+    // Step navigation
+    function showStep(step) {
+      $('.export-step').addClass('d-none');
+      $(`#exportStep${step}`).removeClass('d-none');
+
+      // Update step indicator
+      $('.step').removeClass('active completed');
+      for (let i = 1; i < step; i++) {
+        $(`#step${i}`).addClass('completed');
+      }
+      $(`#step${step}`).addClass('active');
+
+      // Update navigation buttons
+      if (step === 1) {
+        $('#prevBtn').addClass('d-none');
+      } else {
+        $('#prevBtn').removeClass('d-none');
+      }
+
+      if (step === totalSteps) {
+        $('#nextBtn').addClass('d-none');
+        $('#exportBtn').removeClass('d-none');
+      } else {
+        $('#nextBtn').removeClass('d-none');
+        $('#exportBtn').addClass('d-none');
+      }
+
+      currentStep = step;
+    }
+
+    // Export type selection
+    $('.export-option').click(function () {
+      $('.export-option').removeClass('selected');
+      $(this).addClass('selected');
+      $('#export_type').val($(this).data('value'));
+
+      // Show relevant filters in step 3
+      const exportType = $(this).data('value');
+      if (exportType === 'students') {
+        $('#studentFilters').removeClass('d-none');
+        $('#parentFilters').addClass('d-none');
+      } else if (exportType === 'parents') {
+        $('#studentFilters').addClass('d-none');
+        $('#parentFilters').removeClass('d-none');
+      } else {
+        $('#studentFilters').addClass('d-none');
+        $('#parentFilters').addClass('d-none');
+      }
+    });
+
+    // Format selection
+    $('.format-option').click(function () {
+      $('.format-option').removeClass('selected');
+      $(this).addClass('selected');
+      $('#format').val($(this).data('value'));
+
+      // Show/hide photo option based on format
+      const format = $(this).data('value');
+      if (format === 'pdf') {
+        $('#include_photos').parent().show();
+      } else {
+        $('#include_photos').parent().hide();
+        $('#include_photos').prop('checked', false);
+      }
+    });
+
+    // Next button
+    $('#nextBtn').click(function () {
+      if (validateStep(currentStep)) {
+        if (currentStep < totalSteps) {
+          showStep(currentStep + 1);
+
+          // Update preview when reaching step 3
+          if (currentStep === 3) {
+            updatePreview();
+            updateRecordCount();
+          }
+
+          // Update summary when reaching step 4
+          if (currentStep === 4) {
+            updateSummary();
+          }
+        }
+      }
+    });
+
+    // Previous button
+    $('#prevBtn').click(function () {
+      if (currentStep > 1) {
+        showStep(currentStep - 1);
+      }
+    });
+
+    // Form validation
+    function validateStep(step) {
+      switch (step) {
+        case 1:
+          if (!$('#export_type').val()) {
+            alert('Please select an export type.');
+            return false;
+          }
+          break;
+        case 2:
+          if (!$('#format').val()) {
+            alert('Please select an export format.');
+            return false;
+          }
+          break;
+        case 3:
+          // No validation needed for step 3
+          break;
+        case 4:
+          // Final validation
+          break;
+      }
+      return true;
+    }
+
+    // Update preview
+    function updatePreview() {
+      const exportType = $('#export_type').val();
+      const format = $('#format').val();
+
+      let preview = `<strong>Export Type:</strong> ${exportType}<br>`;
+      preview += `<strong>Format:</strong> ${format.toUpperCase()}<br>`;
+
+      const filters = getAppliedFilters();
+      if (filters.length > 0) {
+        preview += `<strong>Filters:</strong> ${filters.join(', ')}<br>`;
+      }
+
+      const options = getSelectedOptions();
+      if (options.length > 0) {
+        preview += `<strong>Options:</strong> ${options.join(', ')}`;
+      }
+
+      $('#exportPreview').html(preview);
+    }
+
+    // Update record count
+    function updateRecordCount() {
+      // This would typically be an AJAX call to get the actual count
+      // For now, we'll simulate it
+      const count = Math.floor(Math.random() * 1000) + 100;
+      $('#recordCountValue').text(count);
+    }
+
+    // Get applied filters
+    function getAppliedFilters() {
+      const filters = [];
+
+      $('#exportStep3 select').each(function () {
+        if ($(this).val()) {
+          const label = $(this).prev('label').text();
+          filters.push(`${label}: ${$(this).val()}`);
+        }
+      });
+
+      return filters;
+    }
+
+    // Get selected options
+    function getSelectedOptions() {
+      const options = [];
+
+      $('#exportStep3 input[type="checkbox"]:checked').each(function () {
+        const label = $(this).next('label').text().split('(')[0].trim();
+        options.push(label);
+      });
+
+      return options;
+    }
+
+    // Update summary
+    function updateSummary() {
+      $('#summaryType').text($('#export_type').val());
+      $('#summaryFormat').text($('#format').val().toUpperCase());
+      $('#summaryRecords').text($('#recordCountValue').text());
+
+      const filters = getAppliedFilters();
+      $('#summaryFilters').text(filters.length > 0 ? filters.join(', ') : 'None');
+
+      const options = getSelectedOptions();
+      let optionsHtml = '';
+      if (options.length > 0) {
+        options.forEach(option => {
+          optionsHtml += `<li><i class="fas fa-check text-success me-2"></i>${option}</li>`;
+        });
+      } else {
+        optionsHtml = '<li class="text-muted">No additional options selected</li>';
+      }
+      $('#summaryOptions').html(optionsHtml);
+    }
+
+    // Form submission
+    $('#exportForm').submit(function (e) {
+      e.preventDefault();
+
+      // Show progress modal
+      $('#exportModal').modal('show');
+
+      // Simulate export progress
+      let progress = 0;
+      const progressInterval = setInterval(() => {
+        progress += Math.random() * 20;
+        if (progress >= 100) {
+          progress = 100;
+          clearInterval(progressInterval);
+
+          // Submit the actual form
+          setTimeout(() => {
+            this.submit();
+          }, 1000);
+        }
+
+        $('#modalProgressBar').css('width', progress + '%');
+      }, 500);
+    });
+
+    // Populate admission years
+    const currentYear = new Date().getFullYear();
+    for (let year = currentYear; year >= currentYear - 10; year--) {
+      $('#admission_year').append(`<option value="${year}">${year}</option>`);
+    }
+
+    // Filter change handlers
+    $('#exportStep3 select, #exportStep3 input[type="checkbox"]').change(function () {
+      updateRecordCount();
+    });
+
+    // Initialize
+    showStep(1);
+  });
+</script>
+{% endblock %}

@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "drf_yasg",
     "celery",
     "django_celery_beat",
+    "import_export",
     # Local apps
     "src.accounts",
     "src.api",

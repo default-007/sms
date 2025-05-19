@@ -1,0 +1,632 @@
+<!-- students/templates/students/student_form.html -->
+{% extends "base.html" %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}{{ title|default:"Student Form" }}{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/select2.min.css' %}" rel="stylesheet">
+<style>
+  .profile-upload {
+    width: 150px;
+    height: 150px;
+    border: 2px dashed #dee2e6;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .profile-upload:hover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+  }
+
+  .profile-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+
+  .form-section {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    padding: 20px;
+  }
+
+  .section-title {
+    color: #495057;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+  }
+
+  .required-field {
+    position: relative;
+  }
+
+  .required-field label::after {
+    content: " *";
+    color: #dc3545;
+  }
+
+  .help-text {
+    font-size: 0.875em;
+    color: #6c757d;
+    margin-top: 5px;
+  }
+
+  .progress-bar-custom {
+    background: linear-gradient(90deg, #007bff 0%, #28a745 100%);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+  <h1 class="mt-4">{{ title|default:"Student Form" }}</h1>
+  <ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'students:student-list' %}">Students</a></li>
+    <li class="breadcrumb-item active">{{ title|default:"Form" }}</li>
+  </ol>
+
+  {% if messages %}
+  {% for message in messages %}
+  <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <div class="row">
+    <div class="col-xl-12">
+      <!-- Progress Indicator -->
+      <div class="card mb-4">
+        <div class="card-body">
+          <h6 class="card-title">Form Completion</h6>
+          <div class="progress" style="height: 8px;">
+            <div class="progress-bar progress-bar-custom" role="progressbar" style="width: 0%" id="formProgress"></div>
+          </div>
+          <small class="text-muted">Fill all required fields to complete</small>
+        </div>
+      </div>
+
+      <form method="post" enctype="multipart/form-data" id="studentForm" novalidate>
+        {% csrf_token %}
+
+        <!-- Basic Information Section -->
+        <div class="form-section">
+          <h5 class="section-title">
+            <i class="fas fa-user me-2"></i>Basic Information
+          </h5>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3 required-field">
+                <label for="{{ form.first_name.id_for_label }}" class="form-label">First Name</label>
+                {{ form.first_name|add_class:"form-control" }}
+                {% if form.first_name.errors %}
+                <div class="invalid-feedback d-block">{{ form.first_name.errors.0 }}</div>
+                {% endif %}
+                {% if form.first_name.help_text %}
+                <div class="help-text">{{ form.first_name.help_text }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3 required-field">
+                <label for="{{ form.last_name.id_for_label }}" class="form-label">Last Name</label>
+                {{ form.last_name|add_class:"form-control" }}
+                {% if form.last_name.errors %}
+                <div class="invalid-feedback d-block">{{ form.last_name.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3 required-field">
+                <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
+                {{ form.email|add_class:"form-control" }}
+                {% if form.email.errors %}
+                <div class="invalid-feedback d-block">{{ form.email.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="{{ form.phone_number.id_for_label }}" class="form-label">Phone Number</label>
+                {{ form.phone_number|add_class:"form-control" }}
+                {% if form.phone_number.errors %}
+                <div class="invalid-feedback d-block">{{ form.phone_number.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="{{ form.date_of_birth.id_for_label }}" class="form-label">Date of Birth</label>
+                {{ form.date_of_birth|add_class:"form-control" }}
+                {% if form.date_of_birth.errors %}
+                <div class="invalid-feedback d-block">{{ form.date_of_birth.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="{{ form.gender.id_for_label }}" class="form-label">Gender</label>
+                {{ form.gender|add_class:"form-control" }}
+                {% if form.gender.errors %}
+                <div class="invalid-feedback d-block">{{ form.gender.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="{{ form.blood_group.id_for_label }}" class="form-label">Blood Group</label>
+                {{ form.blood_group|add_class:"form-control" }}
+                {% if form.blood_group.errors %}
+                <div class="invalid-feedback d-block">{{ form.blood_group.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="{{ form.nationality.id_for_label }}" class="form-label">Nationality</label>
+                {{ form.nationality|add_class:"form-control" }}
+                {% if form.nationality.errors %}
+                <div class="invalid-feedback d-block">{{ form.nationality.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="{{ form.religion.id_for_label }}" class="form-label">Religion</label>
+                {{ form.religion|add_class:"form-control" }}
+                {% if form.religion.errors %}
+                <div class="invalid-feedback d-block">{{ form.religion.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Profile Photo -->
+          <div class="row">
+            <div class="col-md-3">
+              <div class="mb-3">
+                <label class="form-label">Profile Photo</label>
+                <div class="profile-upload" onclick="document.getElementById('{{ form.photo.id_for_label }}').click()">
+                  {% if form.instance.photo %}
+                  <img src="{{ form.instance.photo.url }}" alt="Profile" class="profile-preview" id="profilePreview">
+                  {% else %}
+                  <div class="text-center" id="uploadPlaceholder">
+                    <i class="fas fa-camera fa-2x text-muted"></i>
+                    <div class="mt-2 text-muted">Upload Photo</div>
+                  </div>
+                  {% endif %}
+                </div>
+                {{ form.photo|add_class:"d-none" }}
+                {% if form.photo.errors %}
+                <div class="invalid-feedback d-block">{{ form.photo.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-9">
+              <div class="row">
+                {% if form.password %}
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label for="{{ form.password.id_for_label }}" class="form-label">Password</label>
+                    {{ form.password|add_class:"form-control" }}
+                    {% if form.password.help_text %}
+                    <div class="help-text">{{ form.password.help_text }}</div>
+                    {% endif %}
+                    {% if form.password.errors %}
+                    <div class="invalid-feedback d-block">{{ form.password.errors.0 }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label for="{{ form.confirm_password.id_for_label }}" class="form-label">Confirm Password</label>
+                    {{ form.confirm_password|add_class:"form-control" }}
+                    {% if form.confirm_password.errors %}
+                    <div class="invalid-feedback d-block">{{ form.confirm_password.errors.0 }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Academic Information Section -->
+        <div class="form-section">
+          <h5 class="section-title">
+            <i class="fas fa-graduation-cap me-2"></i>Academic Information
+          </h5>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="mb-3 required-field">
+                <label for="{{ form.admission_number.id_for_label }}" class="form-label">Admission Number</label>
+                {{ form.admission_number|add_class:"form-control" }}
+                {% if form.admission_number.errors %}
+                <div class="invalid-feedback d-block">{{ form.admission_number.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3 required-field">
+                <label for="{{ form.admission_date.id_for_label }}" class="form-label">Admission Date</label>
+                {{ form.admission_date|add_class:"form-control" }}
+                {% if form.admission_date.errors %}
+                <div class="invalid-feedback d-block">{{ form.admission_date.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="{{ form.roll_number.id_for_label }}" class="form-label">Roll Number</label>
+                {{ form.roll_number|add_class:"form-control" }}
+                {% if form.roll_number.errors %}
+                <div class="invalid-feedback d-block">{{ form.roll_number.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="{{ form.current_class.id_for_label }}" class="form-label">Current Class</label>
+                {{ form.current_class|add_class:"form-control select2" }}
+                {% if form.current_class.errors %}
+                <div class="invalid-feedback d-block">{{ form.current_class.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                {{ form.status|add_class:"form-control" }}
+                {% if form.status.errors %}
+                <div class="invalid-feedback d-block">{{ form.status.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-12">
+              <div class="mb-3">
+                <label for="{{ form.previous_school.id_for_label }}" class="form-label">Previous School</label>
+                {{ form.previous_school|add_class:"form-control" }}
+                {% if form.previous_school.errors %}
+                <div class="invalid-feedback d-block">{{ form.previous_school.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact Information Section -->
+        <div class="form-section">
+          <h5 class="section-title">
+            <i class="fas fa-address-card me-2"></i>Contact Information
+          </h5>
+          <div class="row">
+            <div class="col-md-12">
+              <div class="mb-3">
+                <label for="{{ form.address_line.id_for_label }}" class="form-label">Address</label>
+                {{ form.address_line|add_class:"form-control" }}
+                {% if form.address_line.errors %}
+                <div class="invalid-feedback d-block">{{ form.address_line.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="{{ form.city.id_for_label }}" class="form-label">City</label>
+                {{ form.city|add_class:"form-control" }}
+                {% if form.city.errors %}
+                <div class="invalid-feedback d-block">{{ form.city.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="{{ form.state.id_for_label }}" class="form-label">State</label>
+                {{ form.state|add_class:"form-control" }}
+                {% if form.state.errors %}
+                <div class="invalid-feedback d-block">{{ form.state.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="{{ form.postal_code.id_for_label }}" class="form-label">Postal Code</label>
+                {{ form.postal_code|add_class:"form-control" }}
+                {% if form.postal_code.errors %}
+                <div class="invalid-feedback d-block">{{ form.postal_code.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-12">
+              <div class="mb-3">
+                <label for="{{ form.country.id_for_label }}" class="form-label">Country</label>
+                {{ form.country|add_class:"form-control" }}
+                {% if form.country.errors %}
+                <div class="invalid-feedback d-block">{{ form.country.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Emergency Contact Section -->
+        <div class="form-section">
+          <h5 class="section-title">
+            <i class="fas fa-exclamation-triangle me-2"></i>Emergency Contact
+          </h5>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3 required-field">
+                <label for="{{ form.emergency_contact_name.id_for_label }}" class="form-label">Emergency Contact
+                  Name</label>
+                {{ form.emergency_contact_name|add_class:"form-control" }}
+                {% if form.emergency_contact_name.errors %}
+                <div class="invalid-feedback d-block">{{ form.emergency_contact_name.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3 required-field">
+                <label for="{{ form.emergency_contact_number.id_for_label }}" class="form-label">Emergency Contact
+                  Number</label>
+                {{ form.emergency_contact_number|add_class:"form-control" }}
+                {% if form.emergency_contact_number.errors %}
+                <div class="invalid-feedback d-block">{{ form.emergency_contact_number.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Medical Information Section -->
+        <div class="form-section">
+          <h5 class="section-title">
+            <i class="fas fa-heartbeat me-2"></i>Medical Information
+          </h5>
+          <div class="row">
+            <div class="col-md-12">
+              <div class="mb-3">
+                <label for="{{ form.medical_conditions.id_for_label }}" class="form-label">Medical Conditions</label>
+                {{ form.medical_conditions|add_class:"form-control" }}
+                <div class="help-text">List any known medical conditions, allergies, or special requirements</div>
+                {% if form.medical_conditions.errors %}
+                <div class="invalid-feedback d-block">{{ form.medical_conditions.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-section">
+          <div class="d-flex justify-content-between">
+            <div>
+              <a href="{% url 'students:student-list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Cancel
+              </a>
+            </div>
+            <div>
+              <button type="button" class="btn btn-outline-primary me-2" id="saveAsDraft">
+                <i class="fas fa-save me-2"></i>Save as Draft
+              </button>
+              <button type="submit" class="btn btn-primary" id="submitBtn">
+                <i class="fas fa-check me-2"></i>{{ button_label|default:"Save Student" }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/select2.min.js' %}"></script>
+<script>
+  $(document).ready(function () {
+    // Initialize Select2
+    $('.select2').select2({
+      theme: 'bootstrap4',
+      width: '100%'
+    });
+
+    // Profile photo preview
+    $('#{{ form.photo.id_for_label }}').change(function () {
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          $('#profilePreview').remove();
+          $('#uploadPlaceholder').hide();
+          $('.profile-upload').prepend(
+            '<img src="' + e.target.result + '" alt="Profile" class="profile-preview" id="profilePreview">'
+          );
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Form progress tracking
+    function updateProgress() {
+      const totalFields = $('input[required], select[required]').length;
+      const filledFields = $('input[required]:not([value=""]), select[required]:not([value=""])').length;
+      const progress = (filledFields / totalFields) * 100;
+
+      $('#formProgress').css('width', progress + '%');
+
+      if (progress === 100) {
+        $('#formProgress').addClass('bg-success').removeClass('bg-primary');
+      }
+    }
+
+    // Track form changes
+    $('input, select, textarea').on('change keyup', updateProgress);
+    updateProgress(); // Initial check
+
+    // Auto-save functionality
+    let autoSaveTimeout;
+    function autoSave() {
+      clearTimeout(autoSaveTimeout);
+      autoSaveTimeout = setTimeout(function () {
+        // Save form data to localStorage
+        const formData = {};
+        $('#studentForm').find('input, select, textarea').each(function () {
+          if (this.type !== 'file' && this.type !== 'password') {
+            formData[this.name] = $(this).val();
+          }
+        });
+        localStorage.setItem('studentFormDraft', JSON.stringify(formData));
+
+        // Show auto-save indicator
+        const autoSaveIndicator = $('<small class="text-success ms-2" id="autoSaveIndicator">Auto-saved</small>');
+        $('#submitBtn').parent().prepend(autoSaveIndicator);
+        setTimeout(() => autoSaveIndicator.fadeOut(), 2000);
+      }, 2000);
+    }
+
+    // Enable auto-save
+    $('#studentForm input, #studentForm select, #studentForm textarea').on('input change', autoSave);
+
+    // Load draft data
+    const draftData = localStorage.getItem('studentFormDraft');
+    if (draftData && !$('#studentForm').find('input[name="id"]').val()) {
+      const data = JSON.parse(draftData);
+      for (const [key, value] of Object.entries(data)) {
+        $(`[name="${key}"]`).val(value);
+      }
+      updateProgress();
+    }
+
+    // Save as draft button
+    $('#saveAsDraft').click(function () {
+      // Save current form state
+      autoSave();
+
+      // Show confirmation
+      alert('Form saved as draft!');
+    });
+
+    // Form validation
+    $('#studentForm').on('submit', function (e) {
+      let isValid = true;
+
+      // Remove previous validation classes
+      $('.is-invalid').removeClass('is-invalid');
+
+      // Validate required fields
+      $('input[required], select[required]').each(function () {
+        if (!$(this).val()) {
+          $(this).addClass('is-invalid');
+          isValid = false;
+        }
+      });
+
+      // Validate email format
+      const email = $('input[name="email"]').val();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (email && !emailRegex.test(email)) {
+        $('input[name="email"]').addClass('is-invalid');
+        isValid = false;
+      }
+
+      // Validate password confirmation
+      const password = $('input[name="password"]').val();
+      const confirmPassword = $('input[name="confirm_password"]').val();
+      if (password && password !== confirmPassword) {
+        $('input[name="confirm_password"]').addClass('is-invalid');
+        isValid = false;
+      }
+
+      if (!isValid) {
+        e.preventDefault();
+        alert('Please correct the errors in the form before submitting.');
+
+        // Scroll to first error
+        const firstError = $('.is-invalid').first();
+        if (firstError.length) {
+          $('html, body').animate({
+            scrollTop: firstError.offset().top - 100
+          }, 500);
+        }
+      } else {
+        // Clear draft on successful submission
+        localStorage.removeItem('studentFormDraft');
+      }
+    });
+
+    // Real-time validation
+    $('input[name="email"]').on('blur', function () {
+      const email = $(this).val();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if (email && !emailRegex.test(email)) {
+        $(this).addClass('is-invalid');
+        if (!$(this).next('.invalid-feedback').length) {
+          $(this).after('<div class="invalid-feedback">Please enter a valid email address.</div>');
+        }
+      } else {
+        $(this).removeClass('is-invalid');
+        $(this).next('.invalid-feedback').remove();
+      }
+    });
+
+    // Password strength indicator
+    $('input[name="password"]').on('input', function () {
+      const password = $(this).val();
+      let strength = 0;
+
+      if (password.length >= 8) strength++;
+      if (password.match(/[a-z]+/)) strength++;
+      if (password.match(/[A-Z]+/)) strength++;
+      if (password.match(/[0-9]+/)) strength++;
+      if (password.match(/[^a-zA-Z0-9]+/)) strength++;
+
+      const strengthText = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'][Math.min(strength, 4)];
+      const strengthColor = ['danger', 'warning', 'info', 'success', 'success'][Math.min(strength, 4)];
+
+      let strengthIndicator = $(this).parent().find('.password-strength');
+      if (strengthIndicator.length === 0) {
+        strengthIndicator = $('<div class="password-strength mt-1"></div>');
+        $(this).parent().append(strengthIndicator);
+      }
+
+      strengthIndicator.html(`<small class="text-${strengthColor}">Password strength: ${strengthText}</small>`);
+    });
+  });
+</script>
+{% endblock %}

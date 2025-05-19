@@ -1,0 +1,46 @@
+# students/templates/emails/parent_welcome.txt
+Subject: Parent Account Created - {{ school_name }}
+
+Dear {{ parent.get_full_name }},
+
+Your parent account at {{ school_name }} has been successfully created. We are pleased to have you join our school community as a {{ parent.relation_with_student }}.
+
+Account Information:
+- Name: {{ parent.get_full_name }}
+- Email: {{ parent.user.email }}
+- Relation: {{ parent.relation_with_student }}
+- Phone: {{ parent.user.phone_number }}
+
+Through your parent portal, you can:
+
+- Monitor your child's academic progress and attendance
+- Communicate with teachers and school staff
+- View and pay fee invoices online
+- Receive important notifications and announcements
+- Schedule parent-teacher meetings
+- Access school calendars and events
+
+Getting Started:
+1. Log in to the parent portal using your email address
+2. Use the temporary password provided separately
+3. Change your password upon first login
+4. Complete your profile information
+5. Review and update emergency contact details
+
+Important Reminders:
+- Keep your contact information up to date
+- Enable notifications to stay informed about your child's activities
+- Regularly check the portal for important updates
+- Contact the school office if you experience any technical issues
+
+We encourage active parent participation in your child's education. Your involvement is crucial to their success, and we look forward to working together.
+
+If you have any questions or need assistance with your account, please contact our support team at [support email] or visit the school office during working hours.
+
+Thank you for being part of the {{ school_name }} community!
+
+Warm regards,
+{{ school_name }} Administration
+
+---
+This is an automated email. Please do not reply directly to this message.

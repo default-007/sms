@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from src.accounts.models import UserRole, UserRoleAssignment
+from django.contrib.auth.password_validation import validate_password
+from django.core.validators import validate_email
+from src.accounts.models import UserRole, UserRoleAssignment, UserProfile
 from src.students.models import Student, Parent, StudentParentRelation
 from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
 from src.courses.models import (
@@ -22,10 +24,124 @@ User = get_user_model()
 
 
 # User and Role Serializers
+
+User = get_user_model()
+
+
+class UserRoleSerializer(serializers.ModelSerializer):
+    """Serializer for UserRole model."""
+
+    permission_count = serializers.SerializerMethodField()
+    assigned_users_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserRole
+        fields = [
+            "id",
+            "name",
+            "description",
+            "permissions",
+            "is_system_role",
+            "created_at",
+            "updated_at",
+            "permission_count",
+            "assigned_users_count",
+        ]
+        read_only_fields = [
+            "created_at",
+            "updated_at",
+            "permission_count",
+            "assigned_users_count",
+        ]
+
+    def get_permission_count(self, obj):
+        return obj.get_permission_count()
+
+    def get_assigned_users_count(self, obj):
+        return obj.user_assignments.filter(is_active=True).count()
+
+    def validate_permissions(self, value):
+        """Validate permissions structure."""
+        from ..services import RoleService
+
+        is_valid, message = RoleService.validate_permissions(value)
+        if not is_valid:
+            raise serializers.ValidationError(message)
+        return value
+
+
+class UserRoleAssignmentSerializer(serializers.ModelSerializer):
+    """Serializer for UserRoleAssignment model."""
+
+    role_name = serializers.CharField(source="role.name", read_only=True)
+    user_username = serializers.CharField(source="user.username", read_only=True)
+    assigned_by_username = serializers.CharField(
+        source="assigned_by.username", read_only=True
+    )
+    is_expired = serializers.SerializerMethodField()
+    days_until_expiry = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserRoleAssignment
+        fields = [
+            "id",
+            "user",
+            "role",
+            "role_name",
+            "user_username",
+            "assigned_date",
+            "assigned_by",
+            "assigned_by_username",
+            "expires_at",
+            "is_active",
+            "notes",
+            "is_expired",
+            "days_until_expiry",
+        ]
+        read_only_fields = ["assigned_date", "is_expired", "days_until_expiry"]
+
+    def get_is_expired(self, obj):
+        return obj.is_expired()
+
+    def get_days_until_expiry(self, obj):
+        return obj.days_until_expiry()
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    """Serializer for UserProfile model."""
+
+    class Meta:
+        model = UserProfile
+        fields = [
+            "bio",
+            "website",
+            "location",
+            "birth_date",
+            "language",
+            "timezone",
+            "email_notifications",
+            "sms_notifications",
+            "linkedin_url",
+            "twitter_url",
+            "facebook_url",
+        ]
+
+
 class UserSerializer(serializers.ModelSerializer):
+    """Enhanced serializer for User model."""
+
+    full_name = serializers.CharField(source="get_full_name", read_only=True)
+    initials = serializers.CharField(source="get_initials", read_only=True)
+    age = serializers.IntegerField(source="get_age", read_only=True)
+    assigned_roles = serializers.StringRelatedField(
+        source="get_assigned_roles", many=True, read_only=True
+    )
+    profile = UserProfileSerializer(read_only=True)
+    role_assignments = UserRoleAssignmentSerializer(many=True, read_only=True)
+
     class Meta:
         model = User
-        fields = (
+        fields = [
             "id",
             "username",
             "email",
@@ -39,63 +155,239 @@ class UserSerializer(serializers.ModelSerializer):
             "is_active",
             "date_joined",
             "last_login",
-        )
-        read_only_fields = ("date_joined", "last_login")
-        extra_kwargs = {"password": {"write_only": True}}
+            "full_name",
+            "initials",
+            "age",
+            "assigned_roles",
+            "profile",
+            "role_assignments",
+            "requires_password_change",
+        ]
+        read_only_fields = [
+            "date_joined",
+            "last_login",
+            "full_name",
+            "initials",
+            "age",
+            "assigned_roles",
+            "role_assignments",
+        ]
+        extra_kwargs = {
+            "password": {"write_only": True},
+            "profile_picture": {"required": False},
+        }
 
+    def validate_email(self, value):
+        """Validate email uniqueness."""
+        if self.instance and self.instance.email == value:
+            return value
 
-class UserCreateSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(
-        write_only=True, required=True, style={"input_type": "password"}
-    )
-    password_confirm = serializers.CharField(
-        write_only=True, required=True, style={"input_type": "password"}
-    )
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return value
 
-    class Meta:
-        model = User
-        fields = (
-            "username",
-            "email",
-            "first_name",
-            "last_name",
-            "phone_number",
-            "address",
-            "date_of_birth",
-            "gender",
-            "profile_picture",
-            "password",
-            "password_confirm",
-        )
+    def validate_username(self, value):
+        """Validate username uniqueness."""
+        if self.instance and self.instance.username == value:
+            return value
 
-    def validate(self, data):
-        if data["password"] != data.pop("password_confirm"):
+        if User.objects.filter(username=value).exists():
             raise serializers.ValidationError(
-                {"password_confirm": "Passwords do not match."}
+                "A user with this username already exists."
             )
-        return data
+        return value
+
+
+class UserCreateSerializer(UserSerializer):
+    """Serializer for creating users with password."""
+
+    password = serializers.CharField(write_only=True, validators=[validate_password])
+    password_confirm = serializers.CharField(write_only=True)
+    roles = serializers.ListField(
+        child=serializers.CharField(),
+        write_only=True,
+        required=False,
+        help_text="List of role names to assign to the user",
+    )
+
+    class Meta(UserSerializer.Meta):
+        fields = UserSerializer.Meta.fields + ["password", "password_confirm", "roles"]
+
+    def validate(self, attrs):
+        """Validate password confirmation and roles."""
+        if attrs.get("password") != attrs.get("password_confirm"):
+            raise serializers.ValidationError("Passwords don't match.")
+
+        # Validate roles exist
+        if "roles" in attrs:
+            role_names = attrs["roles"]
+            existing_roles = UserRole.objects.filter(name__in=role_names).values_list(
+                "name", flat=True
+            )
+            invalid_roles = set(role_names) - set(existing_roles)
+            if invalid_roles:
+                raise serializers.ValidationError(
+                    f"Invalid roles: {', '.join(invalid_roles)}"
+                )
+
+        return attrs
 
     def create(self, validated_data):
+        """Create user with password and roles."""
+        from ..services import RoleService
+
         password = validated_data.pop("password")
-        user = User(**validated_data)
+        validated_data.pop("password_confirm")
+        roles = validated_data.pop("roles", [])
+
+        user = User.objects.create(**validated_data)
         user.set_password(password)
+        user.save()
+
+        # Assign roles
+        for role_name in roles:
+            RoleService.assign_role_to_user(user, role_name)
+
+        return user
+
+
+class UserUpdateSerializer(UserSerializer):
+    """Serializer for updating users."""
+
+    roles = serializers.ListField(
+        child=serializers.CharField(),
+        write_only=True,
+        required=False,
+        help_text="List of role names to assign to the user",
+    )
+
+    class Meta(UserSerializer.Meta):
+        fields = UserSerializer.Meta.fields + ["roles"]
+
+    def validate(self, attrs):
+        """Validate roles if provided."""
+        if "roles" in attrs:
+            role_names = attrs["roles"]
+            existing_roles = UserRole.objects.filter(name__in=role_names).values_list(
+                "name", flat=True
+            )
+            invalid_roles = set(role_names) - set(existing_roles)
+            if invalid_roles:
+                raise serializers.ValidationError(
+                    f"Invalid roles: {', '.join(invalid_roles)}"
+                )
+
+        return attrs
+
+    def update(self, instance, validated_data):
+        """Update user and roles."""
+        from ..services import RoleService
+
+        roles = validated_data.pop("roles", None)
+
+        # Update user fields
+        user = super().update(instance, validated_data)
+
+        # Update roles if provided
+        if roles is not None:
+            # Remove all current role assignments
+            instance.role_assignments.all().delete()
+
+            # Assign new roles
+            for role_name in roles:
+                RoleService.assign_role_to_user(instance, role_name)
+
+        return user
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    """Serializer for password change."""
+
+    current_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(
+        write_only=True, validators=[validate_password]
+    )
+    new_password_confirm = serializers.CharField(write_only=True)
+
+    def validate_current_password(self, value):
+        """Validate current password."""
+        if not self.context["request"].user.check_password(value):
+            raise serializers.ValidationError("Current password is incorrect.")
+        return value
+
+    def validate(self, attrs):
+        """Validate password confirmation."""
+        if attrs["new_password"] != attrs["new_password_confirm"]:
+            raise serializers.ValidationError("New passwords don't match.")
+        return attrs
+
+    def save(self):
+        """Update user password."""
+        user = self.context["request"].user
+        user.set_password(self.validated_data["new_password"])
+        user.password_changed_at = timezone.now()
+        user.requires_password_change = False
         user.save()
         return user
 
 
-class UserRoleSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UserRole
-        fields = ("id", "name", "description", "permissions")
+class UserStatsSerializer(serializers.Serializer):
+    """Serializer for user statistics."""
+
+    total_users = serializers.IntegerField()
+    active_users = serializers.IntegerField()
+    inactive_users = serializers.IntegerField()
+    users_by_role = serializers.DictField()
+    recent_registrations = serializers.IntegerField()
+    users_requiring_password_change = serializers.IntegerField()
 
 
-class UserRoleAssignmentSerializer(serializers.ModelSerializer):
-    role_name = serializers.CharField(source="role.name", read_only=True)
+class UserBulkActionSerializer(serializers.Serializer):
+    """Serializer for bulk user actions."""
 
-    class Meta:
-        model = UserRoleAssignment
-        fields = ("id", "user", "role", "role_name", "assigned_date", "assigned_by")
-        read_only_fields = ("assigned_date",)
+    ACTION_CHOICES = [
+        ("activate", "Activate"),
+        ("deactivate", "Deactivate"),
+        ("assign_roles", "Assign Roles"),
+        ("remove_roles", "Remove Roles"),
+        ("require_password_change", "Require Password Change"),
+    ]
+
+    user_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        min_length=1,
+        help_text="List of user IDs to perform action on",
+    )
+    action = serializers.ChoiceField(choices=ACTION_CHOICES)
+    roles = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="List of role names (required for role-related actions)",
+    )
+
+    def validate(self, attrs):
+        """Validate action and required fields."""
+        action = attrs["action"]
+
+        if action in ["assign_roles", "remove_roles"] and not attrs.get("roles"):
+            raise serializers.ValidationError(
+                "Roles are required for role-related actions."
+            )
+
+        # Validate user IDs exist
+        user_ids = attrs["user_ids"]
+        existing_users = User.objects.filter(id__in=user_ids).count()
+        if existing_users != len(user_ids):
+            raise serializers.ValidationError("Some user IDs are invalid.")
+
+        # Validate roles if provided
+        if attrs.get("roles"):
+            role_names = attrs["roles"]
+            existing_roles = UserRole.objects.filter(name__in=role_names).count()
+            if existing_roles != len(role_names):
+                raise serializers.ValidationError("Some role names are invalid.")
+
+        return attrs
 
 
 # Student Serializers

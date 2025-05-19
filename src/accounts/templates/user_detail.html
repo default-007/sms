@@ -1,0 +1,511 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}User Profile | {{ user_obj.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="body-wrapper">
+  <div class="container-fluid">
+    <!-- Breadcrumb -->
+    <div class="card card-body">
+      <div class="row align-items-center">
+        <div class="col-12">
+          <div class="d-sm-flex align-items-center justify-space-between">
+            <h4 class="fw-semibold fs-4 mb-4 mb-md-0 card-title">User Profile</h4>
+            <nav aria-label="breadcrumb" class="ms-auto">
+              <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                  <a class="text-muted text-decoration-none" href="{% url 'core:dashboard' %}">
+                    <iconify-icon icon="solar:home-2-line-duotone" class="fs-6"></iconify-icon>
+                  </a>
+                </li>
+                <li class="breadcrumb-item">
+                  <a href="{% url 'accounts:user_list' %}">Users</a>
+                </li>
+                <li class="breadcrumb-item" aria-current="page">
+                  <span class="badge fw-medium fs-2 bg-primary-subtle text-primary">
+                    {{ user_obj.get_full_name }}
+                  </span>
+                </li>
+              </ol>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Header Card -->
+    <div class="card overflow-hidden mb-4">
+      <div class="card-body p-0">
+        <div class="row">
+          <div class="col-lg-4 border-end">
+            <div class="p-4 text-center">
+              <div class="mb-3">
+                {% if user_obj.profile_picture %}
+                <img src="{{ user_obj.profile_picture.url }}" alt="{{ user_obj.get_full_name }}" class="rounded-circle"
+                  width="120" height="120">
+                {% else %}
+                <div
+                  class="round-120 d-flex align-items-center justify-content-center rounded-circle bg-primary-subtle">
+                  <span class="fs-5 fw-bold text-primary">{{ user_obj.get_initials }}</span>
+                </div>
+                {% endif %}
+              </div>
+              <h4 class="mb-1">{{ user_obj.get_full_name }}</h4>
+              <p class="text-muted mb-3">@{{ user_obj.username }}</p>
+
+              <!-- Status Badges -->
+              <div class="mb-3">
+                {% if user_obj.is_active %}
+                <span class="badge bg-success-subtle text-success">
+                  <iconify-icon icon="solar:check-circle-bold-duotone" class="me-1"></iconify-icon>
+                  Active
+                </span>
+                {% else %}
+                <span class="badge bg-danger-subtle text-danger">
+                  <iconify-icon icon="solar:close-circle-bold-duotone" class="me-1"></iconify-icon>
+                  Inactive
+                </span>
+                {% endif %}
+
+                {% if user_obj.is_superuser %}
+                <span class="badge bg-warning-subtle text-warning">
+                  <iconify-icon icon="solar:crown-bold-duotone" class="me-1"></iconify-icon>
+                  Superuser
+                </span>
+                {% endif %}
+
+                {% if user_stats.is_locked %}
+                <span class="badge bg-danger-subtle text-danger">
+                  <iconify-icon icon="solar:lock-bold-duotone" class="me-1"></iconify-icon>
+                  Locked
+                </span>
+                {% endif %}
+
+                {% if user_stats.requires_password_change %}
+                <span class="badge bg-warning-subtle text-warning">
+                  <iconify-icon icon="solar:shield-warning-bold-duotone" class="me-1"></iconify-icon>
+                  Password Reset Required
+                </span>
+                {% endif %}
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="d-grid gap-2">
+                {% if perms.accounts.change_user %}
+                <a href="{% url 'accounts:user_update' user_obj.pk %}" class="btn btn-primary">
+                  <iconify-icon icon="solar:pen-line-duotone" class="me-2"></iconify-icon>
+                  Edit Profile
+                </a>
+                {% endif %}
+
+                <div class="btn-group" role="group">
+                  <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                    <iconify-icon icon="solar:settings-line-duotone" class="me-2"></iconify-icon>
+                    Actions
+                  </button>
+                  <ul class="dropdown-menu w-100">
+                    {% if perms.accounts.change_user %}
+                    <li>
+                      <a class="dropdown-item" href="#" onclick="resetPassword({{ user_obj.id }})">
+                        <iconify-icon icon="solar:key-line-duotone" class="me-2"></iconify-icon>
+                        Reset Password
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="#"
+                        onclick="toggleUserStatus({{ user_obj.id }}, {{ user_obj.is_active|yesno:'false,true' }})">
+                        {% if user_obj.is_active %}
+                        <iconify-icon icon="solar:user-cross-line-duotone" class="me-2"></iconify-icon>
+                        Deactivate User
+                        {% else %}
+                        <iconify-icon icon="solar:user-check-line-duotone" class="me-2"></iconify-icon>
+                        Activate User
+                        {% endif %}
+                      </a>
+                    </li>
+                    <li>
+                      <hr class="dropdown-divider">
+                    </li>
+                    {% endif %}
+                    <li>
+                      <a class="dropdown-item" href="mailto:{{ user_obj.email }}">
+                        <iconify-icon icon="solar:letter-line-duotone" class="me-2"></iconify-icon>
+                        Send Email
+                      </a>
+                    </li>
+                    {% if user_obj.phone_number %}
+                    <li>
+                      <a class="dropdown-item" href="tel:{{ user_obj.phone_number }}">
+                        <iconify-icon icon="solar:phone-line-duotone" class="me-2"></iconify-icon>
+                        Call User
+                      </a>
+                    </li>
+                    {% endif %}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-8">
+            <div class="p-4">
+              <!-- User Information -->
+              <h5 class="mb-3">Personal Information</h5>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label text-muted">Email</label>
+                    <p class="mb-0">{{ user_obj.email }}</p>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label text-muted">Phone</label>
+                    <p class="mb-0">{{ user_obj.phone_number|default:"Not provided" }}</p>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label text-muted">Gender</label>
+                    <p class="mb-0">{{ user_obj.get_gender_display|default:"Not specified" }}</p>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label text-muted">Date of Birth</label>
+                    <p class="mb-0">
+                      {% if user_obj.date_of_birth %}
+                      {{ user_obj.date_of_birth|date:"F d, Y" }}
+                      ({{ user_obj.get_age }} years old)
+                      {% else %}
+                      Not provided
+                      {% endif %}
+                    </p>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label text-muted">Address</label>
+                    <p class="mb-0">{{ user_obj.address|default:"Not provided" }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Roles and Permissions -->
+      <div class="col-lg-6">
+        <div class="card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0">
+              <iconify-icon icon="solar:user-id-bold-duotone" class="me-2"></iconify-icon>
+              Roles & Permissions
+            </h5>
+          </div>
+          <div class="card-body">
+            {% if user_roles %}
+            <div class="mb-3">
+              <h6>Assigned Roles</h6>
+              {% for assignment in user_roles %}
+              <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2">
+                <div>
+                  <h6 class="mb-0">{{ assignment.role.name }}</h6>
+                  <small class="text-muted">{{ assignment.role.description }}</small>
+                </div>
+                <div class="text-end">
+                  <small class="text-muted">
+                    Assigned: {{ assignment.assigned_date|date:"M d, Y" }}
+                  </small>
+                  {% if assignment.expires_at %}
+                  <br><small class="text-warning">
+                    Expires: {{ assignment.expires_at|date:"M d, Y" }}
+                  </small>
+                  {% endif %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-3">
+              <iconify-icon icon="solar:user-cross-line-duotone" class="fs-5"></iconify-icon>
+              <p class="mb-0">No roles assigned</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Account Statistics -->
+      <div class="col-lg-6">
+        <div class="card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0">
+              <iconify-icon icon="solar:chart-bold-duotone" class="me-2"></iconify-icon>
+              Account Statistics
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-6">
+                <div class="text-center mb-3">
+                  <div
+                    class="round-40 d-flex align-items-center justify-content-center rounded-circle bg-primary-subtle mx-auto mb-2">
+                    <iconify-icon icon="solar:login-2-bold-duotone" class="fs-5 text-primary"></iconify-icon>
+                  </div>
+                  <h4 class="mb-0">{{ user_stats.total_logins }}</h4>
+                  <small class="text-muted">Total Logins</small>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="text-center mb-3">
+                  <div
+                    class="round-40 d-flex align-items-center justify-content-center rounded-circle bg-warning-subtle mx-auto mb-2">
+                    <iconify-icon icon="solar:shield-warning-bold-duotone" class="fs-5 text-warning"></iconify-icon>
+                  </div>
+                  <h4 class="mb-0">{{ user_stats.failed_attempts }}</h4>
+                  <small class="text-muted">Failed Attempts</small>
+                </div>
+              </div>
+            </div>
+
+            <hr>
+
+            <div class="mb-3">
+              <div class="d-flex justify-content-between">
+                <span>Member Since</span>
+                <span class="fw-medium">{{ user_obj.date_joined|date:"F d, Y" }}</span>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <div class="d-flex justify-content-between">
+                <span>Last Login</span>
+                <span class="fw-medium">
+                  {% if user_stats.last_login %}
+                  {{ user_stats.last_login|date:"M d, Y g:i A" }}
+                  {% else %}
+                  Never
+                  {% endif %}
+                </span>
+              </div>
+            </div>
+
+            {% if user_obj.password_changed_at %}
+            <div class="mb-3">
+              <div class="d-flex justify-content-between">
+                <span>Password Changed</span>
+                <span class="fw-medium">{{ user_obj.password_changed_at|date:"M d, Y" }}</span>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Sessions -->
+    {% if active_sessions %}
+    <div class="card mt-4">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <iconify-icon icon="solar:devices-bold-duotone" class="me-2"></iconify-icon>
+          Active Sessions
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Device</th>
+                <th>IP Address</th>
+                <th>Last Activity</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for session in active_sessions %}
+              <tr>
+                <td>
+                  <div>
+                    <strong>{{ session.user_agent|truncatechars:50 }}</strong>
+                    <br><small class="text-muted">{{ session.created_at|date:"M d, Y g:i A" }}</small>
+                  </div>
+                </td>
+                <td>{{ session.ip_address }}</td>
+                <td>{{ session.last_activity|timesince }} ago</td>
+                <td>
+                  {% if perms.accounts.change_user %}
+                  <button class="btn btn-sm btn-outline-danger" onclick="terminateSession('{{ session.session_key }}')">
+                    <iconify-icon icon="solar:power-bold-duotone"></iconify-icon>
+                    Terminate
+                  </button>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Activity -->
+    {% if recent_activity %}
+    <div class="card mt-4">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <iconify-icon icon="solar:history-bold-duotone" class="me-2"></iconify-icon>
+          Recent Activity
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="timeline-feed">
+          {% for activity in recent_activity %}
+          <div class="timeline-feed-item">
+            <div class="timeline-feed-icon">
+              {% if activity.action == 'login' %}
+              <iconify-icon icon="solar:login-2-bold-duotone" class="text-success"></iconify-icon>
+              {% elif activity.action == 'logout' %}
+              <iconify-icon icon="solar:logout-2-bold-duotone" class="text-warning"></iconify-icon>
+              {% elif activity.action == 'password_change' %}
+              <iconify-icon icon="solar:key-bold-duotone" class="text-info"></iconify-icon>
+              {% elif activity.action == 'update' %}
+              <iconify-icon icon="solar:pen-bold-duotone" class="text-primary"></iconify-icon>
+              {% else %}
+              <iconify-icon icon="solar:document-bold-duotone" class="text-muted"></iconify-icon>
+              {% endif %}
+            </div>
+            <div class="timeline-feed-content">
+              <h6 class="mb-1">{{ activity.get_action_display }}</h6>
+              <p class="text-muted mb-1">{{ activity.description }}</p>
+              <small class="text-muted">
+                {{ activity.timestamp|timesince }} ago
+                {% if activity.ip_address %}
+                from {{ activity.ip_address }}
+                {% endif %}
+              </small>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="text-center mt-3">
+          <a href="#" class="btn btn-outline-primary btn-sm">View All Activity</a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  // Reset password function
+  function resetPassword(userId) {
+    if (confirm('Are you sure you want to reset this user\'s password?')) {
+      fetch(`/accounts/users/${userId}/reset-password/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Password reset email sent successfully.');
+          } else {
+            alert('Error: ' + data.message);
+          }
+        });
+    }
+  }
+
+  // Toggle user status function
+  function toggleUserStatus(userId, activate) {
+    const action = activate ? 'activate' : 'deactivate';
+    if (confirm(`Are you sure you want to ${action} this user?`)) {
+      fetch(`/accounts/users/${userId}/toggle-status/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: JSON.stringify({ activate: activate })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            location.reload();
+          } else {
+            alert('Error: ' + data.message);
+          }
+        });
+    }
+  }
+
+  // Terminate session function
+  function terminateSession(sessionKey) {
+    if (confirm('Are you sure you want to terminate this session?')) {
+      fetch(`/api/accounts/sessions/${sessionKey}/terminate/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.detail) {
+            location.reload();
+          } else {
+            alert('Error terminating session');
+          }
+        });
+    }
+  }
+</script>
+
+<style>
+  .timeline-feed {
+    position: relative;
+  }
+
+  .timeline-feed::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e9ecef;
+  }
+
+  .timeline-feed-item {
+    position: relative;
+    padding-left: 40px;
+    margin-bottom: 20px;
+  }
+
+  .timeline-feed-icon {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 30px;
+    height: 30px;
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .timeline-feed-content {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid #e9ecef;
+  }
+</style>
+{% endblock content %}

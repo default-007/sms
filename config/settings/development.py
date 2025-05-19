@@ -24,6 +24,7 @@ MIDDLEWARE += [
 # Development-specific apps
 INSTALLED_APPS += [
     "debug_toolbar",
+    "django_extensions",
 ]
 
 # Debug toolbar settings
@@ -33,6 +34,9 @@ INTERNAL_IPS = [
 
 # Simplified password validation for development
 AUTH_PASSWORD_VALIDATORS = []
+
+# Disable caching in development
+CACHES["default"]["BACKEND"] = "django.core.cache.backends.dummy.DummyCache"
 
 # Log SQL queries
 LOGGING = {

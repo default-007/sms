@@ -1,8 +1,12 @@
-from rest_framework import viewsets, status, filters
-from rest_framework.decorators import action
+from rest_framework import viewsets, generics, status, permissions, filters
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from django.db.models import Q, Count
+from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.shortcuts import get_object_or_404
@@ -10,8 +14,12 @@ from django.shortcuts import get_object_or_404
 from .serializers import (
     UserSerializer,
     UserCreateSerializer,
+    UserUpdateSerializer,
     UserRoleSerializer,
     UserRoleAssignmentSerializer,
+    PasswordChangeSerializer,
+    UserStatsSerializer,
+    UserBulkActionSerializer,
     StudentSerializer,
     ParentSerializer,
     StudentParentRelationSerializer,
@@ -45,7 +53,8 @@ from .filters import (
 from .utils import api_response, get_current_academic_year
 from .authentication import DefaultAuthentication
 
-from src.accounts.models import UserRole, UserRoleAssignment
+from src.accounts.models import UserRole, UserRoleAssignment, UserAuditLog
+from src.accounts.permissions import IsAdmin, CanManageUsers
 from src.students.models import Student, Parent, StudentParentRelation
 from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
 from src.courses.models import (
@@ -67,184 +76,336 @@ from src.accounts.services.role_service import RoleService
 User = get_user_model()
 
 
-class UserViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint for managing users.
-    """
+class UserListCreateAPIView(generics.ListCreateAPIView):
+    """API view for listing and creating users."""
 
     queryset = User.objects.all()
-    serializer_class = UserSerializer
-    pagination_class = StandardResultsSetPagination
-    permission_classes = [IsAuthenticated, HasResourcePermission]
-    authentication_classes = DefaultAuthentication.authentication_classes
-    filter_backends = [
-        DjangoFilterBackend,
-        filters.SearchFilter,
-        filters.OrderingFilter,
-    ]
-    filterset_class = UserFilter
-    search_fields = ["username", "email", "first_name", "last_name", "phone_number"]
+    permission_classes = [permissions.IsAuthenticated, CanManageUsers]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    search_fields = ["username", "email", "first_name", "last_name"]
+    filterset_fields = ["is_active", "gender", "role_assignments__role__name"]
     ordering_fields = ["username", "email", "date_joined", "last_login"]
-    ordering = ["username"]
-    resource_name = "users"
+    ordering = ["-date_joined"]
 
     def get_serializer_class(self):
-        if self.action == "create":
+        if self.request.method == "POST":
             return UserCreateSerializer
         return UserSerializer
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-
-        # Assign roles if provided
-        roles = request.data.get("roles", [])
-        if roles:
-            for role_id in roles:
-                try:
-                    role = UserRole.objects.get(pk=role_id)
-                    UserRoleAssignment.objects.create(
-                        user=user, role=role, assigned_by=request.user
-                    )
-                except UserRole.DoesNotExist:
-                    pass
-
-        # Return response
-        headers = self.get_success_headers(serializer.data)
-        return api_response(
-            data=serializer.data,
-            message="User created successfully",
-            status_code=status.HTTP_201_CREATED,
-            headers=headers,
+    def get_queryset(self):
+        """Optimize queryset with prefetch."""
+        return User.objects.select_related("profile").prefetch_related(
+            "role_assignments__role"
         )
 
-    @action(detail=True, methods=["post"])
-    def change_password(self, request, pk=None):
-        user = self.get_object()
 
-        # Check if the user has permission
-        if user != request.user and not RoleService.check_permission(
-            request.user, "users", "change"
-        ):
-            return api_response(
-                status="error",
-                message="You don't have permission to change this user's password",
-                status_code=status.HTTP_403_FORBIDDEN,
-            )
+class UserRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    """API view for retrieving, updating, and deleting users."""
 
-        # Check current password if user is changing their own password
-        current_password = request.data.get("current_password", "")
-        if user == request.user and not user.check_password(current_password):
-            return api_response(
-                status="error",
-                message="Current password is incorrect",
-                status_code=status.HTTP_400_BAD_REQUEST,
-            )
+    queryset = User.objects.all()
+    permission_classes = [permissions.IsAuthenticated, CanManageUsers]
 
-        # Validate new password
-        new_password = request.data.get("new_password", "")
-        if not new_password:
-            return api_response(
-                status="error",
-                message="New password is required",
-                status_code=status.HTTP_400_BAD_REQUEST,
-            )
+    def get_serializer_class(self):
+        if self.request.method in ["PUT", "PATCH"]:
+            return UserUpdateSerializer
+        return UserSerializer
 
-        # Set new password
-        user.set_password(new_password)
-        user.save()
+    def get_queryset(self):
+        """Optimize queryset with prefetch."""
+        return User.objects.select_related("profile").prefetch_related(
+            "role_assignments__role"
+        )
 
-        return api_response(message="Password changed successfully")
+    def perform_destroy(self, instance):
+        """Soft delete user instead of hard delete."""
+        instance.is_active = False
+        instance.save()
 
-    @action(detail=True, methods=["get"])
-    def roles(self, request, pk=None):
-        user = self.get_object()
-        roles = user.role_assignments.all()
-        serializer = UserRoleAssignmentSerializer(roles, many=True)
-        return api_response(data=serializer.data)
-
-    @action(detail=True, methods=["post"])
-    def assign_role(self, request, pk=None):
-        user = self.get_object()
-        role_id = request.data.get("role")
-
-        if not role_id:
-            return api_response(
-                status="error",
-                message="Role ID is required",
-                status_code=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            role = UserRole.objects.get(pk=role_id)
-            assignment, created = UserRoleAssignment.objects.get_or_create(
-                user=user, role=role, defaults={"assigned_by": request.user}
-            )
-
-            if created:
-                return api_response(
-                    data=UserRoleAssignmentSerializer(assignment).data,
-                    message="Role assigned successfully",
-                )
-            else:
-                return api_response(
-                    data=UserRoleAssignmentSerializer(assignment).data,
-                    message="Role was already assigned",
-                )
-        except UserRole.DoesNotExist:
-            return api_response(
-                status="error",
-                message="Role not found",
-                status_code=status.HTTP_404_NOT_FOUND,
-            )
-
-    @action(detail=True, methods=["post"])
-    def remove_role(self, request, pk=None):
-        user = self.get_object()
-        role_id = request.data.get("role")
-
-        if not role_id:
-            return api_response(
-                status="error",
-                message="Role ID is required",
-                status_code=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            assignment = UserRoleAssignment.objects.get(user=user, role_id=role_id)
-            assignment.delete()
-            return api_response(message="Role removed successfully")
-        except UserRoleAssignment.DoesNotExist:
-            return api_response(
-                status="error",
-                message="Role assignment not found",
-                status_code=status.HTTP_404_NOT_FOUND,
-            )
+        # Create audit log
+        UserAuditLog.objects.create(
+            user=instance,
+            action="delete",
+            description=f"User deactivated",
+            performed_by=self.request.user,
+        )
 
 
-class UserRoleViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint for managing user roles.
-    """
+class UserRoleListCreateAPIView(generics.ListCreateAPIView):
+    """API view for listing and creating user roles."""
 
     queryset = UserRole.objects.all()
     serializer_class = UserRoleSerializer
-    pagination_class = StandardResultsSetPagination
-    permission_classes = [IsAuthenticated, HasResourcePermission]
-    authentication_classes = DefaultAuthentication.authentication_classes
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ["name", "description"]
-    ordering_fields = ["name"]
+    ordering_fields = ["name", "created_at"]
     ordering = ["name"]
-    resource_name = "roles"
 
-    @action(detail=True, methods=["get"])
-    def users(self, request, pk=None):
-        role = self.get_object()
-        assignments = role.user_assignments.all()
-        serializer = UserRoleAssignmentSerializer(assignments, many=True)
-        return api_response(data=serializer.data)
+
+class UserRoleRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    """API view for retrieving, updating, and deleting user roles."""
+
+    queryset = UserRole.objects.all()
+    serializer_class = UserRoleSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def perform_destroy(self, instance):
+        """Prevent deletion of system roles."""
+        if instance.is_system_role:
+            raise ValidationError("Cannot delete system roles.")
+        super().perform_destroy(instance)
+
+
+class UserRoleAssignmentListAPIView(generics.ListAPIView):
+    """API view for listing user role assignments."""
+
+    serializer_class = UserRoleAssignmentSerializer
+    permission_classes = [permissions.IsAuthenticated, CanManageUsers]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ["user", "role", "is_active"]
+    ordering_fields = ["assigned_date", "expires_at"]
+    ordering = ["-assigned_date"]
+
+    def get_queryset(self):
+        return UserRoleAssignment.objects.select_related("user", "role", "assigned_by")
+
+
+class AssignRoleAPIView(APIView):
+    """API view for assigning roles to users."""
+
+    permission_classes = [permissions.IsAuthenticated, CanManageUsers]
+
+    def post(self, request):
+        user_id = request.data.get("user_id")
+        role_name = request.data.get("role_name")
+        expires_at = request.data.get("expires_at")
+        notes = request.data.get("notes", "")
+
+        try:
+            user = User.objects.get(id=user_id)
+            assignment, created = RoleService.assign_role_to_user(
+                user=user,
+                role_name=role_name,
+                assigned_by=request.user,
+                expires_at=expires_at,
+                notes=notes,
+            )
+
+            serializer = UserRoleAssignmentSerializer(assignment)
+
+            if created:
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                return Response(
+                    {"detail": "Role already assigned to user"},
+                    status=status.HTTP_200_OK,
+                )
+        except User.DoesNotExist:
+            return Response(
+                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class RemoveRoleAPIView(APIView):
+    """API view for removing roles from users."""
+
+    permission_classes = [permissions.IsAuthenticated, CanManageUsers]
+
+    def post(self, request):
+        user_id = request.data.get("user_id")
+        role_name = request.data.get("role_name")
+
+        try:
+            user = User.objects.get(id=user_id)
+            removed = RoleService.remove_role_from_user(
+                user=user, role_name=role_name, removed_by=request.user
+            )
+
+            if removed:
+                return Response(
+                    {"detail": "Role removed successfully"}, status=status.HTTP_200_OK
+                )
+            else:
+                return Response(
+                    {"detail": "Role was not assigned to user"},
+                    status=status.HTTP_200_OK,
+                )
+        except User.DoesNotExist:
+            return Response(
+                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+
+class PasswordChangeAPIView(APIView):
+    """API view for changing user password."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = PasswordChangeSerializer(
+            data=request.data, context={"request": request}
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+
+            # Create audit log
+            UserAuditLog.objects.create(
+                user=request.user,
+                action="password_change",
+                description="Password changed via API",
+                performed_by=request.user,
+            )
+
+            return Response(
+                {"detail": "Password changed successfully"}, status=status.HTTP_200_OK
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserStatsAPIView(APIView):
+    """API view for user statistics."""
+
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        # Calculate statistics
+        total_users = User.objects.count()
+        active_users = User.objects.filter(is_active=True).count()
+        inactive_users = total_users - active_users
+
+        # Users by role
+        users_by_role = {}
+        role_counts = (
+            UserRoleAssignment.objects.filter(is_active=True)
+            .values("role__name")
+            .annotate(count=Count("user"))
+            .order_by("role__name")
+        )
+
+        for item in role_counts:
+            users_by_role[item["role__name"]] = item["count"]
+
+        # Recent registrations (last 30 days)
+        thirty_days_ago = timezone.now() - timezone.timedelta(days=30)
+        recent_registrations = User.objects.filter(
+            date_joined__gte=thirty_days_ago
+        ).count()
+
+        # Users requiring password change
+        users_requiring_password_change = User.objects.filter(
+            requires_password_change=True, is_active=True
+        ).count()
+
+        stats_data = {
+            "total_users": total_users,
+            "active_users": active_users,
+            "inactive_users": inactive_users,
+            "users_by_role": users_by_role,
+            "recent_registrations": recent_registrations,
+            "users_requiring_password_change": users_requiring_password_change,
+        }
+
+        serializer = UserStatsSerializer(stats_data)
+        return Response(serializer.data)
+
+
+class UserBulkActionAPIView(APIView):
+    """API view for bulk user actions."""
+
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def post(self, request):
+        serializer = UserBulkActionSerializer(data=request.data)
+
+        if serializer.is_valid():
+            user_ids = serializer.validated_data["user_ids"]
+            action = serializer.validated_data["action"]
+            roles = serializer.validated_data.get("roles", [])
+
+            users = User.objects.filter(id__in=user_ids)
+            affected_count = 0
+
+            with transaction.atomic():
+                if action == "activate":
+                    affected_count = users.update(is_active=True)
+
+                elif action == "deactivate":
+                    affected_count = users.update(is_active=False)
+
+                elif action == "require_password_change":
+                    affected_count = users.update(requires_password_change=True)
+
+                elif action == "assign_roles":
+                    for user in users:
+                        for role_name in roles:
+                            RoleService.assign_role_to_user(
+                                user, role_name, assigned_by=request.user
+                            )
+                    affected_count = len(users)
+
+                elif action == "remove_roles":
+                    for user in users:
+                        for role_name in roles:
+                            RoleService.remove_role_from_user(
+                                user, role_name, removed_by=request.user
+                            )
+                    affected_count = len(users)
+
+                # Create audit logs
+                for user in users:
+                    UserAuditLog.objects.create(
+                        user=user,
+                        action=action,
+                        description=f"Bulk action: {action}",
+                        performed_by=request.user,
+                        extra_data={"roles": roles} if roles else {},
+                    )
+
+            return Response(
+                {
+                    "detail": f'{action.replace("_", " ").title()} applied to {affected_count} users'
+                }
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MyProfileAPIView(generics.RetrieveUpdateAPIView):
+    """API view for user's own profile."""
+
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+
+@api_view(["GET"])
+@permission_classes([permissions.IsAuthenticated])
+def user_permissions_view(request):
+    """Get current user's permissions."""
+    permissions = request.user.get_permissions()
+    return Response({"permissions": permissions})
+
+
+@api_view(["POST"])
+@permission_classes([permissions.IsAuthenticated, IsAdmin])
+def expire_role_assignments_view(request):
+    """Manually trigger expiration of role assignments."""
+    expired_count = RoleService.expire_role_assignments()
+    return Response({"detail": f"{expired_count} role assignments have been expired"})
+
+
+@api_view(["GET"])
+@permission_classes([permissions.IsAuthenticated, IsAdmin])
+def role_statistics_view(request):
+    """Get role statistics."""
+    stats = RoleService.get_role_statistics()
+    return Response({"role_statistics": stats})
 
 
 class StudentViewSet(viewsets.ModelViewSet):

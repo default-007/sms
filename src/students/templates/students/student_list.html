@@ -1,0 +1,276 @@
+<!-- students/templates/students/student_list.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Students List{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+  <h1 class="mt-4">Students</h1>
+  <ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+    <li class="breadcrumb-item active">Students</li>
+  </ol>
+
+  <div class="row mb-4">
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-primary text-white mb-4">
+        <div class="card-body">
+          <h4 class="mb-0">{{ students.count }}</h4>
+          <div class="small">Total Students</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-success text-white mb-4">
+        <div class="card-body">
+          <h4 class="mb-0">{{ students.active.count }}</h4>
+          <div class="small">Active Students</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-warning text-white mb-4">
+        <div class="card-body">
+          <h4 class="mb-0">{{ students.inactive.count }}</h4>
+          <div class="small">Inactive Students</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-info text-white mb-4">
+        <div class="card-body">
+          <h4 class="mb-0">{{ students.graduated.count }}</h4>
+          <div class="small">Graduated Students</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div>
+        <i class="fas fa-table me-1"></i>
+        Students List
+      </div>
+      <div>
+        {% if perms.students.add_student %}
+        <a href="{% url 'student-create' %}" class="btn btn-primary btn-sm">
+          <i class="fas fa-plus"></i> Add Student
+        </a>
+        {% endif %}
+        {% if perms.students.export_student_data %}
+        <a href="{% url 'student-export' %}" class="btn btn-success btn-sm">
+          <i class="fas fa-file-export"></i> Export
+        </a>
+        {% endif %}
+        {% if perms.students.add_student %}
+        <a href="{% url 'student-import' %}" class="btn btn-info btn-sm">
+          <i class="fas fa-file-import"></i> Import
+        </a>
+        {% endif %}
+        {% if perms.students.promote_student %}
+        <a href="{% url 'student-promotion' %}" class="btn btn-warning btn-sm">
+          <i class="fas fa-user-graduate"></i> Promote
+        </a>
+        {% endif %}
+        {% if perms.students.graduate_student %}
+        <a href="{% url 'student-graduation' %}" class="btn btn-success btn-sm">
+          <i class="fas fa-graduation-cap"></i> Graduate
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="mb-3">
+        <form method="get" class="row g-3">
+          <div class="col-md-4">
+            <div class="input-group">
+              <input type="text" class="form-control" placeholder="Search..." name="search"
+                value="{{ current_filters.search }}">
+              <button class="btn btn-outline-secondary" type="submit">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <select name="class" class="form-select" onchange="this.form.submit()">
+              <option value="">All Classes</option>
+              {% for class in classes %}
+              <option value="{{ class.id }}"
+                {% if current_filters.class == class.id|stringformat:"i" %}selected{% endif %}>
+                {{ class }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <select name="status" class="form-select" onchange="this.form.submit()">
+              <option value="">All Status</option>
+              {% for status_value, status_name in status_choices %}
+              <option value="{{ status_value }}" {% if current_filters.status == status_value %}selected{% endif %}>
+                {{ status_name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <select name="blood_group" class="form-select" onchange="this.form.submit()">
+              <option value="">All Blood Groups</option>
+              {% for bg_value, bg_name in blood_group_choices %}
+              <option value="{{ bg_value }}" {% if current_filters.blood_group == bg_value %}selected{% endif %}>
+                {{ bg_name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-1">
+            <a href="{% url 'student-list' %}" class="btn btn-outline-secondary">
+              <i class="fas fa-redo"></i>
+            </a>
+          </div>
+        </form>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-bordered table-striped" id="studentsTable">
+          <thead>
+            <tr>
+              <th>Admission No.</th>
+              <th>Full Name</th>
+              <th>Class</th>
+              <th>Status</th>
+              <th>Blood Group</th>
+              <th>Contact</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for student in students %}
+            <tr>
+              <td>{{ student.admission_number }}</td>
+              <td>{{ student.get_full_name }}</td>
+              <td>{{ student.current_class|default:"Not Assigned" }}</td>
+              <td>
+                <span class="badge 
+                                    {% if student.status == 'Active' %}bg-success
+                                    {% elif student.status == 'Inactive' %}bg-secondary
+                                    {% elif student.status == 'Graduated' %}bg-info
+                                    {% elif student.status == 'Suspended' %}bg-warning
+                                    {% elif student.status == 'Expelled' %}bg-danger
+                                    {% endif %}">
+                  {{ student.status }}
+                </span>
+              </td>
+              <td>{{ student.blood_group }}</td>
+              <td>
+                <small>{{ student.user.email }}</small><br>
+                <small>{{ student.emergency_contact_number }}</small>
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm" role="group">
+                  <a href="{% url 'student-detail' student.id %}" class="btn btn-info">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  {% if perms.students.change_student %}
+                  <a href="{% url 'student-update' student.id %}" class="btn btn-primary">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  {% endif %}
+                  {% if perms.students.delete_student %}
+                  <a href="{% url 'student-delete' student.id %}" class="btn btn-danger">
+                    <i class="fas fa-trash"></i>
+                  </a>
+                  {% endif %}
+                  {% if perms.students.generate_student_id %}
+                  <a href="{% url 'student-id-card' student.id %}" class="btn btn-warning">
+                    <i class="fas fa-id-card"></i>
+                  </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center">No students found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if is_paginated %}
+      <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+          {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link"
+              href="?page=1{% for key, value in current_filters.items %}&{{ key }}={{ value }}{% endfor %}">&laquo;
+              First</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link"
+              href="?page={{ page_obj.previous_page_number }}{% for key, value in current_filters.items %}&{{ key }}={{ value }}{% endfor %}">Previous</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <a class="page-link" href="#">&laquo; First</a>
+          </li>
+          <li class="page-item disabled">
+            <a class="page-link" href="#">Previous</a>
+          </li>
+          {% endif %}
+
+          {% for num in page_obj.paginator.page_range %}
+          {% if page_obj.number == num %}
+          <li class="page-item active">
+            <a class="page-link"
+              href="?page={{ num }}{% for key, value in current_filters.items %}&{{ key }}={{ value }}{% endfor %}">{{ num }}</a>
+          </li>
+          {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+          <li class="page-item">
+            <a class="page-link"
+              href="?page={{ num }}{% for key, value in current_filters.items %}&{{ key }}={{ value }}{% endfor %}">{{ num }}</a>
+          </li>
+          {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link"
+              href="?page={{ page_obj.next_page_number }}{% for key, value in current_filters.items %}&{{ key }}={{ value }}{% endfor %}">Next</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link"
+              href="?page={{ page_obj.paginator.num_pages }}{% for key, value in current_filters.items %}&{{ key }}={{ value }}{% endfor %}">Last
+              &raquo;</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <a class="page-link" href="#">Next</a>
+          </li>
+          <li class="page-item disabled">
+            <a class="page-link" href="#">Last &raquo;</a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // DataTable initialization
+    $('#studentsTable').DataTable({
+      "paging": false,
+      "ordering": true,
+      "info": false,
+      "searching": false
+    });
+  });
+</script>
+{% endblock %}

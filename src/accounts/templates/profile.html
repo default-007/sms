@@ -36,17 +36,17 @@
             <div class="d-flex align-items-center justify-content-around m-4">
               <div class="text-center">
                 <i class="ti ti-file-description fs-6 d-block mb-2"></i>
-                <h4 class="mb-0 fw-semibold lh-1">938</h4>
-                <p class="mb-0 ">Posts</p>
+                <h4 class="mb-0 fw-semibold lh-1">8</h4>
+                <p class="mb-0 ">Notifications</p>
               </div>
               <div class="text-center">
                 <i class="ti ti-user-circle fs-6 d-block mb-2"></i>
-                <h4 class="mb-0 fw-semibold lh-1">3,586</h4>
-                <p class="mb-0 ">Followers</p>
+                <h4 class="mb-0 fw-semibold lh-1">36</h4>
+                <p class="mb-0 ">Contacts</p>
               </div>
               <div class="text-center">
                 <i class="ti ti-user-check fs-6 d-block mb-2"></i>
-                <h4 class="mb-0 fw-semibold lh-1">2,659</h4>
+                <h4 class="mb-0 fw-semibold lh-1">59</h4>
                 <p class="mb-0 ">Following</p>
               </div>
             </div>
@@ -69,8 +69,11 @@
                 </div>
               </div>
               <div class="text-center">
-                <h5 class="mb-0">Jonathan Deo</h5>
-                <p class="mb-0">Designer</p>
+                <h5 class="mb-0">{{ user.get_full_name }}</h5>
+                <p class="mb-0">{{ user.get_initials }}</p>
+                {% for role_assignment in user_roles %}
+                <span class="badge bg-primary">{{ role_assignment.role.name }}</span>
+                {% endfor %}
               </div>
             </div>
           </div>
@@ -116,7 +119,7 @@
               data-bs-target="#pills-followers" type="button" role="tab" aria-controls="pills-followers"
               aria-selected="false">
               <i class="ti ti-heart fs-5"></i>
-              <span class="d-none d-md-block">Followers</span>
+              <span class="d-none d-md-block">Edit</span>
             </button>
           </li>
           <li class="nav-item" role="presentation">
@@ -230,638 +233,132 @@
                 </div>
               </div>
             </div>
-            <div class="card">
-              <div class="card-body border-bottom">
-                <div class="d-flex align-items-center gap-6 flex-wrap">
-                  <img src="../assets/images/profile/user-1.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                    height="40">
-                  <h6 class="mb-0">Jonathan Deo</h6>
-                  <span class="fs-2 hstack gap-2">
-                    <span class="round-10 text-bg-light rounded-circle d-inline-block"></span> 15 min
-                    ago
-                  </span>
-                </div>
-                <p class="text-dark my-3">
-                  Nu kek vuzkibsu mooruno ejepogojo uzjon gag fa ezik disan he nah. Wij wo pevhij tumbug rohsa
-                  ahpi ujisapse lo vap labkez eddu suk.
-                </p>
-                <img src="../assets/images/products/s1.jpg" alt="materialm-img" height="360"
-                  class="rounded-4 w-100 object-fit-cover">
-                <div class="d-flex align-items-center my-3">
-                  <div class="d-flex align-items-center gap-2">
-                    <a class="round-32 rounded-circle btn btn-primary p-0 hstack justify-content-center"
-                      href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Like">
-                      <i class="ti ti-thumb-up"></i>
-                    </a>
-                    <span class="text-dark fw-semibold">67</span>
-                  </div>
-                  <div class="d-flex align-items-center gap-2 ms-4">
-                    <a class="round-32 rounded-circle btn btn-secondary p-0 hstack justify-content-center"
-                      href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top"
-                      data-bs-title="Comment">
-                      <i class="ti ti-message-2"></i>
-                    </a>
-                    <span class="text-dark fw-semibold">2</span>
-                  </div>
-                  <a class="text-dark ms-auto d-flex align-items-center justify-content-center bg-transparent p-2 fs-4 rounded-circle"
-                    href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Share">
-                    <i class="ti ti-share"></i>
-                  </a>
-                </div>
-                <div class="position-relative">
-                  <div class="p-4 rounded-2 text-bg-light mb-3">
-                    <div class="d-flex align-items-center gap-6 flex-wrap">
-                      <img src="../assets/images/profile/user-3.jpg" alt="materialm-img" class="rounded-circle"
-                        width="33" height="33">
-                      <h6 class="mb-0">Deran Mac</h6>
-                      <span class="fs-2">
-                        <span class="p-1 text-bg-muted rounded-circle d-inline-block"></span> 8 min ago
-                      </span>
-                    </div>
-                    <p class="my-3">Lufo zizrap iwofapsuk pusar luc jodawbac zi op uvezojroj duwage vuhzoc ja
-                      vawdud le furhez siva
-                      fikavu ineloh. Zot afokoge si mucuve hoikpaf adzuk zileuda falohfek zoije fuka udune lub
-                      annajor gazo
-                      conis sufur gu.
-                    </p>
-                    <div class="d-flex align-items-center">
-                      <div class="d-flex align-items-center gap-2">
-                        <a class="round-32 rounded-circle btn btn-primary p-0 hstack justify-content-center"
-                          href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top"
-                          data-bs-title="Like">
-                          <i class="ti ti-thumb-up"></i>
-                        </a>
-                        <span class="text-dark fw-semibold">55</span>
-                      </div>
-                      <div class="d-flex align-items-center gap-2 ms-4">
-                        <a class="round-32 rounded-circle btn btn-secondary p-0 hstack justify-content-center"
-                          href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top"
-                          data-bs-title="Reply">
-                          <i class="ti ti-arrow-back-up"></i>
-                        </a>
-                        <span class="text-dark fw-semibold">0</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="p-4 rounded-2 text-bg-light mb-3">
-                    <div class="d-flex align-items-center gap-6 flex-wrap">
-                      <img src="../assets/images/profile/user-4.jpg" alt="materialm-img" class="rounded-circle"
-                        width="33" height="33">
-                      <h6 class="mb-0">Daisy Wilson</h6>
-                      <span class="fs-2">
-                        <span class="p-1 text-bg-muted rounded-circle d-inline-block"></span> 5
-                        min
-                        ago
-                      </span>
-                    </div>
-                    <p class="my-3">
-                      Zumankeg ba lah lew ipep tino tugjekoj hosih fazjid wotmila durmuri buf hi sigapolu joit
-                      ebmi joge vo.
-                      Horemo vogo hat na ejednu sarta afaamraz zi cunidce peroido suvan podene igneve.
-                    </p>
-                    <div class="d-flex align-items-center">
-                      <div class="d-flex align-items-center gap-2">
-                        <a class="round-32 rounded-circle btn btn-primary p-0 hstack justify-content-center"
-                          href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top"
-                          data-bs-title="Like">
-                          <i class="ti ti-thumb-up"></i>
-                        </a>
-                        <span class="text-dark fw-semibold">68</span>
-                      </div>
-                      <div class="d-flex align-items-center gap-2 ms-4">
-                        <a class="round-32 rounded-circle btn btn-secondary p-0 hstack justify-content-center"
-                          href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top"
-                          data-bs-title="Reply">
-                          <i class="ti ti-arrow-back-up"></i>
-                        </a>
-                        <span class="text-dark fw-semibold">1</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="p-4 rounded-2 text-bg-light ms-7">
-                    <div class="d-flex align-items-center gap-6 flex-wrap">
-                      <img src="../assets/images/profile/user-5.jpg" alt="materialm-img" class="rounded-circle"
-                        width="40" height="40">
-                      <h6 class="mb-0">Carry minati</h6>
-                      <span class="fs-2">
-                        <span class="p-1 text-bg-muted rounded-circle d-inline-block"></span>
-                        just
-                        now
-                      </span>
-                    </div>
-                    <p class="my-3">
-                      Olte ni somvukab ugura ovaobeco hakgoc miha peztajo tawosu udbacas kismakin hi. Dej
-                      zetfamu cevufi sokbid bud mun soimeuha pokahram vehurpar keecris pepab voegmud
-                      zundafhef hej pe.
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div class="d-flex align-items-center gap-6 flex-wrap p-3 flex-lg-nowrap">
-                <img src="../assets/images/profile/user-1.jpg" alt="materialm-img" class="rounded-circle" width="33"
-                  height="33">
-                <input type="text" class="form-control py-8" id="exampleInputtext" aria-describedby="textHelp"
-                  placeholder="Comment">
-                <button class="btn btn-primary">Comment</button>
-              </div>
-            </div>
-            <div class="card">
-              <div class="card-body border-bottom">
-                <div class="d-flex align-items-center gap-6 flex-wrap">
-                  <img src="../assets/images/profile/user-5.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                    height="40">
-                  <h6 class="mb-0">Carry Minati</h6>
-                  <span class="fs-2">
-                    <span class="p-1 text-bg-light rounded-circle d-inline-block"></span>
-                    now
-                  </span>
-                </div>
-                <p class="text-dark my-3">
-                  Pucnus taw set babu lasufot lawdebuw nem ig bopnub notavfe pe ranlu dijsan liwfekaj lo az. Dom
-                  giat gu
-                  sehiosi bikelu lo eb uwrerej bih woppoawi wijdiola iknem hih suzega gojmev kir rigoj.
-                </p>
-                <div class="d-flex align-items-center">
-                  <div class="d-flex align-items-center gap-2">
-                    <a class="round-32 rounded-circle btn btn-primary p-0 hstack justify-content-center"
-                      href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Like">
-                      <i class="ti ti-thumb-up"></i>
-                    </a>
-                    <span class="text-dark fw-semibold">1</span>
-                  </div>
-                  <div class="d-flex align-items-center gap-2 ms-4">
-                    <a class="round-32 rounded-circle btn btn-secondary p-0 hstack justify-content-center"
-                      href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top"
-                      data-bs-title="Comment">
-                      <i class="ti ti-message-2"></i>
-                    </a>
-                    <span class="text-dark fw-semibold">0</span>
-                  </div>
-                  <a class="text-dark ms-auto d-flex align-items-center justify-content-center bg-transparent p-2 fs-4 rounded-circle"
-                    href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Share">
-                    <i class="ti ti-share"></i>
-                  </a>
-                </div>
-              </div>
-              <div class="d-flex align-items-center gap-6 flex-wrap p-3 flex-lg-nowrap">
-                <img src="../assets/images/profile/user-1.jpg" alt="materialm-img" class="rounded-circle" width="33"
-                  height="33">
-                <input type="text" class="form-control py-8" id="exampleInputtext1" aria-describedby="textHelp"
-                  placeholder="Comment">
-                <button class="btn btn-primary">Comment</button>
-              </div>
-            </div>
-            <div class="card">
-              <div class="card-body border-bottom">
-                <div class="d-flex align-items-center gap-6 flex-wrap">
-                  <img src="../assets/images/profile/user-2.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                    height="40">
-                  <h6 class="mb-0">Genelia Desouza</h6>
-                  <span class="fs-2">
-                    <span class="p-1 text-bg-light rounded-circle d-inline-block"></span> 15 min
-                    ago
-                  </span>
-                </div>
-                <p class="text-dark my-3">
-                  Faco kiswuoti mucurvi juokomo fobgi aze huweik zazjofefa kuujer talmoc li niczot lohejbo vozev
-                  zi huto. Ju
-                  tupma uwujate bevolkoh hob munuap lirec zak ja li hotlanu pigtunu.
-                </p>
-                <div class="row">
-                  <div class="col-sm-6">
-                    <img src="../assets/images/products/s2.jpg" alt="materialm-img"
-                      class="img-fluid rounded-4 mb-3 mb-sm-0">
-                  </div>
-                  <div class="col-sm-6">
-                    <img src="../assets/images/products/s4.jpg" alt="materialm-img" class="img-fluid rounded-4">
-                  </div>
-                </div>
-                <div class="d-flex align-items-center my-3">
-                  <div class="d-flex align-items-center gap-2">
-                    <a class="text-dark d-flex align-items-center justify-content-center bg-light p-2 fs-4 rounded-circle"
-                      href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Like">
-                      <i class="ti ti-thumb-up"></i>
-                    </a>
-                    <span class="text-dark fw-semibold">320</span>
-                  </div>
-                  <div class="d-flex align-items-center gap-2 ms-4">
-                    <a class="round-32 rounded-circle btn btn-secondary p-0 hstack justify-content-center"
-                      href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top"
-                      data-bs-title="Comment">
-                      <i class="ti ti-message-2"></i>
-                    </a>
-                    <span class="text-dark fw-semibold">1</span>
-                  </div>
-                  <a class="text-dark ms-auto d-flex align-items-center justify-content-center bg-transparent p-2 fs-4 rounded-circle"
-                    href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Share">
-                    <i class="ti ti-share"></i>
-                  </a>
-                </div>
-                <div class="p-4 rounded-2 text-bg-light">
-                  <div class="d-flex align-items-center gap-6 flex-wrap">
-                    <img src="../assets/images/profile/user-3.jpg" alt="materialm-img" class="rounded-circle" width="33"
-                      height="33">
-                    <h6 class="mb-0">Ritesh Deshmukh</h6>
-                    <span class="fs-2">
-                      <span class="p-1 text-bg-muted rounded-circle d-inline-block"></span> 15
-                      min
-                      ago
-                    </span>
-                  </div>
-                  <p class="my-3">
-                    Hintib cojno riv ze heb cipcep fij wo tufinpu bephekdab infule pajnaji. Jiran goetimip muovo
-                    go en
-                    gaga zeljomim hozlu lezuvi ehkapod dec bifoom hag dootasac odo luvgit ti ella.
-                  </p>
-                  <div class="d-flex align-items-center">
-                    <div class="d-flex align-items-center gap-2">
-                      <a class="round-32 rounded-circle btn btn-primary p-0 hstack justify-content-center"
-                        href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Like">
-                        <i class="ti ti-thumb-up"></i>
-                      </a>
-                      <span class="text-dark fw-semibold">65</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-2 ms-4">
-                      <a class="round-32 rounded-circle btn btn-secondary p-0 hstack justify-content-center"
-                        href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top"
-                        data-bs-title="Reply">
-                        <i class="ti ti-arrow-back-up"></i>
-                      </a>
-                      <span class="text-dark fw-semibold">0</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="d-flex align-items-center gap-6 flex-wrap p-3 flex-lg-nowrap">
-                <img src="../assets/images/profile/user-1.jpg" alt="materialm-img" class="rounded-circle" width="33"
-                  height="33">
-                <input type="text" class="form-control py-8" id="exampleInputtext2" aria-describedby="textHelp"
-                  placeholder="Comment">
-                <button class="btn btn-primary">Comment</button>
-              </div>
-            </div>
-            <div class="card">
-              <div class="card-body border-bottom">
-                <div class="d-flex align-items-center gap-6 flex-wrap">
-                  <img src="../assets/images/profile/user-1.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                    height="40">
-                  <h6 class="mb-0">Jonathan Deo</h6>
-                  <span class="fs-2">
-                    <span class="p-1 text-bg-light rounded-circle d-inline-block"></span> 15 min
-                    ago
-                  </span>
-                </div>
-                <p class="text-dark my-3">
-                  Faco kiswuoti mucurvi juokomo fobgi aze huweik zazjofefa kuujer talmoc li niczot lohejbo vozev
-                  zi huto. Ju
-                  tupma uwujate bevolkoh hob munuap lirec zak ja li hotlanu pigtunu.
-                </p>
-                <iframe class="rounded-4 border border-2 mb-3 h-300" src="https://www.youtube.com/embed/d1-FRj20WBE"
-                  frameborder="0" width="100%"></iframe>
-                <div class="d-flex align-items-center">
-                  <div class="d-flex align-items-center gap-2">
-                    <a class="round-32 rounded-circle btn btn-primary p-0 hstack justify-content-center"
-                      href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Like">
-                      <i class="ti ti-thumb-up"></i>
-                    </a>
-                    <span class="text-dark fw-semibold">129</span>
-                  </div>
-                  <div class="d-flex align-items-center gap-2 ms-4">
-                    <a class="round-32 rounded-circle btn btn-secondary p-0 hstack justify-content-center"
-                      href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top"
-                      data-bs-title="Comment">
-                      <i class="ti ti-message-2"></i>
-                    </a>
-                    <span class="text-dark fw-semibold">0</span>
-                  </div>
-                  <a class="text-dark ms-auto d-flex align-items-center justify-content-center bg-transparent p-2 fs-4 rounded-circle"
-                    href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Share">
-                    <i class="ti ti-share"></i>
-                  </a>
-                </div>
-              </div>
-              <div class="d-flex align-items-center gap-6 flex-wrap p-3 flex-lg-nowrap">
-                <img src="../assets/images/profile/user-1.jpg" alt="materialm-img" class="rounded-circle" width="33"
-                  height="33">
-                <input type="text" class="form-control py-8" id="exampleInputtext3" aria-describedby="textHelp"
-                  placeholder="Comment">
-                <button class="btn btn-primary">Comment</button>
-              </div>
-            </div>
           </div>
         </div>
       </div>
       <div class="tab-pane fade" id="pills-followers" role="tabpanel" aria-labelledby="pills-followers-tab"
         tabindex="0">
         <div class="d-sm-flex align-items-center justify-content-between mt-3 mb-4">
-          <h3 class="mb-3 mb-sm-0 fw-semibold d-flex align-items-center">Followers <span
+          <h3 class="mb-3 mb-sm-0 fw-semibold d-flex align-items-center">Edit Profile <span
               class="badge text-bg-secondary fs-2 rounded-4 py-1 px-2 ms-2">20</span>
           </h3>
-          <form class="position-relative">
+          <!-- <form class="position-relative">
             <input type="text" class="form-control search-chat py-2 ps-5" id="text-srh" placeholder="Search Followers">
             <i class="ti ti-search position-absolute top-50 start-0 translate-middle-y text-dark ms-3"></i>
-          </form>
+          </form> -->
         </div>
         <div class="row">
-          <div class=" col-md-6 col-xl-4">
-            <div class="card">
-              <div class="card-body p-4 d-flex align-items-center gap-6 flex-wrap">
-                <img src="../assets/images/profile/user-1.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                  height="40">
-                <div>
-                  <h5 class="fw-semibold mb-0">Betty Adams</h5>
-                  <span class="fs-2 d-flex align-items-center">
-                    <i class="ti ti-map-pin text-dark fs-3 me-1"></i>Sint Maarten
-                  </span>
+          <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="{{ form.first_name.id_for_label }}" class="form-label">{{ form.first_name.label }}</label>
+                  {{ form.first_name }}
+                  {% if form.first_name.errors %}
+                  <div class="invalid-feedback d-block">
+                    {% for error in form.first_name.errors %}
+                    {{ error }}
+                    {% endfor %}
+                  </div>
+                  {% endif %}
                 </div>
-                <button class="btn btn-outline-primary py-1 px-2 ms-auto">Follow</button>
-              </div>
-            </div>
-          </div>
-          <div class=" col-md-6 col-xl-4">
-            <div class="card">
-              <div class="card-body p-4 d-flex align-items-center gap-6 flex-wrap">
-                <img src="../assets/images/profile/user-2.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                  height="40">
-                <div>
-                  <h5 class="fw-semibold mb-0">Virginia Wong</h5>
-                  <span class="fs-2 d-flex align-items-center">
-                    <i class="ti ti-map-pin text-dark fs-3 me-1"></i>Tunisia
-                  </span>
+
+                <div class="col-md-6 mb-3">
+                  <label for="{{ form.last_name.id_for_label }}" class="form-label">{{ form.last_name.label }}</label>
+                  {{ form.last_name }}
+                  {% if form.last_name.errors %}
+                  <div class="invalid-feedback d-block">
+                    {% for error in form.last_name.errors %}
+                    {{ error }}
+                    {% endfor %}
+                  </div>
+                  {% endif %}
                 </div>
-                <button class="btn btn-outline-primary py-1 px-2 ms-auto">Follow</button>
               </div>
-            </div>
-          </div>
-          <div class=" col-md-6 col-xl-4">
-            <div class="card">
-              <div class="card-body p-4 d-flex align-items-center gap-6 flex-wrap">
-                <img src="../assets/images/profile/user-3.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                  height="40">
-                <div>
-                  <h5 class="fw-semibold mb-0">Birdie</h5>
-                  <span class="fs-2 d-flex align-items-center">
-                    <i class="ti ti-map-pin text-dark fs-3 me-1"></i>Algeria
-                  </span>
+
+              <div class="mb-3">
+                <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                <div class="invalid-feedback d-block">
+                  {% for error in form.email.errors %}
+                  {{ error }}
+                  {% endfor %}
                 </div>
-                <button class="btn btn-primary py-1 px-2 ms-auto">Followed</button>
+                {% endif %}
               </div>
-            </div>
-          </div>
-          <div class=" col-md-6 col-xl-4">
-            <div class="card">
-              <div class="card-body p-4 d-flex align-items-center gap-6 flex-wrap">
-                <img src="../assets/images/profile/user-4.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                  height="40">
-                <div>
-                  <h5 class="fw-semibold mb-0">Steven</h5>
-                  <span class="fs-2 d-flex align-items-center">
-                    <i class="ti ti-map-pin text-dark fs-3 me-1"></i>Malaysia
-                  </span>
+
+              <div class="mb-3">
+                <label for="{{ form.phone_number.id_for_label }}"
+                  class="form-label">{{ form.phone_number.label }}</label>
+                {{ form.phone_number }}
+                {% if form.phone_number.errors %}
+                <div class="invalid-feedback d-block">
+                  {% for error in form.phone_number.errors %}
+                  {{ error }}
+                  {% endfor %}
                 </div>
-                <button class="btn btn-primary py-1 px-2 ms-auto">Followed</button>
+                {% endif %}
               </div>
-            </div>
-          </div>
-          <div class=" col-md-6 col-xl-4">
-            <div class="card">
-              <div class="card-body p-4 d-flex align-items-center gap-6 flex-wrap">
-                <img src="../assets/images/profile/user-5.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                  height="40">
-                <div>
-                  <h5 class="fw-semibold mb-0">Hannah</h5>
-                  <span class="fs-2 d-flex align-items-center">
-                    <i class="ti ti-map-pin text-dark fs-3 me-1"></i>Grenada
-                  </span>
+
+              <div class="mb-3">
+                <label for="{{ form.address.id_for_label }}" class="form-label">{{ form.address.label }}</label>
+                {{ form.address }}
+                {% if form.address.errors %}
+                <div class="invalid-feedback d-block">
+                  {% for error in form.address.errors %}
+                  {{ error }}
+                  {% endfor %}
                 </div>
-                <button class="btn btn-primary py-1 px-2 ms-auto">Followed</button>
+                {% endif %}
               </div>
-            </div>
-          </div>
-          <div class=" col-md-6 col-xl-4">
-            <div class="card">
-              <div class="card-body p-4 d-flex align-items-center gap-6 flex-wrap">
-                <img src="../assets/images/profile/user-6.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                  height="40">
-                <div>
-                  <h5 class="fw-semibold mb-0">Effie Gross</h5>
-                  <span class="fs-2 d-flex align-items-center">
-                    <i class="ti ti-map-pin text-dark fs-3 me-1"></i>Azerbaijan
-                  </span>
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="{{ form.date_of_birth.id_for_label }}"
+                    class="form-label">{{ form.date_of_birth.label }}</label>
+                  {{ form.date_of_birth }}
+                  {% if form.date_of_birth.errors %}
+                  <div class="invalid-feedback d-block">
+                    {% for error in form.date_of_birth.errors %}
+                    {{ error }}
+                    {% endfor %}
+                  </div>
+                  {% endif %}
                 </div>
-                <button class="btn btn-outline-primary py-1 px-2 ms-auto">Follow</button>
-              </div>
-            </div>
-          </div>
-          <div class=" col-md-6 col-xl-4">
-            <div class="card">
-              <div class="card-body p-4 d-flex align-items-center gap-6 flex-wrap">
-                <img src="../assets/images/profile/user-7.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                  height="40">
-                <div>
-                  <h5 class="fw-semibold mb-0">Barton</h5>
-                  <span class="fs-2 d-flex align-items-center">
-                    <i class="ti ti-map-pin text-dark fs-3 me-1"></i>French Souther
-                  </span>
+
+                <div class="col-md-6 mb-3">
+                  <label for="{{ form.gender.id_for_label }}" class="form-label">{{ form.gender.label }}</label>
+                  {{ form.gender }}
+                  {% if form.gender.errors %}
+                  <div class="invalid-feedback d-block">
+                    {% for error in form.gender.errors %}
+                    {{ error }}
+                    {% endfor %}
+                  </div>
+                  {% endif %}
                 </div>
-                <button class="btn btn-outline-primary py-1 px-2 ms-auto">Follow</button>
               </div>
-            </div>
-          </div>
-          <div class=" col-md-6 col-xl-4">
-            <div class="card">
-              <div class="card-body p-4 d-flex align-items-center gap-6 flex-wrap">
-                <img src="../assets/images/profile/user-8.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                  height="40">
-                <div>
-                  <h5 class="fw-semibold mb-0">Carolyn</h5>
-                  <span class="fs-2 d-flex align-items-center">
-                    <i class="ti ti-map-pin text-dark fs-3 me-1"></i>Nauru
-                  </span>
+
+              <div class="mb-3">
+                <label for="{{ form.profile_picture.id_for_label }}"
+                  class="form-label">{{ form.profile_picture.label }}</label>
+                {{ form.profile_picture }}
+                {% if form.profile_picture.errors %}
+                <div class="invalid-feedback d-block">
+                  {% for error in form.profile_picture.errors %}
+                  {{ error }}
+                  {% endfor %}
                 </div>
-                <button class="btn btn-primary py-1 px-2 ms-auto">Followed</button>
+                {% endif %}
               </div>
-            </div>
-          </div>
-          <div class=" col-md-6 col-xl-4">
-            <div class="card">
-              <div class="card-body p-4 d-flex align-items-center gap-6 flex-wrap">
-                <img src="../assets/images/profile/user-9.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                  height="40">
-                <div>
-                  <h5 class="fw-semibold mb-0">Elizabeth</h5>
-                  <span class="fs-2 d-flex align-items-center">
-                    <i class="ti ti-map-pin text-dark fs-3 me-1"></i>Djibouti
-                  </span>
-                </div>
-                <button class="btn btn-primary py-1 px-2 ms-auto">Followed</button>
+
+              <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary">Update Profile</button>
               </div>
-            </div>
-          </div>
-          <div class=" col-md-6 col-xl-4">
-            <div class="card">
-              <div class="card-body p-4 d-flex align-items-center gap-6 flex-wrap">
-                <img src="../assets/images/profile/user-10.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                  height="40">
-                <div>
-                  <h5 class="fw-semibold mb-0">Jon Cohen</h5>
-                  <span class="fs-2 d-flex align-items-center">
-                    <i class="ti ti-map-pin text-dark fs-3 me-1"></i>United States
-                  </span>
-                </div>
-                <button class="btn btn-primary py-1 px-2 ms-auto">Followed</button>
-              </div>
-            </div>
-          </div>
-          <div class=" col-md-6 col-xl-4">
-            <div class="card">
-              <div class="card-body p-4 d-flex align-items-center gap-6 flex-wrap">
-                <img src="../assets/images/profile/user-1.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                  height="40">
-                <div>
-                  <h5 class="fw-semibold mb-0">Hernandez</h5>
-                  <span class="fs-2 d-flex align-items-center">
-                    <i class="ti ti-map-pin text-dark fs-3 me-1"></i>Equatorial Guinea
-                  </span>
-                </div>
-                <button class="btn btn-outline-primary py-1 px-2 ms-auto">Follow</button>
-              </div>
-            </div>
-          </div>
-          <div class=" col-md-6 col-xl-4">
-            <div class="card">
-              <div class="card-body p-4 d-flex align-items-center gap-6 flex-wrap">
-                <img src="../assets/images/profile/user-2.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                  height="40">
-                <div>
-                  <h5 class="fw-semibold mb-0">Willie</h5>
-                  <span class="fs-2 d-flex align-items-center">
-                    <i class="ti ti-map-pin text-dark fs-3 me-1"></i>Solomon Islands
-                  </span>
-                </div>
-                <button class="btn btn-primary py-1 px-2 ms-auto">Followed</button>
-              </div>
-            </div>
-          </div>
-          <div class=" col-md-6 col-xl-4">
-            <div class="card">
-              <div class="card-body p-4 d-flex align-items-center gap-6 flex-wrap">
-                <img src="../assets/images/profile/user-3.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                  height="40">
-                <div>
-                  <h5 class="fw-semibold mb-0">Harvey</h5>
-                  <span class="fs-2 d-flex align-items-center">
-                    <i class="ti ti-map-pin text-dark fs-3 me-1"></i>Uruguay
-                  </span>
-                </div>
-                <button class="btn btn-primary py-1 px-2 ms-auto">Followed</button>
-              </div>
-            </div>
-          </div>
-          <div class=" col-md-6 col-xl-4">
-            <div class="card">
-              <div class="card-body p-4 d-flex align-items-center gap-6 flex-wrap">
-                <img src="../assets/images/profile/user-4.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                  height="40">
-                <div>
-                  <h5 class="fw-semibold mb-0">Alice George</h5>
-                  <span class="fs-2 d-flex align-items-center">
-                    <i class="ti ti-map-pin text-dark fs-3 me-1"></i>Madagascar
-                  </span>
-                </div>
-                <button class="btn btn-outline-primary py-1 px-2 ms-auto">Follow</button>
-              </div>
-            </div>
-          </div>
-          <div class=" col-md-6 col-xl-4">
-            <div class="card">
-              <div class="card-body p-4 d-flex align-items-center gap-6 flex-wrap">
-                <img src="../assets/images/profile/user-5.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                  height="40">
-                <div>
-                  <h5 class="fw-semibold mb-0">Simpson</h5>
-                  <span class="fs-2 d-flex align-items-center">
-                    <i class="ti ti-map-pin text-dark fs-3 me-1"></i>Bahrain
-                  </span>
-                </div>
-                <button class="btn btn-primary py-1 px-2 ms-auto">Followed</button>
-              </div>
-            </div>
-          </div>
-          <div class=" col-md-6 col-xl-4">
-            <div class="card">
-              <div class="card-body p-4 d-flex align-items-center gap-6 flex-wrap">
-                <img src="../assets/images/profile/user-6.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                  height="40">
-                <div>
-                  <h5 class="fw-semibold mb-0">Francis Barber</h5>
-                  <span class="fs-2 d-flex align-items-center">
-                    <i class="ti ti-map-pin text-dark fs-3 me-1"></i>Colombia
-                  </span>
-                </div>
-                <button class="btn btn-outline-primary py-1 px-2 ms-auto">Follow</button>
-              </div>
-            </div>
-          </div>
-          <div class=" col-md-6 col-xl-4">
-            <div class="card">
-              <div class="card-body p-4 d-flex align-items-center gap-6 flex-wrap">
-                <img src="../assets/images/profile/user-7.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                  height="40">
-                <div>
-                  <h5 class="fw-semibold mb-0">Christian</h5>
-                  <span class="fs-2 d-flex align-items-center">
-                    <i class="ti ti-map-pin text-dark fs-3 me-1"></i>Maldives
-                  </span>
-                </div>
-                <button class="btn btn-primary py-1 px-2 ms-auto">Followed</button>
-              </div>
-            </div>
-          </div>
-          <div class=" col-md-6 col-xl-4">
-            <div class="card">
-              <div class="card-body p-4 d-flex align-items-center gap-6 flex-wrap">
-                <img src="../assets/images/profile/user-8.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                  height="40">
-                <div>
-                  <h5 class="fw-semibold mb-0">Laura Nelson</h5>
-                  <span class="fs-2 d-flex align-items-center">
-                    <i class="ti ti-map-pin text-dark fs-3 me-1"></i>St. Helena
-                  </span>
-                </div>
-                <button class="btn btn-primary py-1 px-2 ms-auto">Followed</button>
-              </div>
-            </div>
-          </div>
-          <div class=" col-md-6 col-xl-4">
-            <div class="card">
-              <div class="card-body p-4 d-flex align-items-center gap-6 flex-wrap">
-                <img src="../assets/images/profile/user-9.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                  height="40">
-                <div>
-                  <h5 class="fw-semibold mb-0">Blanche</h5>
-                  <span class="fs-2 d-flex align-items-center">
-                    <i class="ti ti-map-pin text-dark fs-3 me-1"></i>South Africa
-                  </span>
-                </div>
-                <button class="btn btn-primary py-1 px-2 ms-auto">Followed</button>
-              </div>
-            </div>
-          </div>
-          <div class=" col-md-6 col-xl-4">
-            <div class="card">
-              <div class="card-body p-4 d-flex align-items-center gap-6 flex-wrap">
-                <img src="../assets/images/profile/user-10.jpg" alt="materialm-img" class="rounded-circle" width="40"
-                  height="40">
-                <div>
-                  <h5 class="fw-semibold mb-0">Adam</h5>
-                  <span class="fs-2 d-flex align-items-center">
-                    <i class="ti ti-map-pin text-dark fs-3 me-1"></i>Suriname
-                  </span>
-                </div>
-                <button class="btn btn-primary py-1 px-2 ms-auto">Followed</button>
-              </div>
-            </div>
+            </form>
           </div>
         </div>
       </div>

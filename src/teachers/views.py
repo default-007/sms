@@ -22,7 +22,7 @@ class TeacherListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     model = Teacher
     permission_required = "teachers.view_teacher"
     context_object_name = "teachers"
-    template_name = "teachers/teacher_list.html"
+    template_name = "teacher_list.html"
     paginate_by = 20
 
     def get_queryset(self):

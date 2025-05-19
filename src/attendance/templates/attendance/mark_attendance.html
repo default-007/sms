@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Mark Attendance{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2>Mark Attendance</h2>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="row mb-4">
+          <div class="col-md-4">
+            {{ form.class_obj.label_tag }}
+            {{ form.class_obj }}
+            {{ form.class_obj.errors }}
+          </div>
+          <div class="col-md-4">
+            {{ form.date.label_tag }}
+            {{ form.date }}
+            {{ form.date.errors }}
+          </div>
+        </div>
+
+        <div class="row mb-4">
+          <div class="col-12">
+            {{ form.remarks.label_tag }}
+            {{ form.remarks }}
+            {{ form.remarks.errors }}
+          </div>
+        </div>
+
+        {% if selected_class %}
+        <h4>Students</h4>
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Present</th>
+              <th>Absent</th>
+              <th>Late</th>
+              <th>Excused</th>
+              <th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{ formset.management_form }}
+            {% for form in formset %}
+            <tr>
+              <td>
+                {{ form.student_id }}
+                {{ form.student_name }}
+              </td>
+              <td>
+                <input type="radio" name="{{ form.prefix }}-status" value="present"
+                  {% if form.status.value == "present" %}checked{% endif %}>
+              </td>
+              <td>
+                <input type="radio" name="{{ form.prefix }}-status" value="absent"
+                  {% if form.status.value == "absent" %}checked{% endif %}>
+              </td>
+              <td>
+                <input type="radio" name="{{ form.prefix }}-status" value="late"
+                  {% if form.status.value == "late" %}checked{% endif %}>
+              </td>
+              <td>
+                <input type="radio" name="{{ form.prefix }}-status" value="excused"
+                  {% if form.status.value == "excused" %}checked{% endif %}>
+              </td>
+              <td>
+                {{ form.remarks }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="alert alert-info">
+          Please select a class to view students and mark attendance.
+        </div>
+        {% endif %}
+
+        <div class="form-group mt-4">
+          <button type="submit" class="btn btn-primary">Mark Attendance</button>
+          <a href="{% url 'attendance:record-list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Reload page when class changes to update student list
+    const classSelect = document.querySelector('#id_class_obj');
+    if (classSelect) {
+      classSelect.addEventListener('change', function () {
+        document.querySelector('form').submit();
+      });
+    }
+  });
+</script>
+{% endblock %}

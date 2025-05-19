@@ -1,0 +1,540 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ role.name }} - Role Details | School Management System{% endblock %}
+
+{% block content %}
+<div class="body-wrapper">
+  <div class="container-fluid">
+    <!-- Breadcrumb -->
+    <div class="card card-body">
+      <div class="row align-items-center">
+        <div class="col-12">
+          <div class="d-sm-flex align-items-center justify-space-between">
+            <h4 class="fw-semibold fs-4 mb-4 mb-md-0 card-title">Role Details</h4>
+            <nav aria-label="breadcrumb" class="ms-auto">
+              <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                  <a class="text-muted text-decoration-none" href="{% url 'core:dashboard' %}">
+                    <iconify-icon icon="solar:home-2-line-duotone" class="fs-6"></iconify-icon>
+                  </a>
+                </li>
+                <li class="breadcrumb-item">
+                  <a href="{% url 'accounts:role_list' %}">Roles</a>
+                </li>
+                <li class="breadcrumb-item" aria-current="page">
+                  <span class="badge fw-medium fs-2 bg-primary-subtle text-primary">
+                    {{ role.name }}
+                  </span>
+                </li>
+              </ol>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Role Header -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-md-8">
+            <div class="d-flex align-items-center">
+              <div class="flex-shrink-0">
+                <div class="round-80 d-flex align-items-center justify-content-center rounded-circle bg-primary-subtle">
+                  <iconify-icon icon="solar:user-id-bold-duotone" class="fs-5 text-primary"></iconify-icon>
+                </div>
+              </div>
+              <div class="flex-grow-1 ms-4">
+                <h3 class="mb-1">{{ role.name }}</h3>
+                <p class="text-muted mb-2">{{ role.description|default:"No description provided" }}</p>
+                <div class="d-flex gap-2">
+                  {% if role.is_system_role %}
+                  <span class="badge bg-warning-subtle text-warning">
+                    <iconify-icon icon="solar:shield-check-bold-duotone" class="me-1"></iconify-icon>
+                    System Role
+                  </span>
+                  {% else %}
+                  <span class="badge bg-info-subtle text-info">
+                    <iconify-icon icon="solar:user-bold-duotone" class="me-1"></iconify-icon>
+                    Custom Role
+                  </span>
+                  {% endif %}
+
+                  <span class="badge bg-primary-subtle text-primary">
+                    {{ role.get_permission_count }} Permissions
+                  </span>
+
+                  <span class="badge bg-success-subtle text-success">
+                    {{ role_users.count }} Users
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="d-flex gap-2 justify-content-md-end">
+              {% if perms.accounts.change_userrole %}
+              <a href="{% url 'accounts:role_update' role.pk %}" class="btn btn-primary">
+                <iconify-icon icon="solar:pen-line-duotone" class="me-2"></iconify-icon>
+                Edit Role
+              </a>
+              {% endif %}
+
+              <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                  aria-expanded="false">
+                  <iconify-icon icon="solar:menu-dots-bold-duotone" class="me-2"></iconify-icon>
+                  Actions
+                </button>
+                <ul class="dropdown-menu">
+                  <li>
+                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#assignRoleModal">
+                      <iconify-icon icon="solar:user-plus-line-duotone" class="me-2"></iconify-icon>
+                      Assign to Users
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="#" onclick="exportRoleData()">
+                      <iconify-icon icon="solar:download-line-duotone" class="me-2"></iconify-icon>
+                      Export Data
+                    </a>
+                  </li>
+                  {% if perms.accounts.delete_userrole and not role.is_system_role %}
+                  <li>
+                    <hr class="dropdown-divider">
+                  </li>
+                  <li>
+                    <a class="dropdown-item text-danger" href="{% url 'accounts:role_delete' role.pk %}">
+                      <iconify-icon icon="solar:trash-bin-line-duotone" class="me-2"></iconify-icon>
+                      Delete Role
+                    </a>
+                  </li>
+                  {% endif %}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Permissions -->
+      <div class="col-lg-8">
+        <div class="card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0">
+              <iconify-icon icon="solar:shield-keyhole-bold-duotone" class="me-2"></iconify-icon>
+              Permissions
+            </h5>
+          </div>
+          <div class="card-body">
+            {% if permissions %}
+            <div class="accordion" id="permissionsAccordion">
+              {% for resource, actions in permissions.items %}
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="heading{{ resource|title }}">
+                  <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#collapse{{ resource|title }}"
+                    aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
+                    aria-controls="collapse{{ resource|title }}">
+                    <strong>{{ resource|title }} ({{ actions|length }} permissions)</strong>
+                  </button>
+                </h2>
+                <div id="collapse{{ resource|title }}"
+                  class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
+                  aria-labelledby="heading{{ resource|title }}" data-bs-parent="#permissionsAccordion">
+                  <div class="accordion-body">
+                    <div class="row">
+                      {% for action in actions %}
+                      <div class="col-md-6 col-lg-4 mb-2">
+                        <span class="badge bg-success-subtle text-success">
+                          <iconify-icon icon="solar:check-circle-bold-duotone" class="me-1"></iconify-icon>
+                          {{ action|title }}
+                        </span>
+                      </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+              <iconify-icon icon="solar:shield-warning-line-duotone" class="fs-1 text-muted"></iconify-icon>
+              <h4 class="mt-3 text-muted">No Permissions Assigned</h4>
+              <p class="text-muted">This role doesn't have any permissions assigned yet.</p>
+              {% if perms.accounts.change_userrole %}
+              <a href="{% url 'accounts:role_update' role.pk %}" class="btn btn-primary">
+                <iconify-icon icon="solar:settings-line-duotone" class="me-2"></iconify-icon>
+                Configure Permissions
+              </a>
+              {% endif %}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Role Statistics -->
+      <div class="col-lg-4">
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">
+              <iconify-icon icon="solar:chart-bold-duotone" class="me-2"></iconify-icon>
+              Role Statistics
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row text-center">
+              <div class="col-6 mb-3">
+                <div
+                  class="round-40 d-flex align-items-center justify-content-center rounded-circle bg-primary-subtle mx-auto mb-2">
+                  <iconify-icon icon="solar:users-group-rounded-bold-duotone" class="fs-5 text-primary"></iconify-icon>
+                </div>
+                <h4 class="mb-0">{{ role_users.count }}</h4>
+                <small class="text-muted">Total Users</small>
+              </div>
+              <div class="col-6 mb-3">
+                <div
+                  class="round-40 d-flex align-items-center justify-content-center rounded-circle bg-info-subtle mx-auto mb-2">
+                  <iconify-icon icon="solar:shield-keyhole-bold-duotone" class="fs-5 text-info"></iconify-icon>
+                </div>
+                <h4 class="mb-0">{{ role.get_permission_count }}</h4>
+                <small class="text-muted">Permissions</small>
+              </div>
+            </div>
+
+            <hr>
+
+            <div class="mb-3">
+              <div class="d-flex justify-content-between">
+                <span>Created</span>
+                <span class="fw-medium">{{ role.created_at|date:"M d, Y" }}</span>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <div class="d-flex justify-content-between">
+                <span>Last Updated</span>
+                <span class="fw-medium">{{ role.updated_at|date:"M d, Y" }}</span>
+              </div>
+            </div>
+
+            {% if role.created_by %}
+            <div class="mb-3">
+              <div class="d-flex justify-content-between">
+                <span>Created By</span>
+                <span class="fw-medium">{{ role.created_by.get_full_name }}</span>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">
+              <iconify-icon icon="solar:bolt-bold-duotone" class="me-2"></iconify-icon>
+              Quick Actions
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="d-grid gap-2">
+              <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#assignRoleModal">
+                <iconify-icon icon="solar:user-plus-line-duotone" class="me-2"></iconify-icon>
+                Assign to Users
+              </button>
+
+              <button class="btn btn-outline-secondary" onclick="duplicateRole()">
+                <iconify-icon icon="solar:copy-line-duotone" class="me-2"></iconify-icon>
+                Duplicate Role
+              </button>
+
+              <button class="btn btn-outline-info" onclick="exportRoleData()">
+                <iconify-icon icon="solar:download-line-duotone" class="me-2"></iconify-icon>
+                Export Data
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assigned Users -->
+    {% if role_users %}
+    <div class="card mt-4">
+      <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <iconify-icon icon="solar:users-group-rounded-bold-duotone" class="me-2"></iconify-icon>
+            Assigned Users ({{ role_users.count }})
+          </h5>
+          <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#assignRoleModal">
+            <iconify-icon icon="solar:user-plus-line-duotone" class="me-1"></iconify-icon>
+            Assign More
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Assigned Date</th>
+                <th>Assigned By</th>
+                <th>Expires</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for assignment in role_users %}
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                      {% if assignment.user.profile_picture %}
+                      <img src="{{ assignment.user.profile_picture.url }}" alt="{{ assignment.user.get_full_name }}"
+                        class="rounded-circle" width="40" height="40">
+                      {% else %}
+                      <div
+                        class="round-40 d-flex align-items-center justify-content-center rounded-circle bg-primary-subtle">
+                        <span class="fw-bold text-primary">{{ assignment.user.get_initials }}</span>
+                      </div>
+                      {% endif %}
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                      <h6 class="mb-0">{{ assignment.user.get_full_name }}</h6>
+                      <small class="text-muted">{{ assignment.user.email }}</small>
+                    </div>
+                  </div>
+                </td>
+                <td>{{ assignment.assigned_date|date:"M d, Y" }}</td>
+                <td>
+                  {% if assignment.assigned_by %}
+                  {{ assignment.assigned_by.get_full_name }}
+                  {% else %}
+                  <span class="text-muted">System</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if assignment.expires_at %}
+                  <span class="badge bg-warning-subtle text-warning">
+                    {{ assignment.expires_at|date:"M d, Y" }}
+                  </span>
+                  {% else %}
+                  <span class="badge bg-success-subtle text-success">Never</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if assignment.is_active %}
+                  <span class="badge bg-success-subtle text-success">
+                    <iconify-icon icon="solar:check-circle-bold-duotone" class="me-1"></iconify-icon>
+                    Active
+                  </span>
+                  {% else %}
+                  <span class="badge bg-danger-subtle text-danger">
+                    <iconify-icon icon="solar:close-circle-bold-duotone" class="me-1"></iconify-icon>
+                    Inactive
+                  </span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if perms.accounts.change_userroleassignment %}
+                  <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                      data-bs-toggle="dropdown" aria-expanded="false">
+                      <iconify-icon icon="solar:menu-dots-bold-duotone"></iconify-icon>
+                    </button>
+                    <ul class="dropdown-menu">
+                      <li>
+                        <a class="dropdown-item" href="{% url 'accounts:user_detail' assignment.user.pk %}">
+                          <iconify-icon icon="solar:eye-line-duotone" class="me-2"></iconify-icon>
+                          View User
+                        </a>
+                      </li>
+                      <li>
+                        <a class="dropdown-item" href="#"
+                          onclick="removeRoleFromUser({{ assignment.user.pk }}, '{{ role.name }}')">
+                          <iconify-icon icon="solar:user-cross-line-duotone" class="me-2"></iconify-icon>
+                          Remove Role
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Assign Role Modal -->
+<div class="modal fade" id="assignRoleModal" tabindex="-1" aria-labelledby="assignRoleModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="assignRoleModalLabel">Assign Role to Users</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="assign-role-form">
+          <div class="mb-3">
+            <label class="form-label">Select Users</label>
+            <select class="form-select" id="user-select" multiple size="10">
+              <!-- Users will be loaded via AJAX -->
+            </select>
+            <small class="text-muted">Hold Ctrl/Cmd to select multiple users</small>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="expires-at" class="form-label">Expiry Date (Optional)</label>
+                <input type="date" class="form-control" id="expires-at">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="assignment-notes" class="form-label">Notes (Optional)</label>
+                <textarea class="form-control" id="assignment-notes" rows="3"></textarea>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="assignRoleToUsers()">Assign Role</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Load users for assignment
+  document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('assignRoleModal');
+    modal.addEventListener('show.bs.modal', function () {
+      loadAvailableUsers();
+    });
+  });
+
+  function loadAvailableUsers() {
+    fetch('/api/accounts/users/?exclude_role={{ role.name }}')
+      .then(response => response.json())
+      .then(data => {
+        const select = document.getElementById('user-select');
+        select.innerHTML = '';
+
+        data.results.forEach(user => {
+          const option = document.createElement('option');
+          option.value = user.id;
+          option.textContent = `${user.full_name} (${user.email})`;
+          select.appendChild(option);
+        });
+      })
+      .catch(error => {
+        console.error('Error loading users:', error);
+      });
+  }
+
+  function assignRoleToUsers() {
+    const userSelect = document.getElementById('user-select');
+    const selectedUsers = Array.from(userSelect.selectedOptions).map(option => option.value);
+    const expiresAt = document.getElementById('expires-at').value;
+    const notes = document.getElementById('assignment-notes').value;
+
+    if (selectedUsers.length === 0) {
+      alert('Please select at least one user.');
+      return;
+    }
+
+    // Show loading state
+    const button = event.target;
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Assigning...';
+
+    Promise.all(selectedUsers.map(userId => {
+      return fetch('/api/accounts/role-assignments/assign/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: JSON.stringify({
+          user_id: parseInt(userId),
+          role_name: '{{ role.name }}',
+          expires_at: expiresAt || null,
+          notes: notes
+        })
+      });
+    }))
+      .then(responses => {
+        const successful = responses.filter(r => r.ok).length;
+        alert(`Successfully assigned role to ${successful} user(s).`);
+        location.reload();
+      })
+      .catch(error => {
+        console.error('Error assigning roles:', error);
+        alert('Error assigning roles. Please try again.');
+      })
+      .finally(() => {
+        button.disabled = false;
+        button.innerHTML = 'Assign Role';
+      });
+  }
+
+  function removeRoleFromUser(userId, roleName) {
+    if (confirm('Are you sure you want to remove this role from the user?')) {
+      fetch('/api/accounts/role-assignments/remove/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          role_name: roleName
+        })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.detail) {
+            location.reload();
+          } else {
+            alert('Error removing role. Please try again.');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error removing role. Please try again.');
+        });
+    }
+  }
+
+  function duplicateRole() {
+    const roleName = prompt('Enter name for the new role:');
+    if (roleName) {
+      // Implementation would depend on your backend API
+      alert('Duplicate role functionality to be implemented');
+    }
+  }
+
+  function exportRoleData() {
+    // Implementation for exporting role data
+    alert('Export functionality to be implemented');
+  }
+</script>
+{% endblock content %}

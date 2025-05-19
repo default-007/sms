@@ -10,16 +10,25 @@ DEBUG = False
 # Setup proper allowed hosts
 ALLOWED_HOSTS = [os.environ.get("ALLOWED_HOSTS", "example.com").split(",")]
 
-# Security settings
-SECURE_HSTS_SECONDS = 31536000  # 1 year
+# Security settings for production
+SECURE_SSL_REDIRECT = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
-SECURE_SSL_REDIRECT = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
+X_FRAME_OPTIONS = "DENY"
+
+# Session security
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = "DENY"
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+
+# Additional security headers
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+
 
 # Database settings
 # Use environment variables to configure database, or use a service like AWS RDS

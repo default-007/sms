@@ -2,4 +2,585 @@
 
 {% load static %}
 {% block content %}
+<div class="body-wrapper">
+  <div class="container-fluid">
+    <!-- Breadcrumb and Header -->
+    <div class="card card-body">
+      <div class="row align-items-center">
+        <div class="col-12">
+          <div class="d-sm-flex align-items-center justify-space-between">
+            <h4 class="fw-semibold fs-4 mb-4 mb-md-0 card-title">User Management</h4>
+            <nav aria-label="breadcrumb" class="ms-auto">
+              <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                  <a class="text-muted text-decoration-none" href="{% url 'core:dashboard' %}">
+                    <iconify-icon icon="solar:home-2-line-duotone" class="fs-6"></iconify-icon>
+                  </a>
+                </li>
+                <li class="breadcrumb-item" aria-current="page">
+                  <span class="badge fw-medium fs-2 bg-primary-subtle text-primary">
+                    Users
+                  </span>
+                </li>
+              </ol>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions and Filters -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body">
+            <div class="row align-items-center">
+              <!-- Search -->
+              <div class="col-md-4">
+                <form method="get" class="d-flex">
+                  <div class="input-group">
+                    <span class="input-group-text">
+                      <iconify-icon icon="solar:magnifer-line-duotone"></iconify-icon>
+                    </span>
+                    <input type="text" class="form-control" name="search" value="{{ search_query }}"
+                      placeholder="Search users...">
+                    <button class="btn btn-outline-secondary" type="submit">Search</button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Role Filter -->
+              <div class="col-md-3">
+                <form method="get" id="role-filter-form">
+                  <select class="form-select" name="role" onchange="this.form.submit()">
+                    <option value="">All Roles</option>
+                    {% for role in roles %}
+                    <option value="{{ role.name }}" {% if selected_role == role.name %}selected{% endif %}>
+                      {{ role.name }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                  {% if search_query %}
+                  <input type="hidden" name="search" value="{{ search_query }}">
+                  {% endif %}
+                </form>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="col-md-5">
+                <div class="d-flex gap-2 justify-content-md-end">
+                  {% if perms.accounts.add_user %}
+                  <a href="{% url 'accounts:user_create' %}" class="btn btn-primary">
+                    <iconify-icon icon="solar:user-plus-bold-duotone" class="me-2"></iconify-icon>
+                    Add User
+                  </a>
+                  {% endif %}
+
+                  <div class="btn-group">
+                    <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"
+                      aria-expanded="false">
+                      <iconify-icon icon="solar:settings-line-duotone" class="me-2"></iconify-icon>
+                      Actions
+                    </button>
+                    <ul class="dropdown-menu">
+                      <li><a class="dropdown-item" href="#" onclick="exportUsers('csv')">
+                          <iconify-icon icon="solar:download-line-duotone" class="me-2"></iconify-icon>
+                          Export CSV
+                        </a></li>
+                      <li><a class="dropdown-item" href="#" onclick="exportUsers('excel')">
+                          <iconify-icon icon="solar:download-line-duotone" class="me-2"></iconify-icon>
+                          Export Excel
+                        </a></li>
+                      <li>
+                        <hr class="dropdown-divider">
+                      </li>
+                      <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkActionModal">
+                          <iconify-icon icon="solar:users-group-two-rounded-line-duotone" class="me-2"></iconify-icon>
+                          Bulk Actions
+                        </a></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Statistics -->
+    <div class="row mb-4">
+      <div class="col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              <div class="flex-shrink-0">
+                <div class="round-40 d-flex align-items-center justify-content-center rounded-circle bg-primary-subtle">
+                  <iconify-icon icon="solar:users-group-two-rounded-bold-duotone"
+                    class="fs-7 text-primary"></iconify-icon>
+                </div>
+              </div>
+              <div class="flex-grow-1 ms-3">
+                <h6 class="mb-0">Total Users</h6>
+                <h4 class="mb-0">{{ page_obj.paginator.count }}</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              <div class="flex-shrink-0">
+                <div class="round-40 d-flex align-items-center justify-content-center rounded-circle bg-success-subtle">
+                  <iconify-icon icon="solar:user-check-bold-duotone" class="fs-7 text-success"></iconify-icon>
+                </div>
+              </div>
+              <div class="flex-grow-1 ms-3">
+                <h6 class="mb-0">Active Users</h6>
+                <h4 class="mb-0">{{ active_users_count }}</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              <div class="flex-shrink-0">
+                <div class="round-40 d-flex align-items-center justify-content-center rounded-circle bg-warning-subtle">
+                  <iconify-icon icon="solar:user-cross-bold-duotone" class="fs-7 text-warning"></iconify-icon>
+                </div>
+              </div>
+              <div class="flex-grow-1 ms-3">
+                <h6 class="mb-0">Inactive Users</h6>
+                <h4 class="mb-0">{{ inactive_users_count }}</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              <div class="flex-shrink-0">
+                <div class="round-40 d-flex align-items-center justify-content-center rounded-circle bg-info-subtle">
+                  <iconify-icon icon="solar:calendar-add-bold-duotone" class="fs-7 text-info"></iconify-icon>
+                </div>
+              </div>
+              <div class="flex-grow-1 ms-3">
+                <h6 class="mb-0">This Month</h6>
+                <h4 class="mb-0">{{ new_users_count }}</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="card">
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>
+                  <input type="checkbox" id="select-all" class="form-check-input">
+                </th>
+                <th>User</th>
+                <th>Contact</th>
+                <th>Roles</th>
+                <th>Status</th>
+                <th>Joined</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for user in users %}
+              <tr>
+                <td>
+                  <input type="checkbox" class="form-check-input user-select" value="{{ user.id }}">
+                </td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                      {% if user.profile_picture %}
+                      <img src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}" class="rounded-circle"
+                        width="40" height="40">
+                      {% else %}
+                      <div
+                        class="round-40 d-flex align-items-center justify-content-center rounded-circle bg-primary-subtle">
+                        <span class="fw-bold text-primary">{{ user.get_initials }}</span>
+                      </div>
+                      {% endif %}
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                      <h6 class="mb-0">{{ user.get_full_name }}</h6>
+                      <small class="text-muted">@{{ user.username }}</small>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div>
+                    <span class="d-block">{{ user.email }}</span>
+                    {% if user.phone_number %}
+                    <small class="text-muted">{{ user.phone_number }}</small>
+                    {% endif %}
+                  </div>
+                </td>
+                <td>
+                  {% for assignment in user.role_assignments.all %}
+                  <span
+                    class="badge bg-{{ assignment.role.name|lower }}-subtle text-{{ assignment.role.name|lower }} me-1">
+                    {{ assignment.role.name }}
+                  </span>
+                  {% empty %}
+                  <span class="text-muted">No roles</span>
+                  {% endfor %}
+                </td>
+                <td>
+                  {% if user.is_active %}
+                  <span class="badge bg-success-subtle text-success">
+                    <iconify-icon icon="solar:check-circle-bold-duotone" class="me-1"></iconify-icon>
+                    Active
+                  </span>
+                  {% else %}
+                  <span class="badge bg-danger-subtle text-danger">
+                    <iconify-icon icon="solar:close-circle-bold-duotone" class="me-1"></iconify-icon>
+                    Inactive
+                  </span>
+                  {% endif %}
+
+                  {% if user.requires_password_change %}
+                  <span class="badge bg-warning-subtle text-warning">
+                    <iconify-icon icon="solar:shield-warning-bold-duotone" class="me-1"></iconify-icon>
+                    Password Reset
+                  </span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="text-muted">{{ user.date_joined|date:"M d, Y" }}</span>
+                  {% if user.last_login %}
+                  <br><small class="text-muted">Last: {{ user.last_login|date:"M d" }}</small>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="btn-group" role="group">
+                    <a href="{% url 'accounts:user_detail' user.pk %}" class="btn btn-sm btn-outline-primary"
+                      title="View Details">
+                      <iconify-icon icon="solar:eye-line-duotone"></iconify-icon>
+                    </a>
+
+                    {% if perms.accounts.change_user %}
+                    <a href="{% url 'accounts:user_update' user.pk %}" class="btn btn-sm btn-outline-secondary"
+                      title="Edit User">
+                      <iconify-icon icon="solar:pen-line-duotone"></iconify-icon>
+                    </a>
+                    {% endif %}
+
+                    <div class="btn-group" role="group">
+                      <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        <iconify-icon icon="solar:menu-dots-bold-duotone"></iconify-icon>
+                      </button>
+                      <ul class="dropdown-menu">
+                        {% if perms.accounts.change_user %}
+                        <li>
+                          <a class="dropdown-item" href="#"
+                            onclick="toggleUserStatus({{ user.id }}, {{ user.is_active|yesno:'false,true' }})">
+                            {% if user.is_active %}
+                            <iconify-icon icon="solar:user-cross-line-duotone" class="me-2"></iconify-icon>
+                            Deactivate
+                            {% else %}
+                            <iconify-icon icon="solar:user-check-line-duotone" class="me-2"></iconify-icon>
+                            Activate
+                            {% endif %}
+                          </a>
+                        </li>
+                        <li>
+                          <a class="dropdown-item" href="#" onclick="resetPassword({{ user.id }})">
+                            <iconify-icon icon="solar:key-line-duotone" class="me-2"></iconify-icon>
+                            Reset Password
+                          </a>
+                        </li>
+                        <li>
+                          <hr class="dropdown-divider">
+                        </li>
+                        {% endif %}
+                        {% if perms.accounts.delete_user %}
+                        <li>
+                          <a class="dropdown-item text-danger" href="{% url 'accounts:user_delete' user.pk %}">
+                            <iconify-icon icon="solar:trash-bin-line-duotone" class="me-2"></iconify-icon>
+                            Delete User
+                          </a>
+                        </li>
+                        {% endif %}
+                      </ul>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="7" class="text-center py-5">
+                  <iconify-icon icon="solar:users-group-two-rounded-line-duotone"
+                    class="fs-8 text-muted"></iconify-icon>
+                  <h5 class="mt-3 text-muted">No users found</h5>
+                  <p class="text-muted">
+                    {% if search_query or selected_role %}
+                    Try adjusting your search criteria.
+                    {% else %}
+                    Get started by adding your first user.
+                    {% endif %}
+                  </p>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav aria-label="Users pagination" class="mt-4">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <small class="text-muted">
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }}
+                of {{ page_obj.paginator.count }} users
+              </small>
+            </div>
+            <ul class="pagination mb-0">
+              {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link"
+                  href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_role %}&role={{ selected_role }}{% endif %}">
+                  <iconify-icon icon="solar:arrow-left-line-duotone"></iconify-icon>
+                </a>
+              </li>
+              {% endif %}
+
+              {% for num in page_obj.paginator.page_range %}
+              {% if page_obj.number == num %}
+              <li class="page-item active">
+                <span class="page-link">{{ num }}</span>
+              </li>
+              {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+              <li class="page-item">
+                <a class="page-link"
+                  href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_role %}&role={{ selected_role }}{% endif %}">{{ num }}</a>
+              </li>
+              {% endif %}
+              {% endfor %}
+
+              {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link"
+                  href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_role %}&role={{ selected_role }}{% endif %}">
+                  <iconify-icon icon="solar:arrow-right-line-duotone"></iconify-icon>
+                </a>
+              </li>
+              {% endif %}
+            </ul>
+          </div>
+        </nav>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Action Modal -->
+<div class="modal fade" id="bulkActionModal" tabindex="-1" aria-labelledby="bulkActionModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="bulkActionModalLabel">Bulk Actions</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="bulk-action-form">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="bulk-action-select" class="form-label">Select Action</label>
+            <select class="form-select" id="bulk-action-select" name="action" required>
+              <option value="">Choose an action...</option>
+              <option value="activate">Activate Users</option>
+              <option value="deactivate">Deactivate Users</option>
+              <option value="require_password_change">Require Password Change</option>
+              <option value="assign_roles">Assign Roles</option>
+              <option value="remove_roles">Remove Roles</option>
+            </select>
+          </div>
+
+          <div class="mb-3" id="roles-selection" style="display: none;">
+            <label class="form-label">Select Roles</label>
+            {% for role in roles %}
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="roles" value="{{ role.name }}"
+                id="role-{{ role.id }}">
+              <label class="form-check-label" for="role-{{ role.id }}">
+                {{ role.name }}
+              </label>
+            </div>
+            {% endfor %}
+          </div>
+
+          <div class="alert alert-info">
+            <strong>Selected Users:</strong> <span id="selected-count">0</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Apply Action</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Select all checkbox functionality
+    const selectAllCheckbox = document.getElementById('select-all');
+    const userCheckboxes = document.querySelectorAll('.user-select');
+    const selectedCount = document.getElementById('selected-count');
+    const bulkActionSelect = document.getElementById('bulk-action-select');
+    const rolesSelection = document.getElementById('roles-selection');
+
+    selectAllCheckbox.addEventListener('change', function () {
+      userCheckboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+      });
+      updateSelectedCount();
+    });
+
+    userCheckboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', updateSelectedCount);
+    });
+
+    function updateSelectedCount() {
+      const checked = document.querySelectorAll('.user-select:checked').length;
+      selectedCount.textContent = checked;
+
+      // Update select all checkbox state
+      selectAllCheckbox.indeterminate = checked > 0 && checked < userCheckboxes.length;
+      selectAllCheckbox.checked = checked === userCheckboxes.length;
+    }
+
+    // Show/hide roles selection based on action
+    bulkActionSelect.addEventListener('change', function () {
+      const action = this.value;
+      rolesSelection.style.display = (action === 'assign_roles' || action === 'remove_roles') ? 'block' : 'none';
+    });
+
+    // Bulk action form submission
+    document.getElementById('bulk-action-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const selectedUsers = Array.from(document.querySelectorAll('.user-select:checked')).map(cb => cb.value);
+      const action = document.getElementById('bulk-action-select').value;
+
+      if (selectedUsers.length === 0) {
+        alert('Please select at least one user.');
+        return;
+      }
+
+      if (!action) {
+        alert('Please select an action.');
+        return;
+      }
+
+      // Get selected roles if applicable
+      const roles = Array.from(document.querySelectorAll('input[name="roles"]:checked')).map(cb => cb.value);
+
+      // Confirm action
+      const confirmMessage = `Are you sure you want to ${action.replace('_', ' ')} ${selectedUsers.length} user(s)?`;
+      if (!confirm(confirmMessage)) {
+        return;
+      }
+
+      // Submit via AJAX (you'll need to implement the endpoint)
+      fetch('{% url "accounts:bulk_action" %}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: JSON.stringify({
+          user_ids: selectedUsers.map(id => parseInt(id)),
+          action: action,
+          roles: roles
+        })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            location.reload();
+          } else {
+            alert('Error: ' + data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred.');
+        });
+    });
+  });
+
+  // Export functions
+  function exportUsers(format) {
+    const url = `{% url 'accounts:export_users' %}?format=${format}`;
+    const searchParams = new URLSearchParams(window.location.search);
+    const fullUrl = url + '&' + searchParams.toString();
+    window.open(fullUrl, '_blank');
+  }
+
+  // Toggle user status
+  function toggleUserStatus(userId, activate) {
+    const action = activate ? 'activate' : 'deactivate';
+    const message = `Are you sure you want to ${action} this user?`;
+
+    if (confirm(message)) {
+      fetch(`{% url 'accounts:toggle_user_status' 0 %}`.replace('0', userId), {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: JSON.stringify({ activate: activate })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            location.reload();
+          } else {
+            alert('Error: ' + data.message);
+          }
+        });
+    }
+  }
+
+  // Reset password
+  function resetPassword(userId) {
+    if (confirm('Are you sure you want to reset this user\'s password?')) {
+      fetch(`{% url 'accounts:reset_user_password' 0 %}`.replace('0', userId), {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Password reset email sent successfully.');
+          } else {
+            alert('Error: ' + data.message);
+          }
+        });
+    }
+  }
+</script>
 {% endblock content %}

@@ -1,0 +1,653 @@
+<!-- accounts/emails/login_notification.html -->
+<html>
+
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Login Detected</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .container {
+        background-color: #f4f4f4;
+        padding: 20px;
+      }
+
+      .content {
+        background-color: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .header {
+        background-color: #007bff;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        border-radius: 8px 8px 0 0;
+      }
+
+      .alert {
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        padding: 15px;
+        border-radius: 4px;
+        margin: 20px 0;
+      }
+
+      .info-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+      }
+
+      .info-table th,
+      .info-table td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+
+      .info-table th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+      }
+
+      .footer {
+        text-align: center;
+        margin-top: 30px;
+        color: #6c757d;
+        font-size: 14px;
+      }
+
+      .button {
+        background-color: #007bff;
+        color: white;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 4px;
+        display: inline-block;
+        margin: 10px 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="content">
+        <div class="header">
+          <h1>{{ site_name }}</h1>
+          <h2>New Login Detected</h2>
+        </div>
+
+        <div class="alert">
+          <strong>Security Notice:</strong> A new login was detected on your account.
+        </div>
+
+        <p>Dear {{ user.get_full_name|default:user.username }},</p>
+
+        <p>We're writing to inform you that a new login was detected on your account. Here are the details:</p>
+
+        <table class="info-table">
+          <tr>
+            <th>Time</th>
+            <td>{{ timestamp|default:"Just now" }}</td>
+          </tr>
+          <tr>
+            <th>IP Address</th>
+            <td>{{ client_info.ip_address }}</td>
+          </tr>
+          <tr>
+            <th>Browser</th>
+            <td>{{ client_info.browser }}</td>
+          </tr>
+          <tr>
+            <th>Operating System</th>
+            <td>{{ client_info.os }}</td>
+          </tr>
+          <tr>
+            <th>User Agent</th>
+            <td style="word-break: break-all;">{{ client_info.user_agent|truncatechars:100 }}</td>
+          </tr>
+        </table>
+
+        <p><strong>Was this you?</strong></p>
+        <p>If you recognize this login, you can safely ignore this email. If you don't recognize this activity, please
+          take the following steps immediately:</p>
+
+        <ul>
+          <li>Change your password immediately</li>
+          <li>Check your account for any unauthorized activity</li>
+          <li>Contact our support team if you notice anything suspicious</li>
+        </ul>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="#" class="button">Change Password</a>
+          <a href="#" class="button" style="background-color: #6c757d;">Contact Support</a>
+        </div>
+
+        <div class="footer">
+          <p>This email was sent as a security measure. If you didn't request this, please contact our support team.</p>
+          <p>&copy; 2024 {{ site_name }}. All rights reserved.</p>
+        </div>
+      </div>
+    </div>
+  </body>
+
+</html>
+
+<!-- accounts/emails/password_changed.html -->
+<html>
+
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Changed Successfully</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .container {
+        background-color: #f4f4f4;
+        padding: 20px;
+      }
+
+      .content {
+        background-color: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .header {
+        background-color: #28a745;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        border-radius: 8px 8px 0 0;
+      }
+
+      .success {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        padding: 15px;
+        border-radius: 4px;
+        margin: 20px 0;
+      }
+
+      .info-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+      }
+
+      .info-table th,
+      .info-table td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+
+      .info-table th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+      }
+
+      .footer {
+        text-align: center;
+        margin-top: 30px;
+        color: #6c757d;
+        font-size: 14px;
+      }
+
+      .security-tips {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 4px;
+        margin: 20px 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="content">
+        <div class="header">
+          <h1>{{ site_name }}</h1>
+          <h2>Password Changed Successfully</h2>
+        </div>
+
+        <div class="success">
+          <strong>✓ Success:</strong> Your password has been changed successfully.
+        </div>
+
+        <p>Dear {{ user.get_full_name|default:user.username }},</p>
+
+        <p>This email confirms that your password was successfully changed. Here are the details:</p>
+
+        <table class="info-table">
+          <tr>
+            <th>Change Time</th>
+            <td>{{ timestamp|default:"Just now" }}</td>
+          </tr>
+          <tr>
+            <th>IP Address</th>
+            <td>{{ client_info.ip_address }}</td>
+          </tr>
+          <tr>
+            <th>Browser</th>
+            <td>{{ client_info.browser }}</td>
+          </tr>
+        </table>
+
+        <div class="security-tips">
+          <h3>Security Tips:</h3>
+          <ul>
+            <li>Keep your password secure and don't share it with anyone</li>
+            <li>Use a unique password that you don't use for other services</li>
+            <li>Enable two-factor authentication if available</li>
+            <li>Regularly review your account activity</li>
+          </ul>
+        </div>
+
+        <p><strong>Didn't change your password?</strong></p>
+        <p>If you didn't make this change, your account may have been compromised. Please contact our support team
+          immediately.</p>
+
+        <div class="footer">
+          <p>For security reasons, this is an automated message. Please do not reply to this email.</p>
+          <p>&copy; 2024 {{ site_name }}. All rights reserved.</p>
+        </div>
+      </div>
+    </div>
+  </body>
+
+</html>
+
+<!-- accounts/emails/account_created.html -->
+<html>
+
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to {{ site_name }}</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .container {
+        background-color: #f4f4f4;
+        padding: 20px;
+      }
+
+      .content {
+        background-color: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .header {
+        background-color: #007bff;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        border-radius: 8px 8px 0 0;
+      }
+
+      .welcome {
+        background-color: #e7f3ff;
+        border: 1px solid #b8daff;
+        padding: 20px;
+        border-radius: 4px;
+        margin: 20px 0;
+        text-align: center;
+      }
+
+      .credentials {
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        padding: 15px;
+        border-radius: 4px;
+        margin: 20px 0;
+      }
+
+      .button {
+        background-color: #007bff;
+        color: white;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 4px;
+        display: inline-block;
+        margin: 10px 0;
+      }
+
+      .footer {
+        text-align: center;
+        margin-top: 30px;
+        color: #6c757d;
+        font-size: 14px;
+      }
+
+      .steps {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 4px;
+        margin: 20px 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="content">
+        <div class="header">
+          <h1>Welcome to {{ site_name }}</h1>
+          <p>Your account has been created!</p>
+        </div>
+
+        <div class="welcome">
+          <h2>Hello {{ user.get_full_name|default:user.username }}!</h2>
+          <p>Welcome to our school management system. Your account is now ready to use.</p>
+        </div>
+
+        <p>Your account has been successfully created by an administrator. Here are your login credentials:</p>
+
+        <div class="credentials">
+          <h3>Login Information:</h3>
+          <p><strong>Username:</strong> {{ user.username }}</p>
+          <p><strong>Email:</strong> {{ user.email }}</p>
+          <p><strong>Temporary Password:</strong> <code>{{ temporary_password }}</code></p>
+        </div>
+
+        <div class="steps">
+          <h3>Next Steps:</h3>
+          <ol>
+            <li>Click the login button below to access your account</li>
+            <li>You will be prompted to change your password on first login</li>
+            <li>Complete your profile information</li>
+            <li>Explore the features available to you</li>
+          </ol>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="#" class="button">Login to Your Account</a>
+        </div>
+
+        <p><strong>Important Security Notes:</strong></p>
+        <ul>
+          <li>Change your password immediately after logging in</li>
+          <li>Keep your login credentials secure</li>
+          <li>Never share your password with anyone</li>
+          <li>Contact support if you experience any issues</li>
+        </ul>
+
+        <div class="footer">
+          <p>If you have any questions or need assistance, please contact our support team.</p>
+          <p>&copy; 2024 {{ site_name }}. All rights reserved.</p>
+        </div>
+      </div>
+    </div>
+  </body>
+
+</html>
+
+<!-- accounts/emails/password_reset_by_admin.html -->
+<html>
+
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Reset by Administrator</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .container {
+        background-color: #f4f4f4;
+        padding: 20px;
+      }
+
+      .content {
+        background-color: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .header {
+        background-color: #ffc107;
+        color: #212529;
+        padding: 20px;
+        text-align: center;
+        border-radius: 8px 8px 0 0;
+      }
+
+      .warning {
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        padding: 15px;
+        border-radius: 4px;
+        margin: 20px 0;
+      }
+
+      .credentials {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        padding: 15px;
+        border-radius: 4px;
+        margin: 20px 0;
+      }
+
+      .button {
+        background-color: #007bff;
+        color: white;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 4px;
+        display: inline-block;
+        margin: 10px 0;
+      }
+
+      .footer {
+        text-align: center;
+        margin-top: 30px;
+        color: #6c757d;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="content">
+        <div class="header">
+          <h1>{{ site_name }}</h1>
+          <h2>Password Reset by Administrator</h2>
+        </div>
+
+        <div class="warning">
+          <strong>⚠️ Notice:</strong> Your password has been reset by an administrator.
+        </div>
+
+        <p>Dear {{ user.get_full_name|default:user.username }},</p>
+
+        <p>An administrator has reset your password for security or administrative reasons.</p>
+
+        <div class="credentials">
+          <h3>New Login Information:</h3>
+          <p><strong>Username:</strong> {{ user.username }}</p>
+          <p><strong>Temporary Password:</strong> <code>{{ temporary_password }}</code></p>
+          <p><strong>Reset By:</strong> {{ reset_by }}</p>
+        </div>
+
+        <p><strong>What you need to do:</strong></p>
+        <ol>
+          <li>Log in using the temporary password above</li>
+          <li>You will be required to change your password immediately</li>
+          <li>Choose a strong, unique password</li>
+          <li>Keep your new password secure</li>
+        </ol>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="#" class="button">Login and Change Password</a>
+        </div>
+
+        <p><strong>Security Recommendations:</strong></p>
+        <ul>
+          <li>Use a password that's at least 8 characters long</li>
+          <li>Include uppercase and lowercase letters, numbers, and symbols</li>
+          <li>Don't reuse passwords from other accounts</li>
+          <li>Consider using a password manager</li>
+        </ul>
+
+        <p>If you have any questions about this password reset, please contact the administrator who performed this
+          action or our support team.</p>
+
+        <div class="footer">
+          <p>This is an automated security notification. Please do not reply to this email.</p>
+          <p>&copy; 2024 {{ site_name }}. All rights reserved.</p>
+        </div>
+      </div>
+    </div>
+  </body>
+
+</html>
+
+<!-- accounts/emails/account_unlocked.html -->
+<html>
+
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Unlocked</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .container {
+        background-color: #f4f4f4;
+        padding: 20px;
+      }
+
+      .content {
+        background-color: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .header {
+        background-color: #28a745;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        border-radius: 8px 8px 0 0;
+      }
+
+      .success {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        padding: 15px;
+        border-radius: 4px;
+        margin: 20px 0;
+      }
+
+      .button {
+        background-color: #007bff;
+        color: white;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 4px;
+        display: inline-block;
+        margin: 10px 0;
+      }
+
+      .footer {
+        text-align: center;
+        margin-top: 30px;
+        color: #6c757d;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="content">
+        <div class="header">
+          <h1>{{ site_name }}</h1>
+          <h2>Account Unlocked</h2>
+        </div>
+
+        <div class="success">
+          <strong>✓ Good News:</strong> Your account has been unlocked and is now accessible.
+        </div>
+
+        <p>Dear {{ user.get_full_name|default:user.username }},</p>
+
+        <p>Your account was temporarily locked due to multiple failed login attempts, but it has now been automatically
+          unlocked.</p>
+
+        <p><strong>What happened?</strong></p>
+        <p>As a security measure, accounts are automatically locked after several failed login attempts. After a waiting
+          period, the account is unlocked automatically.</p>
+
+        <p><strong>You can now:</strong></p>
+        <ul>
+          <li>Log in to your account normally</li>
+          <li>Access all features and services</li>
+          <li>Reset your password if needed</li>
+        </ul>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="#" class="button">Login to Your Account</a>
+        </div>
+
+        <p><strong>To prevent future lockouts:</strong></p>
+        <ul>
+          <li>Make sure you're using the correct password</li>
+          <li>Consider resetting your password if you're unsure</li>
+          <li>Enable two-factor authentication for added security</li>
+          <li>Contact support if you continue having login issues</li>
+        </ul>
+
+        <p>If you believe someone else was trying to access your account, please change your password immediately and
+          contact our support team.</p>
+
+        <div class="footer">
+          <p>This is an automated security notification. Please do not reply to this email.</p>
+          <p>&copy; 2024 {{ site_name }}. All rights reserved.</p>
+        </div>
+      </div>
+    </div>
+  </body>
+
+</html>

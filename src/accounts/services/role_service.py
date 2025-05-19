@@ -1,215 +1,301 @@
 from django.db import transaction
-from ..models import UserRole, UserRoleAssignment
-from ..constants import SYSTEM_ROLES, PERMISSION_SCOPES
+from django.core.cache import cache
+from django.utils import timezone
+from django.conf import settings
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.contrib.auth import get_user_model
+from ..models import UserRole, UserRoleAssignment, UserAuditLog
+from ..constants import DEFAULT_ROLES, PERMISSION_SCOPES
+import logging
+
+logger = logging.getLogger(__name__)
+User = get_user_model()
 
 
 class RoleService:
-    """
-    Service for managing user roles and permissions.
-    """
+    """Enhanced service for managing user roles and permissions."""
 
     @staticmethod
     @transaction.atomic
     def create_default_roles():
         """Create default system roles if they don't exist."""
-        # Admin role with all permissions
-        admin_permissions = {}
-        for resource, actions in PERMISSION_SCOPES.items():
-            admin_permissions[resource] = actions
+        created_roles = {}
 
-        admin_role, created = UserRole.objects.get_or_create(
-            name="Admin",
-            defaults={
-                "description": "Administrator with full access to all system features",
-                "permissions": admin_permissions,
-            },
-        )
+        for role_data in DEFAULT_ROLES:
+            role, created = UserRole.objects.get_or_create(
+                name=role_data["name"],
+                defaults={
+                    "description": role_data["description"],
+                    "permissions": role_data["permissions"],
+                    "is_system_role": True,
+                },
+            )
+            created_roles[role_data["name"]] = (role, created)
 
-        # Teacher role with limited permissions
-        teacher_permissions = {
-            "students": ["view"],
-            "attendance": ["view", "add", "change"],
-            "exams": ["view", "add", "change"],
-            "grades": ["view", "add", "change"],
-            "courses": ["view"],
-            "classes": ["view"],
-            "communications": ["view", "add"],
-            "reports": ["view", "generate"],
-        }
+            if created:
+                logger.info(f"Created default role: {role.name}")
 
-        teacher_role, created = UserRole.objects.get_or_create(
-            name="Teacher",
-            defaults={
-                "description": "Teacher with access to student data, attendance, grades, etc.",
-                "permissions": teacher_permissions,
-            },
-        )
-
-        # Parent role with limited permissions
-        parent_permissions = {
-            "students": ["view"],
-            "attendance": ["view"],
-            "exams": ["view"],
-            "grades": ["view"],
-            "courses": ["view"],
-            "fees": ["view"],
-            "communications": ["view", "add"],
-            "reports": ["view"],
-        }
-
-        parent_role, created = UserRole.objects.get_or_create(
-            name="Parent",
-            defaults={
-                "description": "Parent with access to their children's data",
-                "permissions": parent_permissions,
-            },
-        )
-
-        # Staff role with administrative permissions
-        staff_permissions = {
-            "students": ["view", "add", "change"],
-            "teachers": ["view", "add", "change"],
-            "attendance": ["view", "add", "change"],
-            "courses": ["view", "add", "change"],
-            "classes": ["view", "add", "change"],
-            "fees": ["view", "add", "change"],
-            "library": ["view", "add", "change"],
-            "transport": ["view", "add", "change"],
-            "communications": ["view", "add"],
-            "reports": ["view", "generate"],
-        }
-
-        staff_role, created = UserRole.objects.get_or_create(
-            name="Staff",
-            defaults={
-                "description": "Administrative staff with access to most system features",
-                "permissions": staff_permissions,
-            },
-        )
-
-        # Student role with limited permissions
-        student_permissions = {
-            "attendance": ["view"],
-            "exams": ["view"],
-            "grades": ["view"],
-            "courses": ["view"],
-            "classes": ["view"],
-            "fees": ["view"],
-            "library": ["view"],
-            "communications": ["view", "add"],
-        }
-
-        student_role, created = UserRole.objects.get_or_create(
-            name="Student",
-            defaults={
-                "description": "Student with access to their own data",
-                "permissions": student_permissions,
-            },
-        )
-
-        return {
-            "Admin": admin_role,
-            "Teacher": teacher_role,
-            "Parent": parent_role,
-            "Staff": staff_role,
-            "Student": student_role,
-        }
+        return created_roles
 
     @staticmethod
-    def assign_role_to_user(user, role_name, assigned_by=None):
-        """
-        Assign a role to a user.
-
-        Args:
-            user: User instance
-            role_name: Name of the role to assign
-            assigned_by: User who is assigning the role (optional)
-
-        Returns:
-            UserRoleAssignment: The created assignment
-        """
+    @transaction.atomic
+    def assign_role_to_user(
+        user, role_name, assigned_by=None, expires_at=None, notes=""
+    ):
+        """Assign a role to a user with enhanced options."""
         try:
             role = UserRole.objects.get(name=role_name)
             assignment, created = UserRoleAssignment.objects.get_or_create(
-                user=user, role=role, defaults={"assigned_by": assigned_by}
+                user=user,
+                role=role,
+                defaults={
+                    "assigned_by": assigned_by,
+                    "expires_at": expires_at,
+                    "notes": notes,
+                },
             )
-            return assignment
+
+            if created:
+                # Create audit log
+                UserAuditLog.objects.create(
+                    user=user,
+                    action="role_assign",
+                    description=f"Role '{role_name}' assigned to user",
+                    performed_by=assigned_by,
+                    extra_data={"role_name": role_name},
+                )
+
+                # Clear user cache
+                cache.delete(f"user_permissions_{user.pk}")
+                cache.delete(f"user_roles_{user.pk}")
+
+                # Send notification if enabled
+                if (
+                    hasattr(settings, "SEND_ROLE_NOTIFICATIONS")
+                    and settings.SEND_ROLE_NOTIFICATIONS
+                ):
+                    RoleService._send_role_notification(user, role, "assigned")
+
+                logger.info(f"Role '{role_name}' assigned to user '{user.username}'")
+
+            return assignment, created
         except UserRole.DoesNotExist:
             raise ValueError(f"Role '{role_name}' does not exist")
 
     @staticmethod
-    def remove_role_from_user(user, role_name):
-        """
-        Remove a role from a user.
-
-        Args:
-            user: User instance
-            role_name: Name of the role to remove
-
-        Returns:
-            bool: True if the role was removed, False otherwise
-        """
+    @transaction.atomic
+    def remove_role_from_user(user, role_name, removed_by=None):
+        """Remove a role from a user."""
         try:
             role = UserRole.objects.get(name=role_name)
             deleted, _ = UserRoleAssignment.objects.filter(
                 user=user, role=role
             ).delete()
+
+            if deleted > 0:
+                # Create audit log
+                UserAuditLog.objects.create(
+                    user=user,
+                    action="role_remove",
+                    description=f"Role '{role_name}' removed from user",
+                    performed_by=removed_by,
+                    extra_data={"role_name": role_name},
+                )
+
+                # Clear user cache
+                cache.delete(f"user_permissions_{user.pk}")
+                cache.delete(f"user_roles_{user.pk}")
+
+                # Send notification if enabled
+                if (
+                    hasattr(settings, "SEND_ROLE_NOTIFICATIONS")
+                    and settings.SEND_ROLE_NOTIFICATIONS
+                ):
+                    RoleService._send_role_notification(user, role, "removed")
+
+                logger.info(f"Role '{role_name}' removed from user '{user.username}'")
+
             return deleted > 0
         except UserRole.DoesNotExist:
             return False
 
     @staticmethod
     def get_user_permissions(user):
-        """
-        Get all permissions for a user based on their roles.
+        """Get all permissions for a user based on their roles with caching."""
+        cache_key = f"user_permissions_{user.pk}"
+        combined_permissions = cache.get(cache_key)
 
-        Args:
-            user: User instance
+        if combined_permissions is None:
+            combined_permissions = {}
 
-        Returns:
-            dict: Combined permissions from all user roles
-        """
-        combined_permissions = {}
+            # Get all active, non-expired role assignments
+            role_assignments = UserRoleAssignment.objects.filter(
+                user=user, is_active=True
+            ).select_related("role")
 
-        # Get all user roles
-        role_assignments = UserRoleAssignment.objects.filter(user=user).select_related(
-            "role"
-        )
+            # Filter out expired assignments
+            active_assignments = []
+            for assignment in role_assignments:
+                if not assignment.is_expired():
+                    active_assignments.append(assignment)
+                else:
+                    # Deactivate expired assignments
+                    assignment.is_active = False
+                    assignment.save()
 
-        # Combine permissions from all roles
-        for assignment in role_assignments:
-            role_permissions = assignment.role.permissions
+            # Combine permissions from all active roles
+            for assignment in active_assignments:
+                role_permissions = assignment.role.permissions
 
-            for resource, actions in role_permissions.items():
-                if resource not in combined_permissions:
-                    combined_permissions[resource] = []
+                for resource, actions in role_permissions.items():
+                    if resource not in combined_permissions:
+                        combined_permissions[resource] = set()
 
-                # Add new actions without duplicates
-                for action in actions:
-                    if action not in combined_permissions[resource]:
-                        combined_permissions[resource].append(action)
+                    # Add actions to the set (avoids duplicates)
+                    if isinstance(actions, list):
+                        combined_permissions[resource].update(actions)
+
+            # Convert sets back to lists for JSON serialization
+            for resource in combined_permissions:
+                combined_permissions[resource] = list(combined_permissions[resource])
+
+            # Cache for 1 hour
+            cache.set(cache_key, combined_permissions, 3600)
 
         return combined_permissions
 
     @staticmethod
     def check_permission(user, resource, action):
-        """
-        Check if a user has a specific permission.
-
-        Args:
-            user: User instance
-            resource: Resource name (e.g., 'users', 'students')
-            action: Action name (e.g., 'view', 'add', 'change', 'delete')
-
-        Returns:
-            bool: True if the user has the permission, False otherwise
-        """
-        # Superusers and admins have all permissions
-        if user.is_superuser or user.has_role("Admin"):
+        """Check if a user has a specific permission with optimization."""
+        # Superusers have all permissions
+        if user.is_superuser:
             return True
 
-        # Get user permissions
-        permissions = RoleService.get_user_permissions(user)
+        # Admin role has all permissions
+        if user.has_role("Admin"):
+            return True
 
-        # Check if the user has the specific permission
+        # Check specific permission
+        permissions = RoleService.get_user_permissions(user)
         return resource in permissions and action in permissions[resource]
+
+    @staticmethod
+    def get_users_with_role(role_name):
+        """Get all users assigned to a specific role."""
+        try:
+            role = UserRole.objects.get(name=role_name)
+            return User.objects.filter(
+                role_assignments__role=role,
+                role_assignments__is_active=True,
+                is_active=True,
+            ).distinct()
+        except UserRole.DoesNotExist:
+            return User.objects.none()
+
+    @staticmethod
+    def get_role_statistics():
+        """Get statistics about role assignments."""
+        stats = {}
+
+        for role in UserRole.objects.all():
+            active_assignments = UserRoleAssignment.objects.filter(
+                role=role, is_active=True
+            ).count()
+
+            stats[role.name] = {
+                "total_assignments": active_assignments,
+                "permission_count": role.get_permission_count(),
+                "is_system_role": role.is_system_role,
+            }
+
+        return stats
+
+    @staticmethod
+    def expire_role_assignments():
+        """Batch job to deactivate expired role assignments."""
+        expired_count = UserRoleAssignment.objects.filter(
+            expires_at__lt=timezone.now(), is_active=True
+        ).update(is_active=False)
+
+        if expired_count > 0:
+            logger.info(f"Deactivated {expired_count} expired role assignments")
+
+            # Clear cache for affected users
+            expired_assignments = UserRoleAssignment.objects.filter(
+                expires_at__lt=timezone.now(), is_active=False
+            ).select_related("user")
+
+            for assignment in expired_assignments:
+                cache.delete(f"user_permissions_{assignment.user.pk}")
+                cache.delete(f"user_roles_{assignment.user.pk}")
+
+        return expired_count
+
+    @staticmethod
+    def _send_role_notification(user, role, action):
+        """Send email notification about role changes."""
+        try:
+            subject = f"Role {action.title()}: {role.name}"
+            template = "accounts/emails/role_notification.html"
+
+            context = {
+                "user": user,
+                "role": role,
+                "action": action,
+                "site_name": getattr(settings, "SITE_NAME", "School Management System"),
+            }
+
+            html_message = render_to_string(template, context)
+
+            send_mail(
+                subject=subject,
+                message="",  # Plain text version can be added if needed
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                html_message=html_message,
+                fail_silently=True,
+            )
+        except Exception as e:
+            logger.error(f"Failed to send role notification: {e}")
+
+    @staticmethod
+    def validate_permissions(permissions):
+        """Validate permission structure against available scopes."""
+        if not isinstance(permissions, dict):
+            return False, "Permissions must be a dictionary"
+
+        for resource, actions in permissions.items():
+            if resource not in PERMISSION_SCOPES:
+                return False, f"Invalid resource: {resource}"
+
+            if not isinstance(actions, list):
+                return False, f"Actions for resource '{resource}' must be a list"
+
+            available_actions = list(PERMISSION_SCOPES[resource].keys())
+            for action in actions:
+                if action not in available_actions:
+                    return False, f"Invalid action '{action}' for resource '{resource}'"
+
+        return True, "Valid"
+
+    @staticmethod
+    def bulk_assign_roles(users, role_names, assigned_by=None):
+        """Bulk assign multiple roles to multiple users."""
+        assignments_created = 0
+
+        with transaction.atomic():
+            roles = UserRole.objects.filter(name__in=role_names)
+
+            for user in users:
+                for role in roles:
+                    _, created = UserRoleAssignment.objects.get_or_create(
+                        user=user, role=role, defaults={"assigned_by": assigned_by}
+                    )
+                    if created:
+                        assignments_created += 1
+                        # Clear user cache
+                        cache.delete(f"user_permissions_{user.pk}")
+                        cache.delete(f"user_roles_{user.pk}")
+
+        return assignments_created

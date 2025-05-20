@@ -1,0 +1,97 @@
+<!-- students/templates/students/parent_confirm_delete.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Confirm Delete - {{ parent.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+  <h1 class="mt-4">Delete Parent</h1>
+  <ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'students:parent-list' %}">Parents</a></li>
+    <li class="breadcrumb-item active">Delete</li>
+  </ol>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+      <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+          <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion</h5>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <strong>Warning!</strong> This action cannot be undone. All information associated with this parent will be
+            permanently deleted.
+          </div>
+
+          <div class="d-flex align-items-center mb-4">
+            <div class="flex-shrink-0">
+              {% if parent.photo %}
+              <img src="{{ parent.photo.url }}" alt="{{ parent.get_full_name }}" class="rounded-circle" width="64"
+                height="64">
+              {% else %}
+              <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
+                style="width: 64px; height: 64px;">
+                <i class="fas fa-user"></i>
+              </div>
+              {% endif %}
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <h5 class="mb-0">{{ parent.get_full_name }}</h5>
+              <p class="mb-0 text-muted">{{ parent.relation_with_student }}</p>
+              <p class="mb-0 text-muted">{{ parent.user.email }}</p>
+            </div>
+          </div>
+
+          {% if parent.parent_student_relations.count > 0 %}
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Important:</strong> This parent is linked to {{ parent.parent_student_relations.count }} student(s).
+            All relationships will be permanently deleted.
+          </div>
+
+          <h6 class="mb-2">Linked Students:</h6>
+          <ul class="list-group mb-4">
+            {% for relation in parent.parent_student_relations.all %}
+            <li class="list-group-item list-group-item-danger">
+              {{ relation.student.get_full_name }} ({{ relation.student.admission_number }})
+              {% if relation.is_primary_contact %}
+              <span class="badge bg-warning">Primary Contact</span>
+              {% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Alternative:</strong> Instead of deleting this parent, consider just removing the student
+            relationships.
+          </div>
+          {% endif %}
+
+          <h6 class="mb-3">The following data will be deleted:</h6>
+          <ul class="list-group mb-4">
+            <li class="list-group-item list-group-item-danger">Parent profile and personal information</li>
+            <li class="list-group-item list-group-item-danger">All student-parent relationships</li>
+            <li class="list-group-item list-group-item-danger">User account and login information</li>
+          </ul>
+
+          <form method="post">
+            {% csrf_token %}
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+              <a href="{% url 'students:parent-detail' parent.id %}" class="btn btn-outline-secondary me-md-2">
+                <i class="fas fa-times me-2"></i>Cancel
+              </a>
+              <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash me-2"></i>Delete Parent
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

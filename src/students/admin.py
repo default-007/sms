@@ -67,7 +67,6 @@ class StudentAdmin(ImportExportModelAdmin):
         "current_class__grade",
         "admission_date",
         "created_at",
-        "gender_filter",
     )
     search_fields = (
         "admission_number",
@@ -345,7 +344,7 @@ class StudentParentRelationAdmin(admin.ModelAdmin):
         "relation_type",
         "primary_contact_badge",
         "pickup_permission_badge",
-        "emergency_priority",
+        "emergency_contact_priority",
         "financial_responsibility_badge",
     )
     list_filter = (

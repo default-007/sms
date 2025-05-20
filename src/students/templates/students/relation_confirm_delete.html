@@ -1,0 +1,130 @@
+<!-- students/templates/students/relation_confirm_delete.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Confirm Remove Relationship{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+  <h1 class="mt-4">Remove Relationship</h1>
+  <ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'students:student-detail' relation.student.id %}">Student</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'students:parent-detail' relation.parent.id %}">Parent</a></li>
+    <li class="breadcrumb-item active">Remove Relationship</li>
+  </ol>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+      <div class="card border-warning">
+        <div class="card-header bg-warning text-dark">
+          <h5 class="mb-0"><i class="fas fa-unlink me-2"></i>Confirm Relationship Removal</h5>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <strong>Warning!</strong> You are about to remove the relationship between this student and parent.
+            This action cannot be undone.
+          </div>
+
+          <div class="d-flex align-items-center mb-4 p-3 bg-light rounded">
+            <div class="flex-shrink-0">
+              {% if relation.student.photo %}
+              <img src="{{ relation.student.photo.url }}" alt="{{ relation.student.get_full_name }}"
+                class="rounded-circle" width="64" height="64">
+              {% else %}
+              <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
+                style="width: 64px; height: 64px;">
+                <i class="fas fa-user"></i>
+              </div>
+              {% endif %}
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <h5 class="mb-0">{{ relation.student.get_full_name }}</h5>
+              <p class="mb-0 text-muted">{{ relation.student.admission_number }}</p>
+              <p class="mb-0 text-muted">{{ relation.student.current_class|default:"No class assigned" }}</p>
+            </div>
+
+            <div class="mx-4 text-center">
+              <div class="border rounded-circle bg-light"
+                style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-times text-danger"></i>
+              </div>
+            </div>
+
+            <div class="flex-shrink-0">
+              {% if relation.parent.photo %}
+              <img src="{{ relation.parent.photo.url }}" alt="{{ relation.parent.get_full_name }}"
+                class="rounded-circle" width="64" height="64">
+              {% else %}
+              <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
+                style="width: 64px; height: 64px;">
+                <i class="fas fa-user"></i>
+              </div>
+              {% endif %}
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <h5 class="mb-0">{{ relation.parent.get_full_name }}</h5>
+              <p class="mb-0 text-muted">{{ relation.parent.relation_with_student }}</p>
+              <p class="mb-0 text-muted">{{ relation.parent.user.email }}</p>
+            </div>
+          </div>
+
+          {% if relation.is_primary_contact %}
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Important:</strong> This parent is set as the primary contact for the student.
+            Removing this relationship will require setting another parent as the primary contact.
+          </div>
+          {% endif %}
+
+          <h6 class="mb-3">Relationship Information:</h6>
+          <ul class="list-group mb-4">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Primary Contact
+              {% if relation.is_primary_contact %}
+              <span class="badge bg-success rounded-pill">Yes</span>
+              {% else %}
+              <span class="badge bg-secondary rounded-pill">No</span>
+              {% endif %}
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Can Pickup Student
+              {% if relation.can_pickup %}
+              <span class="badge bg-success rounded-pill">Yes</span>
+              {% else %}
+              <span class="badge bg-secondary rounded-pill">No</span>
+              {% endif %}
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Emergency Contact Priority
+              <span class="badge bg-info rounded-pill">{{ relation.emergency_contact_priority }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Financial Responsibility
+              {% if relation.financial_responsibility %}
+              <span class="badge bg-success rounded-pill">Yes</span>
+              {% else %}
+              <span class="badge bg-secondary rounded-pill">No</span>
+              {% endif %}
+            </li>
+          </ul>
+
+          <form method="post">
+            {% csrf_token %}
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+              <a href="{% url 'students:student-detail' relation.student.id %}"
+                class="btn btn-outline-secondary me-md-2">
+                <i class="fas fa-times me-2"></i>Cancel
+              </a>
+              <button type="submit" class="btn btn-warning">
+                <i class="fas fa-unlink me-2"></i>Remove Relationship
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

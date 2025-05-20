@@ -1,11 +1,10 @@
-# students/management/commands/generate_sample_students.py
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from faker import Faker
 import random
 
-from students.models import Student, Parent, StudentParentRelation
+from src.students.models import Student, Parent, StudentParentRelation
 from src.courses.models import Class, Grade, Section, AcademicYear, Department
 
 User = get_user_model()
@@ -33,8 +32,24 @@ class Command(BaseCommand):
             action="store_true",
             help="Clean existing sample data before creating new",
         )
+        parser.add_argument(
+            "--admin-email",
+            type=str,
+            default=None,
+            help="Email of admin user to set as created_by (uses first superuser if not specified)",
+        )
 
     def handle(self, *args, **options):
+        # Get admin user for created_by field
+        admin_email = options.get("admin_email")
+        self.admin_user = self.get_admin_user(admin_email)
+        if not self.admin_user:
+            self.stdout.write(
+                self.style.WARNING(
+                    "No admin user found. Records will be created without created_by set."
+                )
+            )
+
         if options["clean"]:
             self.stdout.write(self.style.WARNING("Cleaning existing sample data..."))
             self.clean_sample_data()
@@ -60,6 +75,19 @@ class Command(BaseCommand):
                 f"Successfully created {num_students} students with their parents and relationships!"
             )
         )
+
+    def get_admin_user(self, email=None):
+        """Get admin user for created_by field"""
+        if email:
+            try:
+                return User.objects.get(email=email, is_staff=True)
+            except User.DoesNotExist:
+                self.stdout.write(
+                    self.style.WARNING(f"Admin user with email {email} not found")
+                )
+
+        # Try to get first superuser
+        return User.objects.filter(is_superuser=True).first()
 
     def clean_sample_data(self):
         """Remove existing sample data"""
@@ -171,32 +199,40 @@ class Command(BaseCommand):
                 date_of_birth=fake.date_of_birth(minimum_age=5, maximum_age=18),
             )
 
-            # Create student
-            student = Student.objects.create(
-                user=user,
-                admission_number=f"SAMPLE-{str(i+1).zfill(4)}",
-                admission_date=fake.date_between(start_date="-2y", end_date="today"),
-                current_class=random.choice(classes),
-                roll_number=str(random.randint(1, 100)),
-                blood_group=random.choice(blood_groups),
-                status=random.choice(statuses),
-                nationality=fake.country(),
-                religion=random.choice(
+            # Create student using model's create method
+            student_kwargs = {
+                "user": user,
+                "admission_number": f"SAMPLE-{str(i+1).zfill(4)}",
+                "admission_date": fake.date_between(start_date="-2y", end_date="today"),
+                "current_class": random.choice(classes),
+                "roll_number": str(random.randint(1, 100)),
+                "blood_group": random.choice(blood_groups),
+                "status": random.choice(statuses),
+                "nationality": fake.country(),
+                "religion": random.choice(
                     ["Hindu", "Muslim", "Christian", "Sikh", "Other"]
                 ),
-                address=fake.address(),
-                city=fake.city(),
-                state=fake.state(),
-                postal_code=fake.postcode(),
-                country="India",
-                emergency_contact_name=fake.name(),
-                emergency_contact_number=fake.phone_number()[:15],
-                medical_conditions=(
+                "address": fake.address(),
+                "city": fake.city(),
+                "state": fake.state(),
+                "postal_code": fake.postcode(),
+                "country": "India",
+                "emergency_contact_name": fake.name(),
+                "emergency_contact_number": fake.phone_number()[:15],
+                "medical_conditions": (
                     fake.text(max_nb_chars=100) if random.choice([True, False]) else ""
                 ),
-                previous_school=fake.company() if random.choice([True, False]) else "",
-            )
+                "previous_school": (
+                    fake.company() if random.choice([True, False]) else ""
+                ),
+            }
 
+            # Add created_by if admin user is available
+            if self.admin_user:
+                student_kwargs["created_by"] = self.admin_user
+
+            # Create student without explicitly setting the ID field
+            student = Student.objects.create(**student_kwargs)
             students.append(student)
 
             if (i + 1) % 10 == 0:
@@ -245,37 +281,51 @@ class Command(BaseCommand):
                 )
 
                 # Create parent
-                parent = Parent.objects.create(
-                    user=parent_user,
-                    relation_with_student=(
+                parent_kwargs = {
+                    "user": parent_user,
+                    "relation_with_student": (
                         relations[j] if j < len(relations) else "Guardian"
                     ),
-                    occupation=random.choice(occupations),
-                    annual_income=random.randint(20000, 200000),
-                    education=random.choice(
+                    "occupation": random.choice(occupations),
+                    "annual_income": random.randint(20000, 200000),
+                    "education": random.choice(
                         ["High School", "Bachelor's", "Master's", "PhD"]
                     ),
-                    workplace=fake.company(),
-                    work_address=fake.address(),
-                    work_phone=fake.phone_number()[:15],
-                    emergency_contact=random.choice([True, False]),
-                )
+                    "workplace": fake.company(),
+                    "work_address": fake.address(),
+                    "work_phone": fake.phone_number()[:15],
+                    "emergency_contact": random.choice([True, False]),
+                }
+
+                # Add created_by if admin user is available
+                if self.admin_user:
+                    parent_kwargs["created_by"] = self.admin_user
+
+                # Create parent without explicitly setting the ID field
+                parent = Parent.objects.create(**parent_kwargs)
 
                 # Create relationship
-                StudentParentRelation.objects.create(
-                    student=student,
-                    parent=parent,
-                    is_primary_contact=(j == 0),  # First parent is primary
-                    can_pickup=random.choice([True, False]),
-                    emergency_contact_priority=j + 1,
-                    financial_responsibility=random.choice([True, False]),
-                    access_to_grades=True,
-                    access_to_attendance=True,
-                    access_to_financial_info=random.choice([True, False]),
-                    receive_sms=random.choice([True, False]),
-                    receive_email=True,
-                    receive_push_notifications=random.choice([True, False]),
-                )
+                relation_kwargs = {
+                    "student": student,
+                    "parent": parent,
+                    "is_primary_contact": (j == 0),  # First parent is primary
+                    "can_pickup": random.choice([True, False]),
+                    "emergency_contact_priority": j + 1,
+                    "financial_responsibility": random.choice([True, False]),
+                    "access_to_grades": True,
+                    "access_to_attendance": True,
+                    "access_to_financial_info": random.choice([True, False]),
+                    "receive_sms": random.choice([True, False]),
+                    "receive_email": True,
+                    "receive_push_notifications": random.choice([True, False]),
+                }
+
+                # Add created_by if admin user is available
+                if self.admin_user:
+                    relation_kwargs["created_by"] = self.admin_user
+
+                # Create relationship
+                StudentParentRelation.objects.create(**relation_kwargs)
 
         self.stdout.write(
             f"Created parents and relationships for {len(students)} students"
@@ -295,13 +345,20 @@ class Command(BaseCommand):
             password="minimal123",
         )
 
-        student = Student.objects.create(
-            user=user,
-            admission_number=admission_number,
-            admission_date=timezone.now().date(),
-            current_class=class_obj,
-            emergency_contact_name=fake.name(),
-            emergency_contact_number=fake.phone_number()[:15],
-        )
+        student_kwargs = {
+            "user": user,
+            "admission_number": admission_number,
+            "admission_date": timezone.now().date(),
+            "current_class": class_obj,
+            "emergency_contact_name": fake.name(),
+            "emergency_contact_number": fake.phone_number()[:15],
+        }
+
+        # Add created_by if admin user is available
+        if self.admin_user:
+            student_kwargs["created_by"] = self.admin_user
+
+        # Create student without explicitly setting the ID field
+        student = Student.objects.create(**student_kwargs)
 
         return student

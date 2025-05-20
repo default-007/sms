@@ -1,0 +1,273 @@
+<!-- students/templates/students/student_graduation.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Student Graduation{% endblock %}
+
+{% block extra_css %}
+<style>
+  .graduation-card {
+    background-color: #f8f9fa;
+    border-left: 4px solid #17a2b8;
+    margin-bottom: 1.5rem;
+  }
+
+  .student-checkbox {
+    margin-right: 10px;
+  }
+
+  .student-item {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+  }
+
+  .student-item:hover {
+    background-color: #f1f1f1;
+  }
+
+  .student-item:last-child {
+    border-bottom: none;
+  }
+
+  .student-info {
+    display: flex;
+    flex-grow: 1;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .student-name {
+    font-weight: 500;
+  }
+
+  .student-details {
+    color: #6c757d;
+    font-size: 0.875rem;
+  }
+
+  .student-container {
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+  }
+
+  .select-all-container {
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  .graduation-icon {
+    font-size: 3rem;
+    color: #17a2b8;
+    margin-bottom: 1rem;
+  }
+
+  .student-photo {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 10px;
+  }
+
+  .student-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #dee2e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6c757d;
+    margin-right: 10px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+  <h1 class="mt-4">Student Graduation</h1>
+  <ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'students:student-list' %}">Students</a></li>
+    <li class="breadcrumb-item active">Graduation</li>
+  </ol>
+
+  {% if messages %}
+  {% for message in messages %}
+  <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <div class="row">
+    <div class="col-lg-4">
+      <div class="card mb-4 graduation-card">
+        <div class="card-body text-center">
+          <div class="graduation-icon">
+            <i class="fas fa-graduation-cap"></i>
+          </div>
+          <h5 class="card-title">Student Graduation</h5>
+          <p class="card-text">Select students who have completed their education to mark them as graduated. Graduated
+            students will no longer be considered active.</p>
+          <div class="alert alert-info small">
+            <i class="fas fa-info-circle"></i>
+            Graduating a student will:
+            <ul class="text-start small mb-0 mt-2">
+              <li>Change status to "Graduated"</li>
+              <li>Generate graduation certificates</li>
+              <li>Send notifications to students and parents</li>
+              <li>Create graduation records</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Eligible Students for Graduation</h5>
+        </div>
+        <div class="card-body">
+          {% if students %}
+          <form method="post" id="graduationForm">
+            {% csrf_token %}
+            <div class="student-container">
+              <div class="select-all-container">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="selectAllStudents">
+                  <label class="form-check-label" for="selectAllStudents">
+                    <strong>Select All Students</strong>
+                  </label>
+                </div>
+              </div>
+
+              {% for student in students %}
+              <div class="student-item">
+                <div class="form-check">
+                  <input class="form-check-input student-checkbox" type="checkbox" name="student_ids"
+                    value="{{ student.id }}" id="student_{{ student.id }}">
+                  <label class="form-check-label w-100" for="student_{{ student.id }}">
+                    <div class="d-flex align-items-center">
+                      {% if student.photo %}
+                      <img src="{{ student.photo.url }}" alt="{{ student.get_full_name }}" class="student-photo">
+                      {% else %}
+                      <div class="student-avatar">
+                        <i class="fas fa-user"></i>
+                      </div>
+                      {% endif %}
+
+                      <div class="student-info">
+                        <div>
+                          <span class="student-name">{{ student.get_full_name }}</span>
+                          <span class="student-details ms-2">{{ student.admission_number }}</span>
+                        </div>
+                        <div class="student-details">
+                          {{ student.current_class|default:"No Class" }}
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+
+            <div class="form-check mt-3 mb-3">
+              <input class="form-check-input" type="checkbox" name="send_notifications" id="send_notifications" checked>
+              <label class="form-check-label" for="send_notifications">
+                Send notification emails to graduated students and their parents
+              </label>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+              <div>
+                <a href="{% url 'students:student-list' %}" class="btn btn-secondary">
+                  <i class="fas fa-arrow-left me-2"></i>Cancel
+                </a>
+              </div>
+              <div>
+                <button type="submit" class="btn btn-info" id="graduateBtn">
+                  <i class="fas fa-graduation-cap me-2"></i>Graduate Selected Students
+                </button>
+              </div>
+            </div>
+          </form>
+          {% else %}
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            No students eligible for graduation at this time. Eligible students are typically in the final year classes.
+          </div>
+          <div class="text-center mt-4">
+            <a href="{% url 'students:student-list' %}" class="btn btn-primary">
+              <i class="fas fa-arrow-left me-2"></i>Back to Students
+            </a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Toggle all students
+    $('#selectAllStudents').change(function () {
+      $('.student-checkbox').prop('checked', $(this).is(':checked'));
+      updateButtonState();
+    });
+
+    // Update the "select all" checkbox when individual checkboxes change
+    $('.student-checkbox').change(function () {
+      if ($('.student-checkbox:checked').length === $('.student-checkbox').length) {
+        $('#selectAllStudents').prop('checked', true);
+      } else {
+        $('#selectAllStudents').prop('checked', false);
+      }
+      updateButtonState();
+    });
+
+    // Update graduate button state
+    function updateButtonState() {
+      if ($('.student-checkbox:checked').length > 0) {
+        $('#graduateBtn').removeClass('disabled');
+      } else {
+        $('#graduateBtn').addClass('disabled');
+      }
+    }
+
+    // Initial button state
+    updateButtonState();
+
+    // Form validation
+    $('#graduationForm').on('submit', function (e) {
+      if ($('.student-checkbox:checked').length === 0) {
+        alert('Please select at least one student to graduate.');
+        e.preventDefault();
+        return false;
+      }
+
+      if (!confirm('Are you sure you want to graduate the selected students? This action will change their status to "Graduated".')) {
+        e.preventDefault();
+        return false;
+      }
+
+      return true;
+    });
+  });
+</script>
+{% endblock %}

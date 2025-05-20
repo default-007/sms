@@ -1,0 +1,286 @@
+<!-- students/templates/students/parent_list.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Parents List{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}" rel="stylesheet">
+<style>
+  .relation-badge {
+    display: inline-block;
+    padding: 0.25em 0.4em;
+    font-size: 75%;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+  }
+
+  .relation-badge.father {
+    background-color: #cce5ff;
+    color: #004085;
+  }
+
+  .relation-badge.mother {
+    background-color: #f8d7da;
+    color: #721c24;
+  }
+
+  .relation-badge.guardian {
+    background-color: #d4edda;
+    color: #155724;
+  }
+
+  .relation-badge.other {
+    background-color: #e2e3e5;
+    color: #383d41;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+  <h1 class="mt-4">Parents</h1>
+  <ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+    <li class="breadcrumb-item active">Parents</li>
+  </ol>
+
+  <div class="row mb-4">
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-primary text-white mb-4">
+        <div class="card-body">
+          <h4 class="mb-0">{{ statistics.total_parents }}</h4>
+          <div class="small">Total Parents</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-success text-white mb-4">
+        <div class="card-body">
+          <h4 class="mb-0">{{ statistics.fathers }}</h4>
+          <div class="small">Fathers</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-danger text-white mb-4">
+        <div class="card-body">
+          <h4 class="mb-0">{{ statistics.mothers }}</h4>
+          <div class="small">Mothers</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-info text-white mb-4">
+        <div class="card-body">
+          <h4 class="mb-0">{{ statistics.emergency_contacts }}</h4>
+          <div class="small">Emergency Contacts</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div>
+        <i class="fas fa-table me-1"></i>
+        Parents List
+      </div>
+      <div>
+        {% if perms.students.add_parent %}
+        <a href="{% url 'students:parent-create' %}" class="btn btn-primary btn-sm">
+          <i class="fas fa-plus"></i> Add Parent
+        </a>
+        {% endif %}
+        {% if perms.students.export_parent_data %}
+        <a href="{% url 'students:parent-export' %}" class="btn btn-success btn-sm">
+          <i class="fas fa-file-export"></i> Export
+        </a>
+        {% endif %}
+        {% if perms.students.bulk_import_parents %}
+        <a href="{% url 'students:parent-import' %}" class="btn btn-info btn-sm">
+          <i class="fas fa-file-import"></i> Import
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="mb-3">
+        <form method="get" class="row g-3">
+          <div class="col-md-4">
+            <div class="input-group">
+              <input type="text" class="form-control" placeholder="Search..." name="search"
+                value="{{ current_filters.search }}">
+              <button class="btn btn-outline-secondary" type="submit">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <select name="relation" class="form-select" onchange="this.form.submit()">
+              <option value="">All Relations</option>
+              {% for relation_value, relation_name in relation_choices %}
+              <option value="{{ relation_value }}"
+                {% if current_filters.relation == relation_value %}selected{% endif %}>
+                {{ relation_name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <select name="emergency_contact" class="form-select" onchange="this.form.submit()">
+              <option value="">All</option>
+              <option value="true" {% if current_filters.emergency_contact == "true" %}selected{% endif %}>
+                Emergency Contacts Only
+              </option>
+              <option value="false" {% if current_filters.emergency_contact == "false" %}selected{% endif %}>
+                Not Emergency Contacts
+              </option>
+            </select>
+          </div>
+          <div class="col-md-1">
+            <a href="{% url 'students:parent-list' %}" class="btn btn-outline-secondary">
+              <i class="fas fa-redo"></i>
+            </a>
+          </div>
+        </form>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-bordered table-striped" id="parentsTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Relation</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Occupation</th>
+              <th>Students</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for parent in parents %}
+            <tr>
+              <td>{{ parent.get_full_name }}</td>
+              <td>
+                <span class="relation-badge {{ parent.relation_with_student|lower }}">
+                  {{ parent.relation_with_student }}
+                </span>
+              </td>
+              <td>{{ parent.user.email }}</td>
+              <td>{{ parent.user.phone_number|default:"Not provided" }}</td>
+              <td>{{ parent.occupation|default:"Not specified" }}</td>
+              <td>
+                <span class="badge bg-info">{{ parent.student_count }} student(s)</span>
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm" role="group">
+                  <a href="{% url 'students:parent-detail' parent.id %}" class="btn btn-info">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  {% if perms.students.change_parent %}
+                  <a href="{% url 'students:parent-update' parent.id %}" class="btn btn-primary">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  {% endif %}
+                  {% if perms.students.delete_parent %}
+                  <a href="{% url 'students:parent-delete' parent.id %}" class="btn btn-danger">
+                    <i class="fas fa-trash"></i>
+                  </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center">No parents found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if is_paginated %}
+      <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+          {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link"
+              href="?page=1{% for key, value in current_filters.items %}&{{ key }}={{ value }}{% endfor %}">&laquo;
+              First</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link"
+              href="?page={{ page_obj.previous_page_number }}{% for key, value in current_filters.items %}&{{ key }}={{ value }}{% endfor %}">Previous</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <a class="page-link" href="#">&laquo; First</a>
+          </li>
+          <li class="page-item disabled">
+            <a class="page-link" href="#">Previous</a>
+          </li>
+          {% endif %}
+
+          {% for num in page_obj.paginator.page_range %}
+          {% if page_obj.number == num %}
+          <li class="page-item active">
+            <a class="page-link"
+              href="?page={{ num }}{% for key, value in current_filters.items %}&{{ key }}={{ value }}{% endfor %}">{{ num }}</a>
+          </li>
+          {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+          <li class="page-item">
+            <a class="page-link"
+              href="?page={{ num }}{% for key, value in current_filters.items %}&{{ key }}={{ value }}{% endfor %}">{{ num }}</a>
+          </li>
+          {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link"
+              href="?page={{ page_obj.next_page_number }}{% for key, value in current_filters.items %}&{{ key }}={{ value }}{% endfor %}">Next</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link"
+              href="?page={{ page_obj.paginator.num_pages }}{% for key, value in current_filters.items %}&{{ key }}={{ value }}{% endfor %}">Last
+              &raquo;</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <a class="page-link" href="#">Next</a>
+          </li>
+          <li class="page-item disabled">
+            <a class="page-link" href="#">Last &raquo;</a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'plugins/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'plugins/datatables/dataTables.bootstrap5.min.js' %}"></script>
+<script>
+  $(document).ready(function () {
+    $('#parentsTable').DataTable({
+      "paging": false,
+      "ordering": true,
+      "info": false,
+      "searching": false,
+      "columnDefs": [
+        { "orderable": false, "targets": 6 }
+      ]
+    });
+  });
+</script>
+{% endblock %}

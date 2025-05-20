@@ -8,12 +8,14 @@ click-didyoumean==0.3.1
 click-plugins==1.1.1
 click-repl==0.3.0
 cron-descriptor==1.4.5
+diff-match-patch==20241021
 Django==5.1.7
 django-celery-beat==2.8.0
 django-cors-headers==4.7.0
 django-debug-toolbar==5.1.0
 django-extensions==4.1
 django-filter==25.1
+django-import-export==4.3.7
 django-rest-framework==0.1.0
 django-timezone-field==7.1
 djangorestframework==3.15.2
@@ -31,9 +33,11 @@ python-dateutil==2.9.0.post0
 python-decouple==3.8
 pytz==2025.1
 PyYAML==6.0.2
+qrcode==8.2
 reportlab==4.4.0
 six==1.17.0
 sqlparse==0.5.3
+tablib==3.8.0
 tzdata==2025.2
 uritemplate==4.1.1
 vine==5.1.0

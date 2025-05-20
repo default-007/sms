@@ -34,7 +34,10 @@ INSTALLED_APPS = [
     "drf_yasg",
     "celery",
     "django_celery_beat",
+    "widget_tweaks",
     "import_export",
+    "qrcode",
+    "faker",
     # Local apps
     "src.accounts",
     "src.api",

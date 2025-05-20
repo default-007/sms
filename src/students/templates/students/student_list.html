@@ -16,7 +16,7 @@
     <div class="col-xl-3 col-md-6">
       <div class="card bg-primary text-white mb-4">
         <div class="card-body">
-          <h4 class="mb-0">{{ students.count }}</h4>
+          <h4 class="mb-0">{{ statistics.total_students }}</h4>
           <div class="small">Total Students</div>
         </div>
       </div>
@@ -24,7 +24,7 @@
     <div class="col-xl-3 col-md-6">
       <div class="card bg-success text-white mb-4">
         <div class="card-body">
-          <h4 class="mb-0">{{ students.active.count }}</h4>
+          <h4 class="mb-0">{{ statistics.active_students }}</h4>
           <div class="small">Active Students</div>
         </div>
       </div>
@@ -32,7 +32,7 @@
     <div class="col-xl-3 col-md-6">
       <div class="card bg-warning text-white mb-4">
         <div class="card-body">
-          <h4 class="mb-0">{{ students.inactive.count }}</h4>
+          <h4 class="mb-0">{{ statistics.inactive_students }}</h4>
           <div class="small">Inactive Students</div>
         </div>
       </div>
@@ -40,7 +40,7 @@
     <div class="col-xl-3 col-md-6">
       <div class="card bg-info text-white mb-4">
         <div class="card-body">
-          <h4 class="mb-0">{{ students.graduated.count }}</h4>
+          <h4 class="mb-0">{{ statistics.graduated_students }}</h4>
           <div class="small">Graduated Students</div>
         </div>
       </div>
@@ -55,27 +55,27 @@
       </div>
       <div>
         {% if perms.students.add_student %}
-        <a href="{% url 'student-create' %}" class="btn btn-primary btn-sm">
+        <a href="{% url 'students:student-create' %}" class="btn btn-primary btn-sm">
           <i class="fas fa-plus"></i> Add Student
         </a>
         {% endif %}
         {% if perms.students.export_student_data %}
-        <a href="{% url 'student-export' %}" class="btn btn-success btn-sm">
+        <a href="{% url 'students:student-export' %}" class="btn btn-success btn-sm">
           <i class="fas fa-file-export"></i> Export
         </a>
         {% endif %}
         {% if perms.students.add_student %}
-        <a href="{% url 'student-import' %}" class="btn btn-info btn-sm">
+        <a href="{% url 'students:student-import' %}" class="btn btn-info btn-sm">
           <i class="fas fa-file-import"></i> Import
         </a>
         {% endif %}
         {% if perms.students.promote_student %}
-        <a href="{% url 'student-promotion' %}" class="btn btn-warning btn-sm">
+        <a href="{% url 'students:student-promotion' %}" class="btn btn-warning btn-sm">
           <i class="fas fa-user-graduate"></i> Promote
         </a>
         {% endif %}
         {% if perms.students.graduate_student %}
-        <a href="{% url 'student-graduation' %}" class="btn btn-success btn-sm">
+        <a href="{% url 'students:student-graduation' %}" class="btn btn-success btn-sm">
           <i class="fas fa-graduation-cap"></i> Graduate
         </a>
         {% endif %}
@@ -169,21 +169,21 @@
               </td>
               <td>
                 <div class="btn-group btn-group-sm" role="group">
-                  <a href="{% url 'student-detail' student.id %}" class="btn btn-info">
+                  <a href="{% url 'students:student-detail' student.id %}" class="btn btn-info">
                     <i class="fas fa-eye"></i>
                   </a>
                   {% if perms.students.change_student %}
-                  <a href="{% url 'student-update' student.id %}" class="btn btn-primary">
+                  <a href="{% url 'students:student-update' student.id %}" class="btn btn-primary">
                     <i class="fas fa-edit"></i>
                   </a>
                   {% endif %}
                   {% if perms.students.delete_student %}
-                  <a href="{% url 'student-delete' student.id %}" class="btn btn-danger">
+                  <a href="{% url 'students:student-delete' student.id %}" class="btn btn-danger">
                     <i class="fas fa-trash"></i>
                   </a>
                   {% endif %}
                   {% if perms.students.generate_student_id %}
-                  <a href="{% url 'student-id-card' student.id %}" class="btn btn-warning">
+                  <a href="{% url 'students:student-id-card' student.id %}" class="btn btn-warning">
                     <i class="fas fa-id-card"></i>
                   </a>
                   {% endif %}

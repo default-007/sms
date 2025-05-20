@@ -1,6 +1,12 @@
 # students/views/relation_views.py
 from django.shortcuts import get_object_or_404, redirect
-from django.views.generic import CreateView, UpdateView, DeleteView, FormView
+from django.views.generic import (
+    CreateView,
+    UpdateView,
+    DeleteView,
+    FormView,
+    DetailView,
+)
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib import messages

@@ -1,0 +1,382 @@
+<!-- students/templates/students/student_id_card.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}ID Card - {{ student.get_full_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .id-card-container {
+    max-width: 450px;
+    margin: 0 auto;
+  }
+
+  .id-card {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
+  }
+
+  .id-card-header {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    color: white;
+    padding: 1rem;
+    text-align: center;
+    position: relative;
+  }
+
+  .school-logo {
+    width: 60px;
+    height: 60px;
+    position: absolute;
+    top: 0.75rem;
+    left: 1rem;
+  }
+
+  .id-card-header h4 {
+    margin-bottom: 0.25rem;
+  }
+
+  .id-card-header p {
+    opacity: 0.8;
+    margin-bottom: 0;
+  }
+
+  .id-card-body {
+    padding: 1.5rem;
+    background-color: white;
+  }
+
+  .id-card-photo {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin: 0 auto 1rem;
+    border: 4px solid #f8f9fa;
+    display: block;
+  }
+
+  .id-card-info {
+    margin-bottom: 1.5rem;
+  }
+
+  .info-row {
+    display: flex;
+    margin-bottom: 0.5rem;
+  }
+
+  .info-label {
+    flex-basis: 40%;
+    font-weight: 600;
+    color: #6c757d;
+  }
+
+  .info-value {
+    flex-basis: 60%;
+  }
+
+  .id-card-footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+    padding: 1rem;
+    text-align: center;
+    font-size: 0.875rem;
+    color: #6c757d;
+  }
+
+  .id-card-qr {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 1rem;
+  }
+
+  .signature-line {
+    width: 100%;
+    border-bottom: 1px solid #dee2e6;
+    margin: 0.5rem 0;
+  }
+
+  .validity-text {
+    font-size: 0.75rem;
+    text-align: center;
+    margin-top: 0.5rem;
+    color: #6c757d;
+  }
+
+  .id-card-actions {
+    margin-top: 2rem;
+    text-align: center;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+  <h1 class="mt-4">Student ID Card</h1>
+  <ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'students:student-list' %}">Students</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'students:student-detail' student.id %}">{{ student.get_full_name }}</a>
+    </li>
+    <li class="breadcrumb-item active">ID Card</li>
+  </ol>
+
+  {% if messages %}
+  {% for message in messages %}
+  <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="fas fa-id-card me-2"></i>Student ID Card</h5>
+          <div>
+            <button class="btn btn-primary btn-sm" id="downloadBtn">
+              <i class="fas fa-download me-2"></i>Download PDF
+            </button>
+            <button class="btn btn-info btn-sm" id="printBtn">
+              <i class="fas fa-print me-2"></i>Print
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="id-card-loading" class="text-center d-none">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Generating ID Card...</p>
+          </div>
+
+          <div id="id-card-container" class="id-card-container">
+            <div class="id-card">
+              <div class="id-card-header">
+                <img src="{% static 'images/school-logo.png' %}" alt="School Logo" class="school-logo">
+                <h4>STUDENT IDENTIFICATION CARD</h4>
+                <p>{{ school_name|default:"School Management System" }}</p>
+              </div>
+
+              <div class="id-card-body">
+                <!-- Student Photo -->
+                {% if student.photo %}
+                <img src="{{ student.photo.url }}" alt="{{ student.get_full_name }}" class="id-card-photo">
+                {% else %}
+                <div class="id-card-photo d-flex align-items-center justify-content-center bg-light">
+                  <i class="fas fa-user fa-3x text-secondary"></i>
+                </div>
+                {% endif %}
+
+                <!-- Student Name -->
+                <h5 class="text-center mb-3">{{ student.get_full_name }}</h5>
+
+                <!-- Student Information -->
+                <div class="id-card-info">
+                  <div class="info-row">
+                    <div class="info-label">Admission No:</div>
+                    <div class="info-value">{{ student.admission_number }}</div>
+                  </div>
+
+                  <div class="info-row">
+                    <div class="info-label">Class:</div>
+                    <div class="info-value">{{ student.current_class|default:"Not Assigned" }}</div>
+                  </div>
+
+                  <div class="info-row">
+                    <div class="info-label">Blood Group:</div>
+                    <div class="info-value">{{ student.blood_group }}</div>
+                  </div>
+
+                  <div class="info-row">
+                    <div class="info-label">Emergency:</div>
+                    <div class="info-value">{{ student.emergency_contact_number }}</div>
+                  </div>
+                </div>
+
+                <!-- QR Code -->
+                <div class="text-center">
+                  <img src="data:image/png;base64,{{ qr_code_data }}" alt="QR Code" class="id-card-qr">
+                </div>
+
+                <!-- Signatures -->
+                <div class="row mt-3">
+                  <div class="col-6 text-center">
+                    <div class="signature-line"></div>
+                    <div class="small">Student's Signature</div>
+                  </div>
+                  <div class="col-6 text-center">
+                    <div class="signature-line"></div>
+                    <div class="small">Principal's Signature</div>
+                  </div>
+                </div>
+
+                <div class="validity-text">
+                  <div>Issued: {{ issue_date|default:"today"|date:"d/m/Y" }}</div>
+                  <div>Valid Until: {{ expiry_date|default:"one year"|date:"d/m/Y" }}</div>
+                </div>
+              </div>
+
+              <div class="id-card-footer">
+                This card is the property of the school. If found, please return to the school office.
+              </div>
+            </div>
+
+            <div class="alert alert-info mt-3 small">
+              <i class="fas fa-info-circle me-2"></i>
+              This is a preview of the student ID card. Click Download or Print to get the official ID card.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">ID Card Options</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label">Card Size</label>
+            <select class="form-select" id="cardSize">
+              <option value="standard">Standard (85mm x 54mm)</option>
+              <option value="large">Large (90mm x 60mm)</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Include QR Code</label>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="includeQR" checked>
+              <label class="form-check-label" for="includeQR">Yes</label>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Background Style</label>
+            <select class="form-select" id="cardBackground">
+              <option value="standard">Standard Blue</option>
+              <option value="gradient">Gradient Blue</option>
+              <option value="dark">Dark Theme</option>
+              <option value="light">Light Theme</option>
+            </select>
+          </div>
+
+          <div class="d-grid gap-2">
+            <button class="btn btn-primary" id="generateBtn">
+              <i class="fas fa-sync-alt me-2"></i>Generate ID Card
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Generate ID Card Button
+    $('#generateBtn').click(function () {
+      // Show loading
+      $('#id-card-loading').removeClass('d-none');
+      $('#id-card-container').addClass('d-none');
+
+      // Collect options
+      const options = {
+        cardSize: $('#cardSize').val(),
+        includeQR: $('#includeQR').is(':checked'),
+        cardBackground: $('#cardBackground').val()
+      };
+
+      // AJAX request to generate card
+      $.ajax({
+        url: "{% url 'students:student-id-card' student.id %}",
+        type: 'GET',
+        data: options,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        success: function (response) {
+          if (response.success) {
+            // Update download link with new URL
+            $('#downloadBtn').data('url', response.id_card_url);
+
+            // Hide loading, show card
+            $('#id-card-loading').addClass('d-none');
+            $('#id-card-container').removeClass('d-none');
+
+            // Show success message
+            alert('ID Card generated successfully!');
+          } else {
+            // Show error
+            $('#id-card-loading').addClass('d-none');
+            $('#id-card-container').removeClass('d-none');
+            alert('Error generating ID card: ' + response.error);
+          }
+        },
+        error: function () {
+          // Show error
+          $('#id-card-loading').addClass('d-none');
+          $('#id-card-container').removeClass('d-none');
+          alert('Error connecting to server. Please try again.');
+        }
+      });
+    });
+
+    // Download PDF button
+    $('#downloadBtn').click(function () {
+      const pdfUrl = $(this).data('url') || '';
+
+      if (pdfUrl) {
+        window.open(pdfUrl, '_blank');
+      } else {
+        // Generate new ID card first
+        $('#generateBtn').click();
+      }
+    });
+
+    // Print button
+    $('#printBtn').click(function () {
+      window.print();
+    });
+
+    // Apply card styles based on selection
+    $('#cardBackground').change(function () {
+      const style = $(this).val();
+      const header = $('.id-card-header');
+
+      switch (style) {
+        case 'gradient':
+          header.css('background', 'linear-gradient(135deg, #0d6efd 0%, #6610f2 100%)');
+          break;
+        case 'dark':
+          header.css('background', '#343a40');
+          break;
+        case 'light':
+          header.css('background', '#f8f9fa');
+          header.css('color', '#212529');
+          break;
+        default:
+          header.css('background', 'linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%)');
+          header.css('color', 'white');
+      }
+    });
+
+    // Toggle QR code display
+    $('#includeQR').change(function () {
+      if ($(this).is(':checked')) {
+        $('.id-card-qr').parent().show();
+      } else {
+        $('.id-card-qr').parent().hide();
+      }
+    });
+  });
+</script>
+{% endblock %}

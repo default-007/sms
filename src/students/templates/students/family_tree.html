@@ -1,0 +1,329 @@
+<!-- students/templates/students/family_tree.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Family Tree - {{ student.get_full_name }}{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'plugins/orgchart/jquery.orgchart.css' %}" rel="stylesheet">
+<style>
+  .family-member {
+    border-radius: 8px;
+    margin: 5px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    text-align: center;
+    width: 200px;
+  }
+
+  .family-member.student {
+    background-color: #cfe2ff;
+    border: 2px solid #0d6efd;
+  }
+
+  .family-member.parent {
+    background-color: #f8d7da;
+    border: 1px solid #dc3545;
+  }
+
+  .family-member.sibling {
+    background-color: #d1e7dd;
+    border: 1px solid #198754;
+  }
+
+  .family-member-photo {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin: 0 auto 10px;
+    border: 2px solid white;
+  }
+
+  .family-member-name {
+    font-weight: 600;
+    margin-bottom: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .family-member-details {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-bottom: 5px;
+  }
+
+  .family-member-contact {
+    margin-top: 5px;
+    font-size: 0.8rem;
+  }
+
+  .family-tree-container {
+    overflow-x: auto;
+    min-height: 600px;
+  }
+
+  .orgchart {
+    background: #fff;
+  }
+
+  .orgchart .node .title {
+    background-color: #0d6efd;
+  }
+
+  .orgchart .node .content {
+    border-color: #0d6efd;
+  }
+
+  .relationship-badge {
+    display: inline-block;
+    padding: 0.25em 0.4em;
+    font-size: 75%;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+    background-color: #e9ecef;
+    color: #495057;
+    margin-bottom: 5px;
+  }
+
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+  }
+
+  .legend-color {
+    width: 20px;
+    height: 20px;
+    margin-right: 5px;
+    border-radius: 4px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+  <h1 class="mt-4">Family Tree</h1>
+  <ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'students:student-list' %}">Students</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'students:student-detail' student.id %}">{{ student.get_full_name }}</a>
+    </li>
+    <li class="breadcrumb-item active">Family Tree</li>
+  </ol>
+
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="card-title mb-0"><i class="fas fa-sitemap me-2"></i>Family Tree for {{ student.get_full_name }}</h5>
+    </div>
+    <div class="card-body">
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-color" style="background-color: #cfe2ff; border: 2px solid #0d6efd;"></div>
+          <span>Student</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background-color: #f8d7da; border: 1px solid #dc3545;"></div>
+          <span>Parent/Guardian</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background-color: #d1e7dd; border: 1px solid #198754;"></div>
+          <span>Sibling</span>
+        </div>
+      </div>
+
+      <div id="family-tree-loading" class="text-center my-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Loading family tree...</p>
+      </div>
+
+      <div id="family-tree-container" class="family-tree-container">
+        <div id="family-tree-chart"></div>
+      </div>
+
+      {% if not family_tree.parents %}
+      <div class="alert alert-info mt-3">
+        <i class="fas fa-info-circle me-2"></i>
+        No parent information found for this student. <a
+          href="{% url 'students:relation-create-for-student' student.id %}">Add a parent</a> to see the family tree.
+      </div>
+      {% endif %}
+
+      {% if not family_tree.siblings %}
+      <div class="alert alert-info mt-3">
+        <i class="fas fa-info-circle me-2"></i>
+        No siblings found for this student.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Parents/Guardians</h5>
+        </div>
+        <div class="card-body">
+          {% for parent_relation in family_tree.parents %}
+          <div
+            class="d-flex align-items-center mb-3 p-3 {% if parent_relation.is_primary %}bg-light{% endif %} rounded">
+            <div class="flex-shrink-0">
+              {% if parent_relation.parent.photo %}
+              <img src="{{ parent_relation.parent.photo.url }}" alt="{{ parent_relation.parent.get_full_name }}"
+                class="rounded-circle" width="48" height="48">
+              {% else %}
+              <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
+                style="width: 48px; height: 48px;">
+                <i class="fas fa-user"></i>
+              </div>
+              {% endif %}
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <div class="d-flex justify-content-between">
+                <h6 class="mb-0">{{ parent_relation.parent.get_full_name }}</h6>
+                <div>
+                  {% if parent_relation.is_primary %}
+                  <span class="badge bg-primary">Primary</span>
+                  {% endif %}
+                  <span class="badge bg-secondary">{{ parent_relation.parent.relation_with_student }}</span>
+                </div>
+              </div>
+              <p class="mb-0 text-muted small">{{ parent_relation.parent.user.phone_number|default:"No phone" }}</p>
+              <p class="mb-0 text-muted small">{{ parent_relation.parent.user.email }}</p>
+            </div>
+            <div class="ms-3">
+              <a href="{% url 'students:parent-detail' parent_relation.parent.id %}"
+                class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-eye"></i>
+              </a>
+            </div>
+          </div>
+          {% empty %}
+          <div class="alert alert-info">No parents linked to this student.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Siblings</h5>
+        </div>
+        <div class="card-body">
+          {% for sibling in family_tree.siblings %}
+          <div class="d-flex align-items-center mb-3 p-3 bg-light rounded">
+            <div class="flex-shrink-0">
+              {% if sibling.photo %}
+              <img src="{{ sibling.photo.url }}" alt="{{ sibling.get_full_name }}" class="rounded-circle" width="48"
+                height="48">
+              {% else %}
+              <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
+                style="width: 48px; height: 48px;">
+                <i class="fas fa-user"></i>
+              </div>
+              {% endif %}
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <div class="d-flex justify-content-between">
+                <h6 class="mb-0">{{ sibling.get_full_name }}</h6>
+                <span class="badge {% if sibling.status == 'Active' %}bg-success{% else %}bg-secondary{% endif %}">
+                  {{ sibling.status }}
+                </span>
+              </div>
+              <p class="mb-0 text-muted small">{{ sibling.admission_number }}</p>
+              <p class="mb-0 text-muted small">{{ sibling.current_class|default:"No class assigned" }}</p>
+            </div>
+            <div class="ms-3">
+              <a href="{% url 'students:student-detail' sibling.id %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-eye"></i>
+              </a>
+            </div>
+          </div>
+          {% empty %}
+          <div class="alert alert-info">No siblings found for this student.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'plugins/orgchart/jquery.orgchart.min.js' %}"></script>
+<script>
+  $(document).ready(function () {
+    // Prepare data for the family tree
+    const studentData = {
+      'name': '{{ student.get_full_name }}',
+      'title': '{{ student.current_class|default:"No Class" }}',
+      'className': 'student',
+      'image': '{% if student.photo %}{{ student.photo.url }}{% else %}{% static "images/default_avatar.png" %}{% endif %}',
+      'children': []
+    };
+
+    {% for parent_relation in family_tree.parents %}
+    studentData.children.push({
+      'name': '{{ parent_relation.parent.get_full_name }}',
+      'title': '{{ parent_relation.parent.relation_with_student }}',
+      'className': 'parent',
+      'image': '{% if parent_relation.parent.photo %}{{ parent_relation.parent.photo.url }}{% else %}{% static "images/default_avatar.png" %}{% endif %}',
+      'relationship': '{% if parent_relation.is_primary %}Primary Contact{% endif %}'
+    });
+    {% endfor %}
+
+    // Add siblings as separate nodes
+    {% for sibling in family_tree.siblings %}
+    studentData.children.push({
+      'name': '{{ sibling.get_full_name }}',
+      'title': '{{ sibling.current_class|default:"No Class" }}',
+      'className': 'sibling',
+      'image': '{% if sibling.photo %}{{ sibling.photo.url }}{% else %}{% static "images/default_avatar.png" %}{% endif %}',
+      'relationship': 'Sibling'
+    });
+    {% endfor %}
+
+    // Hide loading indicator
+    $('#family-tree-loading').hide();
+
+    // Initialize OrgChart
+    $('#family-tree-chart').orgchart({
+      'data': studentData,
+      'nodeContent': 'title',
+      'nodeID': 'id',
+      'createNode': function ($node, data) {
+        // Add custom HTML content to nodes
+        const nodeContent = `
+          <div class="family-member ${data.className}">
+            <img src="${data.image}" class="family-member-photo" alt="${data.name}">
+            <div class="family-member-name">${data.name}</div>
+            <div class="family-member-details">${data.title}</div>
+            ${data.relationship ? `<div class="relationship-badge">${data.relationship}</div>` : ''}
+          </div>
+        `;
+
+        $node.find('.content').html(nodeContent);
+      },
+      'direction': 'b2t', // Bottom to top
+      'pan': true,
+      'zoom': true
+    });
+  });
+</script>
+{% endblock %}

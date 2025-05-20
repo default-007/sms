@@ -1,0 +1,283 @@
+<!-- students/templates/students/parent_detail.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Parent Details - {{ parent.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+  <h1 class="mt-4">Parent Details</h1>
+  <ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'students:parent-list' %}">Parents</a></li>
+    <li class="breadcrumb-item active">{{ parent.get_full_name }}</li>
+  </ol>
+
+  <div class="row">
+    <div class="col-xl-4">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Profile</h5>
+        </div>
+        <div class="card-body text-center">
+          {% if parent.photo %}
+          <img src="{{ parent.photo.url }}" alt="{{ parent.get_full_name }}" class="img-fluid rounded-circle mb-3"
+            style="width: 150px; height: 150px; object-fit: cover;">
+          {% else %}
+          <img src="{% static 'images/default_avatar.png' %}" alt="{{ parent.get_full_name }}"
+            class="img-fluid rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+          {% endif %}
+          <h5 class="mb-1">{{ parent.get_full_name }}</h5>
+          <p class="text-muted mb-3">{{ parent.relation_with_student }}</p>
+
+          {% if parent.emergency_contact %}
+          <span class="badge bg-danger mb-3">Emergency Contact</span>
+          {% endif %}
+
+          <div class="mt-4">
+            {% if perms.students.change_parent %}
+            <a href="{% url 'students:parent-update' parent.id %}" class="btn btn-primary">
+              <i class="fas fa-edit"></i> Edit
+            </a>
+            {% endif %}
+            {% if perms.students.add_studentparentrelation %}
+            <a href="{% url 'students:relation-create-for-parent' parent.id %}" class="btn btn-success">
+              <i class="fas fa-link"></i> Link Student
+            </a>
+            {% endif %}
+            {% if perms.students.delete_parent %}
+            <a href="{% url 'students:parent-delete' parent.id %}" class="btn btn-danger">
+              <i class="fas fa-trash"></i> Delete
+            </a>
+            {% endif %}
+          </div>
+        </div>
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-envelope me-2"></i> Email</span>
+            <span class="text-muted">{{ parent.user.email }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-phone me-2"></i> Phone</span>
+            <span class="text-muted">{{ parent.user.phone_number|default:"Not provided" }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-briefcase me-2"></i> Occupation</span>
+            <span class="text-muted">{{ parent.occupation|default:"Not provided" }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-building me-2"></i> Workplace</span>
+            <span class="text-muted">{{ parent.workplace|default:"Not provided" }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-phone-office me-2"></i> Work Phone</span>
+            <span class="text-muted">{{ parent.work_phone|default:"Not provided" }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-graduation-cap me-2"></i> Education</span>
+            <span class="text-muted">{{ parent.education|default:"Not provided" }}</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="col-xl-8">
+      <!-- Children Information -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Children/Students</h5>
+          <a href="{% url 'students:relation-create-for-parent' parent.id %}" class="btn btn-sm btn-primary">
+            <i class="fas fa-plus"></i> Add Student
+          </a>
+        </div>
+        <div class="card-body">
+          {% if student_relations %}
+          <div class="table-responsive">
+            <table class="table table-sm table-hover">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Class</th>
+                  <th>Admission #</th>
+                  <th>Relationship</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for relation in student_relations %}
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      {% if relation.student.photo %}
+                      <img src="{{ relation.student.photo.url }}" class="rounded-circle me-2" width="32" height="32">
+                      {% else %}
+                      <div class="bg-light rounded-circle me-2 d-flex align-items-center justify-content-center"
+                        style="width:32px;height:32px">
+                        <i class="fas fa-user text-secondary"></i>
+                      </div>
+                      {% endif %}
+                      {{ relation.student.get_full_name }}
+                    </div>
+                  </td>
+                  <td>{{ relation.student.current_class|default:"Not assigned" }}</td>
+                  <td>{{ relation.student.admission_number }}</td>
+                  <td>
+                    {% if relation.is_primary_contact %}
+                    <span class="badge bg-primary">Primary Contact</span>
+                    {% endif %}
+                    {% if relation.financial_responsibility %}
+                    <span class="badge bg-info">Financial Responsibility</span>
+                    {% endif %}
+                    {% if relation.can_pickup %}
+                    <span class="badge bg-success">Can Pickup</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <a href="{% url 'students:student-detail' relation.student.id %}" class="btn btn-info">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      <a href="{% url 'students:relation-update' relation.id %}" class="btn btn-primary">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                      <a href="{% url 'students:relation-delete' relation.id %}" class="btn btn-danger">
+                        <i class="fas fa-unlink"></i>
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            No students linked to this parent. You can add a student using the button above.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Communication Preferences -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Communication Preferences</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            {% for relation in student_relations %}
+            <div class="col-md-6">
+              <div class="card h-100">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0">{{ relation.student.get_full_name }}</h6>
+                </div>
+                <div class="card-body">
+                  <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                      <span>Receive SMS</span>
+                      <span>
+                        {% if relation.receive_sms %}
+                        <i class="fas fa-check-circle text-success"></i>
+                        {% else %}
+                        <i class="fas fa-times-circle text-danger"></i>
+                        {% endif %}
+                      </span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                      <span>Receive Email</span>
+                      <span>
+                        {% if relation.receive_email %}
+                        <i class="fas fa-check-circle text-success"></i>
+                        {% else %}
+                        <i class="fas fa-times-circle text-danger"></i>
+                        {% endif %}
+                      </span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                      <span>Receive Push Notifications</span>
+                      <span>
+                        {% if relation.receive_push_notifications %}
+                        <i class="fas fa-check-circle text-success"></i>
+                        {% else %}
+                        <i class="fas fa-times-circle text-danger"></i>
+                        {% endif %}
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+                <div class="card-footer bg-white">
+                  <a href="{% url 'students:relation-permissions' relation.id %}" class="btn btn-sm btn-primary w-100">
+                    <i class="fas fa-cog me-2"></i>Update Preferences
+                  </a>
+                </div>
+              </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Communication preferences will be available once students are linked to this parent.
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Additional Information -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Additional Information</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <h6>Work Address</h6>
+                <p class="text-muted">{{ parent.work_address|default:"Not provided" }}</p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <h6>Annual Income</h6>
+                <p class="text-muted">{{ parent.annual_income|default:"Not provided" }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card bg-light mt-3">
+            <div class="card-body">
+              <h6 class="card-title">Account Information</h6>
+              <div class="row">
+                <div class="col-md-6">
+                  <p class="mb-1"><strong>Last Login:</strong> {{ parent.user.last_login|default:"Never" }}</p>
+                  <p class="mb-0"><strong>Account Created:</strong> {{ parent.created_at|date:"F j, Y" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <p class="mb-1"><strong>Account Status:</strong>
+                    {% if parent.user.is_active %}
+                    <span class="badge bg-success">Active</span>
+                    {% else %}
+                    <span class="badge bg-danger">Inactive</span>
+                    {% endif %}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Enable tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+  });
+</script>
+{% endblock %}

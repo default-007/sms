@@ -1,0 +1,58 @@
+<!-- students/templates/students/templatetags/parent_quick_stats.html -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h5 class="card-title mb-0"><i class="fas fa-users me-2"></i>Parent Statistics</h5>
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <div class="card bg-light h-100">
+          <div class="card-body text-center">
+            <h2 class="text-primary">{{ stats.total }}</h2>
+            <div class="small text-muted">Total Parents</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 mb-3">
+        <div class="card bg-light h-100">
+          <div class="card-body text-center">
+            <h2 class="text-danger">{{ stats.emergency_contacts }}</h2>
+            <div class="small text-muted">Emergency Contacts</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 mb-3">
+        <div class="card bg-light h-100">
+          <div class="card-body text-center">
+            <h2 class="text-info">{{ stats.with_multiple_children }}</h2>
+            <div class="small text-muted">Multiple Children</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-3">
+      <div class="d-flex justify-content-between mb-1">
+        <div class="small">Primary Contacts</div>
+        <div class="small text-muted">{{ stats.primary_contacts }}/{{ stats.total }}</div>
+      </div>
+      <div class="progress" style="height: 5px">
+        <div class="progress-bar bg-primary" role="progressbar"
+          style="width: {{ stats.primary_contacts|default:0|divided_by:stats.total|default:1|times:100 }}%"
+          aria-valuemin="0" aria-valuemax="100"></div>
+      </div>
+    </div>
+
+    <div class="mt-2 d-flex justify-content-between">
+      <div>
+        <span class="badge rounded-pill bg-primary">{{ stats.fathers }}</span> Fathers
+      </div>
+      <div>
+        <span class="badge rounded-pill bg-danger">{{ stats.mothers }}</span> Mothers
+      </div>
+      <div>
+        <span class="badge rounded-pill bg-success">{{ stats.guardians }}</span> Guardians
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,111 @@
+<!-- students/templates/students/student_confirm_delete.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Delete Student - {{ student.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+  <h1 class="mt-4">Delete Student</h1>
+  <ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'students:student-list' %}">Students</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'students:student-detail' student.id %}">{{ student.get_full_name }}</a>
+    </li>
+    <li class="breadcrumb-item active">Delete</li>
+  </ol>
+
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+          <h5 class="mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Confirm Student Deletion
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-warning">
+            <strong>Warning:</strong> This action cannot be undone. All related data including attendance records, exam
+            results, and relationships will be permanently deleted.
+          </div>
+
+          <div class="row">
+            <div class="col-md-4 text-center">
+              {% if student.photo %}
+              <img src="{{ student.photo.url }}" alt="{{ student.get_full_name }}" class="img-fluid rounded-circle mb-3"
+                style="width: 120px; height: 120px; object-fit: cover;">
+              {% else %}
+              <div class="bg-secondary rounded-circle d-inline-block" style="width: 120px; height: 120px;">
+                <i class="fas fa-user text-white" style="font-size: 60px; line-height: 120px;"></i>
+              </div>
+              {% endif %}
+            </div>
+            <div class="col-md-8">
+              <h4>{{ student.get_full_name }}</h4>
+              <table class="table table-sm">
+                <tr>
+                  <td><strong>Admission Number:</strong></td>
+                  <td>{{ student.admission_number }}</td>
+                </tr>
+                <tr>
+                  <td><strong>Class:</strong></td>
+                  <td>{{ student.current_class|default:"Not assigned" }}</td>
+                </tr>
+                <tr>
+                  <td><strong>Status:</strong></td>
+                  <td>
+                    <span class="badge {% if student.status == 'Active' %}bg-success{% else %}bg-secondary{% endif %}">
+                      {{ student.status }}
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>Admission Date:</strong></td>
+                  <td>{{ student.admission_date }}</td>
+                </tr>
+                <tr>
+                  <td><strong>Parents:</strong></td>
+                  <td>
+                    {% for parent in student.get_parents %}
+                    {{ parent.get_full_name }} ({{ parent.relation_with_student }}){% if not forloop.last %},
+                    {% endif %}
+                    {% empty %}
+                    No parents linked
+                    {% endfor %}
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Related Data Warning -->
+          <div class="mt-4">
+            <h6>The following related data will also be deleted:</h6>
+            <ul class="list-unstyled mt-3">
+              <li><i class="fas fa-calendar-check text-info me-2"></i>All attendance records</li>
+              <li><i class="fas fa-file-alt text-info me-2"></i>All exam results and grades</li>
+              <li><i class="fas fa-users text-info me-2"></i>Parent-student relationships</li>
+              <li><i class="fas fa-receipt text-info me-2"></i>Fee records and invoices</li>
+              <li><i class="fas fa-book text-info me-2"></i>Library records</li>
+              <li><i class="fas fa-user-account text-info me-2"></i>User account ({{ student.user.email }})</li>
+            </ul>
+          </div>
+
+          <form method="post" class="mt-4">
+            {% csrf_token %}
+            <div class="d-flex justify-content-between">
+              <a href="{% url 'students:student-detail' student.id %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Cancel
+              </a>
+              <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash me-2"></i>Yes, Delete Student
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

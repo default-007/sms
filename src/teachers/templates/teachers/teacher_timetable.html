@@ -1,0 +1,90 @@
+<!-- templates/teachers/teacher_timetable.html -->
+{% extends "base.html" %}
+{% load static %}
+{% load teacher_filters %}
+
+{% block title %}{{ teacher.get_full_name }}'s Timetable{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Teacher Timetable</h2>
+    <a href="{% url 'teachers:teacher-detail' teacher.id %}" class="btn btn-outline-secondary">
+      <i class="fas fa-arrow-left"></i> Back to Teacher
+    </a>
+  </div>
+
+  <div class="card">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+      <div>
+        <h5 class="mb-0">{{ teacher.get_full_name }}'s Timetable</h5>
+        <p class="text-muted mb-0">{{ current_academic_year.name }}</p>
+      </div>
+      <div class="btn-group">
+        <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+          <i class="fas fa-print"></i> Print
+        </button>
+        <a href="{% url 'teachers:teacher-timetable-pdf' teacher.id %}" class="btn btn-outline-primary">
+          <i class="fas fa-file-pdf"></i> PDF
+        </a>
+      </div>
+    </div>
+    <div class="card-body">
+      {% if timetable %}
+      <div class="table-responsive">
+        <table class="table table-bordered">
+          <thead class="table-light">
+            <tr>
+              <th>Time / Day</th>
+              <th>Monday</th>
+              <th>Tuesday</th>
+              <th>Wednesday</th>
+              <th>Thursday</th>
+              <th>Friday</th>
+              <th>Saturday</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for time_slot, days in timetable.items %}
+            <tr>
+              <td class="bg-light">
+                <strong>{{ time_slot.start_time|time:"g:i A" }} - {{ time_slot.end_time|time:"g:i A" }}</strong>
+                <div class="small text-muted">{{ time_slot.duration_minutes }} mins</div>
+              </td>
+              {% for day_name in "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday"|split:"," %}
+              <td>
+                {% with day_periods=days|get_item:day_name %}
+                {% if day_periods %}
+                {% for period in day_periods %}
+                <div class="card mb-2 border-{{ period.subject.color|default:'primary' }}">
+                  <div class="card-body p-2">
+                    <h6 class="card-title mb-1">{{ period.subject.name }}</h6>
+                    <p class="card-text mb-1 small">{{ period.class_instance }}</p>
+                    <p class="card-text mb-0 small text-muted">{{ period.room }}</p>
+                  </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-center text-muted py-2">
+                  <small>No Class</small>
+                </div>
+                {% endif %}
+                {% endwith %}
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-5">
+        <i class="fas fa-calendar-alt fa-3x mb-3 text-muted"></i>
+        <h5>No Timetable Available</h5>
+        <p class="text-muted">No classes have been assigned to this teacher for the current academic year.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

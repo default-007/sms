@@ -2,5 +2,6 @@
 
 from .teacher_service import TeacherService
 from .evaluation_service import EvaluationService
+from .timetable_service import TimetableService
 
-__all__ = ["TeacherService", "EvaluationService"]
+__all__ = ["TeacherService", "EvaluationService", "TimetableService"]

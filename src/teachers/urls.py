@@ -19,4 +19,27 @@ urlpatterns = [
         views.TeacherEvaluationCreateView.as_view(),
         name="teacher-evaluation-create",
     ),
+    # New URLs for timetable
+    path(
+        "<int:teacher_id>/timetable/",
+        views.TeacherTimetableView.as_view(),
+        name="teacher-timetable",
+    ),
+    path(
+        "<int:teacher_id>/timetable/pdf/",
+        views.TeacherTimetablePDFView.as_view(),
+        name="teacher-timetable-pdf",
+    ),
+    # Dashboard
+    path(
+        "dashboard/",
+        views.TeacherDashboardView.as_view(),
+        name="teacher-dashboard",
+    ),
+    # Statistics
+    path(
+        "statistics/",
+        views.TeacherStatisticsView.as_view(),
+        name="teacher-statistics",
+    ),
 ]

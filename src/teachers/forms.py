@@ -8,16 +8,25 @@ User = get_user_model()
 
 class TeacherForm(forms.ModelForm):
     first_name = forms.CharField(
-        max_length=100, widget=forms.TextInput(attrs={"class": "form-control"})
+        max_length=100,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+        required=True,
     )
     last_name = forms.CharField(
-        max_length=100, widget=forms.TextInput(attrs={"class": "form-control"})
+        max_length=100,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+        required=True,
     )
-    email = forms.EmailField(widget=forms.EmailInput(attrs={"class": "form-control"}))
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={"class": "form-control"}), required=True
+    )
     phone_number = forms.CharField(
         max_length=20,
         required=False,
         widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+    profile_picture = forms.ImageField(
+        required=False, widget=forms.FileInput(attrs={"class": "form-control"})
     )
 
     class Meta:
@@ -35,20 +44,37 @@ class TeacherForm(forms.ModelForm):
             "status",
         )
         widgets = {
-            "employee_id": forms.TextInput(attrs={"class": "form-control"}),
+            "employee_id": forms.TextInput(
+                attrs={"class": "form-control", "required": True}
+            ),
             "joining_date": forms.DateInput(
-                attrs={"class": "form-control", "type": "date"}
+                attrs={"class": "form-control", "type": "date", "required": True}
             ),
-            "qualification": forms.TextInput(attrs={"class": "form-control"}),
+            "qualification": forms.TextInput(
+                attrs={"class": "form-control", "required": True}
+            ),
             "experience_years": forms.NumberInput(
-                attrs={"class": "form-control", "step": "0.1"}
+                attrs={
+                    "class": "form-control",
+                    "step": "0.1",
+                    "min": "0",
+                    "required": True,
+                }
             ),
-            "specialization": forms.TextInput(attrs={"class": "form-control"}),
-            "department": forms.Select(attrs={"class": "form-select"}),
-            "position": forms.TextInput(attrs={"class": "form-control"}),
-            "salary": forms.NumberInput(attrs={"class": "form-control"}),
-            "contract_type": forms.Select(attrs={"class": "form-select"}),
-            "status": forms.Select(attrs={"class": "form-select"}),
+            "specialization": forms.TextInput(
+                attrs={"class": "form-control", "required": True}
+            ),
+            "department": forms.Select(attrs={"class": "form-select select2-enable"}),
+            "position": forms.TextInput(
+                attrs={"class": "form-control", "required": True}
+            ),
+            "salary": forms.NumberInput(
+                attrs={"class": "form-control", "min": "0", "required": True}
+            ),
+            "contract_type": forms.Select(
+                attrs={"class": "form-select", "required": True}
+            ),
+            "status": forms.Select(attrs={"class": "form-select", "required": True}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -58,6 +84,34 @@ class TeacherForm(forms.ModelForm):
             self.fields["last_name"].initial = self.instance.user.last_name
             self.fields["email"].initial = self.instance.user.email
             self.fields["phone_number"].initial = self.instance.user.phone_number
+            if hasattr(self.instance.user, "profile_picture"):
+                self.fields["profile_picture"].initial = (
+                    self.instance.user.profile_picture
+                )
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        user_id = self.instance.user.id if self.instance and self.instance.pk else None
+
+        # Check if email already exists
+        if User.objects.filter(email=email).exclude(id=user_id).exists():
+            raise forms.ValidationError("This email is already in use by another user.")
+
+        return email
+
+    def clean_employee_id(self):
+        employee_id = self.cleaned_data.get("employee_id")
+        instance_id = self.instance.id if self.instance and self.instance.pk else None
+
+        # Check if employee_id already exists
+        if (
+            Teacher.objects.filter(employee_id=employee_id)
+            .exclude(id=instance_id)
+            .exists()
+        ):
+            raise forms.ValidationError("This employee ID is already in use.")
+
+        return employee_id
 
     def save(self, commit=True):
         teacher = super().save(commit=False)
@@ -66,13 +120,32 @@ class TeacherForm(forms.ModelForm):
         if teacher.pk:
             user = teacher.user
         else:
-            user = User(username=self.cleaned_data["email"])
+            user = User.objects.filter(email=self.cleaned_data["email"]).first()
+            if not user:
+                user = User(
+                    username=self.cleaned_data["email"],
+                    email=self.cleaned_data["email"],
+                    is_active=True,
+                )
 
         # Update user fields
         user.first_name = self.cleaned_data["first_name"]
         user.last_name = self.cleaned_data["last_name"]
         user.email = self.cleaned_data["email"]
-        user.phone_number = self.cleaned_data["phone_number"]
+        user.username = self.cleaned_data["email"]  # Ensure username matches email
+
+        if hasattr(user, "phone_number"):  # Check if User model has phone_number field
+            user.phone_number = self.cleaned_data.get("phone_number", "")
+
+        # Handle profile picture if present
+        if (
+            "profile_picture" in self.cleaned_data
+            and self.cleaned_data["profile_picture"]
+        ):
+            if hasattr(
+                user, "profile_picture"
+            ):  # Check if User model has profile_picture field
+                user.profile_picture = self.cleaned_data["profile_picture"]
 
         if commit:
             user.save()

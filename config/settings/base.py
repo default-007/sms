@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "import_export",
     "qrcode",
     "faker",
+    "xhtml2pdf",
     # Local apps
     "src.accounts",
     "src.api",

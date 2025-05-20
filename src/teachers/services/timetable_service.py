@@ -1,0 +1,52 @@
+# src/teachers/services/timetable_service.py
+import io
+from datetime import datetime
+from django.http import HttpResponse
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+
+
+class TimetableService:
+    """Service for timetable operations, including PDF generation."""
+
+    @staticmethod
+    def generate_timetable_pdf(teacher, academic_year=None, template_name=None):
+        """Generate a PDF of a teacher's timetable."""
+        from src.teachers.services import TeacherService
+
+        # Get timetable data for the teacher
+        timetable = TeacherService.get_teacher_timetable(teacher, academic_year)
+
+        # Template path
+        template_path = template_name or "teachers/teacher_timetable_pdf.html"
+
+        # Context data
+        context = {
+            "teacher": teacher,
+            "timetable": timetable,
+            "academic_year": academic_year,
+            "current_date": datetime.now().strftime("%d %b, %Y"),
+        }
+
+        # Render template
+        template = get_template(template_path)
+        html = template.render(context)
+
+        # Create a file-like buffer to receive PDF data
+        buffer = io.BytesIO()
+
+        # Create the PDF object using the buffer as its "file"
+        pdf = pisa.pisaDocument(io.BytesIO(html.encode("UTF-8")), buffer)
+
+        # Get the value of the BytesIO buffer
+        pdf_data = buffer.getvalue()
+        buffer.close()
+
+        # Return the response with appropriate headers
+        response = HttpResponse(content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'attachment; filename="Timetable_{teacher.employee_id}.pdf"'
+        )
+        response.write(pdf_data)
+
+        return response

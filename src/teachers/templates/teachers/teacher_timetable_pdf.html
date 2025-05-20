@@ -1,0 +1,151 @@
+<!-- templates/teachers/teacher_timetable_pdf.html -->
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8">
+    <title>{{ teacher.get_full_name }}'s Timetable</title>
+    <style>
+      @page {
+        size: a4 landscape;
+        margin: 1cm;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 10pt;
+        line-height: 1.4;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .header h1 {
+        font-size: 18pt;
+        margin-bottom: 5px;
+      }
+
+      .header p {
+        font-size: 12pt;
+        color: #666;
+        margin-top: 0;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center;
+      }
+
+      th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+      }
+
+      .time-slot {
+        font-weight: bold;
+        background-color: #f9f9f9;
+      }
+
+      .period {
+        margin-bottom: 5px;
+      }
+
+      .subject {
+        font-weight: bold;
+      }
+
+      .class {
+        font-size: 9pt;
+      }
+
+      .room {
+        font-size: 9pt;
+        color: #666;
+      }
+
+      .footer {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        text-align: center;
+        font-size: 8pt;
+        color: #666;
+        border-top: 1px solid #ddd;
+        padding-top: 5px;
+      }
+
+      .no-class {
+        color: #999;
+        font-style: italic;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="header">
+      <h1>{{ teacher.get_full_name }}'s Timetable</h1>
+      <p>{{ teacher.position }} | {{ teacher.department.name|default:"No Department" }}</p>
+      <p>{{ academic_year.name|default:"Current Academic Year" }}</p>
+    </div>
+
+    {% if timetable %}
+    <table>
+      <thead>
+        <tr>
+          <th>Time / Day</th>
+          <th>Monday</th>
+          <th>Tuesday</th>
+          <th>Wednesday</th>
+          <th>Thursday</th>
+          <th>Friday</th>
+          <th>Saturday</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for time_slot, days in timetable.items %}
+        <tr>
+          <td class="time-slot">
+            {{ time_slot.start_time|time:"g:i A" }} - {{ time_slot.end_time|time:"g:i A" }}
+            <div>({{ time_slot.duration_minutes }} mins)</div>
+          </td>
+          {% for day_name in "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday"|split:"," %}
+          <td>
+            {% with day_periods=days|get_item:day_name %}
+            {% if day_periods %}
+            {% for period in day_periods %}
+            <div class="period">
+              <div class="subject">{{ period.subject.name }}</div>
+              <div class="class">{{ period.class_instance }}</div>
+              <div class="room">{{ period.room }}</div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="no-class">No Class</div>
+            {% endif %}
+            {% endwith %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="no-class">No timetable available for this teacher.</p>
+    {% endif %}
+
+    <div class="footer">
+      Generated on {{ current_date }} | School Management System
+    </div>
+  </body>
+
+</html>

@@ -1,4 +1,3 @@
-<!-- templates/teachers/teacher_statistics.html -->
 {% extends "base.html" %}
 {% load static %}
 {% load teacher_filters %}
@@ -6,7 +5,8 @@
 {% block title %}Teacher Statistics{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.css">
+<!-- ApexCharts CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/apexcharts@3.35.0/dist/apexcharts.css">
 {% endblock %}
 
 {% block content %}
@@ -16,6 +16,9 @@
     <div class="btn-group">
       <a href="{% url 'teachers:teacher-dashboard' %}" class="btn btn-outline-primary">
         <i class="fas fa-tachometer-alt"></i> Dashboard
+      </a>
+      <a href="{% url 'teachers:teacher-performance' %}" class="btn btn-outline-primary">
+        <i class="fas fa-award"></i> Performance
       </a>
       <a href="{% url 'teachers:teacher-list' %}" class="btn btn-primary">
         <i class="fas fa-users"></i> All Teachers
@@ -78,11 +81,11 @@
         <div class="card-body">
           <div class="row no-gutters align-items-center">
             <div class="col mr-2">
-              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Contract Types</div>
-              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ contract_types|length }}</div>
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Recent Hires (1 Year)</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ recent_hires }}</div>
             </div>
             <div class="col-auto">
-              <i class="fas fa-file-contract fa-2x text-gray-300"></i>
+              <i class="fas fa-user-plus fa-2x text-gray-300"></i>
             </div>
           </div>
         </div>
@@ -92,20 +95,6 @@
 
   <!-- Charts Row -->
   <div class="row">
-    <!-- Status Distribution Chart -->
-    <div class="col-xl-4 col-lg-6 mb-4">
-      <div class="card shadow h-100">
-        <div class="card-header py-3">
-          <h6 class="m-0 font-weight-bold text-primary">Teacher Status</h6>
-        </div>
-        <div class="card-body">
-          <div class="chart-container" style="position: relative; height:250px;">
-            <canvas id="statusChart"></canvas>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Contract Type Chart -->
     <div class="col-xl-4 col-lg-6 mb-4">
       <div class="card shadow h-100">
@@ -113,128 +102,59 @@
           <h6 class="m-0 font-weight-bold text-primary">Contract Types</h6>
         </div>
         <div class="card-body">
-          <div class="chart-container" style="position: relative; height:250px;">
-            <canvas id="contractChart"></canvas>
-          </div>
+          <div id="contractChart" style="height: 300px;"></div>
         </div>
       </div>
     </div>
 
-    <!-- Experience Distribution Chart -->
+    <!-- Department Performance Chart -->
     <div class="col-xl-4 col-lg-6 mb-4">
       <div class="card shadow h-100">
         <div class="card-header py-3">
-          <h6 class="m-0 font-weight-bold text-primary">Experience Distribution</h6>
+          <h6 class="m-0 font-weight-bold text-primary">Department Performance</h6>
         </div>
         <div class="card-body">
-          <div class="chart-container" style="position: relative; height:250px;">
-            <canvas id="experienceChart"></canvas>
-          </div>
+          <div id="deptPerformanceChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tenure Distribution Chart -->
+    <div class="col-xl-4 col-lg-6 mb-4">
+      <div class="card shadow h-100">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Tenure Distribution</h6>
+        </div>
+        <div class="card-body">
+          <div id="tenureChart" style="height: 300px;"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Evaluation Distribution -->
+  <!-- Evaluation Trends -->
   <div class="row">
     <div class="col-12">
       <div class="card shadow mb-4">
         <div class="card-header py-3">
-          <h6 class="m-0 font-weight-bold text-primary">Evaluation Score Distribution</h6>
+          <h6 class="m-0 font-weight-bold text-primary">Evaluation Trends</h6>
         </div>
         <div class="card-body">
-          <div class="chart-container" style="position: relative; height:300px;">
-            <canvas id="evaluationChart"></canvas>
-          </div>
+          <div id="evaluationTrendChart" style="height: 350px;"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Detailed Statistics -->
+  <!-- Criteria Analysis -->
   <div class="row">
     <div class="col-12">
       <div class="card shadow mb-4">
         <div class="card-header py-3">
-          <h6 class="m-0 font-weight-bold text-primary">Statistical Details</h6>
+          <h6 class="m-0 font-weight-bold text-primary">Evaluation Criteria Analysis</h6>
         </div>
         <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-bordered table-striped" id="statsTable" width="100%" cellspacing="0">
-              <thead>
-                <tr>
-                  <th>Metric</th>
-                  <th>Value</th>
-                  <th>Distribution</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Status -->
-                {% for status in status_counts %}
-                <tr>
-                  <td>{% if forloop.first %}Status{% else %}&nbsp;{% endif %}</td>
-                  <td>{{ status.status }} ({{ status.count }})</td>
-                  <td>
-                    <div class="progress" style="height: 20px;">
-                      <div class="progress-bar" role="progressbar"
-                        style="width: {{ status.count|percentage_of:total_teachers }}%">
-                        {{ status.count|percentage_of:total_teachers|floatformat:1 }}%
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-                {% endfor %}
-
-                <!-- Contract Types -->
-                {% for contract in contract_types %}
-                <tr>
-                  <td>{% if forloop.first %}Contract Type{% else %}&nbsp;{% endif %}</td>
-                  <td>{{ contract.contract_type }} ({{ contract.count }})</td>
-                  <td>
-                    <div class="progress" style="height: 20px;">
-                      <div class="progress-bar bg-info" role="progressbar"
-                        style="width: {{ contract.count|percentage_of:total_teachers }}%">
-                        {{ contract.count|percentage_of:total_teachers|floatformat:1 }}%
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-                {% endfor %}
-
-                <!-- Experience Range -->
-                {% for exp in experience_distribution %}
-                <tr>
-                  <td>{% if forloop.first %}Experience{% else %}&nbsp;{% endif %}</td>
-                  <td>{{ exp.range }} ({{ exp.count }})</td>
-                  <td>
-                    <div class="progress" style="height: 20px;">
-                      <div class="progress-bar bg-success" role="progressbar"
-                        style="width: {{ exp.count|percentage_of:total_teachers }}%">
-                        {{ exp.count|percentage_of:total_teachers|floatformat:1 }}%
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-                {% endfor %}
-
-                <!-- Evaluation Score Range -->
-                {% for eval in evaluation_distribution %}
-                <tr>
-                  <td>{% if forloop.first %}Evaluation Score{% else %}&nbsp;{% endif %}</td>
-                  <td>{{ eval.range }} ({{ eval.count }})</td>
-                  <td>
-                    <div class="progress" style="height: 20px;">
-                      <div class="progress-bar bg-primary" role="progressbar"
-                        style="width: {{ eval.count|percentage_of_total_evaluations }}%">
-                        {{ eval.count|percentage_of_total_evaluations|floatformat:1 }}%
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
+          <div id="criteriaChart" style="height: 350px;"></div>
         </div>
       </div>
     </div>
@@ -243,112 +163,280 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<!-- ApexCharts JS -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.35.0/dist/apexcharts.min.js"></script>
+
 <script>
-  // Status Chart
-  var statusCtx = document.getElementById('statusChart').getContext('2d');
-  var statusChart = new Chart(statusCtx, {
+  document.addEventListener('DOMContentLoaded', function () {
+    // Contract Type Chart
+    var contractOptions = {
+      series: {{ chart_data.contract_counts| safe
+  }},
+    chart: {
     type: 'pie',
-    data: {
-      labels: [{% for status in status_counts %}'{{ status.status }}',{% endfor %}],
-  datasets: [{
-    data: [{% for status in status_counts %}{{ status.count }}, {% endfor %}],
-    backgroundColor: ['#4e73df', '#1cc88a', '#e74a3b'],
-      hoverBackgroundColor: ['#2e59d9', '#17a673', '#be2617'],
-        hoverBorderColor: "rgba(234, 236, 244, 1)",
-      }],
-    },
-  options: {
-    maintainAspectRatio: false,
-      plugins: {
-      legend: {
-        position: 'bottom',
-        }
+    height: 300,
+    toolbar: {
+      show: true
     }
   },
-  });
-
-  // Contract Type Chart
-  var contractCtx = document.getElementById('contractChart').getContext('2d');
-  var contractChart = new Chart(contractCtx, {
-    type: 'pie',
-    data: {
-      labels: [{% for contract in contract_types %}'{{ contract.contract_type }}',{% endfor %}],
-  datasets: [{
-    data: [{% for contract in contract_types %}{{ contract.count }}, {% endfor %}],
-    backgroundColor: ['#36b9cc', '#1cc88a', '#f6c23e'],
-      hoverBackgroundColor: ['#2c9faf', '#17a673', '#dda20a'],
-        hoverBorderColor: "rgba(234, 236, 244, 1)",
-      }],
-    },
-  options: {
-    maintainAspectRatio: false,
-      plugins: {
-      legend: {
-        position: 'bottom',
-        }
-    }
-  },
-  });
-
-  // Experience Chart
-  var experienceCtx = document.getElementById('experienceChart').getContext('2d');
-  var experienceChart = new Chart(experienceCtx, {
-    type: 'bar',
-    data: {
-      labels: [{% for exp in experience_distribution %}'{{ exp.range }}',{% endfor %}],
-  datasets: [{
-    label: 'Number of Teachers',
-    data: [{% for exp in experience_distribution %}{{ exp.count }}, {% endfor %}],
-    backgroundColor: '#1cc88a',
-      borderColor: '#169a6f',
-        borderWidth: 1
-      }],
-    },
-  options: {
-    maintainAspectRatio: false,
-      scales: {
-      y: {
-        beginAtZero: true,
-          ticks: {
-          precision: 0
+    labels: {{ chart_data.contract_types | safe }},
+    responsive: [{
+      breakpoint: 480,
+      options: {
+        chart: {
+          width: 200
+        },
+        legend: {
+          position: 'bottom'
         }
       }
-    },
-    plugins: {
-      legend: {
-        display: false,
-        }
+    }],
+    colors: ['#4e73df', '#1cc88a', '#36b9cc'],
+    tooltip: {
+    y: {
+      formatter: function (val) {
+        return val + " teachers";
+      }
+    }
+  }
+    };
+  var contractChart = new ApexCharts(document.querySelector("#contractChart"), contractOptions);
+  contractChart.render();
+
+  // Department Performance Chart
+  var deptPerformanceOptions = {
+    series: [{
+      name: 'Avg. Score',
+      data: {{ chart_data.dept_scores | safe }}
+      }],
+  chart: {
+    type: 'bar',
+      height: 300,
+        toolbar: {
+      show: true
     }
   },
-  });
+  plotOptions: {
+    bar: {
+      horizontal: true,
+        dataLabels: {
+        position: 'top',
+          },
+    }
+  },
+  dataLabels: {
+    enabled: true,
+      offsetX: -6,
+        style: {
+      fontSize: '12px',
+        colors: ['#fff']
+    },
+    formatter: function(val) {
+      return val.toFixed(1) + "%";
+    }
+  },
+  colors: ['#1cc88a'],
+    xaxis: {
+    categories: { { chart_data.departments | safe } },
+    min: 0,
+      max: 100
+  },
+  yaxis: {
+    title: {
+      text: 'Department'
+    }
+  },
+  tooltip: {
+    y: {
+      formatter: function(val) {
+        return val.toFixed(1) + "%";
+      }
+    }
+  }
+    };
+  var deptPerformanceChart = new ApexCharts(document.querySelector("#deptPerformanceChart"), deptPerformanceOptions);
+  deptPerformanceChart.render();
 
-  // Evaluation Chart
-  var evalCtx = document.getElementById('evaluationChart').getContext('2d');
-  var evalChart = new Chart(evalCtx, {
-    type: 'bar',
-    data: {
-      labels: [{% for eval in evaluation_distribution %}'{{ eval.range }}',{% endfor %}],
-  datasets: [{
-    label: 'Number of Evaluations',
-    data: [{% for eval in evaluation_distribution %}{{ eval.count }}, {% endfor %}],
-    backgroundColor: [
-      '#4e73df', '#1cc88a', '#f6c23e', '#e74a3b', '#5a5c69'
+  // Tenure Distribution Chart
+  var tenureOptions = {
+    series: {{ chart_data.tenure_counts| safe }},
+  chart: {
+    type: 'donut',
+      height: 300,
+        toolbar: {
+      show: true
+    }
+  },
+  labels: { { chart_data.tenure_ranges | safe } },
+  responsive: [{
+    breakpoint: 480,
+    options: {
+      chart: {
+        width: 200
+      },
+      legend: {
+        position: 'bottom'
+      }
+    }
+  }],
+    colors: ['#e74a3b', '#f6c23e', '#4e73df', '#1cc88a'],
+      tooltip: {
+    y: {
+      formatter: function(val) {
+        return val + " teachers";
+      }
+    }
+  }
+    };
+  var tenureChart = new ApexCharts(document.querySelector("#tenureChart"), tenureOptions);
+  tenureChart.render();
+
+  // Evaluation Trend Chart
+  var evalTrendOptions = {
+    series: [{
+      name: 'Avg. Score',
+      type: 'line',
+      data: {{ chart_data.eval_scores | safe }}
+      }, {
+    name: 'Min. Score',
+      type: 'line',
+        data: { { chart_data.eval_min | safe } }
+  }, {
+    name: 'Max. Score',
+      type: 'line',
+        data: { { chart_data.eval_max | safe } }
+  }, {
+    name: 'Evaluations',
+      type: 'column',
+        data: { { chart_data.eval_counts | safe } }
+  }],
+  chart: {
+    height: 350,
+      type: 'line',
+        stacked: false,
+          toolbar: {
+      show: true
+    }
+  },
+  stroke: {
+    width: [3, 2, 2, 0],
+      curve: 'smooth',
+        dashArray: [0, 5, 5, 0]
+  },
+  title: {
+    text: 'Evaluation Trends Over Time'
+  },
+  xaxis: {
+    categories: { { chart_data.eval_months | safe } },
+  },
+  colors: ['#1cc88a', '#e74a3b', '#f6c23e', '#4e73df'],
+    yaxis: [
+      {
+        axisTicks: {
+          show: true,
+        },
+        axisBorder: {
+          show: true,
+          color: '#1cc88a'
+        },
+        labels: {
+          style: {
+            colors: '#1cc88a',
+          }
+        },
+        title: {
+          text: "Score (%)",
+          style: {
+            color: '#1cc88a',
+          }
+        },
+        min: 0,
+        max: 100
+      },
+      {
+        seriesName: 'Evaluations',
+        opposite: true,
+        axisTicks: {
+          show: true,
+        },
+        axisBorder: {
+          show: true,
+          color: '#4e73df'
+        },
+        labels: {
+          style: {
+            colors: '#4e73df',
+          }
+        },
+        title: {
+          text: "Number of Evaluations",
+          style: {
+            color: '#4e73df',
+          }
+        }
+      }
     ],
-      borderWidth: 1
-      }],
+      tooltip: {
+    fixed: {
+      enabled: true,
+        position: 'topLeft',
+          offsetY: 30,
+            offsetX: 60
     },
-  options: {
-    maintainAspectRatio: false,
-      scales: {
-      y: {
-        beginAtZero: true,
-          ticks: {
-          precision: 0
-        }
+  },
+  legend: {
+    horizontalAlign: 'left',
+      offsetX: 40
+  }
+    };
+  var evalTrendChart = new ApexCharts(document.querySelector("#evaluationTrendChart"), evalTrendOptions);
+  evalTrendChart.render();
+
+  // Criteria Analysis Chart
+  var criteriaOptions = {
+    series: [{
+      name: 'Score (%)',
+      data: {{ chart_data.criteria_scores | safe }}
+      }],
+  chart: {
+    height: 350,
+      type: 'radar',
+        toolbar: {
+      show: true
+    }
+  },
+  title: {
+    text: 'Evaluation Criteria Analysis'
+  },
+  xaxis: {
+    categories: { { chart_data.criteria | safe } },
+    labels: {
+      formatter: function(val) {
+        return val.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
       }
     }
   },
+  yaxis: {
+    min: 0,
+      max: 100
+  },
+  colors: ['#4e73df'],
+    markers: {
+    size: 4,
+      colors: ['#4e73df'],
+        strokeColors: '#fff',
+          strokeWidth: 2
+  },
+  tooltip: {
+    y: {
+      formatter: function(val) {
+        return val.toFixed(1) + "%";
+      }
+    }
+  }
+    };
+  var criteriaChart = new ApexCharts(document.querySelector("#criteriaChart"), criteriaOptions);
+  criteriaChart.render();
   });
 </script>
 {% endblock %}

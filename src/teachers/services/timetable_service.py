@@ -3,7 +3,9 @@ import io
 from datetime import datetime
 from django.http import HttpResponse
 from django.template.loader import get_template
+from src.courses.models import AcademicYear
 from xhtml2pdf import pisa
+from django.core.exceptions import ObjectDoesNotExist
 
 
 class TimetableService:
@@ -50,3 +52,44 @@ class TimetableService:
         response.write(pdf_data)
 
         return response
+
+    @staticmethod
+    def get_teacher_availability(teacher, date=None):
+        """Get teacher availability for a specific date or current day."""
+        from src.courses.models import Timetable
+
+        if date is None:
+            date = datetime.now().date()
+
+        day_of_week = date.strftime("%A")
+
+        try:
+            current_academic_year = AcademicYear.objects.get(is_current=True)
+            teacher_timetable = (
+                Timetable.objects.filter(
+                    teacher=teacher,
+                    time_slot__day_of_week=day_of_week,
+                    is_active=True,
+                    effective_from_date__lte=date,
+                    effective_to_date__gte=date,
+                    academic_year=current_academic_year,
+                )
+                .select_related("time_slot", "subject", "class_instance")
+                .order_by("time_slot__start_time")
+            )
+
+            timeslots = []
+            for tt in teacher_timetable:
+                timeslots.append(
+                    {
+                        "time_slot": tt.time_slot,
+                        "subject": tt.subject,
+                        "class_instance": tt.class_instance,
+                        "room": tt.room,
+                    }
+                )
+
+            return {"date": date, "day_of_week": day_of_week, "timeslots": timeslots}
+
+        except ObjectDoesNotExist:
+            return {"date": date, "day_of_week": day_of_week, "timeslots": []}

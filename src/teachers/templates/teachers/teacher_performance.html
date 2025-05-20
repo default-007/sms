@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+{% load static %}
+{% load teacher_filters %}
+
+{% block title %}Teacher Performance Analysis{% endblock %}
+
+{% block extra_css %}
+<!-- ApexCharts CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/apexcharts@3.35.0/dist/apexcharts.css">
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Teacher Performance Analysis</h2>
+    <div class="btn-group">
+      <a href="{% url 'teachers:teacher-dashboard' %}" class="btn btn-outline-primary">
+        <i class="fas fa-tachometer-alt"></i> Dashboard
+      </a>
+      <a href="{% url 'teachers:teacher-statistics' %}" class="btn btn-outline-primary">
+        <i class="fas fa-chart-pie"></i> Statistics
+      </a>
+      <a href="{% url 'teachers:teacher-list' %}" class="btn btn-primary">
+        <i class="fas fa-users"></i> All Teachers
+      </a>
+    </div>
+  </div>
+
+  <!-- Performance Distribution -->
+  <div class="row mb-4">
+    <div class="col-xl-8 col-lg-7">
+      <div class="card shadow">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+          <h6 class="m-0 font-weight-bold text-primary">Evaluation Distribution</h6>
+        </div>
+        <div class="card-body">
+          <div id="distributionChart" style="height: 350px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-4 col-lg-5">
+      <div class="card shadow h-100">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Performance Categories</h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Score Range</th>
+                  <th>Number</th>
+                  <th>Percentage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for dist in evaluation_distribution %}
+                <tr>
+                  <td>{{ dist.range|split:"("|first }}</td>
+                  <td>{{ dist.range|split:"("|last|slice:":-1" }}</td>
+                  <td>{{ dist.count }}</td>
+                  <td>{{ dist.percentage|floatformat:1 }}%</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Performance by Experience -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Performance by Experience</h6>
+        </div>
+        <div class="card-body">
+          <div id="experienceChart" style="height: 350px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Teacher Rankings -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Teacher Rankings</h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered" id="rankingsTable" width="100%" cellspacing="0">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Teacher</th>
+                  <th>Department</th>
+                  <th>Experience</th>
+                  <th>Avg. Score</th>
+                  <th>Evaluations</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for teacher in teachers_ranking %}
+                <tr>
+                  <td>{{ forloop.counter }}</td>
+                  <td>
+                    <a href="{% url 'teachers:teacher-detail' teacher.id %}">
+                      {{ teacher.get_full_name }}
+                    </a>
+                  </td>
+                  <td>{{ teacher.department.name|default:"N/A" }}</td>
+                  <td>{{ teacher.experience_years }} years</td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                        <div
+                          class="progress-bar bg-{% if teacher.avg_evaluation_score >= 80 %}success{% elif teacher.avg_evaluation_score >= 60 %}warning{% else %}danger{% endif %}"
+                          role="progressbar" style="width: {{ teacher.avg_evaluation_score }}%">
+                        </div>
+                      </div>
+                      <span
+                        class="badge bg-{% if teacher.avg_evaluation_score >= 80 %}success{% elif teacher.avg_evaluation_score >= 60 %}warning{% else %}danger{% endif %}">
+                        {{ teacher.avg_evaluation_score|floatformat:1 }}%
+                      </span>
+                    </div>
+                  </td>
+                  <td>{{ teacher.evaluation_count }}</td>
+                  <td>
+                    <span
+                      class="badge {% if teacher.status == 'Active' %}bg-success{% elif teacher.status == 'On Leave' %}bg-warning{% else %}bg-danger{% endif %}">
+                      {{ teacher.status }}
+                    </span>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="7" class="text-center py-4">
+                    <div class="py-4">
+                      <i class="fas fa-chart-bar fa-2x mb-3 text-muted"></i>
+                      <p class="text-muted">No evaluation data available.</p>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- ApexCharts JS -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.35.0/dist/apexcharts.min.js"></script>
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Distribution Chart
+    var distributionOptions = {
+      series: [{
+        name: 'Count',
+        type: 'column',
+        data: {{ chart_data.eval_counts | safe }}
+  }, {
+    name: 'Percentage',
+    type: 'line',
+    data: {{ chart_data.eval_percentages | safe }}
+      }],
+    chart: {
+    height: 350,
+    type: 'line',
+    stacked: false,
+    toolbar: {
+      show: true
+    }
+  },
+    dataLabels: {
+    enabled: false
+  },
+    stroke: {
+    width: [1, 4]
+  },
+    title: {
+    text: 'Teacher Evaluation Distribution'
+  },
+    xaxis: {
+    categories: {{ chart_data.eval_ranges | safe }},
+      },
+    yaxis: [
+    {
+      axisTicks: {
+        show: true,
+      },
+      axisBorder: {
+        show: true,
+        color: '#008FFB'
+      },
+      labels: {
+        style: {
+          colors: '#008FFB',
+        }
+      },
+      title: {
+        text: "Number of Evaluations",
+        style: {
+          color: '#008FFB',
+        }
+      },
+      tooltip: {
+        enabled: true
+      }
+    },
+    {
+      seriesName: 'Percentage',
+      opposite: true,
+      axisTicks: {
+        show: true,
+      },
+      axisBorder: {
+        show: true,
+        color: '#00E396'
+      },
+      labels: {
+        style: {
+          colors: '#00E396',
+        }
+      },
+      title: {
+        text: "Percentage (%)",
+        style: {
+          color: '#00E396',
+        }
+      },
+    },
+  ],
+    tooltip: {
+    fixed: {
+      enabled: true,
+      position: 'topLeft',
+      offsetY: 30,
+      offsetX: 60
+    },
+  },
+    legend: {
+    horizontalAlign: 'left',
+    offsetX: 40
+  }
+    };
+
+  var distributionChart = new ApexCharts(document.querySelector("#distributionChart"), distributionOptions);
+  distributionChart.render();
+
+  // Experience Chart
+  var experienceOptions = {
+    series: [{
+      name: 'Teachers',
+      type: 'column',
+      data: {{ chart_data.exp_counts | safe }}
+      }, {
+    name: 'Avg. Score',
+      type: 'line',
+        data: { { chart_data.exp_scores | safe } }
+  }],
+  chart: {
+    height: 350,
+      type: 'line',
+        stacked: false,
+          toolbar: {
+      show: true
+    }
+  },
+  plotOptions: {
+    bar: {
+      borderRadius: 5,
+        dataLabels: {
+        position: 'top',
+          },
+    }
+  },
+  stroke: {
+    width: [1, 4]
+  },
+  title: {
+    text: 'Performance by Experience'
+  },
+  xaxis: {
+    categories: { { chart_data.exp_ranges | safe } },
+  },
+  colors: ['#4e73df', '#1cc88a'],
+    yaxis: [
+      {
+        axisTicks: {
+          show: true,
+        },
+        axisBorder: {
+          show: true,
+          color: '#4e73df'
+        },
+        labels: {
+          style: {
+            colors: '#4e73df',
+          }
+        },
+        title: {
+          text: "Number of Teachers",
+          style: {
+            color: '#4e73df',
+          }
+        }
+      },
+      {
+        seriesName: 'Avg. Score',
+        opposite: true,
+        min: 0,
+        max: 100,
+        axisTicks: {
+          show: true,
+        },
+        axisBorder: {
+          show: true,
+          color: '#1cc88a'
+        },
+        labels: {
+          style: {
+            colors: '#1cc88a',
+          }
+        },
+        title: {
+          text: "Average Score (%)",
+          style: {
+            color: '#1cc88a',
+          }
+        }
+      },
+    ],
+      tooltip: {
+    shared: true,
+      intersect: false,
+        y: {
+      formatter: function (y, { series, seriesIndex, dataPointIndex, w }) {
+        if (seriesIndex === 0) {
+          return y + " teachers";
+        } else if (seriesIndex === 1) {
+          return y + "%";
+        }
+        return y;
+      }
+    }
+  }
+    };
+
+  var experienceChart = new ApexCharts(document.querySelector("#experienceChart"), experienceOptions);
+  experienceChart.render();
+
+  // Initialize DataTable
+  $('#rankingsTable').DataTable({
+    responsive: true,
+    order: [[4, 'desc']], // Sort by average score
+    pageLength: 25,
+    language: {
+      search: "_INPUT_",
+      searchPlaceholder: "Search teachers...",
+    }
+  });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Teachers{% endblock %}
+
+{% block extra_css %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+      <i class="fas fa-chalkboard-teacher me-2"></i> Teachers
+      <span class="badge bg-primary ms-2">{{ total_teachers }}</span>
+    </h2>
+    <div class="d-flex">
+      <a href="{% url 'teachers:teacher-dashboard' %}" class="btn btn-outline-primary me-2">
+        <i class="fas fa-chart-line"></i> Dashboard
+      </a>
+      <div class="dropdown">
+        <button class="btn btn-outline-primary dropdown-toggle me-2" type="button" id="exportDropdown"
+          data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="fas fa-file-export"></i> Export
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+          {% for format in export_formats %}
+          <li><a class="dropdown-item" href="?{{ request.GET.urlencode }}&export={{ format }}">{{ format|upper }}</a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% if perms.teachers.add_teacher %}
+      <a href="{% url 'teachers:teacher-create' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add Teacher
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-primary shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Teachers</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_teachers }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-users fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-success shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Active</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ active_teachers }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-user-check fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-warning shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">On Leave</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ on_leave_teachers }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-user-clock fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                <a href="{% url 'teachers:teacher-statistics' %}" class="text-decoration-none">
+                  View Statistics <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+              </div>
+              <div class="d-flex align-items-center">
+                <div class="btn-group w-100">
+                  <a href="{% url 'teachers:teacher-dashboard' %}" class="btn btn-sm btn-outline-primary flex-fill">
+                    <i class="fas fa-chart-bar"></i> Dashboard
+                  </a>
+                  <a href="{% url 'teachers:teacher-performance' %}" class="btn btn-sm btn-outline-info flex-fill">
+                    <i class="fas fa-chart-line"></i> Performance
+                  </a>
+                </div>
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-chart-pie fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Card -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+      <h6 class="m-0 font-weight-bold text-primary">Filters</h6>
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" id="showPerformanceSwitch"
+          {% if show_performance %}checked{% endif %}>
+        <label class="form-check-label" for="showPerformanceSwitch">Show Performance</label>
+      </div>
+    </div>
+    <div class="card-body">
+      {% crispy filter_form %}
+    </div>
+  </div>
+
+  <!-- Teachers Table Card -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">Teachers List</h6>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-bordered" id="teachersTable" width="100%" cellspacing="0">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Employee ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Department</th>
+              <th>Position</th>
+              <th>Status</th>
+              <th>Experience</th>
+              {% if show_performance %}
+              <th>Performance</th>
+              {% endif %}
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for teacher in teachers %}
+            <tr>
+              <td>{{ teacher.id }}</td>
+              <td>{{ teacher.employee_id }}</td>
+              <td>
+                <div class="d-flex align-items-center">
+                  {% if teacher.user.profile_picture %}
+                  <img src="{{ teacher.user.profile_picture.url }}" class="rounded-circle me-2" width="30" height="30">
+                  {% else %}
+                  <div class="bg-light rounded-circle me-2 d-flex justify-content-center align-items-center"
+                    style="width: 30px; height: 30px;">
+                    <i class="fas fa-user text-secondary"></i>
+                  </div>
+                  {% endif %}
+                  {{ teacher.user.first_name }} {{ teacher.user.last_name }}
+                </div>
+              </td>
+              <td>{{ teacher.user.email }}</td>
+              <td>{{ teacher.department.name|default:"Not Assigned" }}</td>
+              <td>{{ teacher.position }}</td>
+              <td>
+                {% if teacher.status == 'Active' %}
+                <span class="badge bg-success">Active</span>
+                {% elif teacher.status == 'On Leave' %}
+                <span class="badge bg-warning">On Leave</span>
+                {% else %}
+                <span class="badge bg-danger">{{ teacher.status }}</span>
+                {% endif %}
+              </td>
+              <td>{{ teacher.experience_years }} years</td>
+              {% if show_performance %}
+              <td>
+                {% if teacher.avg_score %}
+                <div class="d-flex align-items-center">
+                  <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                    <div
+                      class="progress-bar {% if teacher.avg_score >= 80 %}bg-success{% elif teacher.avg_score >= 60 %}bg-warning{% else %}bg-danger{% endif %}"
+                      role="progressbar" style="width: {{ teacher.avg_score }}%" aria-valuenow="{{ teacher.avg_score }}"
+                      aria-valuemin="0" aria-valuemax="100">
+                    </div>
+                  </div>
+                  <span
+                    class="badge {% if teacher.avg_score >= 80 %}bg-success{% elif teacher.avg_score >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
+                    {{ teacher.avg_score|floatformat:1 }}%
+                  </span>
+                </div>
+                {% else %}
+                <span class="text-muted">No evaluations</span>
+                {% endif %}
+              </td>
+              {% endif %}
+              <td>
+                <div class="btn-group">
+                  <a href="{% url 'teachers:teacher-detail' teacher.id %}" class="btn btn-sm btn-info">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  {% if perms.teachers.change_teacher %}
+                  <a href="{% url 'teachers:teacher-update' teacher.id %}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  {% endif %}
+                  {% if perms.teachers.delete_teacher %}
+                  <a href="{% url 'teachers:teacher-delete' teacher.id %}" class="btn btn-sm btn-danger">
+                    <i class="fas fa-trash"></i>
+                  </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="{% if show_performance %}10{% else %}9{% endif %}" class="text-center">
+                <div class="py-5">
+                  <i class="fas fa-user-slash fa-3x mb-3 text-muted"></i>
+                  <p class="mb-0">No teachers found matching your criteria.</p>
+                  <a href="{% url 'teachers:teacher-list' %}" class="btn btn-sm btn-outline-primary mt-3">
+                    <i class="fas fa-sync"></i> Reset Filters
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.bootstrap5.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    var table = $('#teachersTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+        '<"row"<"col-sm-12"tr>>' +
+        '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+      language: {
+        search: "_INPUT_",
+        searchPlaceholder: "Search teachers...",
+        lengthMenu: "Show _MENU_ teachers",
+        info: "Showing _START_ to _END_ of _TOTAL_ teachers",
+      }
+    });
+
+    // Handle performance toggle
+    $('#showPerformanceSwitch').change(function () {
+      var currentUrl = new URL(window.location.href);
+      if ($(this).is(':checked')) {
+        currentUrl.searchParams.set('show_performance', 'true');
+      } else {
+        currentUrl.searchParams.delete('show_performance');
+      }
+      window.location.href = currentUrl.toString();
+    });
+  });
+</script>
+{% endblock %}

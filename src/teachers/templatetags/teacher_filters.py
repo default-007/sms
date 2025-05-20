@@ -1,4 +1,3 @@
-# src/teachers/templatetags/teacher_filters.py
 from django import template
 from django.utils.safestring import mark_safe
 import json
@@ -15,7 +14,9 @@ def get_item(dictionary, key):
 @register.filter
 def split(value, delimiter):
     """Split a string by delimiter."""
-    return value.split(delimiter)
+    if value:
+        return value.split(delimiter)
+    return []
 
 
 @register.filter
@@ -34,7 +35,9 @@ def teacher_status_badge(status):
 @register.filter
 def format_criteria_name(name):
     """Format snake_case criteria name to Title Case with spaces."""
-    return " ".join(word.capitalize() for word in name.split("_"))
+    if name:
+        return " ".join(word.capitalize() for word in name.split("_"))
+    return ""
 
 
 @register.filter
@@ -42,7 +45,7 @@ def percentage(value, max_value):
     """Calculate percentage."""
     try:
         return (float(value) / float(max_value)) * 100
-    except (ValueError, ZeroDivisionError):
+    except (ValueError, ZeroDivisionError, TypeError):
         return 0
 
 
@@ -51,7 +54,7 @@ def percentage_of(value, total):
     """Calculate percentage of total."""
     try:
         return (float(value) / float(total)) * 100
-    except (ValueError, ZeroDivisionError):
+    except (ValueError, ZeroDivisionError, TypeError):
         return 0
 
 
@@ -63,7 +66,7 @@ def percentage_of_total_evaluations(value):
     total = TeacherEvaluation.objects.count()
     try:
         return (float(value) / float(total)) * 100
-    except (ValueError, ZeroDivisionError):
+    except (ValueError, ZeroDivisionError, TypeError):
         return 0
 
 
@@ -84,3 +87,39 @@ def percentage_color(value):
             return "danger"
     except (ValueError, TypeError):
         return "secondary"
+
+
+@register.filter
+def multiply(value, arg):
+    """Multiply the value by the argument."""
+    try:
+        return float(value) * float(arg)
+    except (ValueError, TypeError):
+        return 0
+
+
+@register.filter
+def div(value, arg):
+    """Divide the value by the argument."""
+    try:
+        return float(value) / float(arg)
+    except (ValueError, ZeroDivisionError, TypeError):
+        return 0
+
+
+@register.filter
+def add(value, arg):
+    """Add the arg to the value."""
+    try:
+        return float(value) + float(arg)
+    except (ValueError, TypeError):
+        return value
+
+
+@register.filter
+def replace(value, arg):
+    """Replace all instances of the first arg with the second arg."""
+    if value and isinstance(value, str):
+        old, new = arg.split(",")
+        return value.replace(old, new)
+    return value

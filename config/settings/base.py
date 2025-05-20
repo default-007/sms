@@ -34,6 +34,8 @@ INSTALLED_APPS = [
     "drf_yasg",
     "celery",
     "django_celery_beat",
+    "crispy_forms",
+    "crispy_bootstrap5",
     "widget_tweaks",
     "import_export",
     "qrcode",
@@ -54,6 +56,10 @@ INSTALLED_APPS = [
     "src.communications",
     "src.reports",
 ]
+
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+
+CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 # ==============================================================================
 # MIDDLEWARE SETTINGS

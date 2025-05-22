@@ -1,0 +1,340 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ teacher.user.get_full_name }} Timetable{% endblock %}
+
+{% block extra_css %}
+<!-- FullCalendar CSS -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.css" rel="stylesheet">
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css"
+  href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css">
+<!-- ApexCharts CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/apexcharts/dist/apexcharts.css">
+
+<style>
+  .fc-event {
+    cursor: pointer;
+  }
+
+  .legend-item {
+    display: inline-block;
+    margin-right: 15px;
+  }
+
+  .legend-color {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: 5px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <h1 class="h3 mb-4 text-gray-800">{{ teacher.user.get_full_name }} - Timetable</h1>
+
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">Academic Year: {{ academic_year.name }}</h6>
+          <div class="d-flex">
+            <form method="get" class="form-inline mr-2">
+              <div class="input-group">
+                <select class="form-control" name="academic_year" onchange="this.form.submit()">
+                  {% for year in academic_years %}
+                  <option value="{{ year.id }}" {% if year.id == academic_year.id %}selected{% endif %}>
+                    {{ year.name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+            </form>
+            <div class="btn-group" role="group">
+              <button type="button" class="btn btn-outline-primary active" id="calendarViewBtn">Calendar</button>
+              <button type="button" class="btn btn-outline-primary" id="tableViewBtn">Table</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Teacher Info Card -->
+    <div class="col-lg-4 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Teacher Information</h6>
+        </div>
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-3">
+            <img class="img-profile rounded-circle mr-3" src="{{ teacher.user.profile_picture.url|default:'#' }}"
+              style="width: 60px; height: 60px;">
+            <div>
+              <h5 class="mb-0">{{ teacher.user.get_full_name }}</h5>
+              <div class="text-gray-500">{{ teacher.department.name }} Department</div>
+            </div>
+          </div>
+          <div class="mb-2">
+            <strong>Employee ID:</strong> {{ teacher.employee_id }}
+          </div>
+          <div class="mb-2">
+            <strong>Qualification:</strong> {{ teacher.qualification }}
+          </div>
+          <div class="mb-2">
+            <strong>Specialization:</strong> {{ teacher.specialization }}
+          </div>
+          <div class="mb-2">
+            <strong>Experience:</strong> {{ teacher.experience_years }} years
+          </div>
+          <div class="mb-2">
+            <strong>Classes:</strong> {{ workload.distinct_classes }}
+          </div>
+          <div class="mb-2">
+            <strong>Subjects:</strong> {{ workload.distinct_subjects }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Workload Summary -->
+    <div class="col-lg-8 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Workload Summary</h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ workload.periods_per_week }}</div>
+                <div class="text-xs font-weight-bold text-gray-500 mb-1">Periods Per Week</div>
+              </div>
+              <div class="mb-3">
+                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ workload.hours_per_week|floatformat:1 }}</div>
+                <div class="text-xs font-weight-bold text-gray-500 mb-1">Hours Per Week</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div id="dailyWorkloadChart" style="height: 200px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-12 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">Weekly Schedule</h6>
+          <div>
+            <form method="get" class="form-inline" id="dayFilterForm">
+              <input type="hidden" name="academic_year" value="{{ academic_year.id }}">
+              <div class="input-group">
+                <select class="form-control" name="day" onchange="this.form.submit()">
+                  <option value="">All Days</option>
+                  {% for day_num, day_name in day_choices %}
+                  <option value="{{ day_num }}" {% if selected_day == day_num %}selected{% endif %}>
+                    {{ day_name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="calendarView">
+            <div id="teacherTimetableCalendar"></div>
+            <div class="mt-3">
+              <h6>Legend:</h6>
+              <div class="legend-container">
+                {% for subject in timetable|dictsort:"subject.name"|dictsortreversed:"subject.name"|unique:"subject.id" %}
+                <div class="legend-item">
+                  <span class="legend-color"
+                    style="background-color: {{ subject.subject.color|default:'#4e73df' }};"></span>
+                  <span>{{ subject.subject.name }}</span>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          <div id="tableView" style="display: none;">
+            <div class="table-responsive">
+              <table class="table table-bordered" id="timetableTable" width="100%" cellspacing="0">
+                <thead>
+                  <tr>
+                    <th>Day</th>
+                    <th>Time</th>
+                    <th>Class</th>
+                    <th>Subject</th>
+                    <th>Room</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for entry in timetable %}
+                  <tr>
+                    <td>{{ entry.time_slot.get_day_of_week_display }}</td>
+                    <td>{{ entry.time_slot.start_time|time:"H:i" }} - {{ entry.time_slot.end_time|time:"H:i" }}</td>
+                    <td>{{ entry.class_obj }}</td>
+                    <td>{{ entry.subject.name }}</td>
+                    <td>{{ entry.room }}</td>
+                    <td>
+                      <a href="{% url 'courses:timetable-detail' entry.id %}" class="btn btn-sm btn-info">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      <a href="{% url 'courses:class-detail' entry.class_obj.id %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-users"></i>
+                      </a>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- FullCalendar JS -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.js"></script>
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
+<!-- ApexCharts JS -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  // Initialize DataTable
+  $(document).ready(function () {
+    $('#timetableTable').DataTable({
+      responsive: true,
+      paging: true,
+      searching: true,
+      ordering: true,
+      info: true,
+      pageLength: 10,
+      lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]]
+    });
+
+    // Switch between calendar and table views
+    $('#calendarViewBtn').click(function () {
+      $(this).addClass('active');
+      $('#tableViewBtn').removeClass('active');
+      $('#calendarView').show();
+      $('#tableView').hide();
+    });
+
+    $('#tableViewBtn').click(function () {
+      $(this).addClass('active');
+      $('#calendarViewBtn').removeClass('active');
+      $('#calendarView').hide();
+      $('#tableView').show();
+    });
+  });
+
+  // Initialize FullCalendar
+  document.addEventListener('DOMContentLoaded', function () {
+    var calendarEl = document.getElementById('teacherTimetableCalendar');
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'timeGridWeek',
+      headerToolbar: {
+        left: '',
+        center: 'title',
+        right: ''
+      },
+      slotMinTime: '07:00:00',
+      slotMaxTime: '18:00:00',
+      allDaySlot: false,
+      weekends: true,
+      height: 'auto',
+      events: [
+        {% for entry in timetable %}
+                {
+        id: '{{ entry.id }}',
+        title: '{{ entry.subject.name }} - {{ entry.class_obj }}',
+        start: '2023-01-0{{ entry.time_slot.day_of_week|add:"1" }}T{{ entry.time_slot.start_time|date:"H:i:s" }}',
+        end: '2023-01-0{{ entry.time_slot.day_of_week|add:"1" }}T{{ entry.time_slot.end_time|date:"H:i:s" }}',
+        extendedProps: {
+          class: '{{ entry.class_obj }}',
+          room: '{{ entry.room }}',
+          entryId: '{{ entry.id }}'
+        },
+        backgroundColor: '{{ entry.subject.color|default:"#4e73df" }}'
+      },
+      {% endfor %}
+            ],
+    eventClick: function (info) {
+      // Open detail page
+      window.location.href = `/courses/timetable/${info.event.extendedProps.entryId}/`;
+    }
+        });
+  calendar.render();
+    });
+
+  // Daily Workload Chart
+  var dailyWorkloadOptions = {
+    series: [{
+      name: 'Hours',
+      data: [
+        {{ workload.daily_load.0.minutes |default: 0 }} / 60,
+    {{ workload.daily_load.1.minutes |default: 0 }} / 60,
+    {{ workload.daily_load.2.minutes|default: 0 }}/60,
+  { { workload.daily_load.3.minutes |default: 0 } }/60,
+  { { workload.daily_load.4.minutes |default: 0 } }/60,
+  { { workload.daily_load.5.minutes |default: 0 } }/60,
+  { { workload.daily_load.6.minutes |default: 0 } }/60
+            ]
+        }],
+  chart: {
+    type: 'bar',
+      height: 200,
+        toolbar: {
+      show: false
+    }
+  },
+  plotOptions: {
+    bar: {
+      horizontal: false,
+        columnWidth: '55%',
+          endingShape: 'rounded'
+    },
+  },
+  dataLabels: {
+    enabled: false
+  },
+  xaxis: {
+    categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        },
+  yaxis: {
+    title: {
+      text: 'Hours'
+    }
+  },
+  tooltip: {
+    y: {
+      formatter: function (val) {
+        return val.toFixed(1) + " hrs"
+      }
+    }
+  }
+    };
+
+  var dailyWorkloadChart = new ApexCharts(document.querySelector("#dailyWorkloadChart"), dailyWorkloadOptions);
+  dailyWorkloadChart.render();
+</script>
+{% endblock %}

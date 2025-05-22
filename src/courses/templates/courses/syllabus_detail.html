@@ -1,0 +1,272 @@
+{% extends 'courses/base_detail.html' %}
+{% load static %}
+
+{% block title %}{{ syllabus.title }} - Syllabus{% endblock %}
+
+{% block extra_css %}
+<style>
+  .syllabus-card {
+    border: 1px solid #e3e6f0;
+    border-radius: 0.35rem;
+    margin-bottom: 20px;
+    background-color: #fff;
+  }
+
+  .syllabus-card .card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+    padding: 0.75rem 1.25rem;
+  }
+
+  .unit-card {
+    border: 1px solid #e3e6f0;
+    border-radius: 0.35rem;
+    margin-bottom: 15px;
+  }
+
+  .unit-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+    padding: 0.75rem 1.25rem;
+    cursor: pointer;
+  }
+
+  .unit-content {
+    padding: 1.25rem;
+  }
+
+  .topic-item {
+    padding: 0.75rem;
+    border-bottom: 1px solid #e3e6f0;
+  }
+
+  .topic-item:last-child {
+    border-bottom: none;
+  }
+
+  .badge-pill {
+    padding-right: 0.6em;
+    padding-left: 0.6em;
+    border-radius: 10rem;
+  }
+
+  .method-badge {
+    font-size: 0.75em;
+    font-weight: 600;
+    padding: 0.25em 0.5em;
+    margin-right: 0.25rem;
+  }
+</style>
+{% endblock %}
+
+{% block detail_content %}
+<div class="row mb-4">
+  <div class="col-md-12">
+    <h4>{{ syllabus.title }}</h4>
+    <div class="d-flex mb-3">
+      <span class="badge bg-primary me-2">{{ syllabus.grade.name }}</span>
+      <span class="badge bg-info me-2">{{ syllabus.subject.name }}</span>
+      <span class="badge bg-secondary">{{ syllabus.academic_year.name }}</span>
+      {% if syllabus.academic_year.is_current %}<span class="badge bg-success ms-2">Current</span>{% endif %}
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-header">
+        <h6 class="m-0 font-weight-bold text-primary">Syllabus Description</h6>
+      </div>
+      <div class="card-body">
+        {{ syllabus.description|linebreaks }}
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary">Syllabus Units</h6>
+        <div class="progress" style="width: 200px; height: 10px;">
+          <div
+            class="progress-bar {% if syllabus.completion_percentage == 100 %}bg-success{% else %}bg-primary{% endif %}"
+            role="progressbar" style="width: {{ syllabus.completion_percentage }}%;"
+            aria-valuenow="{{ syllabus.completion_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="syllabus-progress mb-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <h6>Overall Progress:</h6>
+            <span class="font-weight-bold">{{ syllabus.completion_percentage|floatformat:1 }}% Complete</span>
+          </div>
+        </div>
+
+        <div class="units-container">
+          {% if syllabus.content.units %}
+          {% for unit in syllabus.content.units %}
+          <div class="unit-card">
+            <div class="unit-header d-flex justify-content-between align-items-center" data-bs-toggle="collapse"
+              data-bs-target="#unit{{ forloop.counter }}" aria-expanded="true"
+              aria-controls="unit{{ forloop.counter }}">
+              <div>
+                <h6 class="mb-0">Unit {{ forloop.counter }}: {{ unit.title }}</h6>
+              </div>
+              <div>
+                <span
+                  class="badge {% if unit.status == 'completed' %}bg-success{% elif unit.status == 'in_progress' %}bg-warning{% else %}bg-secondary{% endif %}">
+                  {{ unit.status|title|default:"Planned" }}
+                </span>
+                <i class="fas fa-chevron-down"></i>
+              </div>
+            </div>
+            <div class="collapse show" id="unit{{ forloop.counter }}">
+              <div class="unit-content">
+                <div class="mb-3">
+                  <p>{{ unit.description|linebreaks }}</p>
+                  <div class="row">
+                    <div class="col-md-6">
+                      <p><strong>Duration:</strong> {{ unit.duration_weeks }} weeks</p>
+                    </div>
+                    {% if unit.completion_date %}
+                    <div class="col-md-6">
+                      <p><strong>Completed on:</strong> {{ unit.completion_date }}</p>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <h6>Topics:</h6>
+                {% if unit.topics %}
+                <div class="topics-list">
+                  {% for topic in unit.topics %}
+                  <div class="topic-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div>
+                        <h6 class="mb-1">{{ topic.title }}</h6>
+                        <p class="mb-2">{{ topic.description }}</p>
+
+                        {% if topic.teaching_methods %}
+                        <div class="mb-2">
+                          {% for method in topic.teaching_methods %}
+                          <span class="badge bg-light text-dark method-badge">
+                            {% if method == 'lecture' %}
+                            <i class="fas fa-chalkboard-teacher"></i> Lecture
+                            {% elif method == 'discussion' %}
+                            <i class="fas fa-comments"></i> Discussion
+                            {% elif method == 'practical' %}
+                            <i class="fas fa-flask"></i> Practical
+                            {% elif method == 'group_work' %}
+                            <i class="fas fa-users"></i> Group Work
+                            {% elif method == 'presentation' %}
+                            <i class="fas fa-presentation"></i> Presentation
+                            {% else %}
+                            {{ method|title }}
+                            {% endif %}
+                          </span>
+                          {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        {% if topic.resources %}
+                        <small class="text-muted">
+                          <strong>Resources:</strong> {{ topic.resources }}
+                        </small>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">No topics defined for this unit.</p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+          {% else %}
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> No units have been defined in this syllabus yet.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block sidebar_title %}Syllabus Information{% endblock %}
+{% block sidebar_content %}
+<div class="mb-3">
+  <p><strong>Subject:</strong> <a
+      href="{% url 'courses:subject-detail' syllabus.subject.id %}">{{ syllabus.subject.name }}</a></p>
+  <p><strong>Grade:</strong> <a href="{% url 'courses:grade-detail' syllabus.grade.id %}">{{ syllabus.grade.name }}</a>
+  </p>
+  <p><strong>Department:</strong> <a
+      href="{% url 'courses:department-detail' syllabus.subject.department.id %}">{{ syllabus.subject.department.name }}</a>
+  </p>
+  <p><strong>Academic Year:</strong> {{ syllabus.academic_year.name }}
+    {% if syllabus.academic_year.is_current %}<span class="badge bg-success">Current</span>{% endif %}
+  </p>
+</div>
+
+<hr>
+
+<div class="mb-3">
+  <h6>Syllabus Stats</h6>
+  <div class="row">
+    <div class="col-6">
+      <div class="small">
+        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Units</div>
+        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ syllabus.content.units|length }}</div>
+      </div>
+    </div>
+    <div class="col-6">
+      <div class="small">
+        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Topics</div>
+        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ syllabus.get_topic_count }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr>
+
+<div class="mb-3">
+  <h6>Created by</h6>
+  <p>{{ syllabus.created_by.get_full_name }}</p>
+  <h6>Last updated by</h6>
+  <p>{{ syllabus.last_updated_by.get_full_name }} on {{ syllabus.last_updated_at|date:"F d, Y" }}</p>
+</div>
+{% endblock %}
+
+{% block additional_sidebar_cards %}
+<div class="card shadow mb-4">
+  <div class="card-header py-3">
+    <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+  </div>
+  <div class="card-body">
+    <a href="{% url 'courses:syllabus-update' syllabus.id %}" class="btn btn-primary btn-block mb-2">
+      <i class="fas fa-edit"></i> Edit Syllabus
+    </a>
+    <a href="{% url 'courses:syllabus-list' %}" class="btn btn-secondary btn-block mb-2">
+      <i class="fas fa-list"></i> All Syllabi
+    </a>
+
+    <hr>
+
+    <a href="{% url 'courses:assignment-create' %}?subject={{ syllabus.subject.id }}&class={{ syllabus.grade.classes.first.id }}"
+      class="btn btn-info btn-block">
+      <i class="fas fa-tasks"></i> Create Related Assignment
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Toggle unit content visibility
+    $('.unit-header').click(function () {
+      $(this).find('i').toggleClass('fa-chevron-down fa-chevron-up');
+    });
+  });
+</script>
+{% endblock %}

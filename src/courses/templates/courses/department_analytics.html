@@ -1,0 +1,405 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ department.name }} Analytics{% endblock %}
+
+{% block extra_css %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css"
+  href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css">
+<!-- ApexCharts CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/apexcharts/dist/apexcharts.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <h1 class="h3 mb-4 text-gray-800">{{ department.name }} Department Analytics</h1>
+
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">Academic Year: {{ academic_year.name }}</h6>
+          <form method="get" class="form-inline">
+            <div class="input-group">
+              <select class="form-control" name="academic_year" onchange="this.form.submit()">
+                {% for year in academic_years %}
+                <option value="{{ year.id }}" {% if year.id == academic_year.id %}selected{% endif %}>
+                  {{ year.name }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Summary Cards -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-primary shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                Subjects</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ analytics.subject_count }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-book fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-success shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                Classes</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ analytics.class_count }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-chalkboard fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-info shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                Students</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ analytics.student_count }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-users fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-warning shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                Teachers</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ analytics.teacher_count }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-chalkboard-teacher fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Performance Summary -->
+    <div class="col-lg-4 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Performance Summary</h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ analytics.average_score|floatformat:1 }}%</div>
+                <div class="text-xs font-weight-bold text-gray-500 mb-1">Average Score</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ analytics.pass_rate|floatformat:1 }}%</div>
+                <div class="text-xs font-weight-bold text-gray-500 mb-1">Pass Rate</div>
+              </div>
+            </div>
+          </div>
+          <div class="mt-4">
+            <h5>Department Head</h5>
+            {% if department.head %}
+            <div class="d-flex align-items-center mb-2">
+              <img class="img-profile rounded-circle mr-2"
+                src="{{ department.head.user.profile_picture.url|default:'#' }}" style="width: 40px; height: 40px;">
+              <div>
+                <a href="{% url 'teachers:teacher-detail' department.head.id %}">
+                  {{ department.head.user.get_full_name }}
+                </a>
+                <div class="text-xs text-gray-500">Since {{ department.creation_date }}</div>
+              </div>
+            </div>
+            {% else %}
+            <p class="text-muted">No department head assigned</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Subject Performance Chart -->
+    <div class="col-lg-8 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Subject Performance</h6>
+        </div>
+        <div class="card-body">
+          <div id="subjectPerformanceChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Teacher Performance -->
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Teacher Performance</h6>
+        </div>
+        <div class="card-body">
+          <div id="teacherPerformanceChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Teacher Workload -->
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Teacher Workload</h6>
+        </div>
+        <div class="card-body">
+          <div id="teacherWorkloadChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Subjects Table -->
+    <div class="col-12 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Subject Details</h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered" id="subjectsTable" width="100%" cellspacing="0">
+              <thead>
+                <tr>
+                  <th>Subject</th>
+                  <th>Code</th>
+                  <th>Credit Hours</th>
+                  <th>Classes</th>
+                  <th>Students</th>
+                  <th>Average Score</th>
+                  <th>Pass Rate</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for subject_name, data in analytics.subject_performance.items %}
+                <tr>
+                  <td>{{ subject_name }}</td>
+                  <td>{{ data.code }}</td>
+                  <td>{{ data.credit_hours }}</td>
+                  <td>{{ data.class_count }}</td>
+                  <td>{{ data.student_count }}</td>
+                  <td>{{ data.average_score|floatformat:1 }}%</td>
+                  <td>{{ data.pass_rate|floatformat:1 }}%</td>
+                  <td>
+                    <a href="{% url 'courses:subject-detail' data.subject_id %}" class="btn btn-sm btn-info">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="{% url 'courses:subject-analytics' data.subject_id %}" class="btn btn-sm btn-primary">
+                      <i class="fas fa-chart-line"></i>
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
+
+<!-- ApexCharts JS -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  // Initialize DataTables
+  $(document).ready(function () {
+    $('#subjectsTable').DataTable({
+      responsive: true,
+      paging: true,
+      searching: true,
+      ordering: true,
+      info: true,
+      order: [[5, 'desc']], // Sort by average score by default
+      pageLength: 10,
+      lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]]
+    });
+  });
+
+  // Subject Performance Chart
+  var subjectPerformanceOptions = {
+    series: [{
+      name: 'Average Score',
+      data: [{{ subject_scores }}]
+  }, {
+    name: 'Pass Rate',
+    data: [{{ subject_pass_rates }}]
+        }],
+  chart: {
+    type: 'bar',
+      height: 300,
+        toolbar: {
+      show: false
+    }
+  },
+  plotOptions: {
+    bar: {
+      horizontal: false,
+        columnWidth: '55%',
+          endingShape: 'rounded'
+    },
+  },
+  dataLabels: {
+    enabled: false
+  },
+  stroke: {
+    show: true,
+      width: 2,
+        colors: ['transparent']
+  },
+  xaxis: {
+    categories: [{{ subject_names }}],
+        },
+  yaxis: {
+    title: {
+      text: 'Percentage (%)'
+    },
+    min: 0,
+      max: 100
+  },
+  fill: {
+    opacity: 1
+  },
+  tooltip: {
+    y: {
+      formatter: function (val) {
+        return val.toFixed(1) + "%"
+      }
+    }
+  }
+    };
+
+  var subjectPerformanceChart = new ApexCharts(document.querySelector("#subjectPerformanceChart"), subjectPerformanceOptions);
+  subjectPerformanceChart.render();
+
+  // Teacher Performance Chart
+  var teacherPerformanceOptions = {
+    series: [{
+      name: 'Average Score',
+      data: [{{ teacher_scores }}]
+  }],
+    chart: {
+      type: 'radar',
+      height: 300,
+      toolbar: {
+        show: false
+      }
+    },
+    xaxis: {
+      categories: [{{ teacher_names }}]
+        },
+  yaxis: {
+    show: false
+  },
+  fill: {
+    opacity: 0.5
+  },
+  stroke: {
+    width: 2
+  },
+  markers: {
+    size: 4
+  }
+    };
+
+  var teacherPerformanceChart = new ApexCharts(document.querySelector("#teacherPerformanceChart"), teacherPerformanceOptions);
+  teacherPerformanceChart.render();
+
+  // Teacher Workload Chart
+  var teacherWorkloadOptions = {
+    series: [{
+      name: 'Hours Per Week',
+      data: [{{ teacher_workload }}]
+  }],
+    chart: {
+      type: 'bar',
+      height: 300,
+      toolbar: {
+        show: false
+      }
+    },
+    plotOptions: {
+      bar: {
+        horizontal: true,
+        columnWidth: '55%',
+        endingShape: 'rounded'
+      },
+    },
+    dataLabels: {
+      enabled: false
+    },
+    xaxis: {
+      categories: [{{ teacher_names }}],
+    title: {
+      text: 'Hours Per Week'
+    }
+        },
+  yaxis: {
+    title: {
+      text: 'Teachers'
+    }
+  },
+  tooltip: {
+    y: {
+      formatter: function (val) {
+        return val.toFixed(1) + " hrs"
+      }
+    }
+  }
+    };
+
+  var teacherWorkloadChart = new ApexCharts(document.querySelector("#teacherWorkloadChart"), teacherWorkloadOptions);
+  teacherWorkloadChart.render();
+</script>
+{% endblock %}

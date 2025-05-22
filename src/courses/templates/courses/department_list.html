@@ -1,0 +1,89 @@
+{% extends 'courses/base_list.html' %}
+{% load static %}
+
+{% block title %}Departments{% endblock %}
+
+{% block table_content %}
+<thead>
+  <tr>
+    <th>Name</th>
+    <th>Head</th>
+    <th>Teachers</th>
+    <th>Subjects</th>
+    <th>Creation Date</th>
+    <th>Actions</th>
+  </tr>
+</thead>
+<tbody>
+  {% for department in departments %}
+  <tr>
+    <td>{{ department.name }}</td>
+    <td>
+      {% if department.head %}
+      <a href="{% url 'teachers:teacher-detail' department.head.id %}">
+        {{ department.head.user.get_full_name }}
+      </a>
+      {% else %}
+      <span class="text-muted">Not assigned</span>
+      {% endif %}
+    </td>
+    <td>{{ department.teacher_count }}</td>
+    <td>{{ department.subject_count }}</td>
+    <td>{{ department.creation_date|date:"M d, Y" }}</td>
+    <td>
+      <a href="{% url 'courses:department-detail' department.id %}" class="btn btn-info btn-sm">
+        <i class="fas fa-eye"></i>
+      </a>
+      <a href="{% url 'courses:department-update' department.id %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-edit"></i>
+      </a>
+      <a href="{% url 'courses:department-delete' department.id %}" class="btn btn-danger btn-sm">
+        <i class="fas fa-trash"></i>
+      </a>
+      <a href="{% url 'courses:department-analytics' department.id %}" class="btn btn-success btn-sm">
+        <i class="fas fa-chart-line"></i>
+      </a>
+    </td>
+  </tr>
+  {% empty %}
+  <tr>
+    <td colspan="6" class="text-center">No departments found</td>
+  </tr>
+  {% endfor %}
+</tbody>
+{% endblock %}
+
+{% block filters %}
+<div class="mb-4">
+  <form method="get" class="card p-3 bg-light">
+    <div class="row align-items-end">
+      <div class="col-md-6">
+        <label for="searchInput" class="form-label">Search:</label>
+        <input type="text" class="form-control" id="searchInput" name="search"
+          value="{{ request.GET.search|default:'' }}" placeholder="Search by name or description">
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Search</button>
+      </div>
+      <div class="col-md-2">
+        <a href="{% url 'courses:department-list' %}" class="btn btn-secondary w-100">Reset</a>
+      </div>
+      <div class="col-md-2">
+        <a href="{% url 'courses:department-create' %}" class="btn btn-success w-100">
+          <i class="fas fa-plus"></i> Add Department
+        </a>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block datatable_options %}
+paging: true,
+searching: true,
+ordering: true,
+order: [[0, 'asc']],
+info: true,
+pageLength: 25,
+lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]]
+{% endblock %}

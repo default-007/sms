@@ -1,0 +1,153 @@
+{% extends 'courses/base_list.html' %}
+{% load static %}
+
+{% block title %}Assignments{% endblock %}
+
+{% block filters %}
+<div class="mb-4">
+  <div class="card p-3 bg-light">
+    <form method="get" id="assignmentFilterForm">
+      <div class="row align-items-end">
+        <div class="col-md-3">
+          <label for="classSelect" class="form-label">Class:</label>
+          <select class="form-control" id="classSelect" name="class">
+            <option value="">All Classes</option>
+            {% for class in classes %}
+            <option value="{{ class.id }}" {% if selected_class == class.id|stringformat:"i" %}selected{% endif %}>
+              {{ class }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="subjectSelect" class="form-label">Subject:</label>
+          <select class="form-control" id="subjectSelect" name="subject">
+            <option value="">All Subjects</option>
+            {% for subject in subjects %}
+            <option value="{{ subject.id }}"
+              {% if selected_subject == subject.id|stringformat:"i" %}selected{% endif %}>
+              {{ subject.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="statusSelect" class="form-label">Status:</label>
+          <select class="form-control" id="statusSelect" name="status">
+            <option value="">All Statuses</option>
+            {% for status_value, status_name in status_choices %}
+            <option value="{{ status_value }}" {% if selected_status == status_value %}selected{% endif %}>
+              {{ status_name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3 mt-4">
+          <button type="submit" class="btn btn-primary">Apply Filters</button>
+          <a href="{% url 'courses:assignment-list' %}" class="btn btn-secondary">Reset</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block table_content %}
+<thead>
+  <tr>
+    <th>Title</th>
+    <th>Class</th>
+    <th>Subject</th>
+    <th>Assigned Date</th>
+    <th>Due Date</th>
+    <th>Status</th>
+    <th>Submissions</th>
+    <th>Actions</th>
+  </tr>
+</thead>
+<tbody>
+  {% for assignment in assignments %}
+  <tr>
+    <td>{{ assignment.title }}</td>
+    <td>{{ assignment.class_obj }}</td>
+    <td>{{ assignment.subject.name }}</td>
+    <td>{{ assignment.assigned_date|date:"M d, Y" }}</td>
+    <td>
+      {{ assignment.due_date|date:"M d, Y" }}
+      {% if assignment.is_overdue %}
+      <span class="badge bg-danger">Overdue</span>
+      {% elif assignment.days_remaining <= 2 %}
+      <span class="badge bg-warning">{{ assignment.days_remaining }} days left</span>
+      {% endif %}
+    </td>
+    <td>
+      {% if assignment.status == 'draft' %}
+      <span class="badge bg-secondary">Draft</span>
+      {% elif assignment.status == 'published' %}
+      <span class="badge bg-primary">Published</span>
+      {% else %}
+      <span class="badge bg-dark">Closed</span>
+      {% endif %}
+    </td>
+    <td>
+      <div class="d-flex align-items-center">
+        <div class="progress flex-grow-1 me-2" style="height: 8px;">
+          <div
+            class="progress-bar {% if assignment.submission_rate < 50 %}bg-danger{% elif assignment.submission_rate < 80 %}bg-warning{% else %}bg-success{% endif %}"
+            role="progressbar" style="width: {{ assignment.submission_rate }}%;"
+            aria-valuenow="{{ assignment.submission_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <span class="small">{{ assignment.submission_count }}/{{ assignment.class_obj.students.count }}</span>
+      </div>
+    </td>
+    <td>
+      <div class="btn-group">
+        <a href="{% url 'courses:assignment-detail' assignment.id %}" class="btn btn-info btn-sm">
+          <i class="fas fa-eye"></i>
+        </a>
+        <a href="{% url 'courses:assignment-update' assignment.id %}" class="btn btn-primary btn-sm">
+          <i class="fas fa-edit"></i>
+        </a>
+        <a href="{% url 'courses:assignment-delete' assignment.id %}" class="btn btn-danger btn-sm">
+          <i class="fas fa-trash"></i>
+        </a>
+        <a href="{% url 'courses:assignment-submissions' assignment.id %}" class="btn btn-success btn-sm">
+          <i class="fas fa-list-check"></i>
+        </a>
+      </div>
+    </td>
+  </tr>
+  {% empty %}
+  <tr>
+    <td colspan="8" class="text-center">No assignments found</td>
+  </tr>
+  {% endfor %}
+</tbody>
+{% endblock %}
+
+{% block after_table %}
+<div class="d-flex justify-content-end mt-3">
+  <a href="{% url 'courses:assignment-create' %}" class="btn btn-success">
+    <i class="fas fa-plus"></i> Add New Assignment
+  </a>
+</div>
+{% endblock %}
+
+{% block datatable_options %}
+paging: true,
+searching: true,
+ordering: true,
+order: [[3, 'desc']],
+info: true,
+pageLength: 25,
+lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]]
+{% endblock %}
+
+{% block extra_scripts %}
+// Auto-submit form when selections change
+$(document).ready(function() {
+$('#classSelect, #subjectSelect, #statusSelect').change(function() {
+$('#assignmentFilterForm').submit();
+});
+});
+{% endblock %}

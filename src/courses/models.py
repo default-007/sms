@@ -1,8 +1,11 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-from django.db.models import Count, Avg, Sum, Q, F, ExpressionWrapper, fields
+from django.db.models import Count, Avg, Sum, Q, F, Max, Min, Case, When, Value
+from django.core.exceptions import ValidationError
+from django.core.cache import cache
 from datetime import datetime, date, timedelta
+import json
 
 
 class Department(models.Model):
@@ -138,6 +141,11 @@ class AcademicYear(models.Model):
         from src.students.models import Student
 
         return Student.objects.filter(current_class__academic_year=self).count()
+
+    @classmethod
+    def get_current(cls):
+        """Get the current academic year, or None if not set."""
+        return cls.objects.filter(is_current=True).first()
 
     def get_attendance_statistics(self):
         """Get attendance statistics for this academic year."""
@@ -506,6 +514,9 @@ class Subject(models.Model):
     name = models.CharField(max_length=100)
     code = models.CharField(max_length=20, unique=True)
     description = models.TextField(blank=True)
+    color = models.CharField(
+        max_length=20, default="#4e73df", help_text="Color for timetable display"
+    )
     department = models.ForeignKey(
         Department, on_delete=models.CASCADE, related_name="subjects"
     )

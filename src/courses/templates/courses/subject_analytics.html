@@ -1,0 +1,388 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ subject.name }} Analytics{% endblock %}
+
+{% block extra_css %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css"
+  href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css">
+<!-- ApexCharts CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/apexcharts/dist/apexcharts.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <h1 class="h3 mb-4 text-gray-800">{{ subject.name }} Analytics</h1>
+
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">Academic Year: {{ academic_year.name }}</h6>
+          <form method="get" class="form-inline">
+            <div class="input-group">
+              <select class="form-control" name="academic_year" onchange="this.form.submit()">
+                {% for year in academic_years %}
+                <option value="{{ year.id }}" {% if year.id == academic_year.id %}selected{% endif %}>
+                  {{ year.name }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Subject Info Card -->
+    <div class="col-lg-4 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Subject Information</h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-2">
+            <strong>Subject Code:</strong> {{ subject.code }}
+          </div>
+          <div class="mb-2">
+            <strong>Department:</strong>
+            <a href="{% url 'courses:department-detail' subject.department.id %}">
+              {{ subject.department.name }}
+            </a>
+          </div>
+          <div class="mb-2">
+            <strong>Credit Hours:</strong> {{ subject.credit_hours }}
+          </div>
+          <div class="mb-2">
+            <strong>Elective:</strong> {% if subject.is_elective %}Yes{% else %}No{% endif %}
+          </div>
+          <div class="mb-2">
+            <strong>Classes:</strong> {{ analytics.class_count }}
+          </div>
+          <div class="mb-2">
+            <strong>Students:</strong> {{ analytics.student_count }}
+          </div>
+          <div class="mb-2">
+            <strong>Teachers:</strong> {{ analytics.teacher_count }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Summary -->
+    <div class="col-lg-8 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Performance Summary</h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <h5>Academic Performance</h5>
+                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ analytics.average_score|floatformat:1 }}%</div>
+                <div class="text-xs font-weight-bold text-gray-500 mb-1">Average Score</div>
+              </div>
+              <div class="mb-3">
+                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ analytics.pass_rate|floatformat:1 }}%</div>
+                <div class="text-xs font-weight-bold text-gray-500 mb-1">Pass Rate</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <h5>Assignment Statistics</h5>
+                <div class="h4 mb-0 font-weight-bold text-gray-800">
+                  {{ analytics.assignment_count }}
+                </div>
+                <div class="text-xs font-weight-bold text-gray-500 mb-1">Total Assignments</div>
+              </div>
+              <div class="mb-3">
+                <div class="h4 mb-0 font-weight-bold text-gray-800">
+                  {{ analytics.completion_rate|floatformat:1 }}%
+                </div>
+                <div class="text-xs font-weight-bold text-gray-500 mb-1">Assignment Completion Rate</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Class Performance Chart -->
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Class Performance</h6>
+        </div>
+        <div class="card-body">
+          <div id="classPerformanceChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grade Distribution Chart -->
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Grade Distribution</h6>
+        </div>
+        <div class="card-body">
+          <div id="gradeDistributionChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Class Performance Table -->
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Class Performance</h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered" id="classPerformanceTable" width="100%" cellspacing="0">
+              <thead>
+                <tr>
+                  <th>Class</th>
+                  <th>Average Score</th>
+                  <th>Pass Rate</th>
+                  <th>Students</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for class_name, data in analytics.class_performance.items %}
+                <tr>
+                  <td>{{ class_name }}</td>
+                  <td>{{ data.average_score|floatformat:1 }}%</td>
+                  <td>{{ data.pass_rate|floatformat:1 }}%</td>
+                  <td>{{ data.student_count }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Teacher Performance Table -->
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Teacher Performance</h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered" id="teacherPerformanceTable" width="100%" cellspacing="0">
+              <thead>
+                <tr>
+                  <th>Teacher</th>
+                  <th>Average Score</th>
+                  <th>Pass Rate</th>
+                  <th>Classes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for teacher_name, data in analytics.teacher_performance.items %}
+                <tr>
+                  <td>{{ teacher_name }}</td>
+                  <td>{{ data.average_score|floatformat:1 }}%</td>
+                  <td>{{ data.pass_rate|floatformat:1 }}%</td>
+                  <td>{{ data.class_count }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Annual Performance Trend -->
+    <div class="col-12 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Annual Performance Trend</h6>
+        </div>
+        <div class="card-body">
+          <div id="annualTrendChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
+
+<!-- ApexCharts JS -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  // Initialize DataTables
+  $(document).ready(function () {
+    $('#classPerformanceTable').DataTable({
+      responsive: true,
+      paging: true,
+      searching: true,
+      ordering: true,
+      info: true,
+      order: [[1, 'desc']], // Sort by average score by default
+      pageLength: 5,
+      lengthMenu: [[5, 10, 25, -1], [5, 10, 25, "All"]]
+    });
+
+    $('#teacherPerformanceTable').DataTable({
+      responsive: true,
+      paging: true,
+      searching: true,
+      ordering: true,
+      info: true,
+      order: [[1, 'desc']], // Sort by average score by default
+      pageLength: 5,
+      lengthMenu: [[5, 10, 25, -1], [5, 10, 25, "All"]]
+    });
+  });
+
+  // Class Performance Chart
+  var classPerformanceOptions = {
+    series: [{
+      name: 'Average Score',
+      data: [{{ class_scores }}]
+  }, {
+    name: 'Pass Rate',
+    data: [{{ class_pass_rates }}]
+        }],
+  chart: {
+    type: 'bar',
+      height: 300,
+        toolbar: {
+      show: false
+    }
+  },
+  plotOptions: {
+    bar: {
+      horizontal: false,
+        columnWidth: '55%',
+          endingShape: 'rounded'
+    },
+  },
+  dataLabels: {
+    enabled: false
+  },
+  stroke: {
+    show: true,
+      width: 2,
+        colors: ['transparent']
+  },
+  xaxis: {
+    categories: [{{ class_names }}],
+        },
+  yaxis: {
+    title: {
+      text: 'Percentage (%)'
+    },
+    min: 0,
+      max: 100
+  },
+  fill: {
+    opacity: 1
+  },
+  tooltip: {
+    y: {
+      formatter: function (val) {
+        return val.toFixed(1) + "%"
+      }
+    }
+  }
+    };
+
+  var classPerformanceChart = new ApexCharts(document.querySelector("#classPerformanceChart"), classPerformanceOptions);
+  classPerformanceChart.render();
+
+  // Grade Distribution Chart
+  var gradeDistributionOptions = {
+    series: [{{ grade_values }}],
+    chart: {
+      height: 300,
+      type: 'pie',
+    },
+    labels: [{{ grade_labels }}],
+  responsive: [{
+    breakpoint: 480,
+    options: {
+      chart: {
+        width: 200
+      },
+      legend: {
+        position: 'bottom'
+      }
+    }
+  }],
+    colors: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796']
+    };
+
+  var gradeDistributionChart = new ApexCharts(document.querySelector("#gradeDistributionChart"), gradeDistributionOptions);
+  gradeDistributionChart.render();
+
+  // Annual Performance Trend Chart
+  var annualTrendOptions = {
+    series: [{
+      name: 'Average Score',
+      data: [{{ annual_scores }}]
+  }, {
+    name: 'Pass Rate',
+    data: [{{ annual_pass_rates }}]
+        }],
+  chart: {
+    height: 300,
+      type: 'line',
+        toolbar: {
+      show: false
+    }
+  },
+  stroke: {
+    curve: 'smooth',
+      width: 3
+  },
+  xaxis: {
+    categories: [{{ annual_years }}]
+        },
+  yaxis: {
+    min: 0,
+      max: 100,
+        title: {
+      text: 'Percentage (%)'
+    }
+  },
+  markers: {
+    size: 4
+  },
+  tooltip: {
+    y: {
+      formatter: function(value) {
+        return value.toFixed(1) + "%";
+      }
+    }
+  }
+    };
+
+  var annualTrendChart = new ApexCharts(document.querySelector("#annualTrendChart"), annualTrendOptions);
+  annualTrendChart.render();
+</script>
+{% endblock %}

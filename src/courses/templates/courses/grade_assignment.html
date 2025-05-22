@@ -1,0 +1,368 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Grade Assignment - {{ submission.student.user.get_full_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .submission-info {
+    background-color: #f8f9fc;
+    border-radius: 0.35rem;
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+
+  .grade-slider {
+    width: 100%;
+  }
+
+  .grade-indicator {
+    font-size: 2rem;
+    font-weight: bold;
+  }
+
+  .grade-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+    font-size: 0.8rem;
+    color: #858796;
+  }
+
+  .submission-content {
+    border: 1px solid #e3e6f0;
+    border-radius: 0.35rem;
+    padding: 15px;
+    margin-bottom: 15px;
+    background-color: #fff;
+  }
+
+  .grade-badge {
+    font-size: 1rem;
+    padding: 0.5rem 0.75rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <h1 class="h3 mb-4 text-gray-800">Grade Assignment Submission</h1>
+
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+          <h6 class="m-0 font-weight-bold text-primary">{{ submission.assignment.title }}</h6>
+          <div>
+            <a href="{% url 'courses:assignment-submissions' submission.assignment.id %}"
+              class="btn btn-secondary btn-sm">
+              <i class="fas fa-arrow-left fa-sm"></i> Back to Submissions
+            </a>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="submission-info mb-4">
+            <div class="row">
+              <div class="col-md-6">
+                <p><strong>Student:</strong> {{ submission.student.user.get_full_name }}</p>
+                <p><strong>Class:</strong> {{ submission.assignment.class_obj }}</p>
+                <p><strong>Subject:</strong> {{ submission.assignment.subject.name }}</p>
+              </div>
+              <div class="col-md-6">
+                <p><strong>Due Date:</strong> {{ submission.assignment.due_date|date:"F d, Y" }}</p>
+                <p><strong>Submission Date:</strong> {{ submission.submission_date|date:"F d, Y" }} at
+                  {{ submission.submission_date|time:"H:i" }}
+                </p>
+                <p>
+                  <strong>Status:</strong>
+                  {% if submission.status == 'submitted' %}
+                  <span class="badge bg-success">On Time</span>
+                  {% elif submission.status == 'late' %}
+                  <span class="badge bg-warning">Late ({{ submission.days_late }} days)</span>
+                  {% else %}
+                  <span class="badge bg-primary">Graded</span>
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <h5 class="mb-3">Submission Content</h5>
+          {% if submission.content %}
+          <div class="submission-content mb-4">
+            {{ submission.content|linebreaks }}
+          </div>
+          {% else %}
+          <div class="alert alert-info mb-4">
+            <i class="fas fa-info-circle"></i> No text content was provided with this submission.
+          </div>
+          {% endif %}
+
+          {% if submission.file %}
+          <h5 class="mb-3">Attached File</h5>
+          <div class="d-grid gap-2 mb-4">
+            <a href="{{ submission.file.url }}" class="btn btn-primary" target="_blank">
+              <i class="fas fa-file-download"></i> Download Submission File
+            </a>
+          </div>
+          {% endif %}
+
+          <hr>
+
+          <h5 class="mb-3">Grading</h5>
+          <form method="post" id="gradingForm">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+              {% for error in form.non_field_errors %}
+              <p>{{ error }}</p>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="{{ form.marks_obtained.id_for_label }}">Marks (out of
+                    {{ submission.assignment.total_marks }}):</label>
+                  <div class="d-flex align-items-center">
+                    <input type="range" class="form-range grade-slider me-3" id="marksSlider" min="0"
+                      max="{{ submission.assignment.total_marks }}" step="0.5"
+                      value="{{ form.marks_obtained.value|default:0 }}">
+                    <div class="grade-indicator" id="marksDisplay">
+                      {{ form.marks_obtained.value|default:0 }}
+                    </div>
+                  </div>
+                  {{ form.marks_obtained }}
+                  {% if form.marks_obtained.errors %}
+                  <div class="invalid-feedback d-block">{{ form.marks_obtained.errors }}</div>
+                  {% endif %}
+                  <div class="grade-scale">
+                    <span>0</span>
+                    <span>{{ submission.assignment.total_marks|floatformat:0 }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card bg-light h-100">
+                  <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                    <h6 class="text-muted mb-2">Grade</h6>
+                    <div id="gradeBadge" class="grade-badge badge bg-primary mb-2">-</div>
+                    <div id="percentageDisplay">0%</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group mb-4">
+              <label for="{{ form.remarks.id_for_label }}">Feedback for Student:</label>
+              {{ form.remarks }}
+              {% if form.remarks.errors %}
+              <div class="invalid-feedback d-block">{{ form.remarks.errors }}</div>
+              {% endif %}
+              <small class="form-text text-muted">Provide constructive feedback, comments, and suggestions for
+                improvement.</small>
+            </div>
+
+            <div class="text-center mt-4">
+              <button type="submit" class="btn btn-primary" id="submitGradeBtn">
+                <i class="fas fa-check"></i> Submit Grading
+              </button>
+              <a href="{% url 'courses:assignment-submissions' submission.assignment.id %}"
+                class="btn btn-secondary">Cancel</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Assignment Details</h6>
+        </div>
+        <div class="card-body">
+          <h6>{{ submission.assignment.title }}</h6>
+          <p class="small">{{ submission.assignment.description|truncatewords:50 }}</p>
+          <hr>
+          <p><strong>Total Marks:</strong> {{ submission.assignment.total_marks }}</p>
+          <p><strong>Due Date:</strong> {{ submission.assignment.due_date|date:"F d, Y" }}</p>
+
+          {% if submission.assignment.attachment %}
+          <hr>
+          <a href="{{ submission.assignment.attachment.url }}" class="btn btn-info btn-sm" target="_blank">
+            <i class="fas fa-file"></i> View Assignment Document
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Student Information</h6>
+        </div>
+        <div class="card-body">
+          <div class="text-center mb-3">
+            <img class="img-profile rounded-circle" src="{{ submission.student.user.profile_picture.url|default:'#' }}"
+              style="width: 100px; height: 100px;">
+            <h5 class="mt-2">{{ submission.student.user.get_full_name }}</h5>
+            <p class="text-muted">{{ submission.student.admission_number }}</p>
+          </div>
+          <hr>
+          <p><strong>Roll Number:</strong> {{ submission.student.roll_number }}</p>
+          <p><strong>Class:</strong> {{ submission.student.current_class }}</p>
+
+          <hr>
+          <h6>Past Performance</h6>
+          <ul class="list-group list-group-flush">
+            {% for past_submission in past_submissions %}
+            <li class="list-group-item d-flex justify-content-between align-items-center p-2">
+              <span class="small">{{ past_submission.assignment.title|truncatechars:20 }}</span>
+              <span
+                class="badge {% if past_submission.score_percentage >= 80 %}bg-success{% elif past_submission.score_percentage >= 60 %}bg-primary{% elif past_submission.score_percentage >= 40 %}bg-warning{% else %}bg-danger{% endif %}">
+                {{ past_submission.marks_obtained }}/{{ past_submission.assignment.total_marks }}
+              </span>
+            </li>
+            {% empty %}
+            <li class="list-group-item text-center text-muted">No past submissions</li>
+            {% endfor %}
+          </ul>
+
+          <div class="d-grid gap-2 mt-3">
+            <a href="{% url 'students:student-detail' submission.student.id %}" class="btn btn-primary">
+              <i class="fas fa-user"></i> View Student Profile
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">Grading Rubric</h6>
+          <button class="btn btn-sm btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#gradeRubric">
+            <i class="fas fa-chevron-down"></i>
+          </button>
+        </div>
+        <div class="collapse show" id="gradeRubric">
+          <div class="card-body">
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>A (90-100%)</span>
+                <span class="badge bg-success">Excellent</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>B (80-89%)</span>
+                <span class="badge bg-primary">Very Good</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>C (70-79%)</span>
+                <span class="badge bg-info">Good</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>D (60-69%)</span>
+                <span class="badge bg-warning">Satisfactory</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>E (50-59%)</span>
+                <span class="badge bg-secondary">Pass</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>F (Below 50%)</span>
+                <span class="badge bg-danger">Fail</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Initialize form elements
+    $('.form-control').addClass('bg-light');
+
+    // Grading slider functionality
+    const marksSlider = document.getElementById('marksSlider');
+    const marksDisplay = document.getElementById('marksDisplay');
+    const percentageDisplay = document.getElementById('percentageDisplay');
+    const gradeBadge = document.getElementById('gradeBadge');
+    const marksInput = document.getElementById('{{ form.marks_obtained.id_for_label }}');
+    const totalMarks = {{ submission.assignment.total_marks }
+  };
+
+  // Set initial values
+  const initialMarks = {{ form.marks_obtained.value|default: 0 }};
+  updateGradeDisplay(initialMarks);
+
+  // Hide the actual input field
+  marksInput.style.display = 'none';
+
+  // Update the display when slider changes
+  marksSlider.addEventListener('input', function () {
+    const marks = parseFloat(this.value);
+    marksInput.value = marks;
+    updateGradeDisplay(marks);
+  });
+
+  // Function to update the grade display
+  function updateGradeDisplay(marks) {
+    marksDisplay.textContent = marks;
+
+    // Calculate percentage
+    const percentage = (marks / totalMarks) * 100;
+    percentageDisplay.textContent = percentage.toFixed(1) + '%';
+
+    // Update grade badge
+    let grade, badgeClass;
+
+    if (percentage >= 90) {
+      grade = 'A+';
+      badgeClass = 'bg-success';
+    } else if (percentage >= 80) {
+      grade = 'A';
+      badgeClass = 'bg-success';
+    } else if (percentage >= 70) {
+      grade = 'B+';
+      badgeClass = 'bg-primary';
+    } else if (percentage >= 60) {
+      grade = 'B';
+      badgeClass = 'bg-primary';
+    } else if (percentage >= 50) {
+      grade = 'C+';
+      badgeClass = 'bg-info';
+    } else if (percentage >= 40) {
+      grade = 'C';
+      badgeClass = 'bg-warning';
+    } else if (percentage >= 33) {
+      grade = 'D';
+      badgeClass = 'bg-secondary';
+    } else {
+      grade = 'F';
+      badgeClass = 'bg-danger';
+    }
+
+    gradeBadge.textContent = grade;
+
+    // Remove all bg-* classes
+    gradeBadge.className = gradeBadge.className.replace(/bg-\w+/g, '');
+
+    // Add the appropriate class
+    gradeBadge.classList.add('grade-badge', 'badge', badgeClass);
+  }
+
+  // Form submission
+  const gradingForm = document.getElementById('gradingForm');
+  const submitGradeBtn = document.getElementById('submitGradeBtn');
+
+  gradingForm.addEventListener('submit', function () {
+    submitGradeBtn.disabled = true;
+    submitGradeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+  });
+  });
+</script>
+{% endblock %}

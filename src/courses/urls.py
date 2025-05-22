@@ -206,4 +206,30 @@ urlpatterns = [
     ),
     # Dashboard
     path("dashboard/", views.courses_dashboard, name="dashboard"),
+    # Class Analytics
+    path("classes/<int:pk>/analytics/", views.class_analytics, name="class-analytics"),
+    # Subject Analytics
+    path(
+        "subjects/<int:pk>/analytics/",
+        views.subject_analytics,
+        name="subject-analytics",
+    ),
+    # Department Analytics
+    path(
+        "departments/<int:pk>/analytics/",
+        views.department_analytics,
+        name="department-analytics",
+    ),
+    # Timetable API
+    path(
+        "timetable/check-clashes/",
+        views.check_timetable_clashes,
+        name="check-timetable-clashes",
+    ),
+    path(
+        "timetable/teacher/<int:teacher_id>/",
+        views.get_teacher_timetable,
+        name="teacher-timetable",
+    ),
+    path("timetable/confirm/", views.confirm_timetable, name="confirm-timetable"),
 ]

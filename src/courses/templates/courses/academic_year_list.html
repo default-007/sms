@@ -1,0 +1,283 @@
+{% extends 'courses/base_list.html' %}
+{% load static %}
+
+{% block title %}Academic Years{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+  .year-progress {
+    height: 8px;
+  }
+
+  .current-year-badge {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    z-index: 10;
+  }
+
+  .year-card {
+    position: relative;
+    transition: all 0.3s ease;
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+
+  .year-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  }
+
+  .year-card.current {
+    border: 2px solid #1cc88a;
+  }
+
+  .year-header {
+    padding: 1rem;
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+  }
+
+  .year-body {
+    padding: 1rem;
+  }
+
+  .year-footer {
+    padding: 1rem;
+    background-color: #f8f9fc;
+    border-top: 1px solid #e3e6f0;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <h1 class="h3 mb-4 text-gray-800">Academic Years</h1>
+
+  <!-- Summary Cards -->
+  <div class="row">
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-primary shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                Total Academic Years</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ academic_years|length }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-calendar fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-success shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                Current Academic Year</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {% for year in academic_years %}
+                {% if year.is_current %}
+                {{ year.name }}
+                {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-info shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                Active Academic Year Progress</div>
+              <div class="row no-gutters align-items-center">
+                <div class="col-auto">
+                  <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">
+                    {% for year in academic_years %}
+                    {% if year.is_current %}
+                    {{ year.progress_percentage|floatformat:1 }}%
+                    {% endif %}
+                    {% endfor %}
+                  </div>
+                </div>
+                <div class="col">
+                  <div class="progress progress-sm mr-2">
+                    <div class="progress-bar bg-info" role="progressbar"
+                      style="width: {% for year in academic_years %}{% if year.is_current %}{{ year.progress_percentage }}{% endif %}{% endfor %}%"
+                      aria-valuenow="{% for year in academic_years %}{% if year.is_current %}{{ year.progress_percentage }}{% endif %}{% endfor %}"
+                      aria-valuemin="0" aria-valuemax="100"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-warning shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                Total Classes (Current Year)</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {% for year in academic_years %}
+                {% if year.is_current %}
+                {{ year.class_count }}
+                {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-chalkboard fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions Row -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <a href="{% url 'courses:academic-year-create' %}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Add New Academic Year
+              </a>
+            </div>
+            <div>
+              <form class="d-inline-block" method="get">
+                <div class="input-group">
+                  <input type="text" class="form-control" placeholder="Search by name..." name="search"
+                    value="{{ request.GET.search|default:'' }}">
+                  <button class="btn btn-outline-primary" type="submit">
+                    <i class="fas fa-search"></i>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Academic Years Grid -->
+  <div class="row">
+    {% for year in academic_years %}
+    <div class="col-xl-4 col-md-6 mb-4">
+      <div class="card shadow year-card {% if year.is_current %}current{% endif %}">
+        {% if year.is_current %}
+        <div class="current-year-badge">
+          <span class="badge bg-success">Current</span>
+        </div>
+        {% endif %}
+
+        <div class="year-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 font-weight-bold text-primary">{{ year.name }}</h5>
+            <div>
+              {% if year.is_active %}
+              <span class="badge bg-success">Active</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="year-body">
+          <div class="mb-3">
+            <div class="small text-muted mb-1">Duration</div>
+            <p>{{ year.start_date|date:"F d, Y" }} - {{ year.end_date|date:"F d, Y" }}</p>
+          </div>
+
+          <div class="mb-3">
+            <div class="small text-muted mb-1">Progress</div>
+            <div class="progress year-progress mb-1">
+              <div class="progress-bar" role="progressbar" style="width: {{ year.progress_percentage }}%;"
+                aria-valuenow="{{ year.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <div class="d-flex justify-content-between">
+              <small>{{ year.start_date|date:"M d" }}</small>
+              <small>{{ year.progress_percentage|floatformat:1 }}%</small>
+              <small>{{ year.end_date|date:"M d" }}</small>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-6">
+              <div class="small text-muted mb-1">Classes</div>
+              <p class="mb-0">{{ year.class_count }}</p>
+            </div>
+            <div class="col-6">
+              <div class="small text-muted mb-1">Students</div>
+              <p class="mb-0">{{ year.student_count }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="year-footer">
+          <div class="d-flex justify-content-between">
+            <div>
+              <a href="{% url 'courses:academic-year-detail' year.id %}" class="btn btn-sm btn-primary">
+                <i class="fas fa-eye"></i> View Details
+              </a>
+
+              {% if not year.is_current %}
+              <form method="post" action="{% url 'courses:set-current-academic-year' year.id %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-success">
+                  <i class="fas fa-check"></i> Set as Current
+                </button>
+              </form>
+              {% endif %}
+            </div>
+
+            <div>
+              <a href="{% url 'courses:academic-year-update' year.id %}" class="btn btn-sm btn-info">
+                <i class="fas fa-edit"></i>
+              </a>
+              {% if not year.classes.exists %}
+              <a href="{% url 'courses:academic-year-delete' year.id %}" class="btn btn-sm btn-danger">
+                <i class="fas fa-trash"></i>
+              </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+      <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> No academic years found. Create your first academic year to get started.
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block table_content %}{% endblock %}
+{% block after_table %}{% endblock %}

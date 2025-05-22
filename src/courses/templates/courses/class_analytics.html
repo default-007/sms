@@ -1,0 +1,493 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ class_obj }} Analytics{% endblock %}
+
+{% block extra_css %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css"
+  href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css">
+<!-- ApexCharts CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/apexcharts/dist/apexcharts.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <h1 class="h3 mb-4 text-gray-800">{{ class_obj }} Analytics</h1>
+
+  <div class="row">
+    <!-- Class Info Card -->
+    <div class="col-lg-4 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Class Information</h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-2">
+            <strong>Grade:</strong> {{ class_obj.grade.name }}
+          </div>
+          <div class="mb-2">
+            <strong>Section:</strong> {{ class_obj.section.name }}
+          </div>
+          <div class="mb-2">
+            <strong>Academic Year:</strong> {{ class_obj.academic_year.name }}
+          </div>
+          <div class="mb-2">
+            <strong>Class Teacher:</strong>
+            {% if class_obj.class_teacher %}
+            <a href="{% url 'teachers:teacher-detail' class_obj.class_teacher.id %}">
+              {{ class_obj.class_teacher.user.get_full_name }}
+            </a>
+            {% else %}
+            <span class="text-muted">Not assigned</span>
+            {% endif %}
+          </div>
+          <div class="mb-2">
+            <strong>Room:</strong> {{ class_obj.room_number|default:"Not assigned" }}
+          </div>
+          <div class="mb-2">
+            <strong>Students:</strong> {{ class_obj.student_count }} / {{ class_obj.capacity }}
+          </div>
+          <div class="mb-2">
+            <strong>Occupancy Rate:</strong>
+            <div class="progress mt-1">
+              <div
+                class="progress-bar {% if class_obj.occupancy_rate > 90 %}bg-danger{% elif class_obj.occupancy_rate > 75 %}bg-warning{% else %}bg-success{% endif %}"
+                role="progressbar" style="width: {{ class_obj.occupancy_rate }}%;"
+                aria-valuenow="{{ class_obj.occupancy_rate }}" aria-valuemin="0" aria-valuemax="100">
+                {{ class_obj.occupancy_rate|floatformat:1 }}%
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Summary -->
+    <div class="col-lg-8 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Performance Summary</h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <h5>Academic Performance</h5>
+                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ analytics.average_score|floatformat:1 }}%</div>
+                <div class="text-xs font-weight-bold text-gray-500 mb-1">Average Score</div>
+              </div>
+              <div class="mb-3">
+                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ analytics.pass_rate|floatformat:1 }}%</div>
+                <div class="text-xs font-weight-bold text-gray-500 mb-1">Pass Rate</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <h5>Attendance</h5>
+                <div class="h4 mb-0 font-weight-bold text-gray-800">
+                  {{ analytics.average_attendance|floatformat:1 }}%
+                </div>
+                <div class="text-xs font-weight-bold text-gray-500 mb-1">Average Attendance Rate</div>
+              </div>
+              <div class="mb-3">
+                <div class="h4 mb-0 font-weight-bold text-gray-800">
+                  {{ analytics.assignment_completion|floatformat:1 }}%
+                </div>
+                <div class="text-xs font-weight-bold text-gray-500 mb-1">Assignment Completion Rate</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Monthly Attendance Chart -->
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Monthly Attendance</h6>
+        </div>
+        <div class="card-body">
+          <div id="monthlyAttendanceChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Subject Performance Chart -->
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Subject Performance</h6>
+        </div>
+        <div class="card-body">
+          <div id="subjectPerformanceChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Student Performance Table -->
+    <div class="col-12 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Student Performance</h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered" id="studentPerformanceTable" width="100%" cellspacing="0">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Average Score</th>
+                  <th>Attendance Rate</th>
+                  <th>Assignment Completion</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for student in analytics.student_performance %}
+                <tr>
+                  <td>
+                    <a href="{% url 'students:student-detail' student.student.id %}">
+                      {{ student.student.user.get_full_name }}
+                    </a>
+                  </td>
+                  <td>{{ student.average_score|floatformat:1 }}%</td>
+                  <td>
+                    <div class="progress">
+                      <div
+                        class="progress-bar {% if student.attendance_rate < 75 %}bg-danger{% elif student.attendance_rate < 90 %}bg-warning{% else %}bg-success{% endif %}"
+                        role="progressbar" style="width: {{ student.attendance_rate }}%;"
+                        aria-valuenow="{{ student.attendance_rate }}" aria-valuemin="0" aria-valuemax="100">
+                        {{ student.attendance_rate|floatformat:1 }}%
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="progress">
+                      <div
+                        class="progress-bar {% if student.assignment_completion < 75 %}bg-danger{% elif student.assignment_completion < 90 %}bg-warning{% else %}bg-success{% endif %}"
+                        role="progressbar" style="width: {{ student.assignment_completion }}%;"
+                        aria-valuenow="{{ student.assignment_completion }}" aria-valuemin="0" aria-valuemax="100">
+                        {{ student.assignment_completion|floatformat:1 }}%
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    {% if student.average_score >= 90 %}
+                    <span class="badge bg-success">Excellent</span>
+                    {% elif student.average_score >= 75 %}
+                    <span class="badge bg-primary">Good</span>
+                    {% elif student.average_score >= 60 %}
+                    <span class="badge bg-warning">Average</span>
+                    {% elif student.average_score >= 40 %}
+                    <span class="badge bg-danger">Below Average</span>
+                    {% else %}
+                    <span class="badge bg-dark">Critical</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <a href="{% url 'students:student-detail' student.student.id %}" class="btn btn-sm btn-primary">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="{% url 'students:student-analytics' student.student.id %}" class="btn btn-sm btn-info">
+                      <i class="fas fa-chart-line"></i>
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Assignment Statistics -->
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Assignment Statistics</h6>
+        </div>
+        <div class="card-body">
+          <div id="assignmentCompletionChart" style="height: 300px;"></div>
+          <hr>
+          <div class="table-responsive mt-3">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Subject</th>
+                  <th>Assignments</th>
+                  <th>Completion Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for subject, stats in analytics.assignment_stats.items %}
+                <tr>
+                  <td>{{ subject }}</td>
+                  <td>{{ stats.count }}</td>
+                  <td>{{ stats.completion_rate|floatformat:1 }}%</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grade Distribution -->
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Grade Distribution</h6>
+        </div>
+        <div class="card-body">
+          <div id="gradeDistributionChart" style="height: 300px;"></div>
+          <hr>
+          <div class="row mt-3">
+            <div class="col-md-6">
+              <h5>Top Performers</h5>
+              <ol>
+                {% for student in analytics.top_performers %}
+                <li>
+                  <a href="{% url 'students:student-detail' student.student.id %}">
+                    {{ student.student.user.get_full_name }}
+                  </a>
+                  ({{ student.average_score|floatformat:1 }}%)
+                </li>
+                {% endfor %}
+              </ol>
+            </div>
+            <div class="col-md-6">
+              <h5>Students Needing Support</h5>
+              <ol>
+                {% for student in analytics.struggling_students %}
+                <li>
+                  <a href="{% url 'students:student-detail' student.student.id %}">
+                    {{ student.student.user.get_full_name }}
+                  </a>
+                  ({{ student.average_score|floatformat:1 }}%)
+                </li>
+                {% endfor %}
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
+
+<!-- ApexCharts JS -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  // Initialize DataTables
+  $(document).ready(function () {
+    $('#studentPerformanceTable').DataTable({
+      responsive: true,
+      paging: true,
+      searching: true,
+      ordering: true,
+      info: true,
+      order: [[1, 'desc']], // Sort by average score by default
+      pageLength: 10,
+      lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]]
+    });
+  });
+
+  // Monthly Attendance Chart
+  var monthlyAttendanceOptions = {
+    series: [{
+      name: 'Attendance Rate',
+      data: [
+        {{ analytics.monthly_attendance.1|default: 0 | floatformat: 1 }},
+    {{ analytics.monthly_attendance.2|default: 0 | floatformat: 1 }},
+    {{ analytics.monthly_attendance.3|default: 0 | floatformat: 1 }},
+  { { analytics.monthly_attendance.4 |default: 0 | floatformat: 1 } },
+  { { analytics.monthly_attendance.5 |default: 0 | floatformat: 1 } },
+  { { analytics.monthly_attendance.6 |default: 0 | floatformat: 1 } },
+  { { analytics.monthly_attendance.7 |default: 0 | floatformat: 1 } },
+  { { analytics.monthly_attendance.8 |default: 0 | floatformat: 1 } },
+  { { analytics.monthly_attendance.9 |default: 0 | floatformat: 1 } },
+  { { analytics.monthly_attendance.10 |default: 0 | floatformat: 1 } },
+  { { analytics.monthly_attendance.11 |default: 0 | floatformat: 1 } },
+  { { analytics.monthly_attendance.12 |default: 0 | floatformat: 1 } }
+            ]
+        }],
+  chart: {
+    height: 300,
+      type: 'line',
+        toolbar: {
+      show: false
+    }
+  },
+  stroke: {
+    curve: 'smooth',
+      width: 3
+  },
+  xaxis: {
+    categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  },
+  yaxis: {
+    min: 0,
+      max: 100,
+        title: {
+      text: 'Attendance Rate (%)'
+    }
+  },
+  markers: {
+    size: 4
+  },
+  tooltip: {
+    y: {
+      formatter: function(value) {
+        return value.toFixed(1) + "%";
+      }
+    }
+  }
+    };
+
+  var monthlyAttendanceChart = new ApexCharts(document.querySelector("#monthlyAttendanceChart"), monthlyAttendanceOptions);
+  monthlyAttendanceChart.render();
+
+  // Subject Performance Chart
+  var subjectPerformanceOptions = {
+    series: [{
+      name: 'Average Score',
+      data: [{{ subject_scores| safe }}]
+        }, {
+    name: 'Pass Rate',
+      data: [{{ subject_pass_rates| safe }}]
+        }],
+  chart: {
+    type: 'bar',
+      height: 300,
+        toolbar: {
+      show: false
+    }
+  },
+  plotOptions: {
+    bar: {
+      horizontal: false,
+        columnWidth: '55%',
+          endingShape: 'rounded'
+    },
+  },
+  dataLabels: {
+    enabled: false
+  },
+  stroke: {
+    show: true,
+      width: 2,
+        colors: ['transparent']
+  },
+  xaxis: {
+    categories: [{{ subject_names| safe }}],
+        },
+  yaxis: {
+    title: {
+      text: 'Percentage (%)'
+    },
+    min: 0,
+      max: 100
+  },
+  fill: {
+    opacity: 1
+  },
+  tooltip: {
+    y: {
+      formatter: function (val) {
+        return val.toFixed(1) + "%"
+      }
+    }
+  }
+    };
+
+  var subjectPerformanceChart = new ApexCharts(document.querySelector("#subjectPerformanceChart"), subjectPerformanceOptions);
+  subjectPerformanceChart.render();
+
+  // Assignment Completion Chart
+  var assignmentCompletionOptions = {
+    series: [
+      {{ analytics.assignment_completion | floatformat: 1 }},
+    {{ analytics.on_time_rate| floatformat: 1 }},
+  { { analytics.late_rate | floatformat: 1 } },
+  { { analytics.missing_rate | floatformat: 1 } }
+        ],
+  chart: {
+    height: 300,
+      type: 'radialBar',
+        },
+  plotOptions: {
+    radialBar: {
+      hollow: {
+        size: '40%',
+                },
+      dataLabels: {
+        name: {
+          fontSize: '22px',
+                    },
+        value: {
+          fontSize: '16px',
+                    },
+        total: {
+          show: true,
+            label: 'Total',
+              formatter: function (w) {
+                return '{{ analytics.assignment_count }}';
+              }
+        }
+      }
+    }
+  },
+  labels: ['Completed', 'On Time', 'Late', 'Missing'],
+    colors: ['#4e73df', '#1cc88a', '#f6c23e', '#e74a3b']
+    };
+
+  var assignmentCompletionChart = new ApexCharts(document.querySelector("#assignmentCompletionChart"), assignmentCompletionOptions);
+  assignmentCompletionChart.render();
+
+  // Grade Distribution Chart
+  var gradeDistributionOptions = {
+    series: [{{ grade_distribution_values| safe }}],
+  chart: {
+    height: 300,
+      type: 'pie',
+        },
+  labels: [{{ grade_distribution_labels| safe }}],
+    responsive: [{
+      breakpoint: 480,
+      options: {
+        chart: {
+          width: 200
+        },
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }],
+      colors: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796']
+    };
+
+  var gradeDistributionChart = new ApexCharts(document.querySelector("#gradeDistributionChart"), gradeDistributionOptions);
+  gradeDistributionChart.render();
+</script>
+{% endblock %}

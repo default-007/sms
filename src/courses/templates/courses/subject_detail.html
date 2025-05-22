@@ -1,0 +1,523 @@
+{% extends 'courses/base_detail.html' %}
+{% load static %}
+
+{% block title %}{{ subject.name }} - Subject Details{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/apexcharts/dist/apexcharts.css">
+{% endblock %}
+
+{% block detail_content %}
+<div class="row mb-4">
+  <div class="col-md-12">
+    <h4>{{ subject.name }}</h4>
+    <span class="badge {% if subject.is_elective %}bg-info{% else %}bg-primary{% endif %} mb-3">
+      {% if subject.is_elective %}Elective{% else %}Core{% endif %} Subject
+    </span>
+    <hr>
+
+    <div class="row">
+      <div class="col-md-6">
+        <p><strong>Subject Code:</strong> {{ subject.code }}</p>
+        <p><strong>Department:</strong>
+          <a href="{% url 'courses:department-detail' subject.department.id %}">
+            {{ subject.department.name }}
+          </a>
+        </p>
+        <p><strong>Credit Hours:</strong> {{ subject.credit_hours }}</p>
+      </div>
+      <div class="col-md-6">
+        <div class="card bg-light">
+          <div class="card-body">
+            <h5 class="card-title">Subject Stats</h5>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="small mb-2">
+                  <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Current Classes</div>
+                  <div class="h5 mb-0 font-weight-bold text-gray-800">{{ subject.current_class_count }}</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="small mb-2">
+                  <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Current Students</div>
+                  <div class="h5 mb-0 font-weight-bold text-gray-800">{{ subject.current_student_count }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="small">
+                  <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Teachers</div>
+                  <div class="h5 mb-0 font-weight-bold text-gray-800">{{ subject.current_teacher_count }}</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="small">
+                  <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Syllabi</div>
+                  <div class="h5 mb-0 font-weight-bold text-gray-800">{{ current_syllabi.count }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-4">
+      <div class="card-header">
+        <h6 class="m-0 font-weight-bold text-primary">Subject Description</h6>
+      </div>
+      <div class="card-body">
+        {% if subject.description %}
+        {{ subject.description|linebreaks }}
+        {% else %}
+        <p class="text-muted">No description available.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-12">
+    <ul class="nav nav-tabs" id="subjectTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="classes-tab" data-bs-toggle="tab" data-bs-target="#classes" type="button"
+          role="tab" aria-controls="classes" aria-selected="true">Classes</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="teachers-tab" data-bs-toggle="tab" data-bs-target="#teachers" type="button"
+          role="tab" aria-controls="teachers" aria-selected="false">Teachers</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="syllabi-tab" data-bs-toggle="tab" data-bs-target="#syllabi" type="button"
+          role="tab" aria-controls="syllabi" aria-selected="false">Syllabi</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="assignments-tab" data-bs-toggle="tab" data-bs-target="#assignments" type="button"
+          role="tab" aria-controls="assignments" aria-selected="false">Assignments</button>
+      </li>
+    </ul>
+
+    <div class="tab-content mt-3" id="subjectTabsContent">
+      <!-- Classes Tab -->
+      <div class="tab-pane fade show active" id="classes" role="tabpanel" aria-labelledby="classes-tab">
+        <div class="table-responsive">
+          <table class="table table-bordered dataTable" width="100%" cellspacing="0">
+            <thead>
+              <tr>
+                <th>Class</th>
+                <th>Academic Year</th>
+                <th>Teacher</th>
+                <th>Students</th>
+                <th>Schedule</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for class in classes %}
+              <tr>
+                <td>{{ class.grade.name }}-{{ class.section.name }}</td>
+                <td>
+                  {{ class.academic_year.name }}
+                  {% if class.academic_year.is_current %}<span class="badge bg-success">Current</span>{% endif %}
+                </td>
+                <td>
+                  {% with teacher=class.timetable_entries.filter(subject=subject).first.teacher %}
+                  {% if teacher %}
+                  <a href="{% url 'teachers:teacher-detail' teacher.id %}">
+                    {{ teacher.user.get_full_name }}
+                  </a>
+                  {% else %}
+                  <span class="text-muted">Not assigned</span>
+                  {% endif %}
+                  {% endwith %}
+                </td>
+                <td>{{ class.student_count }}</td>
+                <td>
+                  {% with entries=class.timetable_entries.filter(subject=subject) %}
+                  {% if entries %}
+                  <ul class="list-unstyled small">
+                    {% for entry in entries %}
+                    <li>
+                      {{ entry.time_slot.get_day_of_week_display }}:
+                      {{ entry.time_slot.start_time|time:"H:i" }} - {{ entry.time_slot.end_time|time:"H:i" }}
+                    </li>
+                    {% endfor %}
+                  </ul>
+                  {% else %}
+                  <span class="text-muted">No schedule</span>
+                  {% endif %}
+                  {% endwith %}
+                </td>
+                <td>
+                  <a href="{% url 'courses:class-detail' class.id %}" class="btn btn-info btn-sm">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  <a href="{% url 'courses:class-timetable' class.id %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-calendar"></i>
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" class="text-center">No classes assigned to this subject</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Teachers Tab -->
+      <div class="tab-pane fade" id="teachers" role="tabpanel" aria-labelledby="teachers-tab">
+        <div class="table-responsive">
+          <table class="table table-bordered dataTable" width="100%" cellspacing="0">
+            <thead>
+              <tr>
+                <th>Teacher</th>
+                <th>Classes</th>
+                <th>Students</th>
+                <th>Qualification</th>
+                <th>Experience</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for teacher in teachers %}
+              <tr>
+                <td>{{ teacher.user.get_full_name }}</td>
+                <td>{{ teacher.classes_teaching_subject }}</td>
+                <td>{{ teacher.students_teaching_subject }}</td>
+                <td>{{ teacher.qualification }}</td>
+                <td>{{ teacher.experience_years }} years</td>
+                <td>
+                  <a href="{% url 'teachers:teacher-detail' teacher.id %}" class="btn btn-info btn-sm">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  <a href="{% url 'courses:teacher-timetable' teacher.id %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-calendar"></i>
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" class="text-center">No teachers assigned to this subject</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Syllabi Tab -->
+      <div class="tab-pane fade" id="syllabi" role="tabpanel" aria-labelledby="syllabi-tab">
+        <div class="table-responsive">
+          <table class="table table-bordered dataTable" width="100%" cellspacing="0">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Grade</th>
+                <th>Academic Year</th>
+                <th>Completion</th>
+                <th>Last Updated</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for syllabus in all_syllabi %}
+              <tr>
+                <td>{{ syllabus.title }}</td>
+                <td>{{ syllabus.grade.name }}</td>
+                <td>
+                  {{ syllabus.academic_year.name }}
+                  {% if syllabus.academic_year.is_current %}<span class="badge bg-success">Current</span>{% endif %}
+                </td>
+                <td>
+                  <div class="progress" style="height: 5px;">
+                    <div
+                      class="progress-bar {% if syllabus.completion_percentage == 100 %}bg-success{% elif syllabus.completion_percentage > 50 %}bg-info{% else %}bg-warning{% endif %}"
+                      role="progressbar" style="width: {{ syllabus.completion_percentage }}%;"
+                      aria-valuenow="{{ syllabus.completion_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                  </div>
+                  <small>{{ syllabus.completion_percentage|floatformat:0 }}% complete</small>
+                </td>
+                <td>{{ syllabus.last_updated_at|date:"M d, Y" }}</td>
+                <td>
+                  <a href="{% url 'courses:syllabus-detail' syllabus.id %}" class="btn btn-info btn-sm">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  <a href="{% url 'courses:syllabus-update' syllabus.id %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" class="text-center">No syllabi available for this subject</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-3">
+          <a href="{% url 'courses:syllabus-create' %}?subject={{ subject.id }}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Create New Syllabus
+          </a>
+        </div>
+      </div>
+
+      <!-- Assignments Tab -->
+      <div class="tab-pane fade" id="assignments" role="tabpanel" aria-labelledby="assignments-tab">
+        <div class="table-responsive">
+          <table class="table table-bordered dataTable" width="100%" cellspacing="0">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Class</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th>Submissions</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for assignment in assignments %}
+              <tr>
+                <td>{{ assignment.title }}</td>
+                <td>{{ assignment.class_obj }}</td>
+                <td>
+                  {{ assignment.due_date|date:"M d, Y" }}
+                  {% if assignment.is_overdue %}
+                  <span class="badge bg-danger">Overdue</span>
+                  {% elif assignment.days_remaining <= 2 %}
+                  <span class="badge bg-warning">{{ assignment.days_remaining }} days left</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if assignment.status == 'draft' %}
+                  <span class="badge bg-secondary">Draft</span>
+                  {% elif assignment.status == 'published' %}
+                  <span class="badge bg-primary">Published</span>
+                  {% else %}
+                  <span class="badge bg-dark">Closed</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="progress flex-grow-1 me-2" style="height: 5px;">
+                      <div class="progress-bar" role="progressbar" style="width: {{ assignment.submission_rate }}%;"
+                        aria-valuenow="{{ assignment.submission_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <small>{{ assignment.submission_count }}/{{ assignment.class_obj.students.count }}</small>
+                  </div>
+                </td>
+                <td>
+                  <a href="{% url 'courses:assignment-detail' assignment.id %}" class="btn btn-info btn-sm">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  <a href="{% url 'courses:assignment-submissions' assignment.id %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-list-check"></i>
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" class="text-center">No assignments for this subject</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-3">
+          <a href="{% url 'courses:assignment-create' %}?subject={{ subject.id }}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Create New Assignment
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block sidebar_title %}Performance Overview{% endblock %}
+{% block sidebar_content %}
+<div id="performanceChart" style="height: 200px;"></div>
+<hr>
+<div class="mt-3">
+  <h6>Pass Rate by Class</h6>
+  <ul class="list-group list-group-flush">
+    {% for class_name, stats in performance.class_stats.items %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+      {{ class_name }}
+      <div>
+        <span class="badge bg-primary rounded-pill">{{ stats.pass_rate|floatformat:1 }}%</span>
+      </div>
+    </li>
+    {% empty %}
+    <li class="list-group-item text-center text-muted">No performance data available</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}
+
+{% block additional_sidebar_cards %}
+<div class="card shadow mb-4">
+  <div class="card-header py-3">
+    <h6 class="m-0 font-weight-bold text-primary">Grade Distribution</h6>
+  </div>
+  <div class="card-body">
+    <div id="gradeDistributionChart" style="height: 200px;"></div>
+  </div>
+</div>
+
+<div class="card shadow mb-4">
+  <div class="card-header py-3">
+    <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+  </div>
+  <div class="card-body">
+    <a href="{% url 'courses:subject-analytics' subject.id %}" class="btn btn-success btn-block mb-2">
+      <i class="fas fa-chart-line"></i> View Analytics
+    </a>
+    <a href="{% url 'courses:syllabus-create' %}?subject={{ subject.id }}" class="btn btn-info btn-block mb-2">
+      <i class="fas fa-book"></i> Create Syllabus
+    </a>
+    <a href="{% url 'courses:assignment-create' %}?subject={{ subject.id }}" class="btn btn-primary btn-block mb-2">
+      <i class="fas fa-tasks"></i> Create Assignment
+    </a>
+    <a href="{% url 'courses:timetable-create' %}?subject={{ subject.id }}" class="btn btn-secondary btn-block">
+      <i class="fas fa-calendar-plus"></i> Add to Timetable
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  $(document).ready(function () {
+    $('.dataTable').DataTable({
+      paging: true,
+      searching: true,
+      ordering: true,
+      info: true,
+      pageLength: 10,
+      lengthMenu: [[5, 10, 25, -1], [5, 10, 25, "All"]]
+    });
+
+    // Performance Chart
+    var performanceOptions = {
+      series: [{
+        name: 'Average Score',
+        data: [{{ performance.average_score | floatformat: 1 }}]
+    }, {
+      name: 'Pass Rate',
+      data: [{{ performance.pass_rate| floatformat: 1
+  }}]
+      }],
+    chart: {
+    type: 'bar',
+    height: 200,
+    stacked: false,
+    toolbar: {
+      show: false
+    }
+  },
+    plotOptions: {
+    bar: {
+      horizontal: false,
+      columnWidth: '55%',
+    },
+  },
+    dataLabels: {
+    enabled: false
+  },
+    stroke: {
+    width: 2
+  },
+    xaxis: {
+    categories: ['Overall Performance'],
+    labels: {
+      show: false
+    }
+  },
+    yaxis: {
+    title: {
+      text: 'Percentage (%)'
+    },
+    min: 0,
+    max: 100
+  },
+    tooltip: {
+    y: {
+      formatter: function (val) {
+        return val.toFixed(1) + "%";
+      }
+    }
+  },
+    fill: {
+    opacity: 1
+  },
+    legend: {
+    position: 'top'
+  }
+    };
+
+  var performanceChart = new ApexCharts(document.querySelector("#performanceChart"), performanceOptions);
+  performanceChart.render();
+
+  // Grade Distribution Chart
+  var gradeDistributionOptions = {
+    series: [
+      {% for grade, percentage in performance.grade_distribution.items %}
+  { { percentage | floatformat: 1 } },
+  {% endfor %}
+      ],
+  chart: {
+    type: 'donut',
+      height: 200
+  },
+  labels: [
+    {% for grade, percentage in performance.grade_distribution.items %}
+  '{{ grade }}',
+    {% endfor %}
+      ],
+  colors: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796'],
+    legend: {
+    position: 'bottom',
+      offsetY: 0
+  },
+  dataLabels: {
+    enabled: false
+  },
+  plotOptions: {
+    pie: {
+      donut: {
+        size: '60%'
+      }
+    }
+  },
+  responsive: [{
+    breakpoint: 480,
+    options: {
+      chart: {
+        width: 200
+      },
+      legend: {
+        position: 'bottom'
+      }
+    }
+  }]
+    };
+
+  var gradeDistributionChart = new ApexCharts(document.querySelector("#gradeDistributionChart"), gradeDistributionOptions);
+  gradeDistributionChart.render();
+  });
+</script>
+{% endblock %}

@@ -1276,3 +1276,386 @@ def grade_assignment(request, pk):
             "student": submission.student,
         },
     )
+
+
+@login_required
+@permission_required("courses.view_class")
+def class_analytics(request, pk):
+    """View analytics for a class."""
+    class_obj = get_object_or_404(Class, pk=pk)
+
+    # Get analytics data
+    from src.courses.services.analytics_service import AnalyticsService
+
+    analytics = AnalyticsService.get_class_analytics(class_obj)
+
+    # Prepare data for charts
+    subject_names = []
+    subject_scores = []
+    subject_pass_rates = []
+
+    for subject_name, data in analytics.get("subject_performance", {}).items():
+        subject_names.append(f"'{subject_name}'")
+        subject_scores.append(data.get("average_score", 0))
+        subject_pass_rates.append(data.get("pass_rate", 0))
+
+    # Grade distribution data
+    from src.exams.models import StudentExamResult
+
+    grade_distribution = (
+        StudentExamResult.objects.filter(
+            student__current_class=class_obj,
+            exam_schedule__exam__academic_year=class_obj.academic_year,
+        )
+        .values("grade")
+        .annotate(count=Count("id"))
+    )
+
+    grade_labels = []
+    grade_values = []
+
+    for grade in grade_distribution:
+        grade_labels.append(f"'{grade['grade']}'")
+        grade_values.append(grade["count"])
+
+    context = {
+        "class_obj": class_obj,
+        "analytics": analytics,
+        "subject_names": ",".join(subject_names),
+        "subject_scores": ",".join(map(str, subject_scores)),
+        "subject_pass_rates": ",".join(map(str, subject_pass_rates)),
+        "grade_distribution_labels": ",".join(grade_labels),
+        "grade_distribution_values": ",".join(map(str, grade_values)),
+    }
+
+    return render(request, "courses/class_analytics.html", context)
+
+
+@login_required
+@permission_required("courses.view_subject")
+def subject_analytics(request, pk):
+    """View analytics for a subject."""
+    subject = get_object_or_404(Subject, pk=pk)
+
+    # Get academic year
+    academic_year_id = request.GET.get("academic_year", "")
+    if academic_year_id:
+        academic_year = get_object_or_404(AcademicYear, pk=academic_year_id)
+    else:
+        academic_year = AcademicYear.objects.filter(is_current=True).first()
+
+    # Get analytics data
+    from src.courses.services.analytics_service import AnalyticsService
+
+    analytics = AnalyticsService.get_subject_analytics(subject, academic_year)
+
+    # Prepare data for charts
+    class_names = []
+    class_scores = []
+    class_pass_rates = []
+
+    for class_name, data in analytics.get("class_performance", {}).items():
+        class_names.append(f"'{class_name}'")
+        class_scores.append(data.get("average_score", 0))
+        class_pass_rates.append(data.get("pass_rate", 0))
+
+    # Grade distribution data
+    grade_labels = []
+    grade_values = []
+
+    for grade, percentage in analytics.get("grade_distribution", {}).items():
+        grade_labels.append(f"'{grade}'")
+        grade_values.append(percentage)
+
+    context = {
+        "subject": subject,
+        "academic_year": academic_year,
+        "analytics": analytics,
+        "academic_years": AcademicYear.objects.all().order_by("-start_date"),
+        "class_names": ",".join(class_names),
+        "class_scores": ",".join(map(str, class_scores)),
+        "class_pass_rates": ",".join(map(str, class_pass_rates)),
+        "grade_labels": ",".join(grade_labels),
+        "grade_values": ",".join(map(str, grade_values)),
+    }
+
+    return render(request, "courses/subject_analytics.html", context)
+
+
+@login_required
+@permission_required("courses.view_department")
+def department_analytics(request, pk):
+    """View analytics for a department."""
+    department = get_object_or_404(Department, pk=pk)
+
+    # Get academic year
+    academic_year_id = request.GET.get("academic_year", "")
+    if academic_year_id:
+        academic_year = get_object_or_404(AcademicYear, pk=academic_year_id)
+    else:
+        academic_year = AcademicYear.objects.filter(is_current=True).first()
+
+    # Get analytics data
+    from src.courses.services.analytics_service import AnalyticsService
+
+    analytics = AnalyticsService.get_department_analytics(department, academic_year)
+
+    # Prepare data for charts
+    subject_names = []
+    subject_scores = []
+    subject_pass_rates = []
+
+    for subject_name, data in analytics.get("subject_performance", {}).items():
+        subject_names.append(f"'{subject_name}'")
+        subject_scores.append(data.get("average_score", 0))
+        subject_pass_rates.append(data.get("pass_rate", 0))
+
+    # Teacher data
+    teacher_names = []
+    teacher_scores = []
+
+    for teacher_name, data in analytics.get("teacher_performance", {}).items():
+        teacher_names.append(f"'{teacher_name}'")
+        teacher_scores.append(data.get("average_score", 0))
+
+    context = {
+        "department": department,
+        "academic_year": academic_year,
+        "analytics": analytics,
+        "academic_years": AcademicYear.objects.all().order_by("-start_date"),
+        "subject_names": ",".join(subject_names),
+        "subject_scores": ",".join(map(str, subject_scores)),
+        "subject_pass_rates": ",".join(map(str, subject_pass_rates)),
+        "teacher_names": ",".join(teacher_names),
+        "teacher_scores": ",".join(map(str, teacher_scores)),
+    }
+
+    return render(request, "courses/department_analytics.html", context)
+
+
+@login_required
+@permission_required("courses.view_timetable")
+def check_timetable_clashes(request):
+    """API endpoint to check timetable clashes."""
+    from src.courses.services.timetable_service import TimetableService
+
+    clashes = TimetableService.get_timetable_clashes()
+
+    # Format clashes for the response
+    formatted_clashes = []
+    for clash in clashes:
+        formatted_clash = {
+            "time_slot": str(clash["time_slot"]),
+            "teacher_clashes": [],
+            "room_clashes": [],
+            "class_clashes": [],
+        }
+
+        # Format teacher clashes
+        for teacher_clash in clash["teacher_clashes"]:
+            from src.teachers.models import Teacher
+
+            teacher = Teacher.objects.get(id=teacher_clash["teacher"])
+            formatted_clash["teacher_clashes"].append(teacher.user.get_full_name())
+
+        # Format room clashes
+        for room_clash in clash["room_clashes"]:
+            if room_clash["room"]:  # Skip empty rooms
+                formatted_clash["room_clashes"].append(room_clash["room"])
+
+        # Format class clashes
+        for class_clash in clash["class_clashes"]:
+            class_obj = Class.objects.get(id=class_clash["class_obj"])
+            formatted_clash["class_clashes"].append(str(class_obj))
+
+        formatted_clashes.append(formatted_clash)
+
+    return JsonResponse({"clashes": formatted_clashes})
+
+
+@login_required
+@permission_required("courses.view_timetable")
+def get_teacher_timetable(request, teacher_id):
+    """View timetable for a specific teacher."""
+    from src.teachers.models import Teacher
+
+    teacher = get_object_or_404(Teacher, pk=teacher_id)
+
+    # Get day filter
+    day = request.GET.get("day")
+    if day:
+        try:
+            day = int(day)
+        except ValueError:
+            day = None
+
+    # Get academic year
+    academic_year_id = request.GET.get("academic_year", "")
+    if academic_year_id:
+        academic_year = get_object_or_404(AcademicYear, pk=academic_year_id)
+    else:
+        academic_year = AcademicYear.objects.filter(is_current=True).first()
+
+    # Get timetable
+    from src.courses.services.timetable_service import TimetableService
+
+    timetable = TimetableService.get_teacher_timetable(teacher, day, academic_year)
+
+    # Get workload stats
+    workload = TimetableService.get_teacher_workload(teacher, academic_year)
+
+    context = {
+        "teacher": teacher,
+        "timetable": timetable,
+        "workload": workload,
+        "selected_day": day,
+        "academic_year": academic_year,
+        "academic_years": AcademicYear.objects.all().order_by("-start_date"),
+        "day_choices": TimeSlot.DAY_CHOICES,
+    }
+
+    return render(request, "courses/teacher_timetable.html", context)
+
+
+@login_required
+@permission_required("courses.add_timetable")
+def generate_timetable(request):
+    """Generate timetable automatically based on parameters."""
+    if request.method == "POST":
+        # Get parameters
+        class_id = request.POST.get("class")
+        if not class_id:
+            messages.error(request, "Please select a class.")
+            return redirect("courses:generate-timetable")
+
+        class_obj = get_object_or_404(Class, pk=class_id)
+
+        # Get selected subjects
+        subject_ids = request.POST.getlist("subjects")
+        if not subject_ids:
+            messages.error(request, "Please select at least one subject.")
+            return redirect("courses:generate-timetable")
+
+        subjects = Subject.objects.filter(id__in=subject_ids)
+
+        # Generate suggestions
+        from src.courses.services.timetable_service import TimetableService
+
+        suggestions = TimetableService.generate_timetable_suggestions(
+            class_obj, subjects
+        )
+
+        if not suggestions:
+            messages.error(
+                request,
+                "Could not generate any timetable suggestions. Please check teacher and room availability.",
+            )
+            return redirect("courses:generate-timetable")
+
+        # Save to session for the confirmation page
+        request.session["timetable_suggestions"] = [
+            {
+                "class_id": class_obj.id,
+                "subject_id": suggestion["subject"].id,
+                "time_slot_id": suggestion["time_slot"].id,
+                "available_teachers": [t.id for t in suggestion["available_teachers"]],
+                "available_rooms": list(suggestion["available_rooms"]),
+            }
+            for suggestion in suggestions
+        ]
+
+        return redirect("courses:confirm-timetable")
+
+    # Get current academic year
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+
+    context = {
+        "classes": (
+            Class.objects.filter(academic_year=current_year) if current_year else []
+        ),
+        "subjects": Subject.objects.all(),
+        "timeslots": TimeSlot.objects.all(),
+    }
+
+    return render(request, "courses/generate_timetable.html", context)
+
+
+@login_required
+@permission_required("courses.add_timetable")
+def confirm_timetable(request):
+    """Confirm and create timetable entries."""
+    suggestions = request.session.get("timetable_suggestions", [])
+
+    if not suggestions:
+        messages.error(
+            request, "No timetable suggestions found. Please generate timetable first."
+        )
+        return redirect("courses:generate-timetable")
+
+    if request.method == "POST":
+        # Create timetable entries
+        created_count = 0
+
+        for i, suggestion in enumerate(suggestions):
+            teacher_id = request.POST.get(f"teacher_{i}")
+            room = request.POST.get(f"room_{i}")
+
+            if teacher_id and room:
+                class_obj = get_object_or_404(Class, pk=suggestion["class_id"])
+                subject = get_object_or_404(Subject, pk=suggestion["subject_id"])
+                time_slot = get_object_or_404(TimeSlot, pk=suggestion["time_slot_id"])
+                teacher = get_object_or_404("teachers.Teacher", pk=teacher_id)
+
+                from src.courses.services.timetable_service import TimetableService
+
+                entry = TimetableService.create_timetable_entry(
+                    class_obj, subject, teacher, time_slot, room
+                )
+
+                if entry:
+                    created_count += 1
+
+        # Clear session
+        del request.session["timetable_suggestions"]
+
+        if created_count > 0:
+            messages.success(
+                request, f"Successfully created {created_count} timetable entries."
+            )
+        else:
+            messages.warning(
+                request,
+                "No timetable entries were created. Please check for conflicts.",
+            )
+
+        return redirect("courses:timetable-list")
+
+    # Prepare data for template
+    formatted_suggestions = []
+
+    for i, suggestion in enumerate(suggestions):
+        class_obj = get_object_or_404(Class, pk=suggestion["class_id"])
+        subject = get_object_or_404(Subject, pk=suggestion["subject_id"])
+        time_slot = get_object_or_404(TimeSlot, pk=suggestion["time_slot_id"])
+        available_teachers = []
+
+        for teacher_id in suggestion["available_teachers"]:
+            from src.teachers.models import Teacher
+
+            teacher = Teacher.objects.get(pk=teacher_id)
+            available_teachers.append(teacher)
+
+        formatted_suggestions.append(
+            {
+                "index": i,
+                "class_obj": class_obj,
+                "subject": subject,
+                "time_slot": time_slot,
+                "available_teachers": available_teachers,
+                "available_rooms": suggestion["available_rooms"],
+            }
+        )
+
+    context = {"suggestions": formatted_suggestions}
+
+    return render(request, "courses/confirm_timetable.html", context)

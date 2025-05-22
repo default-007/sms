@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title|default:"Details" }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <h1 class="h3 mb-4 text-gray-800">{{ page_title|default:"Details" }}</h1>
+
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+          <h6 class="m-0 font-weight-bold text-primary">{{ detail_title|default:"Item Details" }}</h6>
+          <div>
+            {% if edit_url %}
+            <a href="{{ edit_url }}" class="btn btn-primary btn-sm">
+              <i class="fas fa-edit fa-sm"></i> Edit
+            </a>
+            {% endif %}
+            {% if delete_url %}
+            <a href="{{ delete_url }}" class="btn btn-danger btn-sm">
+              <i class="fas fa-trash fa-sm"></i> Delete
+            </a>
+            {% endif %}
+            {% if back_url %}
+            <a href="{{ back_url }}" class="btn btn-secondary btn-sm">
+              <i class="fas fa-arrow-left fa-sm"></i> Back
+            </a>
+            {% endif %}
+            {% block extra_actions %}{% endblock %}
+          </div>
+        </div>
+        <div class="card-body">
+          {% block detail_content %}
+          <p>No content available.</p>
+          {% endblock %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">{% block sidebar_title %}Additional Information{% endblock %}
+          </h6>
+        </div>
+        <div class="card-body">
+          {% block sidebar_content %}
+          <p>No additional information available.</p>
+          {% endblock %}
+        </div>
+      </div>
+
+      {% block additional_sidebar_cards %}{% endblock %}
+    </div>
+  </div>
+
+  {% block related_content %}{% endblock %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% block detail_js %}{% endblock %}
+{% endblock %}

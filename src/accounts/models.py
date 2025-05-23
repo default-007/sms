@@ -8,7 +8,13 @@ from django.core.cache import cache
 from PIL import Image
 import os
 
-from .managers import UserManager
+from .managers import (
+    UserManager,
+    UserRoleManager,
+    UserRoleAssignmentManager,
+    UserAuditLogManager,
+    UserSessionManager,
+)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -104,6 +110,7 @@ class User(AbstractBaseUser, PermissionsMixin):
             models.Index(fields=["username"]),
             models.Index(fields=["email"]),
             models.Index(fields=["is_active", "date_joined"]),
+            models.Index(fields=["failed_login_attempts", "last_failed_login"]),
         ]
 
     def __str__(self):
@@ -112,25 +119,43 @@ class User(AbstractBaseUser, PermissionsMixin):
     def save(self, *args, **kwargs):
         """Override save to handle profile picture resizing and cache invalidation."""
         # Clear cache when user is saved
-        cache.delete(f"user_permissions_{self.pk}")
-        cache.delete(f"user_roles_{self.pk}")
+        if self.pk:
+            cache.delete_many([f"user_permissions_{self.pk}", f"user_roles_{self.pk}"])
 
+        is_new = self.pk is None
         super().save(*args, **kwargs)
 
-        # Resize profile picture if it exists
-        if self.profile_picture:
+        # Resize profile picture if it exists and is new
+        if self.profile_picture and (
+            is_new or "profile_picture" in kwargs.get("update_fields", [])
+        ):
             self._resize_profile_picture()
 
     def _resize_profile_picture(self):
         """Resize profile picture to optimize storage."""
-        if self.profile_picture and hasattr(self.profile_picture, "path"):
-            try:
-                with Image.open(self.profile_picture.path) as img:
-                    if img.height > 300 or img.width > 300:
-                        img.thumbnail((300, 300), Image.Resampling.LANCZOS)
-                        img.save(self.profile_picture.path)
-            except Exception:
-                pass  # Silently handle image processing errors
+        if not self.profile_picture or not hasattr(self.profile_picture, "path"):
+            return
+
+        try:
+            with Image.open(self.profile_picture.path) as img:
+                # Convert to RGB if necessary
+                if img.mode in ("RGBA", "LA", "P"):
+                    img = img.convert("RGB")
+
+                if img.height > 300 or img.width > 300:
+                    img.thumbnail((300, 300), Image.Resampling.LANCZOS)
+
+                    # Save with optimization
+                    img.save(
+                        self.profile_picture.path, "JPEG", quality=85, optimize=True
+                    )
+        except Exception as e:
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                f"Could not resize profile picture for user {self.username}: {e}"
+            )
 
     def get_full_name(self):
         """Return the first_name plus the last_name, with a space in between."""
@@ -147,10 +172,15 @@ class User(AbstractBaseUser, PermissionsMixin):
         roles = cache.get(cache_key)
 
         if roles is None:
-            roles = [
-                assignment.role
-                for assignment in self.role_assignments.select_related("role").all()
-            ]
+            roles = list(
+                self.role_assignments.filter(is_active=True)
+                .select_related("role")
+                .values_list("role", flat=True)
+            )
+            # Get the actual role objects
+            from .models import UserRole
+
+            roles = list(UserRole.objects.filter(id__in=roles))
             cache.set(cache_key, roles, 3600)  # Cache for 1 hour
 
         return roles
@@ -199,7 +229,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
         if permissions is None:
             permissions = RoleService.get_user_permissions(self)
-            cache.set(cache_key, permissions, 3600)  # Cache for 1 hour
+            cache.set(cache_key, permissions, 3600)
 
         return permissions
 
@@ -220,9 +250,10 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def reset_failed_login_attempts(self):
         """Reset failed login attempts counter."""
-        self.failed_login_attempts = 0
-        self.last_failed_login = None
-        self.save(update_fields=["failed_login_attempts", "last_failed_login"])
+        if self.failed_login_attempts > 0 or self.last_failed_login:
+            self.failed_login_attempts = 0
+            self.last_failed_login = None
+            self.save(update_fields=["failed_login_attempts", "last_failed_login"])
 
     def increment_failed_login_attempts(self):
         """Increment failed login attempts counter."""
@@ -251,6 +282,8 @@ class UserRole(models.Model):
         verbose_name=_("created by"),
     )
 
+    objects = UserRoleManager()
+
     class Meta:
         verbose_name = _("user role")
         verbose_name_plural = _("user roles")
@@ -266,36 +299,22 @@ class UserRole(models.Model):
     def save(self, *args, **kwargs):
         """Override save to clear cache."""
         super().save(*args, **kwargs)
-        # Clear all user permissions cache when role is updated
-        cache.delete_many(
-            [
-                f"user_permissions_{assignment.user.pk}"
-                for assignment in self.user_assignments.all()
-            ]
-        )
-        cache.delete_many(
-            [
-                f"user_roles_{assignment.user.pk}"
-                for assignment in self.user_assignments.all()
-            ]
-        )
+        # Clear all related user permissions cache
+        self._clear_user_caches()
 
     def delete(self, *args, **kwargs):
         """Override delete to clear cache."""
-        # Clear cache before deletion
-        cache.delete_many(
-            [
-                f"user_permissions_{assignment.user.pk}"
-                for assignment in self.user_assignments.all()
-            ]
-        )
-        cache.delete_many(
-            [
-                f"user_roles_{assignment.user.pk}"
-                for assignment in self.user_assignments.all()
-            ]
-        )
+        self._clear_user_caches()
         super().delete(*args, **kwargs)
+
+    def _clear_user_caches(self):
+        """Clear cache for all users with this role."""
+        user_ids = self.user_assignments.values_list("user_id", flat=True)
+        cache_keys = []
+        for user_id in user_ids:
+            cache_keys.extend([f"user_permissions_{user_id}", f"user_roles_{user_id}"])
+        if cache_keys:
+            cache.delete_many(cache_keys)
 
     def get_permission_count(self):
         """Get total number of permissions in this role."""
@@ -341,6 +360,8 @@ class UserRoleAssignment(models.Model):
     # Metadata
     notes = models.TextField(_("notes"), blank=True)
 
+    objects = UserRoleAssignmentManager()
+
     class Meta:
         verbose_name = _("user role assignment")
         verbose_name_plural = _("user role assignments")
@@ -359,22 +380,18 @@ class UserRoleAssignment(models.Model):
     def save(self, *args, **kwargs):
         """Override save to clear user cache."""
         super().save(*args, **kwargs)
-        # Clear user's cache when role assignment changes
-        cache.delete(f"user_permissions_{self.user.pk}")
-        cache.delete(f"user_roles_{self.user.pk}")
+        self._clear_user_cache()
 
     def delete(self, *args, **kwargs):
         """Override delete to clear user cache."""
         user_pk = self.user.pk
         super().delete(*args, **kwargs)
-        # Clear user's cache when role assignment is deleted
-        cache.delete(f"user_permissions_{user_pk}")
-        cache.delete(f"user_roles_{user_pk}")
+        cache.delete_many([f"user_permissions_{user_pk}", f"user_roles_{user_pk}"])
 
-    def by_user(self, user):
-        """Get assignments for a specific user with optimized queries."""
-        return self.filter(user=user, is_active=True).select_related(
-            "role", "assigned_by"
+    def _clear_user_cache(self):
+        """Clear user's cache when role assignment changes."""
+        cache.delete_many(
+            [f"user_permissions_{self.user.pk}", f"user_roles_{self.user.pk}"]
         )
 
     def is_expired(self):
@@ -389,6 +406,12 @@ class UserRoleAssignment(models.Model):
             delta = self.expires_at - timezone.now()
             return delta.days
         return None
+
+    def by_user(self, user):
+        """Get assignments for a specific user with optimized queries."""
+        return self.filter(user=user, is_active=True).select_related(
+            "role", "assigned_by"
+        )
 
 
 class UserProfile(models.Model):
@@ -443,6 +466,8 @@ class UserSession(models.Model):
     last_activity = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
 
+    objects = UserSessionManager()
+
     class Meta:
         verbose_name = _("user session")
         verbose_name_plural = _("user sessions")
@@ -479,6 +504,7 @@ class UserAuditLog(models.Model):
         on_delete=models.CASCADE,
         related_name="user_audit_logs",
         verbose_name=_("user"),
+        null=True,  # Allow null for system actions
     )
     action = models.CharField(_("action"), max_length=20, choices=ACTION_CHOICES)
     description = models.TextField(_("description"))
@@ -493,9 +519,9 @@ class UserAuditLog(models.Model):
         verbose_name=_("performed by"),
     )
     timestamp = models.DateTimeField(auto_now_add=True)
-
-    # Store additional context data
     extra_data = models.JSONField(_("extra data"), default=dict, blank=True)
+
+    objects = UserAuditLogManager()
 
     class Meta:
         verbose_name = _("user audit log")
@@ -505,7 +531,9 @@ class UserAuditLog(models.Model):
             models.Index(fields=["user", "timestamp"]),
             models.Index(fields=["action", "timestamp"]),
             models.Index(fields=["performed_by", "timestamp"]),
+            models.Index(fields=["timestamp"]),  # For cleanup queries
         ]
 
     def __str__(self):
-        return f"{self.user.username} - {self.get_action_display()} - {self.timestamp}"
+        user_name = self.user.username if self.user else "System"
+        return f"{user_name} - {self.get_action_display()} - {self.timestamp}"

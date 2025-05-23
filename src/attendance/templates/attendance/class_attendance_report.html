@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ class_obj }} - Attendance Report{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h2>{{ class_obj }} - Attendance Report</h2>
+          <div>
+            <a href="{% url 'attendance:mark-class-attendance' class_obj.id %}" class="btn btn-primary">
+              <i class="fas fa-plus"></i> Mark Attendance
+            </a>
+            <a href="{% url 'attendance:record-list' %}" class="btn btn-secondary">
+              <i class="fas fa-arrow-left"></i> Back to Records
+            </a>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Class Info -->
+          <div class="row mb-4">
+            <div class="col-md-4">
+              <div class="card bg-light">
+                <div class="card-body">
+                  <h6 class="card-title">Class Information</h6>
+                  <p><strong>Class:</strong> {{ class_obj }}</p>
+                  <p><strong>Grade:</strong> {{ class_obj.grade.name }}</p>
+                  <p><strong>Section:</strong> {{ class_obj.section.name }}</p>
+                  <p><strong>Total Students:</strong> {{ class_obj.students.count }}</p>
+                  {% if class_obj.class_teacher %}
+                  <p><strong>Class Teacher:</strong> {{ class_obj.class_teacher.user.get_full_name }}</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-8">
+              <div class="card">
+                <div class="card-body">
+                  <h6 class="card-title">Attendance Overview</h6>
+                  <canvas id="attendanceOverviewChart" height="100"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filters -->
+          <div class="row mb-4">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body">
+                  <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                      {{ form.start_date.label_tag }}
+                      {{ form.start_date }}
+                    </div>
+                    <div class="col-md-4">
+                      {{ form.end_date.label_tag }}
+                      {{ form.end_date }}
+                    </div>
+                    <div class="col-md-4">
+                      <label>&nbsp;</label>
+                      <div>
+                        <button type="submit" class="btn btn-primary">Filter</button>
+                        <a href="?" class="btn btn-outline-secondary">Clear</a>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Attendance Statistics -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h6>Daily Attendance Statistics</h6>
+            </div>
+            <div class="card-body">
+              <table id="attendanceStatsTable" class="table table-striped table-hover" style="width:100%">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Day</th>
+                    <th>Total Students</th>
+                    <th>Present</th>
+                    <th>Absent</th>
+                    <th>Late</th>
+                    <th>Excused</th>
+                    <th>Attendance %</th>
+                    <th>Marked By</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for stat in attendance_stats %}
+                  <tr>
+                    <td>{{ stat.date|date:"Y-m-d" }}</td>
+                    <td>{{ stat.date|date:"l" }}</td>
+                    <td>{{ stat.summary.total_students }}</td>
+                    <td class="text-success">
+                      {{ stat.summary.status_counts.present|add:stat.summary.status_counts.late }}
+                    </td>
+                    <td class="text-danger">{{ stat.summary.status_counts.absent }}</td>
+                    <td class="text-warning">{{ stat.summary.status_counts.late }}</td>
+                    <td class="text-info">{{ stat.summary.status_counts.excused }}</td>
+                    <td>
+                      <span
+                        class="badge {% if stat.summary.attendance_percentage >= 80 %}bg-success{% elif stat.summary.attendance_percentage >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
+                        {{ stat.summary.attendance_percentage|floatformat:1 }}%
+                      </span>
+                    </td>
+                    <td>
+                      {% if stat.summary.marked_by %}
+                      {{ stat.summary.marked_by.get_full_name|default:stat.summary.marked_by.username }}
+                      {% else %}
+                      <span class="text-muted">Not marked</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if stat.record %}
+                      <a href="{% url 'attendance:record-detail' stat.record.pk %}"
+                        class="btn btn-sm btn-outline-primary" title="View Details">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      {% else %}
+                      <a href="{% url 'attendance:mark-class-attendance' class_obj.id %}"
+                        class="btn btn-sm btn-outline-success" title="Mark Attendance">
+                        <i class="fas fa-plus"></i>
+                      </a>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Student-wise Summary -->
+          <div class="card">
+            <div class="card-header">
+              <h6>Student-wise Attendance Summary</h6>
+            </div>
+            <div class="card-body">
+              <table id="studentSummaryTable" class="table table-striped table-hover" style="width:100%">
+                <thead>
+                  <tr>
+                    <th>Roll No.</th>
+                    <th>Student Name</th>
+                    <th>Total Days</th>
+                    <th>Present</th>
+                    <th>Absent</th>
+                    <th>Late</th>
+                    <th>Excused</th>
+                    <th>Attendance %</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for student in class_obj.students.all %}
+                  <tr data-student-id="{{ student.id }}">
+                    <td>{{ student.roll_number|default:"-" }}</td>
+                    <td>{{ student.user.get_full_name }}</td>
+                    <td class="student-total">-</td>
+                    <td class="student-present text-success">-</td>
+                    <td class="student-absent text-danger">-</td>
+                    <td class="student-late text-warning">-</td>
+                    <td class="student-excused text-info">-</td>
+                    <td class="student-percentage">-</td>
+                    <td class="student-status">-</td>
+                    <td>
+                      <a href="{% url 'attendance:student-report' student.id %}" class="btn btn-sm btn-outline-primary"
+                        title="View Report">
+                        <i class="fas fa-chart-line"></i>
+                      </a>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTables
+    $('#attendanceStatsTable').DataTable({
+      dom: 'Bfrtip',
+      buttons: [
+        {
+          extend: 'excel',
+          text: '<i class="fas fa-file-excel"></i> Excel',
+          className: 'btn btn-success btn-sm'
+        },
+        {
+          extend: 'pdf',
+          text: '<i class="fas fa-file-pdf"></i> PDF',
+          className: 'btn btn-danger btn-sm'
+        }
+      ],
+      order: [[0, 'desc']],
+      pageLength: 25,
+      responsive: true
+    });
+
+    $('#studentSummaryTable').DataTable({
+      dom: 'Bfrtip',
+      buttons: [
+        {
+          extend: 'excel',
+          text: '<i class="fas fa-file-excel"></i> Export Students',
+          className: 'btn btn-success btn-sm'
+        }
+      ],
+      order: [[1, 'asc']],
+      pageLength: 50,
+      responsive: true
+    });
+
+    // Load student attendance data
+    loadStudentAttendanceData();
+
+    // Attendance Overview Chart
+    const overviewCtx = document.getElementById('attendanceOverviewChart').getContext('2d');
+    const attendanceData = [{% for stat in attendance_stats %}{{ stat.summary.attendance_percentage | floatformat: 1 }}{% if not forloop.last %}, {% endif %} {% endfor %}];
+  const attendanceDates = [{% for stat in attendance_stats %}'{{ stat.date|date:"M d" }}'{% if not forloop.last %}, {% endif %} {% endfor %}];
+
+  new Chart(overviewCtx, {
+    type: 'line',
+    data: {
+      labels: attendanceDates.reverse(),
+      datasets: [{
+        label: 'Attendance %',
+        data: attendanceData.reverse(),
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        tension: 0.1,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100,
+          ticks: {
+            callback: function (value) {
+              return value + '%';
+            }
+          }
+        }
+      }
+    }
+  });
+});
+
+  function loadStudentAttendanceData() {
+    // Get filter dates
+    const startDate = $('input[name="start_date"]').val();
+    const endDate = $('input[name="end_date"]').val();
+
+    // Load data for each student
+    $('tr[data-student-id]').each(function () {
+      const studentId = $(this).data('student-id');
+      const row = $(this);
+
+      // Make AJAX call to get student attendance summary
+      $.ajax({
+        url: '/api/attendance/student-summary/' + studentId + '/',
+        data: {
+          start_date: startDate,
+          end_date: endDate
+        },
+        success: function (data) {
+          row.find('.student-total').text(data.total_days);
+          row.find('.student-present').text(data.present);
+          row.find('.student-absent').text(data.absent);
+          row.find('.student-late').text(data.late);
+          row.find('.student-excused').text(data.excused);
+
+          const percentage = data.attendance_percentage;
+          let badgeClass = 'bg-success';
+          let statusText = 'Good';
+
+          if (percentage < 60) {
+            badgeClass = 'bg-danger';
+            statusText = 'Critical';
+          } else if (percentage < 80) {
+            badgeClass = 'bg-warning';
+            statusText = 'Warning';
+          }
+
+          row.find('.student-percentage').html(
+            '<span class="badge ' + badgeClass + '">' + percentage.toFixed(1) + '%</span>'
+          );
+          row.find('.student-status').html(
+            '<span class="badge ' + badgeClass + '">' + statusText + '</span>'
+          );
+        },
+        error: function () {
+          row.find('.student-total, .student-present, .student-absent, .student-late, .student-excused').text('Error');
+          row.find('.student-percentage, .student-status').html('<span class="text-danger">Error</span>');
+        }
+      });
+    });
+  }
+</script>
+{% endblock %}

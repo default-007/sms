@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Attendance Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+  .stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 15px;
+  }
+
+  .stat-card.success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  }
+
+  .stat-card.warning {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  }
+
+  .stat-card.danger {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  }
+
+  .chart-container {
+    position: relative;
+    height: 400px;
+    width: 100%;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <h1>Attendance Dashboard</h1>
+        <div>
+          <select id="timeRangeFilter" class="form-select d-inline-block w-auto">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 3 months</option>
+            <option value="365">Last year</option>
+          </select>
+          <a href="{% url 'attendance:mark-attendance' %}" class="btn btn-primary ms-2">
+            <i class="fas fa-plus"></i> Mark Attendance
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card stat-card success">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 id="totalStudents">{{ stats.total_students }}</h4>
+              <p class="mb-0">Total Students</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-users fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card stat-card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 id="avgAttendance">{{ stats.average_attendance|floatformat:1 }}%</h4>
+              <p class="mb-0">Average Attendance</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-percentage fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card stat-card warning">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 id="totalAbsent">{{ stats.total_absent }}</h4>
+              <p class="mb-0">Total Absent Today</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-user-times fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card stat-card danger">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 id="classesMarked">{{ stats.classes_marked_today }}</h4>
+              <p class="mb-0">Classes Marked Today</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-check-circle fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>Attendance Trend</h5>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <canvas id="attendanceTrendChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>Class-wise Attendance</h5>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <canvas id="classAttendanceChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Analytics -->
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h5>Low Attendance Students</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Class</th>
+                  <th>Attendance %</th>
+                  <th>Total Days</th>
+                  <th>Present</th>
+                  <th>Absent</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for student in low_attendance_students %}
+                <tr>
+                  <td>{{ student.name }}</td>
+                  <td>{{ student.class_name }}</td>
+                  <td>
+                    <span
+                      class="badge bg-{% if student.attendance_percentage < 60 %}danger{% elif student.attendance_percentage < 80 %}warning{% else %}success{% endif %}">
+                      {{ student.attendance_percentage|floatformat:1 }}%
+                    </span>
+                  </td>
+                  <td>{{ student.total_days }}</td>
+                  <td class="text-success">{{ student.present_days }}</td>
+                  <td class="text-danger">{{ student.absent_days }}</td>
+                  <td>
+                    <a href="{% url 'attendance:student-report' student.id %}" class="btn btn-sm btn-outline-primary">
+                      View Report
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h5>Attendance Status Distribution</h5>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <canvas id="statusDistributionChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script
+  src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+<script>
+  // Initialize charts
+  document.addEventListener('DOMContentLoaded', function () {
+    // Attendance Trend Chart
+    const trendCtx = document.getElementById('attendanceTrendChart').getContext('2d');
+    const trendChart = new Chart(trendCtx, {
+      type: 'line',
+      data: {
+        labels: {{ trend_data.dates | safe }},
+    datasets: [{
+      label: 'Attendance %',
+      data: {{ trend_data.percentages | safe }},
+    borderColor: 'rgb(75, 192, 192)',
+    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+    tension: 0.1,
+    fill: true
+            }]
+        },
+    options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        beginAtZero: true,
+        max: 100,
+        ticks: {
+          callback: function (value) {
+            return value + '%';
+          }
+        }
+      }
+    },
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: function (context) {
+            return 'Attendance: ' + context.parsed.y.toFixed(1) + '%';
+          }
+        }
+      }
+    }
+  }
+    });
+
+  // Class Attendance Chart
+  const classCtx = document.getElementById('classAttendanceChart').getContext('2d');
+  const classChart = new Chart(classCtx, {
+    type: 'bar',
+    data: {
+      labels: {{ class_data.labels | safe }},
+  datasets: [{
+    label: 'Attendance %',
+    data: {{ class_data.percentages | safe }},
+    backgroundColor: [
+    'rgba(255, 99, 132, 0.8)',
+    'rgba(54, 162, 235, 0.8)',
+    'rgba(255, 205, 86, 0.8)',
+    'rgba(75, 192, 192, 0.8)',
+    'rgba(153, 102, 255, 0.8)',
+    'rgba(255, 159, 64, 0.8)'
+  ],
+    borderColor: [
+    'rgba(255, 99, 132, 1)',
+    'rgba(54, 162, 235, 1)',
+    'rgba(255, 205, 86, 1)',
+    'rgba(75, 192, 192, 1)',
+    'rgba(153, 102, 255, 1)',
+    'rgba(255, 159, 64, 1)'
+  ],
+    borderWidth: 1
+            }]
+        },
+  options: {
+    responsive: true,
+      maintainAspectRatio: false,
+        scales: {
+      y: {
+        beginAtZero: true,
+          max: 100,
+            ticks: {
+          callback: function(value) {
+            return value + '%';
+          }
+        }
+      }
+    },
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            return 'Attendance: ' + context.parsed.y.toFixed(1) + '%';
+          }
+        }
+      }
+    }
+  }
+    });
+
+  // Status Distribution Chart
+  const statusCtx = document.getElementById('statusDistributionChart').getContext('2d');
+  const statusChart = new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Present', 'Absent', 'Late', 'Excused'],
+      datasets: [{
+        data: {{ status_data.values | safe }},
+    backgroundColor: [
+      'rgba(75, 192, 192, 0.8)',
+      'rgba(255, 99, 132, 0.8)',
+      'rgba(255, 205, 86, 0.8)',
+      'rgba(54, 162, 235, 0.8)'
+    ],
+    borderWidth: 2
+  }]
+        },
+  options: {
+    responsive: true,
+      maintainAspectRatio: false,
+        plugins: {
+      legend: {
+        position: 'bottom'
+      }
+    }
+  }
+    });
+
+  // Time range filter
+  document.getElementById('timeRangeFilter').addEventListener('change', function () {
+    // Reload data based on selected time range
+    const days = this.value;
+    window.location.href = `?days=${days}`;
+  });
+});
+</script>
+{% endblock %}

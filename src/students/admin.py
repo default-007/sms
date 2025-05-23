@@ -222,6 +222,7 @@ class ParentResource(resources.ModelResource):
             "workplace",
             "work_phone",
             "emergency_contact",
+            "student_count",
         )
 
 

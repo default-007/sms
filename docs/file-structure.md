@@ -1,4 +1,4 @@
-# School Management System - File Structure
+# School Management System - Updated File Structure
 
 ```
 school_management_system/
@@ -32,11 +32,17 @@ school_management_system/
 ├── scripts/                       # Utility scripts
 │   ├── db_backup.py               # Database backup script
 │   ├── generate_sample_data.py    # Sample data generation script
+│   ├── analytics_processor.py     # Analytics calculation script
 │   └── deployment/                # Deployment scripts
 │
 ├── src/                           # Source code
 │   ├── accounts/                  # User accounts app
 │   │   ├── migrations/            # Database migrations
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── serializers.py
+│   │   │   ├── views.py
+│   │   │   └── urls.py
 │   │   ├── templates/
 │   │   │   └── accounts/
 │   │   ├── __init__.py
@@ -46,28 +52,37 @@ school_management_system/
 │   │   ├── managers.py            # Custom managers
 │   │   ├── models.py              # Database models
 │   │   ├── permissions.py         # Custom permissions
-│   │   ├── serializers.py         # API serializers
 │   │   ├── services.py            # Business logic
 │   │   ├── signals.py             # Django signals
 │   │   ├── tests.py               # Tests
 │   │   ├── urls.py                # URL patterns
 │   │   └── views.py               # Views
 │   │
-│   ├── api/                       # API app
+│   ├── api/                       # API utilities (NO endpoints)
 │   │   ├── __init__.py
 │   │   ├── apps.py                # App configuration
 │   │   ├── authentication.py      # Custom authentication
-│   │   ├── exceptions.py          # API exceptions
-│   │   ├── filters.py             # API filters
+│   │   ├── exceptions.py          # Global API exceptions
+│   │   ├── filters.py             # Common API filters
 │   │   ├── middleware.py          # API middleware
-│   │   ├── paginations.py         # Custom pagination
-│   │   ├── permissions.py         # API permissions
+│   │   ├── paginations.py         # Custom pagination classes
+│   │   ├── permissions.py         # Common API permissions
 │   │   ├── throttling.py          # Rate limiting
-│   │   ├── urls.py                # API URL patterns
-│   │   └── views.py               # API views
+│   │   ├── documentation.py       # API docs configuration
+│   │   └── urls.py                # Main API URL router only
 │   │
 │   ├── students/                  # Students app
 │   │   ├── migrations/            # Database migrations
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── serializers.py
+│   │   │   ├── views.py
+│   │   │   └── urls.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── enrollment_service.py
+│   │   │   ├── performance_service.py
+│   │   │   └── analytics_service.py
 │   │   ├── templates/
 │   │   │   └── students/
 │   │   ├── __init__.py
@@ -75,14 +90,22 @@ school_management_system/
 │   │   ├── apps.py                # App configuration
 │   │   ├── forms.py               # Forms
 │   │   ├── models.py              # Database models
-│   │   ├── serializers.py         # API serializers
-│   │   ├── services.py            # Business logic
 │   │   ├── tests.py               # Tests
 │   │   ├── urls.py                # URL patterns
 │   │   └── views.py               # Views
 │   │
 │   ├── teachers/                  # Teachers app
 │   │   ├── migrations/            # Database migrations
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── serializers.py
+│   │   │   ├── views.py
+│   │   │   └── urls.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── assignment_service.py
+│   │   │   ├── evaluation_service.py
+│   │   │   └── performance_service.py
 │   │   ├── templates/
 │   │   │   └── teachers/
 │   │   ├── __init__.py
@@ -90,29 +113,115 @@ school_management_system/
 │   │   ├── apps.py                # App configuration
 │   │   ├── forms.py               # Forms
 │   │   ├── models.py              # Database models
-│   │   ├── serializers.py         # API serializers
-│   │   ├── services.py            # Business logic
 │   │   ├── tests.py               # Tests
 │   │   ├── urls.py                # URL patterns
 │   │   └── views.py               # Views
 │   │
-│   ├── courses/                   # Courses and classes app
+│   ├── academics/                 # Academic structure (Section → Grade → Class hierarchy)
 │   │   ├── migrations/            # Database migrations
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── serializers.py
+│   │   │   ├── views.py
+│   │   │   └── urls.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── section_service.py
+│   │   │   ├── grade_service.py
+│   │   │   ├── class_service.py
+│   │   │   ├── term_service.py
+│   │   │   └── academic_year_service.py
 │   │   ├── templates/
-│   │   │   └── courses/
+│   │   │   └── academics/
+│   │   ├── __init__.py
+│   │   ├── admin.py               # Django admin configuration
+│   │   ├── apps.py                # App configuration
+│   │   ├── forms.py               # Forms
+│   │   ├── models.py              # Database models (Section, Grade, Class, Term, AcademicYear)
+│   │   ├── tests.py               # Tests
+│   │   ├── urls.py                # URL patterns
+│   │   └── views.py               # Views
+│   │
+│   ├── subjects/                  # Subjects and syllabus
+│   │   ├── migrations/            # Database migrations
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── serializers.py
+│   │   │   ├── views.py
+│   │   │   └── urls.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── syllabus_service.py
+│   │   │   └── curriculum_service.py
+│   │   ├── templates/
+│   │   │   └── subjects/
 │   │   ├── __init__.py
 │   │   ├── admin.py               # Django admin configuration
 │   │   ├── apps.py                # App configuration
 │   │   ├── forms.py               # Forms
 │   │   ├── models.py              # Database models
-│   │   ├── serializers.py         # API serializers
-│   │   ├── services.py            # Business logic
+│   │   ├── tests.py               # Tests
+│   │   ├── urls.py                # URL patterns
+│   │   └── views.py               # Views
+│   │
+│   ├── scheduling/                # Timetable and scheduling
+│   │   ├── migrations/            # Database migrations
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── serializers.py
+│   │   │   ├── views.py
+│   │   │   └── urls.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── timetable_service.py
+│   │   │   ├── scheduling_algorithm.py
+│   │   │   └── conflict_resolver.py
+│   │   ├── templates/
+│   │   │   └── scheduling/
+│   │   ├── __init__.py
+│   │   ├── admin.py               # Django admin configuration
+│   │   ├── apps.py                # App configuration
+│   │   ├── forms.py               # Forms
+│   │   ├── models.py              # Database models
+│   │   ├── tests.py               # Tests
+│   │   ├── urls.py                # URL patterns
+│   │   └── views.py               # Views
+│   │
+│   ├── assignments/               # Assignment management
+│   │   ├── migrations/            # Database migrations
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── serializers.py
+│   │   │   ├── views.py
+│   │   │   └── urls.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── assignment_service.py
+│   │   │   ├── submission_service.py
+│   │   │   └── grading_service.py
+│   │   ├── templates/
+│   │   │   └── assignments/
+│   │   ├── __init__.py
+│   │   ├── admin.py               # Django admin configuration
+│   │   ├── apps.py                # App configuration
+│   │   ├── forms.py               # Forms
+│   │   ├── models.py              # Database models
 │   │   ├── tests.py               # Tests
 │   │   ├── urls.py                # URL patterns
 │   │   └── views.py               # Views
 │   │
 │   ├── exams/                     # Exams and assessments app
 │   │   ├── migrations/            # Database migrations
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── serializers.py
+│   │   │   ├── views.py
+│   │   │   └── urls.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── exam_service.py
+│   │   │   ├── result_service.py
+│   │   │   └── grading_service.py
 │   │   ├── templates/
 │   │   │   └── exams/
 │   │   ├── __init__.py
@@ -120,14 +229,21 @@ school_management_system/
 │   │   ├── apps.py                # App configuration
 │   │   ├── forms.py               # Forms
 │   │   ├── models.py              # Database models
-│   │   ├── serializers.py         # API serializers
-│   │   ├── services.py            # Business logic
 │   │   ├── tests.py               # Tests
 │   │   ├── urls.py                # URL patterns
 │   │   └── views.py               # Views
 │   │
 │   ├── attendance/                # Attendance app
 │   │   ├── migrations/            # Database migrations
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── serializers.py
+│   │   │   ├── views.py
+│   │   │   └── urls.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── attendance_service.py
+│   │   │   └── analytics_service.py
 │   │   ├── templates/
 │   │   │   └── attendance/
 │   │   ├── __init__.py
@@ -135,14 +251,24 @@ school_management_system/
 │   │   ├── apps.py                # App configuration
 │   │   ├── forms.py               # Forms
 │   │   ├── models.py              # Database models
-│   │   ├── serializers.py         # API serializers
-│   │   ├── services.py            # Business logic
 │   │   ├── tests.py               # Tests
 │   │   ├── urls.py                # URL patterns
 │   │   └── views.py               # Views
 │   │
-│   ├── finance/                   # Finance app
+│   ├── finance/                   # Enhanced finance app
 │   │   ├── migrations/            # Database migrations
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── serializers.py
+│   │   │   ├── views.py
+│   │   │   └── urls.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── fee_service.py
+│   │   │   ├── invoice_service.py
+│   │   │   ├── payment_service.py
+│   │   │   ├── scholarship_service.py
+│   │   │   └── analytics_service.py
 │   │   ├── templates/
 │   │   │   └── finance/
 │   │   ├── __init__.py
@@ -150,14 +276,22 @@ school_management_system/
 │   │   ├── apps.py                # App configuration
 │   │   ├── forms.py               # Forms
 │   │   ├── models.py              # Database models
-│   │   ├── serializers.py         # API serializers
-│   │   ├── services.py            # Business logic
 │   │   ├── tests.py               # Tests
 │   │   ├── urls.py                # URL patterns
 │   │   └── views.py               # Views
 │   │
 │   ├── library/                   # Library app
 │   │   ├── migrations/            # Database migrations
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── serializers.py
+│   │   │   ├── views.py
+│   │   │   └── urls.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── book_service.py
+│   │   │   ├── issue_service.py
+│   │   │   └── analytics_service.py
 │   │   ├── templates/
 │   │   │   └── library/
 │   │   ├── __init__.py
@@ -165,14 +299,21 @@ school_management_system/
 │   │   ├── apps.py                # App configuration
 │   │   ├── forms.py               # Forms
 │   │   ├── models.py              # Database models
-│   │   ├── serializers.py         # API serializers
-│   │   ├── services.py            # Business logic
 │   │   ├── tests.py               # Tests
 │   │   ├── urls.py                # URL patterns
 │   │   └── views.py               # Views
 │   │
 │   ├── transport/                 # Transport app
 │   │   ├── migrations/            # Database migrations
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── serializers.py
+│   │   │   ├── views.py
+│   │   │   └── urls.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── route_service.py
+│   │   │   └── assignment_service.py
 │   │   ├── templates/
 │   │   │   └── transport/
 │   │   ├── __init__.py
@@ -180,14 +321,22 @@ school_management_system/
 │   │   ├── apps.py                # App configuration
 │   │   ├── forms.py               # Forms
 │   │   ├── models.py              # Database models
-│   │   ├── serializers.py         # API serializers
-│   │   ├── services.py            # Business logic
 │   │   ├── tests.py               # Tests
 │   │   ├── urls.py                # URL patterns
 │   │   └── views.py               # Views
 │   │
 │   ├── communications/            # Communications app
 │   │   ├── migrations/            # Database migrations
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── serializers.py
+│   │   │   ├── views.py
+│   │   │   └── urls.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── notification_service.py
+│   │   │   ├── email_service.py
+│   │   │   └── sms_service.py
 │   │   ├── templates/
 │   │   │   └── communications/
 │   │   ├── __init__.py
@@ -195,23 +344,63 @@ school_management_system/
 │   │   ├── apps.py                # App configuration
 │   │   ├── forms.py               # Forms
 │   │   ├── models.py              # Database models
-│   │   ├── serializers.py         # API serializers
-│   │   ├── services.py            # Business logic
 │   │   ├── tests.py               # Tests
 │   │   ├── urls.py                # URL patterns
 │   │   └── views.py               # Views
 │   │
-│   ├── reports/                   # Reports and analytics app
+│   ├── analytics/                 # New analytics app
 │   │   ├── migrations/            # Database migrations
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── serializers.py
+│   │   │   ├── views.py
+│   │   │   └── urls.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── student_analytics_service.py
+│   │   │   ├── class_analytics_service.py
+│   │   │   ├── financial_analytics_service.py
+│   │   │   ├── teacher_analytics_service.py
+│   │   │   └── attendance_analytics_service.py
+│   │   ├── tasks/                 # Celery tasks for analytics
+│   │   │   ├── __init__.py
+│   │   │   ├── performance_calculation.py
+│   │   │   ├── attendance_calculation.py
+│   │   │   └── financial_calculation.py
 │   │   ├── templates/
-│   │   │   └── reports/
+│   │   │   └── analytics/
 │   │   ├── __init__.py
 │   │   ├── admin.py               # Django admin configuration
 │   │   ├── apps.py                # App configuration
 │   │   ├── forms.py               # Forms
 │   │   ├── models.py              # Database models
-│   │   ├── serializers.py         # API serializers
-│   │   ├── services.py            # Business logic
+│   │   ├── tests.py               # Tests
+│   │   ├── urls.py                # URL patterns
+│   │   └── views.py               # Views
+│   │
+│   ├── reports/                   # Reports and dashboards app
+│   │   ├── migrations/            # Database migrations
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── serializers.py
+│   │   │   ├── views.py
+│   │   │   └── urls.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── report_service.py
+│   │   │   ├── dashboard_service.py
+│   │   │   └── export_service.py
+│   │   ├── templates/
+│   │   │   └── reports/
+│   │   │       ├── dashboard.html
+│   │   │       ├── student_report.html
+│   │   │       ├── financial_report.html
+│   │   │       └── attendance_report.html
+│   │   ├── __init__.py
+│   │   ├── admin.py               # Django admin configuration
+│   │   ├── apps.py                # App configuration
+│   │   ├── forms.py               # Forms
+│   │   ├── models.py              # Database models
 │   │   ├── tests.py               # Tests
 │   │   ├── urls.py                # URL patterns
 │   │   └── views.py               # Views
@@ -220,6 +409,14 @@ school_management_system/
 │   │   ├── migrations/            # Database migrations
 │   │   ├── management/            # Custom management commands
 │   │   │   └── commands/
+│   │   │       ├── __init__.py
+│   │   │       ├── generate_sample_data.py
+│   │   │       ├── calculate_analytics.py
+│   │   │       └── setup_academic_year.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── base_service.py
+│   │   │   └── utility_service.py
 │   │   ├── templates/
 │   │   │   ├── core/
 │   │   │   ├── base.html          # Base template
@@ -233,8 +430,6 @@ school_management_system/
 │   │   ├── middleware.py          # Custom middleware
 │   │   ├── models.py              # Database models
 │   │   ├── permissions.py         # Custom permissions
-│   │   ├── serializers.py         # API serializers
-│   │   ├── services.py            # Business logic
 │   │   ├── signals.py             # Django signals
 │   │   ├── tests.py               # Tests
 │   │   ├── urls.py                # URL patterns
@@ -247,16 +442,31 @@ school_management_system/
 │       ├── 404.html               # Page not found template
 │       ├── 500.html               # Server error template
 │       └── emails/                # Email templates
+│           ├── fee_reminder.html
+│           ├── exam_notification.html
+│           └── password_reset.html
 │
 ├── static/                        # Static files
 │   ├── css/                       # CSS files
+│   │   ├── base.css
+│   │   ├── dashboard.css
+│   │   └── charts.css
 │   ├── js/                        # JavaScript files
+│   │   ├── base.js
+│   │   ├── dashboard.js
+│   │   ├── charts.js
+│   │   └── analytics.js
 │   ├── images/                    # Image files
 │   └── vendors/                   # Third-party libraries
+│       ├── bootstrap/
+│       ├── chartjs/
+│       └── jquery/
 │
 ├── media/                         # User uploaded files
 │   ├── profile_pictures/          # User profile pictures
 │   ├── documents/                 # Document uploads
+│   ├── assignments/               # Assignment files
+│   ├── books/                     # Book covers
 │   └── attachments/               # Other attachments
 │
 ├── locale/                        # Internationalization
@@ -265,8 +475,17 @@ school_management_system/
 │
 ├── tests/                         # Test suite
 │   ├── integration/               # Integration tests
+│   │   ├── test_academic_workflow.py
+│   │   ├── test_fee_processing.py
+│   │   └── test_analytics_calculation.py
 │   ├── unit/                      # Unit tests
+│   │   ├── test_models.py
+│   │   ├── test_services.py
+│   │   └── test_api.py
 │   └── fixtures/                  # Test fixtures
+│       ├── users.json
+│       ├── academic_data.json
+│       └── financial_data.json
 │
 ├── .dockerignore                  # Docker ignore file
 ├── .env.example                   # Example environment variables
@@ -275,266 +494,6 @@ school_management_system/
 ├── Dockerfile                     # Docker configuration
 ├── LICENSE                        # Project license
 ├── manage.py                      # Django management script
+├── celery.py                      # Celery configuration
 └── README.md                      # Project README
 ```
-
-## Application Structure
-
-Each Django app follows a modular and consistent structure. Let's look at a more detailed structure for the `students` app as an example:
-
-```
-students/
-├── migrations/                  # Database migrations
-├── constants/                   # Constants and enums
-│   ├── __init__.py
-│   └── choices.py               # Choice fields
-├── querysets/                   # Custom querysets
-│   ├── __init__.py
-│   └── student_queryset.py      # Student querysets
-├── services/                    # Business logic
-│   ├── __init__.py
-│   ├── enrollment_service.py    # Enrollment logic
-│   ├── attendance_service.py    # Attendance processing
-│   └── performance_service.py   # Performance calculation
-├── templates/
-│   └── students/
-│       ├── list.html            # Student list template
-│       ├── detail.html          # Student detail template
-│       ├── form.html            # Student form template
-│       ├── profile.html         # Student profile template
-│       └── partials/            # Reusable template parts
-├── static/
-│   └── students/
-│       ├── css/                 # Student-specific CSS
-│       └── js/                  # Student-specific JavaScript
-├── tests/
-│   ├── __init__.py
-│   ├── test_models.py           # Model tests
-│   ├── test_views.py            # View tests
-│   ├── test_forms.py            # Form tests
-│   ├── test_services.py         # Service tests
-│   └── test_api.py              # API tests
-├── __init__.py
-├── admin.py                     # Django admin configuration
-├── apps.py                      # App configuration
-├── forms.py                     # Forms
-├── models.py                    # Database models
-├── permissions.py               # Custom permissions
-├── signals.py                   # Django signals
-├── urls.py                      # URL patterns
-└── views.py                     # Views
-```
-
-
-## Environment Configuration
-
-The project uses multiple environment configurations to handle different deployment scenarios:
-
-```
-# .env.example
-DEBUG=False
-SECRET_KEY=your-secret-key
-ALLOWED_HOSTS=localhost,127.0.0.1
-DATABASE_URL=postgres://user:password@localhost:5432/school_db
-REDIS_URL=redis://localhost:6379/0
-EMAIL_HOST=smtp.example.com
-EMAIL_PORT=587
-EMAIL_HOST_USER=user@example.com
-EMAIL_HOST_PASSWORD=your-email-password
-EMAIL_USE_TLS=True
-AWS_ACCESS_KEY_ID=your-aws-access-key
-AWS_SECRET_ACCESS_KEY=your-aws-secret-key
-AWS_STORAGE_BUCKET_NAME=your-bucket-name
-```
-
-## Docker Configuration
-
-The project includes Docker configuration for containerized deployment:
-
-```yaml
-# docker-compose.yml
-version: "3.8"
-
-services:
-  web:
-    build: .
-    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000
-    volumes:
-      - .:/app
-      - static_volume:/app/static
-      - media_volume:/app/media
-    expose:
-      - 8000
-    env_file:
-      - .env
-    depends_on:
-      - db
-      - redis
-      - celery
-    restart: unless-stopped
-
-  db:
-    image: postgres:14
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    env_file:
-      - .env
-    environment:
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_DB=${DB_NAME}
-    restart: unless-stopped
-
-  redis:
-    image: redis:6-alpine
-    restart: unless-stopped
-
-  celery:
-    build: .
-    command: celery -A config worker -l INFO
-    volumes:
-      - .:/app
-    env_file:
-      - .env
-    depends_on:
-      - db
-      - redis
-    restart: unless-stopped
-
-  celery-beat:
-    build: .
-    command: celery -A config beat -l INFO
-    volumes:
-      - .:/app
-    env_file:
-      - .env
-    depends_on:
-      - db
-      - redis
-      - celery
-    restart: unless-stopped
-
-  nginx:
-    image: nginx:1.21-alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./nginx/ssl:/etc/nginx/ssl
-      - static_volume:/app/static
-      - media_volume:/app/media
-    depends_on:
-      - web
-    restart: unless-stopped
-
-volumes:
-  postgres_data:
-  static_volume:
-  media_volume:
-```
-
-## Django Settings Structure
-
-The project uses a modular settings approach:
-
-```python
-# config/settings/base.py (example)
-import os
-from pathlib import Path
-from decouple import config, Csv
-
-# Build paths inside the project
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-
-# Security settings
-SECRET_KEY = config('SECRET_KEY')
-DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
-
-# Application definition
-INSTALLED_APPS = [
-    # Django apps
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-
-    # Third-party apps
-    'rest_framework',
-    'rest_framework.authtoken',
-    'corsheaders',
-    'django_filters',
-    'drf_yasg',
-    'celery',
-    'django_celery_beat',
-
-    # Local apps
-    'src.core',
-    'src.accounts',
-    'src.students',
-    'src.teachers',
-    'src.courses',
-    'src.exams',
-    'src.attendance',
-    'src.finance',
-    'src.library',
-    'src.transport',
-    'src.communications',
-    'src.reports',
-]
-
-# Custom user model
-AUTH_USER_MODEL = 'accounts.User'
-
-# Rest framework settings
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
-    ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
-    ),
-    'DEFAULT_PAGINATION_CLASS': 'src.api.paginations.StandardResultsSetPagination',
-    'PAGE_SIZE': 100,
-    'DEFAULT_FILTER_BACKENDS': (
-        'django_filters.rest_framework.DjangoFilterBackend',
-        'rest_framework.filters.SearchFilter',
-        'rest_framework.filters.OrderingFilter',
-    ),
-}
-
-# Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST', default='localhost'),
-        'PORT': config('DB_PORT', default='5432'),
-    }
-}
-
-# Static files
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-
-# Media files
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-# Celery settings
-CELERY_BROKER_URL = config('REDIS_URL')
-CELERY_RESULT_BACKEND = config('REDIS_URL')
-CELERY_ACCEPT_CONTENT = ['application/json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'UTC'
-```
-
-This detailed file structure follows Django best practices and provides a solid foundation for a scalable, maintainable, and secure School Management System.

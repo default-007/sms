@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Attendance Records{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/datetime/1.5.1/css/dataTables.dateTime.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h2>Attendance Records</h2>
+          <div>
+            <a href="{% url 'attendance:mark-attendance' %}" class="btn btn-primary">
+              <i class="fas fa-plus"></i> Mark Attendance
+            </a>
+            <a href="{% url 'attendance:dashboard' %}" class="btn btn-info">
+              <i class="fas fa-chart-bar"></i> Dashboard
+            </a>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Filters -->
+          <div class="row mb-4">
+            <div class="col-md-3">
+              <label for="classFilter">Class:</label>
+              <select id="classFilter" class="form-select">
+                <option value="">All Classes</option>
+                {% for class in classes %}
+                <option value="{{ class.id }}">{{ class }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="dateFromFilter">From Date:</label>
+              <input type="date" id="dateFromFilter" class="form-control">
+            </div>
+            <div class="col-md-3">
+              <label for="dateToFilter">To Date:</label>
+              <input type="date" id="dateToFilter" class="form-control">
+            </div>
+            <div class="col-md-3">
+              <label>&nbsp;</label>
+              <div>
+                <button id="clearFilters" class="btn btn-outline-secondary">Clear Filters</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- DataTable -->
+          <table id="attendanceTable" class="table table-striped table-hover" style="width:100%">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Class</th>
+                <th>Total Students</th>
+                <th>Present</th>
+                <th>Absent</th>
+                <th>Late</th>
+                <th>Excused</th>
+                <th>Attendance %</th>
+                <th>Marked By</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in attendance_records %}
+              <tr>
+                <td>{{ record.date|date:"Y-m-d" }}</td>
+                <td>{{ record.class_obj }}</td>
+                <td>{{ record.student_attendances.count }}</td>
+                <td class="text-success">
+                  {{ record.student_attendances.present.count|add:record.student_attendances.late.count }}
+                </td>
+                <td class="text-danger">{{ record.student_attendances.absent.count }}</td>
+                <td class="text-warning">{{ record.student_attendances.late.count }}</td>
+                <td class="text-info">{{ record.student_attendances.excused.count }}</td>
+                <td>
+                  {% with total=record.student_attendances.count present=record.student_attendances.present.count|add:record.student_attendances.late.count %}
+                  {% if total > 0 %}
+                  {% widthratio present total 100 as percentage %}
+                  <span
+                    class="badge {% if percentage >= 80 %}bg-success{% elif percentage >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
+                    {{ percentage }}%
+                  </span>
+                  {% else %}
+                  <span class="badge bg-secondary">0%</span>
+                  {% endif %}
+                  {% endwith %}
+                </td>
+                <td>{{ record.marked_by.get_full_name|default:record.marked_by.username }}</td>
+                <td>
+                  <div class="btn-group" role="group">
+                    <a href="{% url 'attendance:record-detail' record.pk %}" class="btn btn-sm btn-outline-primary"
+                      title="View Details">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="{% url 'attendance:mark-class-attendance' record.class_obj.id %}"
+                      class="btn btn-sm btn-outline-secondary" title="Mark Again">
+                      <i class="fas fa-edit"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    var table = $('#attendanceTable').DataTable({
+      dom: 'Bfrtip',
+      buttons: [
+        {
+          extend: 'excel',
+          text: '<i class="fas fa-file-excel"></i> Excel',
+          className: 'btn btn-success btn-sm'
+        },
+        {
+          extend: 'pdf',
+          text: '<i class="fas fa-file-pdf"></i> PDF',
+          className: 'btn btn-danger btn-sm'
+        },
+        {
+          extend: 'print',
+          text: '<i class="fas fa-print"></i> Print',
+          className: 'btn btn-secondary btn-sm'
+        }
+      ],
+      order: [[0, 'desc']],
+      pageLength: 25,
+      responsive: true,
+      language: {
+        search: "Search records:",
+        lengthMenu: "Show _MENU_ records per page",
+        info: "Showing _START_ to _END_ of _TOTAL_ records",
+        paginate: {
+          first: "First",
+          last: "Last",
+          next: "Next",
+          previous: "Previous"
+        }
+      }
+    });
+
+    // Custom filters
+    $('#classFilter').on('change', function () {
+      var classValue = this.value;
+      if (classValue === '') {
+        table.column(1).search('').draw();
+      } else {
+        table.column(1).search(classValue).draw();
+      }
+    });
+
+    $('#dateFromFilter, #dateToFilter').on('change', function () {
+      table.draw();
+    });
+
+    // Custom date range filtering
+    $.fn.dataTable.ext.search.push(
+      function (settings, data, dataIndex) {
+        var min = $('#dateFromFilter').val();
+        var max = $('#dateToFilter').val();
+        var date = data[0]; // Date column
+
+        if (min === '' && max === '') {
+          return true;
+        }
+        if (min === '' && date <= max) {
+          return true;
+        }
+        if (max === '' && date >= min) {
+          return true;
+        }
+        if (date <= max && date >= min) {
+          return true;
+        }
+        return false;
+      }
+    );
+
+    $('#clearFilters').on('click', function () {
+      $('#classFilter').val('').trigger('change');
+      $('#dateFromFilter').val('');
+      $('#dateToFilter').val('');
+      table.search('').columns().search('').draw();
+    });
+  });
+</script>
+{% endblock %}

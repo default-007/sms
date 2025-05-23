@@ -1,0 +1,135 @@
+<!-- src/accounts/templates/accounts/emails/role_notification.html -->
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Role {{ action|title }} - {{ site_name }}</title>
+    <style>
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+      }
+
+      .header {
+        background-color: {
+          % if action=='assigned' %
+        }
+
+        #007bff {
+          % else %
+        }
+
+        #dc3545 {
+          % endif %
+        }
+
+        ;
+        color: white;
+        padding: 20px;
+        text-align: center;
+      }
+
+      .content {
+        padding: 30px 20px;
+        background-color: #f8f9fa;
+      }
+
+      .role-info {
+        background-color: {
+          % if action=='assigned' %
+        }
+
+        #d1ecf1 {
+          % else %
+        }
+
+        #f8d7da {
+          % endif %
+        }
+
+        ;
+
+        border: 1px solid {
+          % if action=='assigned' %
+        }
+
+        #bee5eb {
+          % else %
+        }
+
+        #f5c6cb {
+          % endif %
+        }
+
+        ;
+        border-radius: 5px;
+        padding: 15px;
+        margin: 20px 0;
+      }
+
+      .permissions-list {
+        background-color: #e9ecef;
+        border-radius: 5px;
+        padding: 15px;
+        margin: 15px 0;
+      }
+
+      .footer {
+        background-color: #343a40;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="email-container">
+      <div class="header">
+        <h1>Role {{ action|title }}: {{ role.name }}</h1>
+      </div>
+
+      <div class="content">
+        <h2>Hello {{ user.get_full_name|default:user.username }},</h2>
+
+        <div class="role-info">
+          <p><strong>The role "{{ role.name }}" has been {{ action }}
+              {% if action == 'assigned' %}to{% else %}from{% endif %} your account.</strong></p>
+          {% if role.description %}
+          <p><strong>Role Description:</strong> {{ role.description }}</p>
+          {% endif %}
+        </div>
+
+        {% if action == 'assigned' %}
+        <p>This role provides you with the following permissions:</p>
+
+        <div class="permissions-list">
+          <h4>Available Permissions:</h4>
+          <ul>
+            {% for resource, actions in role.permissions.items %}
+            <li><strong>{{ resource|title }}:</strong> {{ actions|join:", " }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <p>You can now access the features and functions associated with this role when you log into the system.</p>
+        {% else %}
+        <p>You no longer have access to the features and functions that were associated with this role.</p>
+        {% endif %}
+
+        <p>If you have any questions about your role or permissions, please contact the system administrator.</p>
+      </div>
+
+      <div class="footer">
+        <p>&copy; 2024 {{ site_name }}. All rights reserved.</p>
+        <p>This is an automated notification.</p>
+      </div>
+    </div>
+  </body>
+
+</html>

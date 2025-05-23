@@ -1,29 +1,18 @@
 from datetime import datetime, timedelta
-from django.db.models import Count, Q, Case, When, IntegerField, F
+from django.db.models import Count, Q, Case, When, IntegerField, F, Avg
 from django.utils import timezone
+from django.db.models.functions import Extract
 from .models import AttendanceRecord, StudentAttendance
 
 
 class AttendanceService:
-    """Service class for attendance-related business logic"""
+    """Enhanced service class for attendance-related business logic"""
 
     @staticmethod
     def mark_attendance(
         class_obj, date, marked_by, student_attendance_data, remarks=""
     ):
-        """
-        Mark attendance for a class on a specific date
-
-        Args:
-            class_obj: Class object
-            date: Date of attendance
-            marked_by: User who is marking attendance
-            student_attendance_data: List of dictionaries with student_id, status, remarks
-            remarks: Optional remarks for the attendance record
-
-        Returns:
-            AttendanceRecord object
-        """
+        """Mark attendance for a class on a specific date"""
         # Create or update attendance record
         attendance_record, created = AttendanceRecord.objects.update_or_create(
             class_obj=class_obj,
@@ -47,17 +36,7 @@ class AttendanceService:
 
     @staticmethod
     def get_student_attendance_summary(student, start_date=None, end_date=None):
-        """
-        Get attendance summary for a student within a date range
-
-        Args:
-            student: Student object
-            start_date: Start date for filtering (optional)
-            end_date: End date for filtering (optional)
-
-        Returns:
-            Dictionary with attendance statistics
-        """
+        """Get comprehensive attendance summary for a student"""
         # Set default date range if not provided
         if not end_date:
             end_date = timezone.now().date()
@@ -102,20 +81,10 @@ class AttendanceService:
 
     @staticmethod
     def get_class_attendance_summary(class_obj, date=None):
-        """
-        Get attendance summary for a class on a specific date
-
-        Args:
-            class_obj: Class object
-            date: Date for which to get attendance (default: today)
-
-        Returns:
-            Dictionary with attendance statistics
-        """
+        """Get attendance summary for a class on a specific date"""
         if not date:
             date = timezone.now().date()
 
-        # Try to find attendance record for the date
         try:
             attendance_record = AttendanceRecord.objects.get(
                 class_obj=class_obj, date=date
@@ -151,9 +120,7 @@ class AttendanceService:
             }
 
         except AttendanceRecord.DoesNotExist:
-            # No attendance record exists for this date
             total_students = class_obj.students.count()
-
             return {
                 "record_exists": False,
                 "total_students": total_students,
@@ -162,3 +129,277 @@ class AttendanceService:
                 "marked_by": None,
                 "marked_at": None,
             }
+
+    @staticmethod
+    def get_attendance_trends(class_obj=None, days=30):
+        """Get attendance trends over specified number of days"""
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=days)
+
+        query = StudentAttendance.objects.filter(
+            attendance_record__date__gte=start_date,
+            attendance_record__date__lte=end_date,
+        )
+
+        if class_obj:
+            query = query.filter(attendance_record__class_obj=class_obj)
+
+        # Group by date and calculate percentages
+        trends = (
+            query.values("attendance_record__date")
+            .annotate(
+                total=Count("id"),
+                present=Count("id", filter=Q(status__in=["present", "late"])),
+                absent=Count("id", filter=Q(status="absent")),
+            )
+            .order_by("attendance_record__date")
+        )
+
+        trend_data = []
+        for trend in trends:
+            date = trend["attendance_record__date"]
+            total = trend["total"]
+            present = trend["present"]
+            percentage = (present / total * 100) if total > 0 else 0
+
+            trend_data.append(
+                {
+                    "date": date,
+                    "percentage": round(percentage, 2),
+                    "total": total,
+                    "present": present,
+                    "absent": trend["absent"],
+                }
+            )
+
+        return trend_data
+
+    @staticmethod
+    def get_monthly_attendance_stats(year=None, month=None):
+        """Get detailed monthly attendance statistics"""
+        if not year:
+            year = timezone.now().year
+        if not month:
+            month = timezone.now().month
+
+        # Get all attendance records for the month
+        attendance_records = StudentAttendance.objects.filter(
+            attendance_record__date__year=year, attendance_record__date__month=month
+        )
+
+        # Overall statistics
+        total_records = attendance_records.count()
+        present_records = attendance_records.filter(
+            status__in=["present", "late"]
+        ).count()
+        absent_records = attendance_records.filter(status="absent").count()
+        late_records = attendance_records.filter(status="late").count()
+        excused_records = attendance_records.filter(status="excused").count()
+
+        overall_percentage = (
+            (present_records / total_records * 100) if total_records > 0 else 0
+        )
+
+        # Day-wise breakdown
+        day_wise = (
+            attendance_records.values("attendance_record__date")
+            .annotate(
+                total=Count("id"),
+                present=Count("id", filter=Q(status__in=["present", "late"])),
+                absent=Count("id", filter=Q(status="absent")),
+                late=Count("id", filter=Q(status="late")),
+                excused=Count("id", filter=Q(status="excused")),
+            )
+            .order_by("attendance_record__date")
+        )
+
+        # Class-wise breakdown
+        class_wise = (
+            attendance_records.values(
+                "attendance_record__class_obj__grade__name",
+                "attendance_record__class_obj__section__name",
+            )
+            .annotate(
+                total=Count("id"),
+                present=Count("id", filter=Q(status__in=["present", "late"])),
+                absent=Count("id", filter=Q(status="absent")),
+            )
+            .order_by("attendance_record__class_obj__grade__name")
+        )
+
+        return {
+            "overall": {
+                "total_records": total_records,
+                "present_records": present_records,
+                "absent_records": absent_records,
+                "late_records": late_records,
+                "excused_records": excused_records,
+                "attendance_percentage": round(overall_percentage, 2),
+            },
+            "day_wise": list(day_wise),
+            "class_wise": list(class_wise),
+        }
+
+    @staticmethod
+    def get_low_attendance_students(threshold=75, days=30):
+        """Get students with attendance below threshold"""
+        from src.students.models import Student
+
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=days)
+
+        low_attendance = []
+        students = Student.objects.filter(status="active").select_related(
+            "user", "current_class"
+        )
+
+        for student in students:
+            summary = AttendanceService.get_student_attendance_summary(
+                student, start_date, end_date
+            )
+
+            if (
+                summary["total_days"] > 0
+                and summary["attendance_percentage"] < threshold
+            ):
+                low_attendance.append(
+                    {
+                        "student": student,
+                        "summary": summary,
+                        "percentage": summary["attendance_percentage"],
+                    }
+                )
+
+        # Sort by attendance percentage
+        low_attendance.sort(key=lambda x: x["percentage"])
+        return low_attendance
+
+    @staticmethod
+    def get_attendance_analytics_dashboard(days=30):
+        """Get comprehensive analytics for dashboard"""
+        from src.students.models import Student
+        from src.courses.models import Class
+
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=days)
+
+        # Basic counts
+        total_students = Student.objects.filter(status="active").count()
+        total_classes = Class.objects.count()
+
+        # Today's attendance
+        today_attendance = StudentAttendance.objects.filter(
+            attendance_record__date=end_date
+        ).aggregate(
+            total=Count("id"),
+            present=Count("id", filter=Q(status__in=["present", "late"])),
+            absent=Count("id", filter=Q(status="absent")),
+            late=Count("id", filter=Q(status="late")),
+            excused=Count("id", filter=Q(status="excused")),
+        )
+
+        # Classes marked today
+        classes_marked_today = AttendanceRecord.objects.filter(date=end_date).count()
+
+        # Average attendance over period
+        period_attendance = StudentAttendance.objects.filter(
+            attendance_record__date__gte=start_date,
+            attendance_record__date__lte=end_date,
+        ).aggregate(
+            total=Count("id"),
+            present=Count("id", filter=Q(status__in=["present", "late"])),
+        )
+
+        avg_attendance = 0
+        if period_attendance["total"] > 0:
+            avg_attendance = (
+                period_attendance["present"] / period_attendance["total"]
+            ) * 100
+
+        # Trend data
+        trends = AttendanceService.get_attendance_trends(days=days)
+
+        # Low attendance students
+        low_attendance = AttendanceService.get_low_attendance_students(
+            threshold=80, days=days
+        )
+
+        return {
+            "basic_stats": {
+                "total_students": total_students,
+                "total_classes": total_classes,
+                "classes_marked_today": classes_marked_today,
+                "average_attendance": round(avg_attendance, 1),
+            },
+            "today_stats": today_attendance,
+            "trends": trends,
+            "low_attendance_students": low_attendance[:10],  # Top 10
+        }
+
+    @staticmethod
+    def generate_attendance_report(class_obj, start_date, end_date):
+        """Generate comprehensive attendance report for a class"""
+        # Get all attendance records for the period
+        attendance_records = AttendanceRecord.objects.filter(
+            class_obj=class_obj, date__gte=start_date, date__lte=end_date
+        ).order_by("date")
+
+        # Get all students in the class
+        students = class_obj.students.select_related("user").all()
+
+        # Build report data
+        report_data = {
+            "class_info": {
+                "name": str(class_obj),
+                "total_students": students.count(),
+                "period": f"{start_date} to {end_date}",
+                "total_days": attendance_records.count(),
+            },
+            "summary": {},
+            "student_details": [],
+            "daily_summary": [],
+        }
+
+        # Calculate overall summary
+        all_attendance = StudentAttendance.objects.filter(
+            attendance_record__in=attendance_records
+        )
+
+        total_possible = students.count() * attendance_records.count()
+        if total_possible > 0:
+            present_count = all_attendance.filter(
+                status__in=["present", "late"]
+            ).count()
+            report_data["summary"] = {
+                "total_possible_attendance": total_possible,
+                "total_present": present_count,
+                "total_absent": all_attendance.filter(status="absent").count(),
+                "total_late": all_attendance.filter(status="late").count(),
+                "total_excused": all_attendance.filter(status="excused").count(),
+                "overall_percentage": round((present_count / total_possible) * 100, 2),
+            }
+
+        # Student-wise details
+        for student in students:
+            student_summary = AttendanceService.get_student_attendance_summary(
+                student, start_date, end_date
+            )
+
+            report_data["student_details"].append(
+                {
+                    "student_name": student.user.get_full_name(),
+                    "roll_number": student.roll_number,
+                    "summary": student_summary,
+                }
+            )
+
+        # Daily summary
+        for record in attendance_records:
+            daily_summary = AttendanceService.get_class_attendance_summary(
+                class_obj, record.date
+            )
+            report_data["daily_summary"].append(
+                {"date": record.date, "summary": daily_summary}
+            )
+
+        return report_data

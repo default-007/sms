@@ -1,8 +1,11 @@
+# src/accounts/services/authentication_service.py
+
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.db import transaction
 from django.core.cache import cache
 from django.conf import settings
+from django.db.models import Q
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
 import secrets
@@ -17,15 +20,12 @@ User = get_user_model()
 
 
 class AuthenticationService:
-    """
-    Enhanced service for handling authentication-related operations.
-    """
+    """Enhanced service for handling authentication-related operations."""
 
     @staticmethod
     def generate_tokens_for_user(user):
         """Generate JWT tokens for a user."""
         refresh = RefreshToken.for_user(user)
-
         return {
             "refresh": str(refresh),
             "access": str(refresh.access_token),
@@ -42,18 +42,13 @@ class AuthenticationService:
     def authenticate_user(username, password, request=None):
         """
         Authenticate a user with username and password.
-        Enhanced with security checks and logging.
-
-        Returns:
-            tuple: (user_object, authentication_result)
+        Returns: (user_object, authentication_result)
         """
         client_info = get_client_info(request) if request else {}
 
         try:
             # Try to find user by username or email
-            user = User.objects.get(
-                models.Q(username=username) | models.Q(email=username)
-            )
+            user = User.objects.get(Q(username=username) | Q(email=username))
 
             # Check if account is locked
             if user.is_account_locked():
@@ -145,24 +140,13 @@ class AuthenticationService:
             session_obj.user = user
             session_obj.last_activity = timezone.now()
             session_obj.is_active = True
-            session_obj.save()
+            session_obj.save(update_fields=["user", "last_activity", "is_active"])
 
     @staticmethod
     @transaction.atomic
     def register_user(user_data, role_names=None, created_by=None, send_email=True):
-        """
-        Register a new user with optional roles and email notification.
-
-        Args:
-            user_data (dict): User data
-            role_names (list): List of role names to assign
-            created_by (User): User who created this account
-            send_email (bool): Whether to send welcome email
-
-        Returns:
-            User: The created user instance
-        """
-        from ..services import RoleService
+        """Register a new user with optional roles and email notification."""
+        from .role_service import RoleService
 
         # Create the user
         password = user_data.pop("password", None)
@@ -212,13 +196,7 @@ class AuthenticationService:
 
     @staticmethod
     def logout_user(user, request=None):
-        """
-        Log out a user and clean up session data.
-
-        Args:
-            user: User to log out
-            request: HTTP request object
-        """
+        """Log out a user and clean up session data."""
         # Create audit log
         client_info = get_client_info(request) if request else {}
         UserAuditLog.objects.create(
@@ -235,24 +213,12 @@ class AuthenticationService:
             UserSession.objects.filter(session_key=request.session.session_key).update(
                 is_active=False
             )
-
             # Clear session data
             request.session.flush()
 
     @staticmethod
     def change_password(user, old_password, new_password, request=None):
-        """
-        Change user password with validation and logging.
-
-        Args:
-            user: User object
-            old_password: Current password
-            new_password: New password
-            request: HTTP request object
-
-        Returns:
-            tuple: (success, message)
-        """
+        """Change user password with validation and logging."""
         # Verify old password
         if not user.check_password(old_password):
             return False, "Current password is incorrect"
@@ -261,7 +227,13 @@ class AuthenticationService:
         user.set_password(new_password)
         user.password_changed_at = timezone.now()
         user.requires_password_change = False
-        user.save()
+        user.save(
+            update_fields=[
+                "password",
+                "password_changed_at",
+                "requires_password_change",
+            ]
+        )
 
         # Create audit log
         client_info = get_client_info(request) if request else {}
@@ -289,18 +261,7 @@ class AuthenticationService:
 
     @staticmethod
     def reset_password(user, new_password=None, request=None, reset_by=None):
-        """
-        Reset user password (admin action).
-
-        Args:
-            user: User object
-            new_password: New password (generated if not provided)
-            request: HTTP request object
-            reset_by: User who performed the reset
-
-        Returns:
-            str: The new password
-        """
+        """Reset user password (admin action)."""
         if not new_password:
             new_password = secrets.token_urlsafe(12)
 
@@ -309,7 +270,15 @@ class AuthenticationService:
         user.password_changed_at = timezone.now()
         user.failed_login_attempts = 0
         user.last_failed_login = None
-        user.save()
+        user.save(
+            update_fields=[
+                "password",
+                "requires_password_change",
+                "password_changed_at",
+                "failed_login_attempts",
+                "last_failed_login",
+            ]
+        )
 
         # Create audit log
         client_info = get_client_info(request) if request else {}
@@ -343,32 +312,25 @@ class AuthenticationService:
 
     @staticmethod
     def invalidate_user_tokens(user):
-        """
-        Invalidate all JWT tokens for a user.
+        """Invalidate all JWT tokens for a user."""
+        try:
+            from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 
-        Args:
-            user: User object
-        """
-        # Blacklist all refresh tokens for the user
-        refresh_tokens = RefreshToken.objects.filter(user=user)
-        for token in refresh_tokens:
-            try:
-                BlacklistedToken.objects.get_or_create(token=token)
-            except Exception as e:
-                logger.error(f"Error blacklisting token: {e}")
+            tokens = OutstandingToken.objects.filter(user=user)
+            for token in tokens:
+                try:
+                    BlacklistedToken.objects.get_or_create(token=token)
+                except Exception as e:
+                    logger.error(f"Error blacklisting token: {e}")
+        except ImportError:
+            logger.warning("Token blacklist not available")
 
     @staticmethod
     def unlock_account(user, unlocked_by=None):
-        """
-        Unlock a locked user account.
-
-        Args:
-            user: User object
-            unlocked_by: User who performed the unlock
-        """
+        """Unlock a locked user account."""
         user.failed_login_attempts = 0
         user.last_failed_login = None
-        user.save()
+        user.save(update_fields=["failed_login_attempts", "last_failed_login"])
 
         # Create audit log
         UserAuditLog.objects.create(
@@ -388,17 +350,9 @@ class AuthenticationService:
 
     @staticmethod
     def get_login_statistics(user, days=30):
-        """
-        Get login statistics for a user.
-
-        Args:
-            user: User object
-            days: Number of days to analyze
-
-        Returns:
-            dict: Login statistics
-        """
+        """Get login statistics for a user."""
         from datetime import timedelta
+        from django.db.models import Count
 
         start_date = timezone.now() - timedelta(days=days)
 
@@ -442,17 +396,9 @@ class AuthenticationService:
 
     @staticmethod
     def check_suspicious_activity(user, threshold_hours=24):
-        """
-        Check for suspicious login activity.
-
-        Args:
-            user: User object
-            threshold_hours: Hours to check for suspicious activity
-
-        Returns:
-            dict: Suspicious activity report
-        """
+        """Check for suspicious login activity."""
         from datetime import timedelta
+        from django.db.models import Count
 
         since = timezone.now() - timedelta(hours=threshold_hours)
 

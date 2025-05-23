@@ -4,6 +4,8 @@ from . import views
 app_name = "attendance"
 
 urlpatterns = [
+    # Dashboard
+    path("dashboard/", views.attendance_dashboard_view, name="dashboard"),
     # Attendance record management
     path("records/", views.AttendanceRecordListView.as_view(), name="record-list"),
     path(

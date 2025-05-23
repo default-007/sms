@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Account Unlocked - {{ site_name }}</title>
+    <style>
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+      }
+
+      .header {
+        background-color: #28a745;
+        color: white;
+        padding: 20px;
+        text-align: center;
+      }
+
+      .content {
+        padding: 30px 20px;
+        background-color: #f8f9fa;
+      }
+
+      .success-box {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        border-radius: 5px;
+        padding: 15px;
+        margin: 20px 0;
+      }
+
+      .security-tips {
+        background-color: #e2e3e5;
+        border-radius: 5px;
+        padding: 15px;
+        margin: 20px 0;
+      }
+
+      .footer {
+        background-color: #343a40;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        font-size: 12px;
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #28a745;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        margin: 10px 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="email-container">
+      <div class="header">
+        <h1>Account Unlocked</h1>
+      </div>
+
+      <div class="content">
+        <h2>Hello {{ user.get_full_name|default:user.username }},</h2>
+
+        <div class="success-box">
+          <p><strong>✅ Your account has been unlocked and is now active.</strong></p>
+          <p>You can now log in to the system using your regular credentials.</p>
+        </div>
+
+        <p>Your account was temporarily locked due to multiple failed login attempts. This is a security measure to
+          protect your account from unauthorized access.</p>
+
+        <a href="{{ request.build_absolute_uri }}" class="btn">Login to System</a>
+
+        <div class="security-tips">
+          <h3>🔐 Security Tips</h3>
+          <p>To help keep your account secure:</p>
+          <ul>
+            <li>Use a strong, unique password</li>
+            <li>Don't share your login credentials with anyone</li>
+            <li>Log out when using shared or public computers</li>
+            <li>Contact support if you notice any suspicious activity</li>
+            <li>Consider enabling two-factor authentication if available</li>
+          </ul>
+        </div>
+
+        <p>If you continue to experience login issues or suspect unauthorized access attempts, please contact the system
+          administrator immediately.</p>
+      </div>
+
+      <div class="footer">
+        <p>&copy; 2024 {{ site_name }}. All rights reserved.</p>
+        <p>This is an automated security notification.</p>
+      </div>
+    </div>
+  </body>
+
+</html>

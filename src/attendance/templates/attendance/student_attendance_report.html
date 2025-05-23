@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ student.user.get_full_name }} - Attendance Report{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<style>
+  .attendance-calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    margin: 20px 0;
+  }
+
+  .calendar-day {
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+  }
+
+  .present {
+    background-color: #28a745;
+    color: white;
+  }
+
+  .absent {
+    background-color: #dc3545;
+    color: white;
+  }
+
+  .late {
+    background-color: #ffc107;
+    color: black;
+  }
+
+  .excused {
+    background-color: #17a2b8;
+    color: white;
+  }
+
+  .no-data {
+    background-color: #f8f9fa;
+    color: #6c757d;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h2>{{ student.user.get_full_name }} - Attendance Report</h2>
+          <a href="{% url 'attendance:record-list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Records
+          </a>
+        </div>
+        <div class="card-body">
+          <!-- Student Info -->
+          <div class="row mb-4">
+            <div class="col-md-4">
+              <div class="card bg-light">
+                <div class="card-body">
+                  <h6 class="card-title">Student Information</h6>
+                  <p><strong>Name:</strong> {{ student.user.get_full_name }}</p>
+                  <p><strong>Class:</strong> {{ student.current_class }}</p>
+                  <p><strong>Roll Number:</strong> {{ student.roll_number|default:"-" }}</p>
+                  <p><strong>Admission Number:</strong> {{ student.admission_number }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-8">
+              <div class="card">
+                <div class="card-body">
+                  <h6 class="card-title">Attendance Summary</h6>
+                  <div class="row text-center">
+                    <div class="col-3">
+                      <div class="h4 text-success">{{ attendance_summary.present }}</div>
+                      <div class="text-muted">Present</div>
+                    </div>
+                    <div class="col-3">
+                      <div class="h4 text-danger">{{ attendance_summary.absent }}</div>
+                      <div class="text-muted">Absent</div>
+                    </div>
+                    <div class="col-3">
+                      <div class="h4 text-warning">{{ attendance_summary.late }}</div>
+                      <div class="text-muted">Late</div>
+                    </div>
+                    <div class="col-3">
+                      <div class="h4 text-info">{{ attendance_summary.excused }}</div>
+                      <div class="text-muted">Excused</div>
+                    </div>
+                  </div>
+                  <hr>
+                  <div class="row text-center">
+                    <div class="col-6">
+                      <div class="h5">{{ attendance_summary.total_days }}</div>
+                      <div class="text-muted">Total Days</div>
+                    </div>
+                    <div class="col-6">
+                      <div
+                        class="h5 {% if attendance_summary.attendance_percentage >= 80 %}text-success{% elif attendance_summary.attendance_percentage >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                        {{ attendance_summary.attendance_percentage|floatformat:1 }}%
+                      </div>
+                      <div class="text-muted">Attendance Rate</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filters -->
+          <div class="row mb-4">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body">
+                  <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                      {{ form.start_date.label_tag }}
+                      {{ form.start_date }}
+                    </div>
+                    <div class="col-md-3">
+                      {{ form.end_date.label_tag }}
+                      {{ form.end_date }}
+                    </div>
+                    <div class="col-md-3">
+                      {{ form.status.label_tag }}
+                      {{ form.status }}
+                    </div>
+                    <div class="col-md-3">
+                      <label>&nbsp;</label>
+                      <div>
+                        <button type="submit" class="btn btn-primary">Filter</button>
+                        <a href="?" class="btn btn-outline-secondary">Clear</a>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts -->
+          <div class="row mb-4">
+            <div class="col-md-8">
+              <div class="card">
+                <div class="card-header">
+                  <h6>Attendance Trend</h6>
+                </div>
+                <div class="card-body">
+                  <canvas id="attendanceTrendChart" height="100"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card">
+                <div class="card-header">
+                  <h6>Status Distribution</h6>
+                </div>
+                <div class="card-body">
+                  <canvas id="statusChart" height="150"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Attendance Calendar View -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h6>Attendance Calendar</h6>
+              <div class="mt-2">
+                <small class="me-3"><span class="badge bg-success">Present</span></small>
+                <small class="me-3"><span class="badge bg-danger">Absent</span></small>
+                <small class="me-3"><span class="badge bg-warning text-dark">Late</span></small>
+                <small class="me-3"><span class="badge bg-info">Excused</span></small>
+                <small><span class="badge bg-light text-dark">No Data</span></small>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="attendanceCalendar"></div>
+            </div>
+          </div>
+
+          <!-- Detailed Records -->
+          <div class="card">
+            <div class="card-header">
+              <h6>Attendance Records</h6>
+            </div>
+            <div class="card-body">
+              <table id="attendanceTable" class="table table-striped table-hover" style="width:100%">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Day</th>
+                    <th>Status</th>
+                    <th>Remarks</th>
+                    <th>Marked By</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for attendance in student_attendances %}
+                  <tr>
+                    <td>{{ attendance.attendance_record.date|date:"Y-m-d" }}</td>
+                    <td>{{ attendance.attendance_record.date|date:"l" }}</td>
+                    <td>
+                      {% if attendance.status == 'present' %}
+                      <span class="badge bg-success">Present</span>
+                      {% elif attendance.status == 'absent' %}
+                      <span class="badge bg-danger">Absent</span>
+                      {% elif attendance.status == 'late' %}
+                      <span class="badge bg-warning text-dark">Late</span>
+                      {% elif attendance.status == 'excused' %}
+                      <span class="badge bg-info">Excused</span>
+                      {% endif %}
+                    </td>
+                    <td>{{ attendance.remarks|default:"-" }}</td>
+                    <td>
+                      {{ attendance.attendance_record.marked_by.get_full_name|default:attendance.attendance_record.marked_by.username }}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    $('#attendanceTable').DataTable({
+      order: [[0, 'desc']],
+      pageLength: 25,
+      responsive: true,
+      language: {
+        search: "Search records:",
+        lengthMenu: "Show _MENU_ records per page",
+      }
+    });
+
+    // Attendance Trend Chart
+    const trendCtx = document.getElementById('attendanceTrendChart').getContext('2d');
+    new Chart(trendCtx, {
+      type: 'line',
+      data: {
+        labels: [{% for attendance in student_attendances %}'{{ attendance.attendance_record.date|date:"M d" }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+    datasets: [{
+      label: 'Attendance Status',
+      data: [{% for attendance in student_attendances %}{% if attendance.status == 'present' or attendance.status == 'late' %}1{% else %} 0{% endif %} {% if not forloop.last %}, {% endif %} {% endfor %}],
+  borderColor: 'rgb(75, 192, 192)',
+    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+      tension: 0.1,
+        fill: true
+            }]
+        },
+  options: {
+    responsive: true,
+      scales: {
+      y: {
+        beginAtZero: true,
+          max: 1,
+            ticks: {
+          callback: function(value) {
+            return value === 1 ? 'Present' : 'Absent';
+          }
+        }
+      }
+    }
+  }
+    });
+
+  // Status Distribution Chart
+  const statusCtx = document.getElementById('statusChart').getContext('2d');
+  new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Present', 'Absent', 'Late', 'Excused'],
+      datasets: [{
+        data: [
+          {{ attendance_summary.present }},
+      {{ attendance_summary.absent }},
+                    {{ attendance_summary.late }},
+    {{ attendance_summary.excused }}
+                ],
+    backgroundColor: [
+    'rgba(40, 167, 69, 0.8)',
+    'rgba(220, 53, 69, 0.8)',
+    'rgba(255, 193, 7, 0.8)',
+    'rgba(23, 162, 184, 0.8)'
+  ]
+            }]
+        },
+    options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'bottom'
+      }
+    }
+  }
+    });
+});
+</script>
+{% endblock %}

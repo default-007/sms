@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Attendance Details - {{ attendance_record.class_obj }} ({{ attendance_record.date }}){% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h2>Attendance Details</h2>
+          <div>
+            <a href="{% url 'attendance:mark-class-attendance' attendance_record.class_obj.id %}"
+              class="btn btn-primary">
+              <i class="fas fa-edit"></i> Mark Attendance
+            </a>
+            <a href="{% url 'attendance:record-list' %}" class="btn btn-secondary">
+              <i class="fas fa-arrow-left"></i> Back to Records
+            </a>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Record Summary -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="card bg-light">
+                <div class="card-body">
+                  <h5 class="card-title">Record Information</h5>
+                  <p><strong>Class:</strong> {{ attendance_record.class_obj }}</p>
+                  <p><strong>Date:</strong> {{ attendance_record.date|date:"F j, Y" }}</p>
+                  <p><strong>Marked By:</strong>
+                    {{ attendance_record.marked_by.get_full_name|default:attendance_record.marked_by.username }}
+                  </p>
+                  <p><strong>Marked At:</strong> {{ attendance_record.marked_at|date:"F j, Y g:i A" }}</p>
+                  {% if attendance_record.remarks %}
+                  <p><strong>Remarks:</strong> {{ attendance_record.remarks }}</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-body">
+                  <h5 class="card-title">Attendance Summary</h5>
+                  <div class="row text-center">
+                    <div class="col-3">
+                      <div class="h3 text-success">
+                        {{ student_attendances.present.count|add:student_attendances.late.count }}
+                      </div>
+                      <div class="text-muted">Present</div>
+                    </div>
+                    <div class="col-3">
+                      <div class="h3 text-danger">{{ student_attendances.absent.count }}</div>
+                      <div class="text-muted">Absent</div>
+                    </div>
+                    <div class="col-3">
+                      <div class="h3 text-warning">{{ student_attendances.late.count }}</div>
+                      <div class="text-muted">Late</div>
+                    </div>
+                    <div class="col-3">
+                      <div class="h3 text-info">{{ student_attendances.excused.count }}</div>
+                      <div class="text-muted">Excused</div>
+                    </div>
+                  </div>
+                  <hr>
+                  {% with total=student_attendances.count present=student_attendances.present.count|add:student_attendances.late.count %}
+                  {% if total > 0 %}
+                  {% widthratio present total 100 as percentage %}
+                  <div class="text-center">
+                    <span
+                      class="h4 {% if percentage >= 80 %}text-success{% elif percentage >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                      {{ percentage }}%
+                    </span>
+                    <div class="text-muted">Attendance Rate</div>
+                  </div>
+                  {% endif %}
+                  {% endwith %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Student Attendance Details -->
+          <div class="card">
+            <div class="card-header">
+              <h5>Student Attendance Details</h5>
+            </div>
+            <div class="card-body">
+              <table id="studentAttendanceTable" class="table table-striped table-hover" style="width:100%">
+                <thead>
+                  <tr>
+                    <th>Roll Number</th>
+                    <th>Student Name</th>
+                    <th>Status</th>
+                    <th>Remarks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for attendance in student_attendances %}
+                  <tr>
+                    <td>{{ attendance.student.roll_number|default:"-" }}</td>
+                    <td>
+                      <a href="{% url 'attendance:student-report' attendance.student.id %}">
+                        {{ attendance.student.user.get_full_name }}
+                      </a>
+                    </td>
+                    <td>
+                      {% if attendance.status == 'present' %}
+                      <span class="badge bg-success">Present</span>
+                      {% elif attendance.status == 'absent' %}
+                      <span class="badge bg-danger">Absent</span>
+                      {% elif attendance.status == 'late' %}
+                      <span class="badge bg-warning">Late</span>
+                      {% elif attendance.status == 'excused' %}
+                      <span class="badge bg-info">Excused</span>
+                      {% endif %}
+                    </td>
+                    <td>{{ attendance.remarks|default:"-" }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    $('#studentAttendanceTable').DataTable({
+      order: [[0, 'asc']],
+      pageLength: 50,
+      responsive: true,
+      language: {
+        search: "Search students:",
+        lengthMenu: "Show _MENU_ students per page",
+        info: "Showing _START_ to _END_ of _TOTAL_ students",
+      }
+    });
+  });
+</script>
+{% endblock %}

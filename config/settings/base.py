@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 from datetime import timedelta
 from decouple import config, Csv
+from celery.schedules import crontab
 
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -488,5 +489,21 @@ CELERY_BEAT_SCHEDULE = {
     "send-login-alerts": {
         "task": "accounts.tasks.send_login_alerts",
         "schedule": 3600.0,  # Run every hour
+    },
+    "update-syllabus-completion": {
+        "task": "subjects.tasks.update_syllabus_completion_percentages",
+        "schedule": crontab(hour=2, minute=0),  # Daily at 2 AM
+    },
+    "check-syllabus-deadlines": {
+        "task": "subjects.tasks.send_syllabus_deadline_alerts",
+        "schedule": crontab(hour=8, minute=0),  # Daily at 8 AM
+    },
+    "weekly-curriculum-report": {
+        "task": "subjects.tasks.generate_weekly_curriculum_report",
+        "schedule": crontab(hour=6, minute=0, day_of_week=1),  # Monday at 6 AM
+    },
+    "cleanup-analytics-cache": {
+        "task": "subjects.tasks.cleanup_old_analytics_cache",
+        "schedule": crontab(hour=3, minute=0, day_of_week=0),  # Sunday at 3 AM
     },
 }

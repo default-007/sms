@@ -8,4 +8,12 @@ class StudentsConfig(AppConfig):
     verbose_name = "Student Management"
 
     def ready(self):
-        import src.students.signals
+        import src.students.signals  # Make sure this line exists
+
+        try:
+            # Initialize analytics cache on startup
+            from .services.analytics_service import StudentAnalyticsService
+
+            StudentAnalyticsService.clear_analytics_cache()
+        except Exception:
+            pass  # Ignore errors during startu

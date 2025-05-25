@@ -50,11 +50,16 @@ INSTALLED_APPS = [
     "src.courses",
     "src.exams",
     "src.attendance",
+    "src.academics",
+    "src.subjects",
+    "src.scheduling",
+    "src.assignments",
     "src.finance",
     "src.library",
     "src.transport",
     "src.communications",
     "src.reports",
+    "src.analytics",
 ]
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
@@ -266,6 +271,9 @@ DEFAULT_FROM_EMAIL = "noreply@yourdomain.com"
 # Email templates directory
 EMAIL_TEMPLATE_DIR = "accounts/emails/"
 
+SCHOOL_NAME = "Your School Name"
+ENABLE_EMAIL_NOTIFICATIONS = True
+
 # ==============================================================================
 # FILE UPLOAD SETTINGS
 # ==============================================================================
@@ -330,6 +338,7 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.JSONRenderer",
         "rest_framework.renderers.BrowsableAPIRenderer",
     ],
+    "EXCEPTION_HANDLER": "src.students.exceptions.custom_exception_handler",
 }
 
 # ==============================================================================

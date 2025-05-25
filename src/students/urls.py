@@ -135,4 +135,5 @@ urlpatterns = [
     path("relationships/", include(relationship_patterns)),
     # Import/Export patterns
     path("", include(import_export_patterns)),
+    path("api/", include("students.api.urls")),
 ]

@@ -1,209 +1,946 @@
+<!DOCTYPE html>
 {% extends "base.html" %}
 {% load static %}
+{% load crispy_forms_tags %}
+{% load teacher_tags %}
 
-{% block title %}{% if form.instance.pk %}Edit Teacher{% else %}Add Teacher{% endif %}{% endblock %}
+{% block title %}
+{% if form.instance.pk %}Edit Teacher{% else %}Add New Teacher{% endif %} - {{ block.super }}
+{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+  rel="stylesheet" />
+<style>
+  .form-section {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e9ecef;
+  }
+
+  .section-header {
+    border-bottom: 2px solid #f8f9fa;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-title {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items-center;
+    gap: 0.5rem;
+  }
+
+  .section-description {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 0;
+  }
+
+  .form-floating>.form-control:focus,
+  .form-floating>.form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+  }
+
+  .form-floating>label {
+    color: #6c757d;
+  }
+
+  .required-field::after {
+    content: " *";
+    color: #dc3545;
+    font-weight: bold;
+  }
+
+  .form-progress {
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    height: 4px;
+    border-radius: 2px;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .form-progress::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: var(--progress, 0%);
+    background: linear-gradient(90deg, #11998e 0%, #38ef7d 100%);
+    transition: width 0.3s ease;
+  }
+
+  .step-indicator {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+  }
+
+  .step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+  }
+
+  .step::before {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    right: -50%;
+    height: 2px;
+    background: #dee2e6;
+    z-index: 1;
+  }
+
+  .step:last-child::before {
+    display: none;
+  }
+
+  .step-circle {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #dee2e6;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content-center;
+    margin: 0 auto 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    position: relative;
+    z-index: 2;
+    transition: all 0.3s ease;
+  }
+
+  .step.active .step-circle {
+    background: #667eea;
+    color: white;
+  }
+
+  .step.completed .step-circle {
+    background: #28a745;
+    color: white;
+  }
+
+  .step.completed::before {
+    background: #28a745;
+  }
+
+  .step-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+    font-weight: 500;
+  }
+
+  .step.active .step-label {
+    color: #667eea;
+    font-weight: 600;
+  }
+
+  .step.completed .step-label {
+    color: #28a745;
+  }
+
+  .profile-upload {
+    border: 2px dashed #dee2e6;
+    border-radius: 15px;
+    padding: 2rem;
+    text-align: center;
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .profile-upload:hover {
+    border-color: #667eea;
+    background: #f0f2ff;
+  }
+
+  .profile-upload.dragover {
+    border-color: #667eea;
+    background: #e8eeff;
+    transform: scale(1.02);
+  }
+
+  .preview-image {
+    max-width: 150px;
+    max-height: 150px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+  }
+
+  .error-message {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .success-message {
+    color: #28a745;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .form-buttons {
+    background: white;
+    padding: 1.5rem 2rem;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e9ecef;
+    position: sticky;
+    bottom: 1rem;
+    z-index: 1000;
+  }
+
+  .btn-save {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    border: none;
+    border-radius: 25px;
+    padding: 0.75rem 2rem;
+    color: white;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    color: white;
+  }
+
+  .btn-cancel {
+    background: transparent;
+    border: 2px solid #6c757d;
+    border-radius: 25px;
+    padding: 0.75rem 2rem;
+    color: #6c757d;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-cancel:hover {
+    background: #6c757d;
+    color: white;
+    transform: translateY(-2px);
+  }
+
+  .salary-input {
+    position: relative;
+  }
+
+  .salary-input::before {
+    content: '$';
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+    font-weight: 600;
+    z-index: 3;
+  }
+
+  .salary-input .form-control {
+    padding-left: 2.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .form-section {
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .step-indicator {
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .step {
+      flex: none;
+      min-width: 120px;
+    }
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>{% if form.instance.pk %}Edit Teacher{% else %}Add Teacher{% endif %}</h2>
-    <a href="{% if form.instance.pk %}{% url 'teacher-detail' form.instance.pk %}{% else %}{% url 'teacher-list' %}{% endif %}"
-      class="btn btn-outline-secondary">
-      <i class="fas fa-arrow-left"></i> Back
-    </a>
+<div class="container-fluid py-4">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-1">
+            {% if form.instance.pk %}
+            <i class="fas fa-user-edit me-2"></i>Edit Teacher
+            {% else %}
+            <i class="fas fa-user-plus me-2"></i>Add New Teacher
+            {% endif %}
+          </h1>
+          <p class="text-muted mb-0">
+            {% if form.instance.pk %}
+            Update teacher information and employment details
+            {% else %}
+            Create a new teacher profile with complete information
+            {% endif %}
+          </p>
+        </div>
+        <div>
+          <a href="{% url 'teachers:teacher-list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to List
+          </a>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="card-header bg-light">
-      <h5 class="mb-0">Teacher Information</h5>
+  <!-- Progress Indicator -->
+  <div class="step-indicator">
+    <div class="step active" data-step="1">
+      <div class="step-circle">1</div>
+      <div class="step-label">Personal Info</div>
     </div>
-    <div class="card-body">
-      <form method="post" enctype="multipart/form-data" novalidate>
-        {% csrf_token %}
+    <div class="step" data-step="2">
+      <div class="step-circle">2</div>
+      <div class="step-label">Employment</div>
+    </div>
+    <div class="step" data-step="3">
+      <div class="step-circle">3</div>
+      <div class="step-label">Qualifications</div>
+    </div>
+    <div class="step" data-step="4">
+      <div class="step-circle">4</div>
+      <div class="step-label">Additional Info</div>
+    </div>
+  </div>
 
-        <div class="row mb-4">
-          <div class="col-12">
-            <h6 class="fw-bold text-primary mb-3">Personal Information</h6>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label for="{{ form.first_name.id_for_label }}" class="form-label">First Name <span
-                class="text-danger">*</span></label>
-            {{ form.first_name }}
-            {% if form.first_name.errors %}
-            <div class="invalid-feedback d-block">
-              {{ form.first_name.errors }}
-            </div>
+  <div class="form-progress" style="--progress: 25%"></div>
+
+  <form method="post" enctype="multipart/form-data" id="teacherForm" novalidate>
+    {% csrf_token %}
+
+    <!-- Personal Information Section -->
+    <div class="form-section" data-section="1">
+      <div class="section-header">
+        <h4 class="section-title">
+          <i class="fas fa-user text-primary"></i>
+          Personal Information
+        </h4>
+        <p class="section-description">Basic personal details and contact information</p>
+      </div>
+
+      <div class="row">
+        <!-- Profile Picture Upload -->
+        <div class="col-md-4 mb-4">
+          <label class="form-label required-field">Profile Picture</label>
+          <div class="profile-upload" id="profileUpload">
+            {% if form.instance.user.profile_picture %}
+            <img src="{{ form.instance.user.profile_picture.url }}" alt="Profile" class="preview-image"
+              id="previewImage">
+            {% else %}
+            <i class="fas fa-camera fa-2x text-muted mb-2"></i>
+            <p class="mb-2">Click to upload or drag and drop</p>
+            <small class="text-muted">PNG, JPG up to 2MB</small>
             {% endif %}
+            {{ form.profile_picture }}
           </div>
-          <div class="col-md-6 mb-3">
-            <label for="{{ form.last_name.id_for_label }}" class="form-label">Last Name <span
-                class="text-danger">*</span></label>
-            {{ form.last_name }}
-            {% if form.last_name.errors %}
-            <div class="invalid-feedback d-block">
-              {{ form.last_name.errors }}
-            </div>
-            {% endif %}
+          {% if form.profile_picture.errors %}
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ form.profile_picture.errors.0 }}
           </div>
-          <div class="col-md-6 mb-3">
-            <label for="{{ form.email.id_for_label }}" class="form-label">Email <span
-                class="text-danger">*</span></label>
-            {{ form.email }}
-            {% if form.email.errors %}
-            <div class="invalid-feedback d-block">
-              {{ form.email.errors }}
-            </div>
-            {% endif %}
-            <small class="text-muted">This will be used as the username for login</small>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label for="{{ form.phone_number.id_for_label }}" class="form-label">Phone Number</label>
-            {{ form.phone_number }}
-            {% if form.phone_number.errors %}
-            <div class="invalid-feedback d-block">
-              {{ form.phone_number.errors }}
-            </div>
-            {% endif %}
-          </div>
+          {% endif %}
         </div>
 
-        <div class="row mb-4">
-          <div class="col-12">
-            <h6 class="fw-bold text-primary mb-3">Employment Information</h6>
+        <!-- Name Fields -->
+        <div class="col-md-8">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <div class="form-floating">
+                {{ form.first_name }}
+                <label for="{{ form.first_name.id_for_label }}" class="required-field">First Name</label>
+              </div>
+              {% if form.first_name.errors %}
+              <div class="error-message">
+                <i class="fas fa-exclamation-circle"></i>
+                {{ form.first_name.errors.0 }}
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <div class="form-floating">
+                {{ form.last_name }}
+                <label for="{{ form.last_name.id_for_label }}" class="required-field">Last Name</label>
+              </div>
+              {% if form.last_name.errors %}
+              <div class="error-message">
+                <i class="fas fa-exclamation-circle"></i>
+                {{ form.last_name.errors.0 }}
+              </div>
+              {% endif %}
+            </div>
           </div>
-          <div class="col-md-6 mb-3">
-            <label for="{{ form.employee_id.id_for_label }}" class="form-label">Employee ID <span
-                class="text-danger">*</span></label>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <div class="form-floating">
+                {{ form.email }}
+                <label for="{{ form.email.id_for_label }}" class="required-field">Email Address</label>
+              </div>
+              {% if form.email.errors %}
+              <div class="error-message">
+                <i class="fas fa-exclamation-circle"></i>
+                {{ form.email.errors.0 }}
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <div class="form-floating">
+                {{ form.phone_number }}
+                <label for="{{ form.phone_number.id_for_label }}">Phone Number</label>
+              </div>
+              {% if form.phone_number.errors %}
+              <div class="error-message">
+                <i class="fas fa-exclamation-circle"></i>
+                {{ form.phone_number.errors.0 }}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Employment Information Section -->
+    <div class="form-section" data-section="2" style="display: none;">
+      <div class="section-header">
+        <h4 class="section-title">
+          <i class="fas fa-briefcase text-success"></i>
+          Employment Information
+        </h4>
+        <p class="section-description">Job details, department assignment, and contract information</p>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <div class="form-floating">
             {{ form.employee_id }}
-            {% if form.employee_id.errors %}
-            <div class="invalid-feedback d-block">
-              {{ form.employee_id.errors }}
-            </div>
-            {% endif %}
+            <label for="{{ form.employee_id.id_for_label }}" class="required-field">Employee ID</label>
           </div>
-          <div class="col-md-6 mb-3">
-            <label for="{{ form.joining_date.id_for_label }}" class="form-label">Joining Date <span
-                class="text-danger">*</span></label>
+          <small class="text-muted">Format: T followed by 6 digits (e.g., T123456)</small>
+          {% if form.employee_id.errors %}
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ form.employee_id.errors.0 }}
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <div class="form-floating">
             {{ form.joining_date }}
-            {% if form.joining_date.errors %}
-            <div class="invalid-feedback d-block">
-              {{ form.joining_date.errors }}
-            </div>
-            {% endif %}
+            <label for="{{ form.joining_date.id_for_label }}" class="required-field">Joining Date</label>
           </div>
-          <div class="col-md-6 mb-3">
-            <label for="{{ form.department.id_for_label }}" class="form-label">Department</label>
+          {% if form.joining_date.errors %}
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ form.joining_date.errors.0 }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <div class="form-floating">
             {{ form.department }}
-            {% if form.department.errors %}
-            <div class="invalid-feedback d-block">
-              {{ form.department.errors }}
-            </div>
-            {% endif %}
+            <label for="{{ form.department.id_for_label }}">Department</label>
           </div>
-          <div class="col-md-6 mb-3">
-            <label for="{{ form.position.id_for_label }}" class="form-label">Position <span
-                class="text-danger">*</span></label>
+          {% if form.department.errors %}
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ form.department.errors.0 }}
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <div class="form-floating">
             {{ form.position }}
-            {% if form.position.errors %}
-            <div class="invalid-feedback d-block">
-              {{ form.position.errors }}
-            </div>
-            {% endif %}
+            <label for="{{ form.position.id_for_label }}" class="required-field">Position/Title</label>
           </div>
-          <div class="col-md-4 mb-3">
-            <label for="{{ form.salary.id_for_label }}" class="form-label">Salary <span
-                class="text-danger">*</span></label>
+          {% if form.position.errors %}
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ form.position.errors.0 }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <div class="form-floating salary-input">
             {{ form.salary }}
-            {% if form.salary.errors %}
-            <div class="invalid-feedback d-block">
-              {{ form.salary.errors }}
-            </div>
-            {% endif %}
+            <label for="{{ form.salary.id_for_label }}" class="required-field">Monthly Salary</label>
           </div>
-          <div class="col-md-4 mb-3">
-            <label for="{{ form.contract_type.id_for_label }}" class="form-label">Contract Type <span
-                class="text-danger">*</span></label>
+          {% if form.salary.errors %}
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ form.salary.errors.0 }}
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <div class="form-floating">
             {{ form.contract_type }}
-            {% if form.contract_type.errors %}
-            <div class="invalid-feedback d-block">
-              {{ form.contract_type.errors }}
-            </div>
-            {% endif %}
+            <label for="{{ form.contract_type.id_for_label }}" class="required-field">Contract Type</label>
           </div>
-          <div class="col-md-4 mb-3">
-            <label for="{{ form.status.id_for_label }}" class="form-label">Status <span
-                class="text-danger">*</span></label>
+          {% if form.contract_type.errors %}
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ form.contract_type.errors.0 }}
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <div class="form-floating">
             {{ form.status }}
-            {% if form.status.errors %}
-            <div class="invalid-feedback d-block">
-              {{ form.status.errors }}
-            </div>
-            {% endif %}
+            <label for="{{ form.status.id_for_label }}" class="required-field">Employment Status</label>
           </div>
+          {% if form.status.errors %}
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ form.status.errors.0 }}
+          </div>
+          {% endif %}
         </div>
+      </div>
+    </div>
 
-        <div class="row mb-4">
-          <div class="col-12">
-            <h6 class="fw-bold text-primary mb-3">Qualifications & Expertise</h6>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label for="{{ form.qualification.id_for_label }}" class="form-label">Qualification <span
-                class="text-danger">*</span></label>
+    <!-- Qualifications & Expertise Section -->
+    <div class="form-section" data-section="3" style="display: none;">
+      <div class="section-header">
+        <h4 class="section-title">
+          <i class="fas fa-graduation-cap text-info"></i>
+          Qualifications & Expertise
+        </h4>
+        <p class="section-description">Educational background and professional expertise</p>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <div class="form-floating">
             {{ form.qualification }}
-            {% if form.qualification.errors %}
-            <div class="invalid-feedback d-block">
-              {{ form.qualification.errors }}
-            </div>
-            {% endif %}
+            <label for="{{ form.qualification.id_for_label }}" class="required-field">Educational Qualification</label>
           </div>
-          <div class="col-md-6 mb-3">
-            <label for="{{ form.specialization.id_for_label }}" class="form-label">Specialization <span
-                class="text-danger">*</span></label>
-            {{ form.specialization }}
-            {% if form.specialization.errors %}
-            <div class="invalid-feedback d-block">
-              {{ form.specialization.errors }}
-            </div>
-            {% endif %}
+          <small class="text-muted">e.g., Bachelor of Science in Mathematics, Master of Education</small>
+          {% if form.qualification.errors %}
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ form.qualification.errors.0 }}
           </div>
-          <div class="col-md-6 mb-3">
-            <label for="{{ form.experience_years.id_for_label }}" class="form-label">Experience (Years) <span
-                class="text-danger">*</span></label>
-            {{ form.experience_years }}
-            {% if form.experience_years.errors %}
-            <div class="invalid-feedback d-block">
-              {{ form.experience_years.errors }}
-            </div>
-            {% endif %}
-          </div>
+          {% endif %}
         </div>
 
-        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-          <button type="submit" class="btn btn-primary">
-            <i class="fas fa-save"></i> Save Teacher
+        <div class="col-md-6 mb-3">
+          <div class="form-floating">
+            {{ form.experience_years }}
+            <label for="{{ form.experience_years.id_for_label }}" class="required-field">Years of Experience</label>
+          </div>
+          <small class="text-muted">Total teaching experience in years (e.g., 5.5)</small>
+          {% if form.experience_years.errors %}
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ form.experience_years.errors.0 }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-12 mb-3">
+          <div class="form-floating">
+            {{ form.specialization }}
+            <label for="{{ form.specialization.id_for_label }}" class="required-field">Subject Specialization</label>
+          </div>
+          <small class="text-muted">Main subjects or areas of expertise (e.g., Mathematics, Physics, Computer
+            Science)</small>
+          {% if form.specialization.errors %}
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ form.specialization.errors.0 }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Additional Information Section -->
+    <div class="form-section" data-section="4" style="display: none;">
+      <div class="section-header">
+        <h4 class="section-title">
+          <i class="fas fa-info-circle text-warning"></i>
+          Additional Information
+        </h4>
+        <p class="section-description">Optional biographical and emergency contact information</p>
+      </div>
+
+      <div class="row">
+        <div class="col-12 mb-3">
+          <div class="form-floating">
+            {{ form.bio }}
+            <label for="{{ form.bio.id_for_label }}">Biography</label>
+          </div>
+          <small class="text-muted">Brief description about the teacher (optional)</small>
+          {% if form.bio.errors %}
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ form.bio.errors.0 }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <div class="form-floating">
+            {{ form.emergency_contact }}
+            <label for="{{ form.emergency_contact.id_for_label }}">Emergency Contact Name</label>
+          </div>
+          {% if form.emergency_contact.errors %}
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ form.emergency_contact.errors.0 }}
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <div class="form-floating">
+            {{ form.emergency_phone }}
+            <label for="{{ form.emergency_phone.id_for_label }}">Emergency Contact Phone</label>
+          </div>
+          {% if form.emergency_phone.errors %}
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ form.emergency_phone.errors.0 }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Form Navigation Buttons -->
+    <div class="form-buttons">
+      <div class="d-flex justify-content-between align-items-center">
+        <button type="button" class="btn btn-outline-secondary d-none" id="prevBtn">
+          <i class="fas fa-arrow-left me-2"></i>Previous
+        </button>
+
+        <div class="ms-auto d-flex gap-3">
+          <a href="{% url 'teachers:teacher-list' %}" class="btn-cancel">
+            Cancel
+          </a>
+
+          <button type="button" class="btn-save" id="nextBtn">
+            Next <i class="fas fa-arrow-right ms-2"></i>
+          </button>
+
+          <button type="submit" class="btn-save d-none" id="submitBtn">
+            <i class="fas fa-save me-2"></i>
+            {% if form.instance.pk %}Update Teacher{% else %}Create Teacher{% endif %}
           </button>
         </div>
-      </form>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-body text-center py-4">
+        <div class="spinner-border text-primary mb-3" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <h5>Saving Teacher Information...</h5>
+        <p class="text-muted mb-0">Please wait while we process your request.</p>
+      </div>
     </div>
   </div>
 </div>
 {% endblock %}
 
-{% block scripts %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-  // Add Bootstrap's form-control class to all inputs
-  document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('input, select, textarea').forEach(function (el) {
-      if (!el.classList.contains('form-control') && !el.classList.contains('form-check-input') && !el.classList.contains('form-select')) {
-        if (el.getAttribute('type') === 'checkbox' || el.getAttribute('type') === 'radio') {
-          el.classList.add('form-check-input');
-        } else if (el.tagName === 'SELECT') {
-          el.classList.add('form-select');
-        } else {
-          el.classList.add('form-control');
+  $(document).ready(function () {
+    let currentStep = 1;
+    const totalSteps = 4;
+
+    // Initialize Select2 for department dropdown
+    $('#id_department').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Select a department',
+      allowClear: true
+    });
+
+    // Initialize form validation
+    initFormValidation();
+
+    // Profile picture upload handling
+    initProfileUpload();
+
+    // Step navigation
+    $('#nextBtn').click(function () {
+      if (validateCurrentStep()) {
+        if (currentStep < totalSteps) {
+          currentStep++;
+          showStep(currentStep);
         }
       }
     });
+
+    $('#prevBtn').click(function () {
+      if (currentStep > 1) {
+        currentStep--;
+        showStep(currentStep);
+      }
+    });
+
+    // Form submission
+    $('#submitBtn').click(function (e) {
+      e.preventDefault();
+      if (validateCurrentStep()) {
+        submitForm();
+      }
+    });
+
+    function showStep(step) {
+      // Hide all sections
+      $('.form-section').hide();
+      $('[data-section="' + step + '"]').show();
+
+      // Update step indicators
+      $('.step').removeClass('active completed');
+      for (let i = 1; i < step; i++) {
+        $('[data-step="' + i + '"]').addClass('completed');
+      }
+      $('[data-step="' + step + '"]').addClass('active');
+
+      // Update progress bar
+      const progress = (step / totalSteps) * 100;
+      $('.form-progress').css('--progress', progress + '%');
+
+      // Update buttons
+      if (step === 1) {
+        $('#prevBtn').addClass('d-none');
+      } else {
+        $('#prevBtn').removeClass('d-none');
+      }
+
+      if (step === totalSteps) {
+        $('#nextBtn').addClass('d-none');
+        $('#submitBtn').removeClass('d-none');
+      } else {
+        $('#nextBtn').removeClass('d-none');
+        $('#submitBtn').addClass('d-none');
+      }
+
+      // Scroll to top
+      $('html, body').animate({
+        scrollTop: $('.step-indicator').offset().top - 100
+      }, 300);
+    }
+
+    function validateCurrentStep() {
+      const currentSection = $('[data-section="' + currentStep + '"]');
+      let isValid = true;
+
+      // Clear previous errors
+      currentSection.find('.error-message').remove();
+      currentSection.find('.form-control, .form-select').removeClass('is-invalid is-valid');
+
+      // Validate required fields in current section
+      currentSection.find('[required]').each(function () {
+        const field = $(this);
+        const value = field.val();
+
+        if (!value || value.trim() === '') {
+          showFieldError(field, 'This field is required');
+          isValid = false;
+        } else {
+          showFieldSuccess(field);
+
+          // Additional validation based on field type
+          if (field.attr('type') === 'email' && !isValidEmail(value)) {
+            showFieldError(field, 'Please enter a valid email address');
+            isValid = false;
+          } else if (field.attr('id') === 'id_employee_id' && !isValidEmployeeId(value)) {
+            showFieldError(field, 'Employee ID must be in format T######');
+            isValid = false;
+          } else if (field.attr('type') === 'number' && parseFloat(value) < 0) {
+            showFieldError(field, 'Value cannot be negative');
+            isValid = false;
+          }
+        }
+      });
+
+      return isValid;
+    }
+
+    function showFieldError(field, message) {
+      field.addClass('is-invalid');
+      const errorDiv = $('<div class="error-message"><i class="fas fa-exclamation-circle"></i>' + message + '</div>');
+      field.closest('.form-floating, .profile-upload').after(errorDiv);
+    }
+
+    function showFieldSuccess(field) {
+      field.addClass('is-valid').removeClass('is-invalid');
+    }
+
+    function isValidEmail(email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email);
+    }
+
+    function isValidEmployeeId(employeeId) {
+      const idRegex = /^T\d{6}$/;
+      return idRegex.test(employeeId);
+    }
+
+    function initFormValidation() {
+      // Real-time validation for employee ID
+      $('#id_employee_id').on('input', function () {
+        const value = $(this).val();
+        if (value && !isValidEmployeeId(value)) {
+          $(this).addClass('is-invalid');
+        } else if (value) {
+          $(this).removeClass('is-invalid').addClass('is-valid');
+        }
+      });
+
+      // Real-time validation for email
+      $('#id_email').on('input', function () {
+        const value = $(this).val();
+        if (value && !isValidEmail(value)) {
+          $(this).addClass('is-invalid');
+        } else if (value) {
+          $(this).removeClass('is-invalid').addClass('is-valid');
+        }
+      });
+
+      // Format salary input
+      $('#id_salary').on('input', function () {
+        let value = $(this).val().replace(/[^\d.]/g, '');
+        if (value) {
+          $(this).val(value);
+        }
+      });
+    }
+
+    function initProfileUpload() {
+      const uploadArea = $('#profileUpload');
+      const fileInput = $('#id_profile_picture');
+
+      uploadArea.on('click', function () {
+        fileInput.trigger('click');
+      });
+
+      fileInput.on('change', function () {
+        const file = this.files[0];
+        if (file) {
+          // Validate file type
+          if (!file.type.match('image.*')) {
+            alert('Please select a valid image file');
+            return;
+          }
+
+          // Validate file size (2MB)
+          if (file.size > 2 * 1024 * 1024) {
+            alert('File size must be less than 2MB');
+            return;
+          }
+
+          // Preview image
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            const preview = '<img src="' + e.target.result + '" alt="Preview" class="preview-image" id="previewImage">';
+            uploadArea.html(preview);
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+
+      // Drag and drop functionality
+      uploadArea.on('dragover', function (e) {
+        e.preventDefault();
+        $(this).addClass('dragover');
+      });
+
+      uploadArea.on('dragleave', function (e) {
+        e.preventDefault();
+        $(this).removeClass('dragover');
+      });
+
+      uploadArea.on('drop', function (e) {
+        e.preventDefault();
+        $(this).removeClass('dragover');
+
+        const files = e.originalEvent.dataTransfer.files;
+        if (files.length > 0) {
+          fileInput[0].files = files;
+          fileInput.trigger('change');
+        }
+      });
+    }
+
+    function submitForm() {
+      // Show loading modal
+      $('#loadingModal').modal('show');
+
+      // Simulate form submission delay
+      setTimeout(function () {
+        $('#teacherForm')[0].submit();
+      }, 1000);
+    }
+
+    // Auto-generate employee ID if creating new teacher
+    {% if not form.instance.pk %}
+    if (!$('#id_employee_id').val()) {
+      // Generate a placeholder ID (in real implementation, this would come from backend)
+      const currentYear = new Date().getFullYear().toString().slice(-2);
+      const randomNum = Math.floor(Math.random() * 9000) + 1000;
+      $('#id_employee_id').val('T' + currentYear + randomNum);
+    }
+    {% endif %}
   });
 </script>
 {% endblock %}

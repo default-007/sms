@@ -13,8 +13,6 @@ This School Management System provides a complete solution for educational insti
 
 ### Key Differentiators
 
-- 🏫 **Hierarchical Academic Structure**: Section → Grade → Class organization
-- 💰 **Multi-level Fee Management**: Section, grade, class, and student-specific fees
 - 📊 **Real-time Analytics Engine**: Performance, attendance, and financial insights
 - 📱 **Progressive Web App**: Mobile-first design with offline capabilities
 - 🔧 **Modular Architecture**: Highly maintainable and scalable codebase
@@ -41,18 +39,6 @@ Department (Subject/Activity-based)
 ├── Arts Department → Art Teachers, Music, Drama
 └── Science Department → Lab Teachers, Physics, Chemistry
 ```
-
-### Real-world Examples
-
-- **Lower Primary Section**
-
-  - Grade 1 North, Grade 1 South, Grade 1 Blue
-  - Grade 2 Red, Grade 2 Green, Grade 2 Alpha
-  - Grade 3 East, Grade 3 West, Grade 3 Diamond
-
-- **Secondary Section**
-  - Grade 9 Science, Grade 9 Arts, Grade 9 Commerce
-  - Grade 10 Physics, Grade 10 Biology, Grade 10 Mathematics
 
 ## 🚀 Core Features
 
@@ -85,27 +71,6 @@ Department (Subject/Activity-based)
 - **Workload Management**: Automated scheduling and conflict resolution
 
 ### 💰 Advanced Fee Management
-
-#### Hierarchical Fee Structures
-
-```python
-# Section-level base fees
-Lower Primary: $400/term
-Upper Primary: $500/term
-Secondary: $600/term
-
-# Grade-specific additions
-Grade 10 (Board exam): +$100/term
-Grade 12 (Advanced): +$150/term
-
-# Class-specific fees
-Science Labs: +$50/term
-Computer Labs: +$75/term
-
-# Individual student fees
-Sports Program: +$100/term
-Music Lessons: +$80/term
-```
 
 #### Features
 
@@ -663,9 +628,6 @@ def student_performance_view(request):
 - English (default)
 - Spanish
 - French
-- Arabic (RTL support)
-- Hindi
-- Chinese (Simplified)
 
 ### Configuration
 
@@ -679,9 +641,6 @@ LANGUAGES = [
     ('en', 'English'),
     ('es', 'Español'),
     ('fr', 'Français'),
-    ('ar', 'العربية'),
-    ('hi', 'हिन्दी'),
-    ('zh-hans', '简体中文'),
 ]
 
 LOCALE_PATHS = [
@@ -854,4 +813,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Version**: 2.0.0  
 **Last Updated**: December 2024  
-**Maintainers**: [Your Team Name]
+**Maintainers**: [Brian Otieno-Default]

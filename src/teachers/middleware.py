@@ -9,6 +9,7 @@ import logging
 import json
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
+from django.db import models
 
 from django.utils.deprecation import MiddlewareMixin
 from django.http import HttpRequest, HttpResponse, JsonResponse

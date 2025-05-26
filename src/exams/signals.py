@@ -1,159 +1,90 @@
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
+from django.db import transaction
 
 from .models import (
-    Exam,
-    ExamSchedule,
-    Quiz,
     StudentExamResult,
-    StudentQuizAttempt,
-    StudentQuizResponse,
+    ExamSchedule,
+    Exam,
+    StudentOnlineExamAttempt,
+    ReportCard,
 )
-from src.communications.models import Notification
-
-
-@receiver(post_save, sender=Exam)
-def handle_exam_status_change(sender, instance, **kwargs):
-    """
-    Signal to handle status changes for exams.
-    """
-    if (
-        not kwargs.get("created", False)
-        and kwargs.get("update_fields")
-        and "status" in kwargs["update_fields"]
-    ):
-        if instance.status == "ongoing":
-            # Notify students in classes that have schedules for this exam
-            class_ids = (
-                ExamSchedule.objects.filter(exam=instance)
-                .values_list("class_obj_id", flat=True)
-                .distinct()
-            )
-            students = []
-
-            try:
-                from src.students.models import Student
-
-                students = Student.objects.filter(current_class_id__in=class_ids)
-            except (ImportError, ValueError):
-                pass
-
-            for student in students:
-                try:
-                    Notification.objects.create(
-                        user=student.user,
-                        title=f"Exam {instance.name} Started",
-                        content=f"The {instance.name} exam has now started and will run until {instance.end_date}.",
-                        notification_type="Exam",
-                        reference_id=instance.id,
-                        priority="High",
-                    )
-                except Exception:
-                    pass
-
-
-@receiver(post_save, sender=ExamSchedule)
-def notify_exam_schedule_creation(sender, instance, created, **kwargs):
-    """
-    Signal to notify about new exam schedules.
-    """
-    if created:
-        # Notify students in the class
-        try:
-            from src.students.models import Student
-
-            students = Student.objects.filter(current_class=instance.class_obj)
-
-            for student in students:
-                Notification.objects.create(
-                    user=student.user,
-                    title=f"New Exam Schedule: {instance.subject.name}",
-                    content=f"Your {instance.subject.name} exam for {instance.exam.name} is scheduled on {instance.date} from {instance.start_time} to {instance.end_time} in {instance.room}.",
-                    notification_type="Exam",
-                    reference_id=instance.id,
-                    priority="Medium",
-                )
-        except Exception:
-            pass
+from .tasks import (
+    calculate_exam_rankings,
+    send_result_notifications,
+    auto_grade_online_exam,
+    send_report_card_notifications,
+)
+from communications.models import Notification
 
 
 @receiver(post_save, sender=StudentExamResult)
-def notify_exam_result(sender, instance, created, **kwargs):
-    """
-    Signal to notify students when their exam results are entered.
-    """
-    if created or (not created and "marks_obtained" in kwargs.get("update_fields", [])):
-        # Notify the student
-        try:
-            Notification.objects.create(
-                user=instance.student.user,
-                title=f"Exam Result: {instance.exam_schedule.subject.name}",
-                content=f"Your result for {instance.exam_schedule.subject.name} in {instance.exam_schedule.exam.name} has been published. You scored {instance.marks_obtained}/{instance.exam_schedule.total_marks}.",
-                notification_type="Result",
-                reference_id=instance.id,
-                priority="High",
-            )
-        except Exception:
-            pass
-
-
-@receiver(post_save, sender=Quiz)
-def notify_quiz_publication(sender, instance, **kwargs):
-    """
-    Signal to notify students when a quiz is published.
-    """
-    if instance.status == "published" and (
-        kwargs.get("created", False)
-        or (kwargs.get("update_fields") and "status" in kwargs["update_fields"])
-    ):
-        # Notify students in the class
-        try:
-            from src.students.models import Student
-
-            students = Student.objects.filter(current_class=instance.class_obj)
-
-            for student in students:
-                Notification.objects.create(
-                    user=student.user,
-                    title=f"New Quiz: {instance.title}",
-                    content=f"A new quiz '{instance.title}' for {instance.subject.name} has been published. It is available from {instance.start_datetime} to {instance.end_datetime}.",
-                    notification_type="Quiz",
-                    reference_id=instance.id,
-                    priority="Medium",
-                )
-        except Exception:
-            pass
-
-
-@receiver(post_save, sender=StudentQuizAttempt)
-def notify_quiz_completion(sender, instance, **kwargs):
-    """
-    Signal to notify when a quiz attempt is completed and graded.
-    """
-    if (
-        instance.end_time
-        and instance.marks_obtained is not None
-        and (
-            kwargs.get("created", False)
-            or (
-                kwargs.get("update_fields")
-                and (
-                    "end_time" in kwargs["update_fields"]
-                    or "marks_obtained" in kwargs["update_fields"]
-                )
+def handle_exam_result_saved(sender, instance, created, **kwargs):
+    """Handle actions when exam result is saved"""
+    if created:
+        # Schedule ranking calculation (delayed to batch process)
+        transaction.on_commit(
+            lambda: calculate_exam_rankings.apply_async(
+                args=[str(instance.exam_schedule.id)],
+                countdown=30,  # Wait 30 seconds to batch multiple results
             )
         )
-    ):
-        # Notify the student
+
+        # Send result notification
+        transaction.on_commit(
+            lambda: send_result_notifications.delay([str(instance.id)])
+        )
+
+
+@receiver(post_save, sender=StudentOnlineExamAttempt)
+def handle_online_exam_submitted(sender, instance, created, **kwargs):
+    """Handle online exam submission"""
+    if not created and instance.status == "SUBMITTED" and not instance.is_graded:
+        # Auto-grade objective questions
+        transaction.on_commit(lambda: auto_grade_online_exam.delay(str(instance.id)))
+
+
+@receiver(post_save, sender=ExamSchedule)
+def handle_exam_schedule_completed(sender, instance, created, **kwargs):
+    """Handle exam schedule completion"""
+    if not created and instance.is_completed:
+        # Update exam completion statistics
+        exam = instance.exam
+        total_schedules = exam.schedules.count()
+        completed_schedules = exam.schedules.filter(is_completed=True).count()
+
+        if total_schedules > 0:
+            completion_percentage = (completed_schedules / total_schedules) * 100
+            if completion_percentage == 100:
+                exam.status = "COMPLETED"
+                exam.save(update_fields=["status"])
+
+
+@receiver(post_save, sender=ReportCard)
+def handle_report_card_published(sender, instance, created, **kwargs):
+    """Handle report card publication"""
+    if not created and instance.status == "PUBLISHED":
+        # Send report card notification
+        transaction.on_commit(
+            lambda: send_report_card_notifications.delay([str(instance.id)])
+        )
+
+
+@receiver(pre_save, sender=Exam)
+def handle_exam_status_change(sender, instance, **kwargs):
+    """Handle exam status changes"""
+    if instance.pk:
         try:
-            Notification.objects.create(
-                user=instance.student.user,
-                title=f"Quiz Completed: {instance.quiz.title}",
-                content=f"Your attempt for '{instance.quiz.title}' has been completed and graded. You scored {instance.marks_obtained}/{instance.quiz.total_marks}.",
-                notification_type="Quiz",
-                reference_id=instance.id,
-                priority="Medium",
-            )
-        except Exception:
+            old_instance = Exam.objects.get(pk=instance.pk)
+
+            # If exam is being published
+            if not old_instance.is_published and instance.is_published:
+                instance.status = "SCHEDULED"
+
+                # Create notifications for relevant students
+                # This could be expanded to notify students of the exam
+                pass
+
+        except Exam.DoesNotExist:
             pass

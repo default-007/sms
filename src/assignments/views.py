@@ -24,6 +24,8 @@ import csv
 import json
 import logging
 
+from assignments.services.analytics_service import AssignmentAnalyticsService
+
 from .models import (
     Assignment,
     AssignmentSubmission,
@@ -51,7 +53,6 @@ from .services import (
     DeadlineService,
     RubricService,
 )
-from .services.analytics_service import AssignmentAnalyticsService
 from .filters import AssignmentFilter, AssignmentSubmissionFilter
 from core.mixins import TeacherRequiredMixin, StudentRequiredMixin, ParentRequiredMixin
 

@@ -8,13 +8,11 @@ from datetime import datetime, timedelta
 import logging
 from typing import Dict, List
 
+from assignments.services.assignment_service import AssignmentService
+from assignments.services.plagiarism_service import PlagiarismService
+from assignments.services.deadline_service import DeadlineService
 from .models import Assignment, AssignmentSubmission, AssignmentRubric
-from .services import (
-    AssignmentService,
-    SubmissionService,
-    PlagiarismService,
-    DeadlineService,
-)
+
 from .services.analytics_service import AssignmentAnalyticsService
 
 logger = logging.getLogger(__name__)

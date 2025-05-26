@@ -3,8 +3,8 @@ School Management System - Exam Permissions
 File: src/exams/permissions.py
 """
 
-from rest_framework import permissions
 from django.core.exceptions import PermissionDenied
+from rest_framework import permissions
 
 
 class CanManageExams(permissions.BasePermission):

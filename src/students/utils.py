@@ -1,14 +1,15 @@
 # students/utils.py
-import re
+import base64
 import hashlib
+import io
+import re
 import uuid
-from datetime import datetime, date
+from datetime import date, datetime
+
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
-from django.contrib.auth import get_user_model
 from PIL import Image
-import io
-import base64
 
 User = get_user_model()
 

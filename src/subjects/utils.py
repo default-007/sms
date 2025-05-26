@@ -5,24 +5,25 @@ This module contains helper functions, decorators, and utility classes
 for common operations in the subjects management system.
 """
 
-import json
 import csv
-import openpyxl
-from io import StringIO, BytesIO
-from typing import Dict, List, Optional, Tuple, Any, Union
-from datetime import datetime, date, timedelta
-from decimal import Decimal
-import re
-
-from django.core.exceptions import ValidationError
-from django.utils.translation import gettext_lazy as _
-from django.core.cache import cache
-from django.db.models import Q, Count, Avg, Sum
-from django.conf import settings
+import json
 import logging
+import re
+from datetime import date, datetime, timedelta
+from decimal import Decimal
+from io import BytesIO, StringIO
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-from .models import Subject, Syllabus, TopicProgress, SubjectAssignment
-from academics.models import Grade, AcademicYear, Term, Class
+import openpyxl
+from django.conf import settings
+from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.db.models import Avg, Count, Q, Sum
+from django.utils.translation import gettext_lazy as _
+
+from academics.models import AcademicYear, Class, Grade, Term
+
+from .models import Subject, SubjectAssignment, Syllabus, TopicProgress
 
 logger = logging.getLogger(__name__)
 

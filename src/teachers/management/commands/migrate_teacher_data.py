@@ -1,17 +1,18 @@
 # src/teachers/management/commands/migrate_teacher_data.py
-from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction, connection
-from django.utils import timezone
-from django.contrib.auth import get_user_model
-from decimal import Decimal
 import csv
 import json
-from datetime import datetime, date
 import logging
+from datetime import date, datetime
+from decimal import Decimal
 
-from src.teachers.models import Teacher, TeacherEvaluation, TeacherClassAssignment
-from src.courses.models import Department, AcademicYear, Subject, Class
-from src.teachers.validators import validate_teacher_data, validate_evaluation_data
+from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand, CommandError
+from django.db import connection, transaction
+from django.utils import timezone
+
+from src.courses.models import AcademicYear, Class, Department, Subject
+from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
+from src.teachers.validators import validate_evaluation_data, validate_teacher_data
 
 User = get_user_model()
 logger = logging.getLogger(__name__)

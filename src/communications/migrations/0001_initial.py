@@ -15,102 +15,360 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Announcement',
+            name="Announcement",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=255, verbose_name='Title')),
-                ('content', models.TextField(verbose_name='Content')),
-                ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='Created At')),
-                ('target_audience', models.CharField(choices=[('all', 'All'), ('students', 'Students'), ('teachers', 'Teachers'), ('parents', 'Parents'), ('staff', 'Staff')], default='all', max_length=20, verbose_name='Target Audience')),
-                ('target_classes', models.JSONField(blank=True, help_text='JSON array of class IDs', null=True, verbose_name='Target Classes')),
-                ('start_date', models.DateField(verbose_name='Start Date')),
-                ('end_date', models.DateField(blank=True, null=True, verbose_name='End Date')),
-                ('is_active', models.BooleanField(default=True, verbose_name='Is Active')),
-                ('attachment', models.FileField(blank=True, null=True, upload_to='announcements/', verbose_name='Attachment')),
-                ('created_by', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='announcements_created', to=settings.AUTH_USER_MODEL, verbose_name='Created By')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("title", models.CharField(max_length=255, verbose_name="Title")),
+                ("content", models.TextField(verbose_name="Content")),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="Created At"),
+                ),
+                (
+                    "target_audience",
+                    models.CharField(
+                        choices=[
+                            ("all", "All"),
+                            ("students", "Students"),
+                            ("teachers", "Teachers"),
+                            ("parents", "Parents"),
+                            ("staff", "Staff"),
+                        ],
+                        default="all",
+                        max_length=20,
+                        verbose_name="Target Audience",
+                    ),
+                ),
+                (
+                    "target_classes",
+                    models.JSONField(
+                        blank=True,
+                        help_text="JSON array of class IDs",
+                        null=True,
+                        verbose_name="Target Classes",
+                    ),
+                ),
+                ("start_date", models.DateField(verbose_name="Start Date")),
+                (
+                    "end_date",
+                    models.DateField(blank=True, null=True, verbose_name="End Date"),
+                ),
+                (
+                    "is_active",
+                    models.BooleanField(default=True, verbose_name="Is Active"),
+                ),
+                (
+                    "attachment",
+                    models.FileField(
+                        blank=True,
+                        null=True,
+                        upload_to="announcements/",
+                        verbose_name="Attachment",
+                    ),
+                ),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="announcements_created",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Created By",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Announcement',
-                'verbose_name_plural': 'Announcements',
-                'ordering': ['-created_at'],
+                "verbose_name": "Announcement",
+                "verbose_name_plural": "Announcements",
+                "ordering": ["-created_at"],
             },
         ),
         migrations.CreateModel(
-            name='EmailLog',
+            name="EmailLog",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('recipient_email', models.EmailField(max_length=254, verbose_name='Recipient Email')),
-                ('subject', models.CharField(max_length=255, verbose_name='Subject')),
-                ('content', models.TextField(verbose_name='Content')),
-                ('sent_at', models.DateTimeField(auto_now_add=True, verbose_name='Sent At')),
-                ('status', models.CharField(choices=[('sent', 'Sent'), ('failed', 'Failed'), ('pending', 'Pending')], default='pending', max_length=10, verbose_name='Status')),
-                ('error_message', models.TextField(blank=True, null=True, verbose_name='Error Message')),
-                ('attachment', models.FileField(blank=True, null=True, upload_to='email_attachments/', verbose_name='Attachment')),
-                ('recipient_user', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='email_logs', to=settings.AUTH_USER_MODEL, verbose_name='Recipient User')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "recipient_email",
+                    models.EmailField(max_length=254, verbose_name="Recipient Email"),
+                ),
+                ("subject", models.CharField(max_length=255, verbose_name="Subject")),
+                ("content", models.TextField(verbose_name="Content")),
+                (
+                    "sent_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="Sent At"),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("sent", "Sent"),
+                            ("failed", "Failed"),
+                            ("pending", "Pending"),
+                        ],
+                        default="pending",
+                        max_length=10,
+                        verbose_name="Status",
+                    ),
+                ),
+                (
+                    "error_message",
+                    models.TextField(
+                        blank=True, null=True, verbose_name="Error Message"
+                    ),
+                ),
+                (
+                    "attachment",
+                    models.FileField(
+                        blank=True,
+                        null=True,
+                        upload_to="email_attachments/",
+                        verbose_name="Attachment",
+                    ),
+                ),
+                (
+                    "recipient_user",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="email_logs",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Recipient User",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Email Log',
-                'verbose_name_plural': 'Email Logs',
-                'ordering': ['-sent_at'],
+                "verbose_name": "Email Log",
+                "verbose_name_plural": "Email Logs",
+                "ordering": ["-sent_at"],
             },
         ),
         migrations.CreateModel(
-            name='Message',
+            name="Message",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('subject', models.CharField(max_length=255, verbose_name='Subject')),
-                ('content', models.TextField(verbose_name='Content')),
-                ('sent_at', models.DateTimeField(auto_now_add=True, verbose_name='Sent At')),
-                ('read_at', models.DateTimeField(blank=True, null=True, verbose_name='Read At')),
-                ('is_read', models.BooleanField(default=False, verbose_name='Is Read')),
-                ('attachment', models.FileField(blank=True, null=True, upload_to='messages/', verbose_name='Attachment')),
-                ('parent_message', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='replies', to='communications.message', verbose_name='Parent Message')),
-                ('receiver', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='messages_received', to=settings.AUTH_USER_MODEL, verbose_name='Receiver')),
-                ('sender', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='messages_sent', to=settings.AUTH_USER_MODEL, verbose_name='Sender')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("subject", models.CharField(max_length=255, verbose_name="Subject")),
+                ("content", models.TextField(verbose_name="Content")),
+                (
+                    "sent_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="Sent At"),
+                ),
+                (
+                    "read_at",
+                    models.DateTimeField(blank=True, null=True, verbose_name="Read At"),
+                ),
+                ("is_read", models.BooleanField(default=False, verbose_name="Is Read")),
+                (
+                    "attachment",
+                    models.FileField(
+                        blank=True,
+                        null=True,
+                        upload_to="messages/",
+                        verbose_name="Attachment",
+                    ),
+                ),
+                (
+                    "parent_message",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="replies",
+                        to="communications.message",
+                        verbose_name="Parent Message",
+                    ),
+                ),
+                (
+                    "receiver",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="messages_received",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Receiver",
+                    ),
+                ),
+                (
+                    "sender",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="messages_sent",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Sender",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Message',
-                'verbose_name_plural': 'Messages',
-                'ordering': ['-sent_at'],
+                "verbose_name": "Message",
+                "verbose_name_plural": "Messages",
+                "ordering": ["-sent_at"],
             },
         ),
         migrations.CreateModel(
-            name='Notification',
+            name="Notification",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=255, verbose_name='Title')),
-                ('content', models.TextField(verbose_name='Content')),
-                ('notification_type', models.CharField(choices=[('system', 'System'), ('attendance', 'Attendance'), ('fee', 'Fee'), ('exam', 'Exam'), ('assignment', 'Assignment'), ('message', 'Message'), ('event', 'Event')], max_length=20, verbose_name='Notification Type')),
-                ('reference_id', models.CharField(blank=True, max_length=100, null=True, verbose_name='Reference ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='Created At')),
-                ('is_read', models.BooleanField(default=False, verbose_name='Is Read')),
-                ('read_at', models.DateTimeField(blank=True, null=True, verbose_name='Read At')),
-                ('priority', models.CharField(choices=[('high', 'High'), ('medium', 'Medium'), ('low', 'Low')], default='medium', max_length=10, verbose_name='Priority')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='notifications', to=settings.AUTH_USER_MODEL, verbose_name='User')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("title", models.CharField(max_length=255, verbose_name="Title")),
+                ("content", models.TextField(verbose_name="Content")),
+                (
+                    "notification_type",
+                    models.CharField(
+                        choices=[
+                            ("system", "System"),
+                            ("attendance", "Attendance"),
+                            ("fee", "Fee"),
+                            ("exam", "Exam"),
+                            ("assignment", "Assignment"),
+                            ("message", "Message"),
+                            ("event", "Event"),
+                        ],
+                        max_length=20,
+                        verbose_name="Notification Type",
+                    ),
+                ),
+                (
+                    "reference_id",
+                    models.CharField(
+                        blank=True,
+                        max_length=100,
+                        null=True,
+                        verbose_name="Reference ID",
+                    ),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="Created At"),
+                ),
+                ("is_read", models.BooleanField(default=False, verbose_name="Is Read")),
+                (
+                    "read_at",
+                    models.DateTimeField(blank=True, null=True, verbose_name="Read At"),
+                ),
+                (
+                    "priority",
+                    models.CharField(
+                        choices=[
+                            ("high", "High"),
+                            ("medium", "Medium"),
+                            ("low", "Low"),
+                        ],
+                        default="medium",
+                        max_length=10,
+                        verbose_name="Priority",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="notifications",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="User",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Notification',
-                'verbose_name_plural': 'Notifications',
-                'ordering': ['-created_at'],
+                "verbose_name": "Notification",
+                "verbose_name_plural": "Notifications",
+                "ordering": ["-created_at"],
             },
         ),
         migrations.CreateModel(
-            name='SMSLog',
+            name="SMSLog",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('recipient_number', models.CharField(max_length=20, verbose_name='Recipient Number')),
-                ('content', models.TextField(verbose_name='Content')),
-                ('sent_at', models.DateTimeField(auto_now_add=True, verbose_name='Sent At')),
-                ('status', models.CharField(choices=[('sent', 'Sent'), ('failed', 'Failed'), ('pending', 'Pending')], default='pending', max_length=10, verbose_name='Status')),
-                ('error_message', models.TextField(blank=True, null=True, verbose_name='Error Message')),
-                ('sender', models.CharField(blank=True, max_length=100, verbose_name='Sender')),
-                ('message_id', models.CharField(blank=True, max_length=100, null=True, verbose_name='Message ID')),
-                ('recipient_user', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='sms_logs', to=settings.AUTH_USER_MODEL, verbose_name='Recipient User')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "recipient_number",
+                    models.CharField(max_length=20, verbose_name="Recipient Number"),
+                ),
+                ("content", models.TextField(verbose_name="Content")),
+                (
+                    "sent_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="Sent At"),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("sent", "Sent"),
+                            ("failed", "Failed"),
+                            ("pending", "Pending"),
+                        ],
+                        default="pending",
+                        max_length=10,
+                        verbose_name="Status",
+                    ),
+                ),
+                (
+                    "error_message",
+                    models.TextField(
+                        blank=True, null=True, verbose_name="Error Message"
+                    ),
+                ),
+                (
+                    "sender",
+                    models.CharField(blank=True, max_length=100, verbose_name="Sender"),
+                ),
+                (
+                    "message_id",
+                    models.CharField(
+                        blank=True, max_length=100, null=True, verbose_name="Message ID"
+                    ),
+                ),
+                (
+                    "recipient_user",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="sms_logs",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Recipient User",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'SMS Log',
-                'verbose_name_plural': 'SMS Logs',
-                'ordering': ['-sent_at'],
+                "verbose_name": "SMS Log",
+                "verbose_name_plural": "SMS Logs",
+                "ordering": ["-sent_at"],
             },
         ),
     ]

@@ -7,19 +7,20 @@ import django_filters
 from django.db.models import Q
 from django_filters import rest_framework as filters
 
+from academics.models import AcademicYear, Class, Grade, Term
+from students.models import Student
+from subjects.models import Subject
+
 from .models import (
     Exam,
-    ExamType,
-    ExamSchedule,
-    StudentExamResult,
-    ReportCard,
     ExamQuestion,
+    ExamSchedule,
+    ExamType,
     OnlineExam,
+    ReportCard,
+    StudentExamResult,
     StudentOnlineExamAttempt,
 )
-from academics.models import AcademicYear, Term, Grade, Class
-from subjects.models import Subject
-from students.models import Student
 
 
 class ExamFilter(filters.FilterSet):

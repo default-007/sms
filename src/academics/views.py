@@ -5,28 +5,28 @@ This module provides Django views for the academics app web interface.
 These views complement the API and provide server-side rendered pages.
 """
 
-from django.shortcuts import render, get_object_or_404, redirect
-from django.views.generic import (
-    TemplateView,
-    ListView,
-    DetailView,
-    CreateView,
-    UpdateView,
-)
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib import messages
-from django.urls import reverse_lazy
-from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse_lazy
+from django.views.generic import (
+    CreateView,
+    DetailView,
+    ListView,
+    TemplateView,
+    UpdateView,
+)
 
-from .models import Department, AcademicYear, Term, Section, Grade, Class
+from .models import AcademicYear, Class, Department, Grade, Section, Term
 from .services import (
     AcademicYearService,
-    SectionService,
-    GradeService,
     ClassService,
+    GradeService,
+    SectionService,
     TermService,
 )
 

@@ -1,16 +1,17 @@
 # students/services/notification_service.py
-from django.core.mail import send_mail, send_mass_mail
-from django.template.loader import render_to_string
-from django.conf import settings
-from django.utils import timezone
-from django.db import transaction
-from django.core.cache import cache
-from celery import shared_task
-import logging
 import json
-from typing import List, Dict, Any
+import logging
+from typing import Any, Dict, List
 
-from ..models import Student, Parent, StudentParentRelation
+from celery import shared_task
+from django.conf import settings
+from django.core.cache import cache
+from django.core.mail import send_mail, send_mass_mail
+from django.db import transaction
+from django.template.loader import render_to_string
+from django.utils import timezone
+
+from ..models import Parent, Student, StudentParentRelation
 
 logger = logging.getLogger(__name__)
 

@@ -1,23 +1,25 @@
-from django.db import transaction
-from django.db.models import Q, Count, Avg
-from django.core.exceptions import ValidationError
-from django.utils import timezone
-from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Tuple
 import uuid
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple
 
-from ..models import (
-    Timetable,
-    TimeSlot,
-    Room,
-    TimetableTemplate,
-    SubstituteTeacher,
-    SchedulingConstraint,
-    TimetableGeneration,
-)
-from academics.models import Class, Term, Grade
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.db.models import Avg, Count, Q
+from django.utils import timezone
+
+from academics.models import Class, Grade, Term
 from subjects.models import Subject
 from teachers.models import Teacher, TeacherClassAssignment
+
+from ..models import (
+    Room,
+    SchedulingConstraint,
+    SubstituteTeacher,
+    TimeSlot,
+    Timetable,
+    TimetableGeneration,
+    TimetableTemplate,
+)
 
 
 class TimetableService:

@@ -1,11 +1,13 @@
-import uuid
 import secrets
 import string
-from django.utils import timezone
+import uuid
+
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from .models import SystemSetting, AuditLog
 from django.db import DatabaseError, ProgrammingError
+from django.utils import timezone
+
+from .models import AuditLog, SystemSetting
 
 
 def safe_get_count(model_class):

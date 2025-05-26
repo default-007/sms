@@ -3,24 +3,25 @@ Django forms for Communications module.
 Provides form classes for creating and managing communications through web interface.
 """
 
+import json
+
 from django import forms
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.utils import timezone
 from django.forms.widgets import CheckboxSelectMultiple
-import json
+from django.utils import timezone
 
 from .models import (
     Announcement,
     BulkMessage,
-    MessageTemplate,
-    CommunicationPreference,
-    MessageThread,
-    DirectMessage,
     CommunicationChannel,
+    CommunicationPreference,
+    DirectMessage,
+    MessageStatus,
+    MessageTemplate,
+    MessageThread,
     Priority,
     TargetAudience,
-    MessageStatus,
 )
 
 User = get_user_model()
@@ -96,7 +97,7 @@ class AnnouncementForm(forms.ModelForm):
 
         # Dynamic querysets for targeting fields
         try:
-            from src.academics.models import Section, Grade, Class
+            from src.academics.models import Class, Grade, Section
 
             self.fields["target_sections"] = forms.ModelMultipleChoiceField(
                 queryset=Section.objects.all(),

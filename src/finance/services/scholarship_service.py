@@ -1,13 +1,14 @@
 from decimal import Decimal
-from django.db import transaction
-from django.utils import timezone
-from django.core.exceptions import ValidationError
-from django.db.models import Sum, Count, Q, F
 from typing import Dict, List, Optional
+
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.db.models import Count, F, Q, Sum
+from django.utils import timezone
 
 from students.models import Student, StudentParentRelation
 
-from ..models import Scholarship, StudentScholarship, FeeCategory
+from ..models import FeeCategory, Scholarship, StudentScholarship
 
 
 class ScholarshipService:

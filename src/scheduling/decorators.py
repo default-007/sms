@@ -3,21 +3,22 @@ Custom decorators for the scheduling module
 """
 
 import functools
+import logging
 import time
 from datetime import datetime, timedelta
-from django.core.cache import cache
-from django.http import JsonResponse
+
 from django.contrib.auth.decorators import user_passes_test
+from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.http import JsonResponse
 from django.utils import timezone
-import logging
 
 from .exceptions import (
     SchedulingException,
+    TermNotActiveError,
     TimetableConflictError,
     TimetableGenerationInProgressError,
-    TermNotActiveError,
 )
 from .models import TimetableGeneration
 

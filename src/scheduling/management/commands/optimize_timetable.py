@@ -1,13 +1,14 @@
+import sys
+
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
-import sys
 
-from scheduling.models import TimetableGeneration
-from scheduling.services.optimization_service import OptimizationService
-from scheduling.services.analytics_service import SchedulingAnalyticsService
-from academics.models import Term, Grade
+from academics.models import Grade, Term
 from accounts.models import User
+from scheduling.models import TimetableGeneration
+from scheduling.services.analytics_service import SchedulingAnalyticsService
+from scheduling.services.optimization_service import OptimizationService
 
 
 class Command(BaseCommand):

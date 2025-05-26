@@ -1,8 +1,9 @@
-from django.db import models
 from django.conf import settings
+from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from src.courses.models import Grade, AcademicYear
+
+from src.courses.models import AcademicYear, Grade
 
 
 class FeeCategory(models.Model):
@@ -414,11 +415,12 @@ class Expense(models.Model):
         return f"{self.expense_category} - {self.amount} ({self.expense_date})"
 
 
-from django.db import models
-from django.core.validators import MinValueValidator, MaxValueValidator
-from django.contrib.auth import get_user_model
-from decimal import Decimal
 import uuid
+from decimal import Decimal
+
+from django.contrib.auth import get_user_model
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models
 
 User = get_user_model()
 

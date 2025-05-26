@@ -1,22 +1,24 @@
-from django.db import transaction
-from django.db.models import Q, Count, Avg, Min, Max
-from django.utils import timezone
-from django.core.exceptions import ValidationError
-from django.contrib.auth import get_user_model
-from typing import Dict, List, Optional, Tuple
 from decimal import Decimal
+from typing import Dict, List, Optional, Tuple
+
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.db.models import Avg, Count, Max, Min, Q
+from django.utils import timezone
+
+from academics.models import Class, Term
+from communications.services.notification_service import NotificationService
+from students.models import Student
+from subjects.models import Subject
+from teachers.models import Teacher
 
 from ..models import (
     Assignment,
-    AssignmentSubmission,
     AssignmentAnalytics,
+    AssignmentSubmission,
     StudentAssignmentProgress,
 )
-from students.models import Student
-from teachers.models import Teacher
-from academics.models import Class, Term
-from subjects.models import Subject
-from communications.services.notification_service import NotificationService
 
 User = get_user_model()
 

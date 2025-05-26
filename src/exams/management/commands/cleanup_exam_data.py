@@ -3,11 +3,12 @@ School Management System - Exam Cleanup Command
 File: src/exams/management/commands/cleanup_exam_data.py
 """
 
-from django.core.management.base import BaseCommand
-from django.utils import timezone
 from datetime import timedelta
 
-from exams.models import Exam, ExamSchedule, StudentOnlineExamAttempt, StudentExamResult
+from django.core.management.base import BaseCommand
+from django.utils import timezone
+
+from exams.models import Exam, ExamSchedule, StudentExamResult, StudentOnlineExamAttempt
 
 
 class Command(BaseCommand):

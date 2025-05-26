@@ -27,9 +27,9 @@ Usage:
 """
 
 from .academic_year_service import AcademicYearService
-from .section_service import SectionService
-from .grade_service import GradeService
 from .class_service import ClassService
+from .grade_service import GradeService
+from .section_service import SectionService
 from .term_service import TermService
 
 __all__ = [

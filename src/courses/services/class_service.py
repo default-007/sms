@@ -1,15 +1,16 @@
+from datetime import date, datetime, timedelta
+
 from django.db import DatabaseError, transaction
+from django.db.models import Avg, Count, F, Q, Sum
 from django.db.utils import ProgrammingError
 from django.utils import timezone
-from django.db.models import Count, Q, F, Sum, Avg
-from datetime import datetime, date, timedelta
 
 from src.courses.models import (
-    Class,
-    Timetable,
-    TimeSlot,
     Assignment,
     AssignmentSubmission,
+    Class,
+    TimeSlot,
+    Timetable,
 )
 
 

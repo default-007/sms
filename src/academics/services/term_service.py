@@ -8,15 +8,16 @@ Business logic for term management including:
 - Term scheduling and date management
 """
 
-from django.db import transaction
-from django.core.exceptions import ValidationError
-from django.utils import timezone
-from django.db.models import Q, Count, Sum
 from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
-from ..models import Term, AcademicYear
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.db.models import Count, Q, Sum
+from django.utils import timezone
+
+from ..models import AcademicYear, Term
 
 User = get_user_model()
 

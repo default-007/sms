@@ -3,26 +3,27 @@ API serializers for Communications module.
 Handles data serialization/deserialization for REST API endpoints.
 """
 
-from rest_framework import serializers
+from typing import List
+
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from typing import List
+from rest_framework import serializers
 
 from ..models import (
     Announcement,
-    Notification,
     BulkMessage,
-    MessageRecipient,
-    MessageTemplate,
-    CommunicationPreference,
     CommunicationAnalytics,
-    MessageThread,
+    CommunicationChannel,
+    CommunicationLog,
+    CommunicationPreference,
     DirectMessage,
     MessageRead,
-    CommunicationLog,
-    CommunicationChannel,
-    Priority,
+    MessageRecipient,
     MessageStatus,
+    MessageTemplate,
+    MessageThread,
+    Notification,
+    Priority,
     TargetAudience,
 )
 

@@ -6,11 +6,11 @@ including creation and editing forms for academic entities.
 """
 
 from django import forms
-from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 
-from .models import Department, AcademicYear, Term, Section, Grade, Class
-from .services import AcademicYearService, SectionService, GradeService, ClassService
+from .models import AcademicYear, Class, Department, Grade, Section, Term
+from .services import AcademicYearService, ClassService, GradeService, SectionService
 
 User = get_user_model()
 

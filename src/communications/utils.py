@@ -3,27 +3,28 @@ Utility functions and helpers for Communications module.
 Provides common functionality for communication processing, formatting, and validation.
 """
 
-from django.utils import timezone
-from django.contrib.auth import get_user_model
-from django.db.models import Q, Count, Avg
-from django.core.exceptions import ValidationError
-from django.template import Template, Context
-from django.utils.html import strip_tags
-from django.utils.text import truncate_words
-from typing import List, Dict, Any, Optional, Union
-from datetime import datetime, timedelta
-import re
 import json
 import logging
+import re
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Union
+
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+from django.db.models import Avg, Count, Q
+from django.template import Context, Template
+from django.utils import timezone
+from django.utils.html import strip_tags
+from django.utils.text import truncate_words
 
 from .models import (
-    CommunicationPreference,
     CommunicationChannel,
+    CommunicationPreference,
+    MessageStatus,
+    MessageThread,
+    Notification,
     Priority,
     TargetAudience,
-    MessageStatus,
-    Notification,
-    MessageThread,
 )
 
 User = get_user_model()
@@ -617,7 +618,7 @@ class CommunicationArchiver:
         """Get count of items that can be archived"""
         cutoff_date = timezone.now() - timedelta(days=days_old)
 
-        from .models import CommunicationLog, Notification, BulkMessage
+        from .models import BulkMessage, CommunicationLog, Notification
 
         counts = {
             "logs": CommunicationLog.objects.filter(timestamp__lt=cutoff_date).count(),
@@ -653,10 +654,10 @@ def get_communication_health_status() -> Dict[str, Any]:
     """Get overall health status of communication system"""
 
     from .models import (
+        BulkMessage,
         CommunicationAnalytics,
         CommunicationLog,
         Notification,
-        BulkMessage,
     )
 
     # Recent activity (last 24 hours)

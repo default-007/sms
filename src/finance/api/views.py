@@ -1,53 +1,53 @@
-from rest_framework import viewsets, status, permissions
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q
-from django.utils import timezone
 from decimal import Decimal
 
-from api.permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
+from django.db.models import Q
+from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
 from api.filters import BaseFilterBackend
 from api.paginations import StandardResultsSetPagination
+from api.permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
 
 from ..models import (
     FeeCategory,
     FeeStructure,
-    SpecialFee,
-    Scholarship,
-    StudentScholarship,
+    FeeWaiver,
+    FinancialAnalytics,
+    FinancialSummary,
     Invoice,
     InvoiceItem,
     Payment,
-    FinancialSummary,
-    FinancialAnalytics,
-    FeeWaiver,
+    Scholarship,
+    SpecialFee,
+    StudentScholarship,
 )
+from ..services.analytics_service import FinancialAnalyticsService
 from ..services.fee_service import FeeService
 from ..services.invoice_service import InvoiceService
 from ..services.payment_service import PaymentService
 from ..services.scholarship_service import ScholarshipService
-from ..services.analytics_service import FinancialAnalyticsService
-
 from .serializers import (
+    BulkInvoiceGenerationSerializer,
+    CollectionMetricsSerializer,
+    DefaulterAnalysisSerializer,
+    FeeCalculationSerializer,
     FeeCategorySerializer,
     FeeStructureSerializer,
-    SpecialFeeSerializer,
-    ScholarshipSerializer,
-    StudentScholarshipSerializer,
-    InvoiceSerializer,
-    PaymentSerializer,
-    FinancialSummarySerializer,
-    FinancialAnalyticsSerializer,
     FeeWaiverSerializer,
-    FeeCalculationSerializer,
-    BulkInvoiceGenerationSerializer,
+    FinancialAnalyticsSerializer,
+    FinancialSummarySerializer,
+    InvoiceSerializer,
     PaymentProcessingSerializer,
-    CollectionMetricsSerializer,
+    PaymentSerializer,
     PaymentTrendsSerializer,
-    DefaulterAnalysisSerializer,
     ScholarshipImpactSerializer,
+    ScholarshipSerializer,
+    SpecialFeeSerializer,
+    StudentScholarshipSerializer,
 )
 
 
@@ -392,8 +392,8 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         serializer = FeeCalculationSerializer(data=request.data)
         if serializer.is_valid():
             try:
-                from students.models import Student
                 from academics.models import AcademicYear, Term
+                from students.models import Student
 
                 student = Student.objects.get(
                     id=serializer.validated_data["student_id"]
@@ -419,8 +419,8 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         serializer = BulkInvoiceGenerationSerializer(data=request.data)
         if serializer.is_valid():
             try:
-                from students.models import Student
                 from academics.models import AcademicYear, Term
+                from students.models import Student
 
                 students = Student.objects.filter(
                     id__in=serializer.validated_data["student_ids"]
@@ -593,7 +593,7 @@ class FinancialAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
             )
 
         try:
-            from academics.models import AcademicYear, Term, Section, Grade
+            from academics.models import AcademicYear, Grade, Section, Term
 
             academic_year = AcademicYear.objects.get(id=academic_year_id)
             term = Term.objects.get(id=term_id) if term_id else None

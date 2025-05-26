@@ -1,14 +1,15 @@
 # students/services/communication_service.py
-from django.core.mail import send_mail, send_mass_mail
-from django.template.loader import render_to_string
-from django.conf import settings
-from django.utils import timezone
-from django.db import transaction
-from django.core.cache import cache
-import logging
 import json
+import logging
 
-from ..models import Student, Parent, StudentParentRelation
+from django.conf import settings
+from django.core.cache import cache
+from django.core.mail import send_mail, send_mass_mail
+from django.db import transaction
+from django.template.loader import render_to_string
+from django.utils import timezone
+
+from ..models import Parent, Student, StudentParentRelation
 
 logger = logging.getLogger(__name__)
 

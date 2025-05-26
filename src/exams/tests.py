@@ -3,37 +3,38 @@ School Management System - Exam Tests
 File: src/exams/tests.py
 """
 
-from django.test import TestCase
+from datetime import date, time, timedelta
+from decimal import Decimal
+
 from django.contrib.auth import get_user_model
+from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
-from rest_framework.test import APITestCase
 from rest_framework import status
-from decimal import Decimal
-from datetime import date, time, timedelta
+from rest_framework.test import APITestCase
 
 from exams.services.analytics_service import ExamAnalyticsService
 
 from .models import (
-    ExamType,
     Exam,
-    ExamSchedule,
-    StudentExamResult,
-    ReportCard,
-    GradingSystem,
-    GradeScale,
     ExamQuestion,
+    ExamSchedule,
+    ExamType,
+    GradeScale,
+    GradingSystem,
     OnlineExam,
     OnlineExamQuestion,
+    ReportCard,
+    StudentExamResult,
     StudentOnlineExamAttempt,
 )
-from .services.exam_service import ExamService, ResultService, OnlineExamService
+from .services.exam_service import ExamService, OnlineExamService, ResultService
 
 """ from .services.analytics_service import ExamAnalyticsService """
-from academics.models import AcademicYear, Term, Grade, Section, Class
+from academics.models import AcademicYear, Class, Grade, Section, Term
 from students.models import Student
-from teachers.models import Teacher
 from subjects.models import Subject
+from teachers.models import Teacher
 
 User = get_user_model()
 

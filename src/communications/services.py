@@ -3,33 +3,34 @@ Communications services for School Management System.
 Business logic for notifications, announcements, messaging, and communication analytics.
 """
 
-from django.db import transaction
-from django.core.mail import send_mail, send_mass_mail
-from django.template.loader import render_to_string
-from django.utils import timezone
-from django.conf import settings
-from django.db.models import Q, Count, Avg, Sum
-from django.contrib.auth import get_user_model
-from typing import List, Dict, Any, Optional
 import logging
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+
 from celery import shared_task
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.mail import send_mail, send_mass_mail
+from django.db import transaction
+from django.db.models import Avg, Count, Q, Sum
+from django.template.loader import render_to_string
+from django.utils import timezone
 
 from .models import (
     Announcement,
-    Notification,
     BulkMessage,
-    MessageRecipient,
-    MessageTemplate,
-    CommunicationPreference,
     CommunicationAnalytics,
-    MessageThread,
+    CommunicationChannel,
+    CommunicationLog,
+    CommunicationPreference,
     DirectMessage,
     MessageRead,
-    CommunicationLog,
-    CommunicationChannel,
-    Priority,
+    MessageRecipient,
     MessageStatus,
+    MessageTemplate,
+    MessageThread,
+    Notification,
+    Priority,
     TargetAudience,
 )
 

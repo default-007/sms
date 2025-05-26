@@ -1,10 +1,11 @@
-from django.db import transaction
-from django.utils import timezone
-from django.core.exceptions import ValidationError
-from django.db.models import Q, Count, Avg
-from typing import Dict, List, Optional, Tuple
-import logging
 import difflib
+import logging
+from typing import Dict, List, Optional, Tuple
+
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.db.models import Avg, Count, Q
+from django.utils import timezone
 
 from ..models import Assignment, AssignmentSubmission
 

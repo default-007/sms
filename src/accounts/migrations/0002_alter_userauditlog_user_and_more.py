@@ -8,22 +8,33 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0001_initial'),
-        ('auth', '0012_alter_user_first_name_max_length'),
+        ("accounts", "0001_initial"),
+        ("auth", "0012_alter_user_first_name_max_length"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='userauditlog',
-            name='user',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='user_audit_logs', to=settings.AUTH_USER_MODEL, verbose_name='user'),
+            model_name="userauditlog",
+            name="user",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="user_audit_logs",
+                to=settings.AUTH_USER_MODEL,
+                verbose_name="user",
+            ),
         ),
         migrations.AddIndex(
-            model_name='user',
-            index=models.Index(fields=['failed_login_attempts', 'last_failed_login'], name='accounts_us_failed__430e36_idx'),
+            model_name="user",
+            index=models.Index(
+                fields=["failed_login_attempts", "last_failed_login"],
+                name="accounts_us_failed__430e36_idx",
+            ),
         ),
         migrations.AddIndex(
-            model_name='userauditlog',
-            index=models.Index(fields=['timestamp'], name='accounts_us_timesta_e5db47_idx'),
+            model_name="userauditlog",
+            index=models.Index(
+                fields=["timestamp"], name="accounts_us_timesta_e5db47_idx"
+            ),
         ),
     ]

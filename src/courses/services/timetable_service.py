@@ -1,8 +1,9 @@
-from datetime import date, time, datetime, timedelta
-from django.db.models import Q, Count
+from datetime import date, datetime, time, timedelta
+
+from django.db.models import Count, Q
 from django.utils import timezone
 
-from src.courses.models import Timetable, TimeSlot, Class, Subject, AcademicYear
+from src.courses.models import AcademicYear, Class, Subject, TimeSlot, Timetable
 
 
 class TimetableService:

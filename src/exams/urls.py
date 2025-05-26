@@ -3,7 +3,8 @@ School Management System - Exam Main URLs
 File: src/exams/urls.py
 """
 
-from django.urls import path, include
+from django.urls import include, path
+
 from . import views
 
 app_name = "exams"

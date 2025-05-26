@@ -5,17 +5,18 @@ This module contains Celery tasks for processing academic data,
 generating reports, and performing maintenance operations.
 """
 
-from celery import shared_task
-from django.core.mail import send_mail
-from django.conf import settings
-from django.utils import timezone
-from django.db import transaction
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime, timedelta
 
-from .models import AcademicYear, Term, Section, Grade, Class, Department
-from .services import AcademicYearService, SectionService, GradeService, ClassService
-from .utils import validate_academic_structure_integrity, clear_academics_cache
+from celery import shared_task
+from django.conf import settings
+from django.core.mail import send_mail
+from django.db import transaction
+from django.utils import timezone
+
+from .models import AcademicYear, Class, Department, Grade, Section, Term
+from .services import AcademicYearService, ClassService, GradeService, SectionService
+from .utils import clear_academics_cache, validate_academic_structure_integrity
 
 logger = logging.getLogger(__name__)
 

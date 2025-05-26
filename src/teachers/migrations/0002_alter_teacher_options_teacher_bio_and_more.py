@@ -7,111 +7,168 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('courses', '0002_initial'),
-        ('teachers', '0001_initial'),
+        ("courses", "0002_initial"),
+        ("teachers", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='teacher',
-            options={'ordering': ['employee_id'], 'permissions': [('view_teacher_details', 'Can view detailed teacher information'), ('assign_classes', 'Can assign classes to teachers'), ('view_teacher_analytics', 'Can view teacher analytics'), ('export_teacher_data', 'Can export teacher data')]},
+            name="teacher",
+            options={
+                "ordering": ["employee_id"],
+                "permissions": [
+                    ("view_teacher_details", "Can view detailed teacher information"),
+                    ("assign_classes", "Can assign classes to teachers"),
+                    ("view_teacher_analytics", "Can view teacher analytics"),
+                    ("export_teacher_data", "Can export teacher data"),
+                ],
+            },
         ),
         migrations.AddField(
-            model_name='teacher',
-            name='bio',
+            model_name="teacher",
+            name="bio",
             field=models.TextField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='teacher',
-            name='emergency_contact',
+            model_name="teacher",
+            name="emergency_contact",
             field=models.CharField(blank=True, max_length=100, null=True),
         ),
         migrations.AddField(
-            model_name='teacher',
-            name='emergency_phone',
+            model_name="teacher",
+            name="emergency_phone",
             field=models.CharField(blank=True, max_length=20, null=True),
         ),
         migrations.AddField(
-            model_name='teacherclassassignment',
-            name='notes',
+            model_name="teacherclassassignment",
+            name="notes",
             field=models.TextField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='teacherclassassignment',
-            name='updated_at',
+            model_name="teacherclassassignment",
+            name="updated_at",
             field=models.DateTimeField(auto_now=True),
         ),
         migrations.AddField(
-            model_name='teacherevaluation',
-            name='followup_date',
+            model_name="teacherevaluation",
+            name="followup_date",
             field=models.DateField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='teacherevaluation',
-            name='status',
-            field=models.CharField(choices=[('draft', 'Draft'), ('submitted', 'Submitted'), ('reviewed', 'Reviewed'), ('closed', 'Closed')], db_index=True, default='submitted', max_length=20),
+            model_name="teacherevaluation",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("draft", "Draft"),
+                    ("submitted", "Submitted"),
+                    ("reviewed", "Reviewed"),
+                    ("closed", "Closed"),
+                ],
+                db_index=True,
+                default="submitted",
+                max_length=20,
+            ),
         ),
         migrations.AlterField(
-            model_name='teacher',
-            name='contract_type',
-            field=models.CharField(choices=[('Permanent', 'Permanent'), ('Temporary', 'Temporary'), ('Contract', 'Contract')], db_index=True, max_length=20),
+            model_name="teacher",
+            name="contract_type",
+            field=models.CharField(
+                choices=[
+                    ("Permanent", "Permanent"),
+                    ("Temporary", "Temporary"),
+                    ("Contract", "Contract"),
+                ],
+                db_index=True,
+                max_length=20,
+            ),
         ),
         migrations.AlterField(
-            model_name='teacher',
-            name='employee_id',
+            model_name="teacher",
+            name="employee_id",
             field=models.CharField(db_index=True, max_length=20, unique=True),
         ),
         migrations.AlterField(
-            model_name='teacher',
-            name='experience_years',
-            field=models.DecimalField(db_index=True, decimal_places=1, default=0, max_digits=4),
+            model_name="teacher",
+            name="experience_years",
+            field=models.DecimalField(
+                db_index=True, decimal_places=1, default=0, max_digits=4
+            ),
         ),
         migrations.AlterField(
-            model_name='teacher',
-            name='status',
-            field=models.CharField(choices=[('Active', 'Active'), ('On Leave', 'On Leave'), ('Terminated', 'Terminated')], db_index=True, default='Active', max_length=20),
+            model_name="teacher",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("Active", "Active"),
+                    ("On Leave", "On Leave"),
+                    ("Terminated", "Terminated"),
+                ],
+                db_index=True,
+                default="Active",
+                max_length=20,
+            ),
         ),
         migrations.AlterField(
-            model_name='teacherevaluation',
-            name='evaluation_date',
+            model_name="teacherevaluation",
+            name="evaluation_date",
             field=models.DateField(db_index=True),
         ),
         migrations.AlterField(
-            model_name='teacherevaluation',
-            name='score',
+            model_name="teacherevaluation",
+            name="score",
             field=models.DecimalField(db_index=True, decimal_places=2, max_digits=5),
         ),
         migrations.AddIndex(
-            model_name='teacher',
-            index=models.Index(fields=['joining_date'], name='teachers_te_joining_839dd3_idx'),
+            model_name="teacher",
+            index=models.Index(
+                fields=["joining_date"], name="teachers_te_joining_839dd3_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='teacher',
-            index=models.Index(fields=['department', 'status'], name='teachers_te_departm_ecac29_idx'),
+            model_name="teacher",
+            index=models.Index(
+                fields=["department", "status"], name="teachers_te_departm_ecac29_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='teacher',
-            index=models.Index(fields=['contract_type', 'status'], name='teachers_te_contrac_013103_idx'),
+            model_name="teacher",
+            index=models.Index(
+                fields=["contract_type", "status"],
+                name="teachers_te_contrac_013103_idx",
+            ),
         ),
         migrations.AddIndex(
-            model_name='teacherclassassignment',
-            index=models.Index(fields=['teacher', 'academic_year'], name='teachers_te_teacher_be5946_idx'),
+            model_name="teacherclassassignment",
+            index=models.Index(
+                fields=["teacher", "academic_year"],
+                name="teachers_te_teacher_be5946_idx",
+            ),
         ),
         migrations.AddIndex(
-            model_name='teacherclassassignment',
-            index=models.Index(fields=['class_instance', 'academic_year'], name='teachers_te_class_i_265fa7_idx'),
+            model_name="teacherclassassignment",
+            index=models.Index(
+                fields=["class_instance", "academic_year"],
+                name="teachers_te_class_i_265fa7_idx",
+            ),
         ),
         migrations.AddIndex(
-            model_name='teacherclassassignment',
-            index=models.Index(fields=['is_class_teacher'], name='teachers_te_is_clas_184322_idx'),
+            model_name="teacherclassassignment",
+            index=models.Index(
+                fields=["is_class_teacher"], name="teachers_te_is_clas_184322_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='teacherevaluation',
-            index=models.Index(fields=['teacher', 'evaluation_date'], name='teachers_te_teacher_dcba80_idx'),
+            model_name="teacherevaluation",
+            index=models.Index(
+                fields=["teacher", "evaluation_date"],
+                name="teachers_te_teacher_dcba80_idx",
+            ),
         ),
         migrations.AddIndex(
-            model_name='teacherevaluation',
-            index=models.Index(fields=['teacher', 'score'], name='teachers_te_teacher_8acafe_idx'),
+            model_name="teacherevaluation",
+            index=models.Index(
+                fields=["teacher", "score"], name="teachers_te_teacher_8acafe_idx"
+            ),
         ),
     ]

@@ -5,7 +5,8 @@ This module defines URL patterns for the academics app,
 including both web views and API endpoints.
 """
 
-from django.urls import path, include
+from django.urls import include, path
+
 from . import views
 
 app_name = "academics"

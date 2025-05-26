@@ -5,26 +5,28 @@ This module contains background tasks for analytics calculation,
 notifications, data processing, and other asynchronous operations.
 """
 
-from celery import shared_task
-from django.utils.translation import gettext_lazy as _
-from django.core.mail import send_mail
-from django.conf import settings
-from django.db.models import Count, Avg, Sum, Q
-from django.utils import timezone
-from datetime import datetime, date, timedelta
 import logging
+from datetime import date, datetime, timedelta
 
-from .models import Subject, Syllabus, TopicProgress, SubjectAssignment
-from .services import SubjectAnalyticsService, CurriculumService, SyllabusService
-from .utils import CacheManager, calculate_risk_assessment
-from academics.models import AcademicYear, Term, Grade, Department
-from communications.models import Notification
+from celery import shared_task
+from django.conf import settings
+from django.core.mail import send_mail
+from django.db.models import Avg, Count, Q, Sum
+from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
+
+from academics.models import AcademicYear, Department, Grade, Term
 from analytics.models import (
-    StudentPerformanceAnalytics,
-    ClassPerformanceAnalytics,
     AttendanceAnalytics,
+    ClassPerformanceAnalytics,
     FinancialAnalytics,
+    StudentPerformanceAnalytics,
 )
+from communications.models import Notification
+
+from .models import Subject, SubjectAssignment, Syllabus, TopicProgress
+from .services import CurriculumService, SubjectAnalyticsService, SyllabusService
+from .utils import CacheManager, calculate_risk_assessment
 
 logger = logging.getLogger(__name__)
 

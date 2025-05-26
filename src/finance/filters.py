@@ -1,22 +1,24 @@
+from datetime import datetime, timedelta
+
 import django_filters
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
-from datetime import datetime, timedelta
+
+from academics.models import AcademicYear, Class, Grade, Section, Term
+from students.models import Student
 
 from .models import (
     FeeCategory,
     FeeStructure,
-    SpecialFee,
-    Scholarship,
-    StudentScholarship,
+    FeeWaiver,
+    FinancialAnalytics,
     Invoice,
     Payment,
-    FinancialAnalytics,
-    FeeWaiver,
+    Scholarship,
+    SpecialFee,
+    StudentScholarship,
 )
-from academics.models import AcademicYear, Term, Section, Grade, Class
-from students.models import Student
 
 
 class FeeCategoryFilter(django_filters.FilterSet):

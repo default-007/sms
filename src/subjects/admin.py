@@ -1,12 +1,13 @@
-from django.contrib import admin
-from django.utils.html import format_html
-from django.urls import reverse
-from django.utils.translation import gettext_lazy as _
-from django.db import models
-from django.db.models import Count, Avg
 import json
 
-from .models import Subject, Syllabus, TopicProgress, SubjectAssignment
+from django.contrib import admin
+from django.db import models
+from django.db.models import Avg, Count
+from django.urls import reverse
+from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
+
+from .models import Subject, SubjectAssignment, Syllabus, TopicProgress
 
 
 @admin.register(Subject)

@@ -14,14 +14,14 @@ class CoreConfig(AppConfig):
         Initialize application during startup.
         """
         # Import any signals
-        import src.core.signals
-
         # Use an atomic transaction to avoid issues during app startup
         from django.db import connection
 
+        import src.core.signals
+
         if connection.connection is not None:
             # Only run if database is ready
-            from django.db.utils import ProgrammingError, OperationalError
+            from django.db.utils import OperationalError, ProgrammingError
 
             try:
                 from django.core.management import call_command

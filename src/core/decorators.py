@@ -1,8 +1,10 @@
 from functools import wraps
+
+from django.contrib import messages
 from django.http import HttpResponseForbidden
 from django.shortcuts import redirect
 from django.urls import reverse
-from django.contrib import messages
+
 from .utils import create_audit_log
 
 

@@ -1,18 +1,20 @@
-from django.db.models import Count
-from accounts.task import shared_task
-from django.contrib.auth import get_user_model
-from django.core.mail import send_mail, send_mass_mail
-from django.template.loader import render_to_string
-from django.conf import settings
-from django.utils import timezone
-from datetime import timedelta
-import logging
 import csv
 import io
+import logging
+from datetime import timedelta
 
-from .models import UserRole, UserRoleAssignment, UserAuditLog, UserSession
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.mail import send_mail, send_mass_mail
+from django.db.models import Count
+from django.template.loader import render_to_string
+from django.utils import timezone
+
+from accounts.task import shared_task
+
+from .models import UserAuditLog, UserRole, UserRoleAssignment, UserSession
 from .services import RoleService
-from .utils import send_notification_email, generate_secure_password
+from .utils import generate_secure_password, send_notification_email
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -351,8 +353,8 @@ def bulk_user_import(self, csv_data, default_password, default_roles, created_by
         created_by_id: ID of user performing the import
     """
     try:
-        from io import StringIO
         import csv
+        from io import StringIO
 
         created_by = User.objects.get(id=created_by_id)
         csv_file = StringIO(csv_data)

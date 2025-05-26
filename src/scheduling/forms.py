@@ -1,21 +1,23 @@
+import json
+from datetime import datetime, time
+
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db.models import Q
-from datetime import datetime, time
-import json
 
-from .models import (
-    TimeSlot,
-    Room,
-    Timetable,
-    TimetableTemplate,
-    SubstituteTeacher,
-    SchedulingConstraint,
-    TimetableGeneration,
-)
-from academics.models import Class, Term, Grade
+from academics.models import Class, Grade, Term
 from subjects.models import Subject
 from teachers.models import Teacher
+
+from .models import (
+    Room,
+    SchedulingConstraint,
+    SubstituteTeacher,
+    TimeSlot,
+    Timetable,
+    TimetableGeneration,
+    TimetableTemplate,
+)
 
 
 class TimeSlotForm(forms.ModelForm):

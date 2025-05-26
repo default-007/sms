@@ -3,36 +3,37 @@ Celery tasks for Communications module.
 Background processing for bulk messaging, analytics calculation, and scheduled communications.
 """
 
-from celery import shared_task
-from django.utils import timezone
-from django.contrib.auth import get_user_model
-from django.db import transaction
-from django.core.mail import send_mass_mail
-from django.template.loader import render_to_string
-from django.conf import settings
-from datetime import datetime, timedelta
-from typing import List, Dict, Any
 import logging
+from datetime import datetime, timedelta
+from typing import Any, Dict, List
+
+from celery import shared_task
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.mail import send_mass_mail
+from django.db import transaction
+from django.template.loader import render_to_string
+from django.utils import timezone
 
 from .models import (
-    Notification,
-    BulkMessage,
-    MessageRecipient,
     Announcement,
+    BulkMessage,
     CommunicationAnalytics,
-    CommunicationLog,
-    MessageTemplate,
     CommunicationChannel,
+    CommunicationLog,
+    MessageRecipient,
     MessageStatus,
+    MessageTemplate,
+    Notification,
     Priority,
     TargetAudience,
 )
 from .services import (
-    NotificationService,
-    EmailService,
-    SMSService,
-    CommunicationAnalyticsService,
     AnnouncementService,
+    CommunicationAnalyticsService,
+    EmailService,
+    NotificationService,
+    SMSService,
 )
 from .signals import send_bulk_notification_signal, send_communication_failure_signal
 

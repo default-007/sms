@@ -1,17 +1,18 @@
 from decimal import Decimal
+from typing import Dict, List, Optional, Tuple
+
+from django.core.exceptions import ValidationError
 from django.db.models import Q, Sum
 from django.utils import timezone
-from django.core.exceptions import ValidationError
-from typing import List, Dict, Tuple, Optional
 
 from ..models import (
-    FeeStructure,
-    SpecialFee,
     FeeCategory,
-    Scholarship,
-    StudentScholarship,
+    FeeStructure,
     Invoice,
     InvoiceItem,
+    Scholarship,
+    SpecialFee,
+    StudentScholarship,
 )
 
 
@@ -315,7 +316,7 @@ class FeeService:
     @classmethod
     def get_fee_summary_by_section(cls, academic_year, term) -> Dict:
         """Get fee summary grouped by section."""
-        from django.db.models import Count, Avg
+        from django.db.models import Avg, Count
 
         summary = {}
 

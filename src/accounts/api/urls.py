@@ -4,24 +4,24 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
+    BulkUserActionView,
     CustomTokenObtainPairView,
-    UserListCreateView,
-    UserDetailView,
-    UserProfileView,
     PasswordChangeView,
     PasswordResetView,
-    UserRoleListCreateView,
-    UserRoleDetailView,
-    UserRoleAssignmentView,
-    BulkUserActionView,
     UserAuditLogView,
+    UserDetailView,
+    UserListCreateView,
+    UserProfileView,
+    UserRoleAssignmentView,
+    UserRoleDetailView,
+    UserRoleListCreateView,
     UserStatisticsView,
     UserToggleStatusView,
-    logout_view,
-    user_permissions_view,
-    unlock_account_view,
     login_statistics_view,
+    logout_view,
     suspicious_activity_view,
+    unlock_account_view,
+    user_permissions_view,
 )
 
 app_name = "accounts_api"

@@ -4,8 +4,8 @@ Custom exceptions for the scheduling module
 
 from django.core.exceptions import ValidationError
 from rest_framework import status
-from rest_framework.views import exception_handler
 from rest_framework.response import Response
+from rest_framework.views import exception_handler
 
 
 class SchedulingException(Exception):

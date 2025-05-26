@@ -1,20 +1,22 @@
+from decimal import Decimal
+
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from decimal import Decimal
+
+from academics.models import AcademicYear, Class, Grade, Section, Term
+from students.models import Student
 
 from .models import (
     FeeCategory,
     FeeStructure,
-    SpecialFee,
-    Scholarship,
-    StudentScholarship,
+    FeeWaiver,
     Invoice,
     Payment,
-    FeeWaiver,
+    Scholarship,
+    SpecialFee,
+    StudentScholarship,
 )
-from students.models import Student
-from academics.models import AcademicYear, Term, Section, Grade, Class
 
 
 class FeeCategoryForm(forms.ModelForm):

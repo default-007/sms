@@ -1,18 +1,19 @@
-from celery import shared_task
-from django.utils import timezone
-from django.db import transaction
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.conf import settings
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime, timedelta
 from typing import Dict, List
 
-from assignments.services.assignment_service import AssignmentService
-from assignments.services.plagiarism_service import PlagiarismService
-from assignments.services.deadline_service import DeadlineService
-from .models import Assignment, AssignmentSubmission, AssignmentRubric
+from celery import shared_task
+from django.conf import settings
+from django.core.mail import send_mail
+from django.db import transaction
+from django.template.loader import render_to_string
+from django.utils import timezone
 
+from assignments.services.assignment_service import AssignmentService
+from assignments.services.deadline_service import DeadlineService
+from assignments.services.plagiarism_service import PlagiarismService
+
+from .models import Assignment, AssignmentRubric, AssignmentSubmission
 from .services.analytics_service import AssignmentAnalyticsService
 
 logger = logging.getLogger(__name__)
@@ -564,7 +565,7 @@ def generate_weekly_reports():
     Generate weekly assignment reports
     """
     try:
-        from django.db.models import Count, Avg
+        from django.db.models import Avg, Count
 
         week_start = timezone.now() - timedelta(days=7)
 

@@ -3,12 +3,13 @@ School Management System - Exam Management Commands
 File: src/exams/management/commands/generate_exam_statistics.py
 """
 
-from django.core.management.base import BaseCommand
-from django.utils import timezone
 from datetime import timedelta
 
-from exams.services.analytics_service import ExamAnalyticsService
+from django.core.management.base import BaseCommand
+from django.utils import timezone
+
 from academics.models import AcademicYear, Term
+from exams.services.analytics_service import ExamAnalyticsService
 
 
 class Command(BaseCommand):

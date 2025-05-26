@@ -2,22 +2,24 @@
 Celery tasks for scheduling module
 """
 
+import logging
+from datetime import date, datetime, timedelta
+
 from celery import shared_task
+from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
-from django.conf import settings
 from django.utils import timezone
-from datetime import datetime, timedelta, date
-import logging
 
-from .models import TimetableGeneration, Timetable, SubstituteTeacher, TimeSlot, Room
-from .services.optimization_service import OptimizationService
+from academics.models import Grade, Term
+from communications.models import Notification
+from teachers.models import Teacher
+
+from .models import Room, SubstituteTeacher, TimeSlot, Timetable, TimetableGeneration
 from .services.analytics_service import SchedulingAnalyticsService
+from .services.optimization_service import OptimizationService
 from .services.timetable_service import TimetableService
 from .utils import ScheduleValidator
-from academics.models import Term, Grade
-from teachers.models import Teacher
-from communications.models import Notification
 
 logger = logging.getLogger(__name__)
 
@@ -535,6 +537,7 @@ def backup_timetable_data():
     """
     try:
         import json
+
         from django.core import serializers
 
         current_term = Term.objects.filter(is_current=True).first()

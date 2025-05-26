@@ -1,14 +1,15 @@
 # students/models.py
-from django.db import models
-from django.db.models import Count
-from django.conf import settings
-from django.utils import timezone
-from django.core.validators import RegexValidator, MinLengthValidator
-from django.core.cache import cache
-from django.db.models import Q
-from src.courses.models import Class, AcademicYear
-from src.core.utils import generate_unique_id
 import uuid
+
+from django.conf import settings
+from django.core.cache import cache
+from django.core.validators import MinLengthValidator, RegexValidator
+from django.db import models
+from django.db.models import Count, Q
+from django.utils import timezone
+
+from src.core.utils import generate_unique_id
+from src.courses.models import AcademicYear, Class
 
 
 class StudentQuerySet(models.QuerySet):

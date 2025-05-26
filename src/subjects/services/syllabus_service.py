@@ -1,14 +1,16 @@
-from typing import Dict, List, Optional, Tuple, Any
-from django.db import transaction
-from django.core.exceptions import ValidationError
-from django.utils.translation import gettext_lazy as _
-from django.db.models import QuerySet, Q, Avg, Count, Sum
-from datetime import datetime, date
 import json
+from datetime import date, datetime
+from typing import Any, Dict, List, Optional, Tuple
 
-from ..models import Subject, Syllabus, TopicProgress, SubjectAssignment
-from academics.models import Grade, AcademicYear, Term, Class
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.db.models import Avg, Count, Q, QuerySet, Sum
+from django.utils.translation import gettext_lazy as _
+
+from academics.models import AcademicYear, Class, Grade, Term
 from teachers.models import Teacher
+
+from ..models import Subject, SubjectAssignment, Syllabus, TopicProgress
 
 
 class SyllabusService:

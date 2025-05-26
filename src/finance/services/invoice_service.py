@@ -1,11 +1,12 @@
 from decimal import Decimal
-from django.db import transaction, models
-from django.utils import timezone
-from django.core.exceptions import ValidationError
-from django.db.models import Q, Sum, F
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
-from ..models import Invoice, InvoiceItem, Payment, FeeWaiver
+from django.core.exceptions import ValidationError
+from django.db import models, transaction
+from django.db.models import F, Q, Sum
+from django.utils import timezone
+
+from ..models import FeeWaiver, Invoice, InvoiceItem, Payment
 from .fee_service import FeeService
 
 

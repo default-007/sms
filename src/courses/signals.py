@@ -1,9 +1,12 @@
-from django.db.models.signals import post_save, post_delete
+from datetime import timedelta
+
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from django.utils import timezone
-from datetime import timedelta
-from .models import Assignment, AssignmentSubmission, Class, AcademicYear
+
 from src.communications.models import Notification
+
+from .models import AcademicYear, Assignment, AssignmentSubmission, Class
 
 
 @receiver(post_save, sender=Assignment)

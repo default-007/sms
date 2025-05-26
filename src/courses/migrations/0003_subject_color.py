@@ -6,13 +6,17 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('courses', '0002_initial'),
+        ("courses", "0002_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='subject',
-            name='color',
-            field=models.CharField(default='#4e73df', help_text='Color for timetable display', max_length=20),
+            model_name="subject",
+            name="color",
+            field=models.CharField(
+                default="#4e73df",
+                help_text="Color for timetable display",
+                max_length=20,
+            ),
         ),
     ]

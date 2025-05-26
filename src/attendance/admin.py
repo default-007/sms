@@ -1,10 +1,9 @@
-from django.contrib import admin
-
 # Register your models here.
 from django.contrib import admin
 from django.db.models import Count, Q
-from django.utils.html import format_html
 from django.urls import reverse
+from django.utils.html import format_html
+
 from .models import AttendanceRecord, StudentAttendance
 
 

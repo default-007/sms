@@ -1,8 +1,9 @@
 # src/teachers/services/evaluation_service.py
-from django.db.models import Avg, Count, Max, Min, StdDev, F, Q
-from django.utils import timezone
 from datetime import datetime, timedelta
+
+from django.db.models import Avg, Count, F, Max, Min, Q, StdDev
 from django.db.models.functions import TruncMonth, TruncYear
+from django.utils import timezone
 
 from src.teachers.models import Teacher, TeacherEvaluation
 

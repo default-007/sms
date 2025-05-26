@@ -1,34 +1,34 @@
 # src/teachers/api/views.py
-from rest_framework import generics, status, filters
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.pagination import PageNumberPagination
-from rest_framework.exceptions import NotFound, ValidationError, PermissionDenied
-from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q, Avg, Count
-from django.utils import timezone
+from django.db.models import Avg, Count, Q
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, generics, status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
-from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
+from src.api.filters import TeacherFilter
+from src.api.permissions import TeacherModulePermissions
+from src.courses.models import AcademicYear, Department
 from src.teachers.api.serializers import (
-    TeacherListSerializer,
-    TeacherDetailSerializer,
-    TeacherCreateUpdateSerializer,
-    TeacherClassAssignmentSerializer,
-    TeacherClassAssignmentCreateSerializer,
-    TeacherEvaluationListSerializer,
-    TeacherEvaluationDetailSerializer,
-    TeacherEvaluationCreateSerializer,
     TeacherAnalyticsSerializer,
+    TeacherClassAssignmentCreateSerializer,
+    TeacherClassAssignmentSerializer,
+    TeacherCreateUpdateSerializer,
+    TeacherDetailSerializer,
+    TeacherEvaluationCreateSerializer,
+    TeacherEvaluationDetailSerializer,
+    TeacherEvaluationListSerializer,
+    TeacherListSerializer,
     TeacherPerformanceSerializer,
     TeacherWorkloadSerializer,
 )
-from src.teachers.services import TeacherService, EvaluationService
+from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
+from src.teachers.services import EvaluationService, TeacherService
 from src.teachers.services.analytics_service import TeacherAnalyticsService
-from src.api.permissions import TeacherModulePermissions
-from src.api.filters import TeacherFilter
-from src.courses.models import AcademicYear, Department
 
 
 class StandardResultsSetPagination(PageNumberPagination):

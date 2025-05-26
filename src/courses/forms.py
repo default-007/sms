@@ -1,18 +1,19 @@
 from django import forms
+from django.core.exceptions import ValidationError
+
 from src.courses.models import (
-    Department,
     AcademicYear,
+    Assignment,
+    AssignmentSubmission,
+    Class,
+    Department,
     Grade,
     Section,
-    Class,
     Subject,
     Syllabus,
     TimeSlot,
     Timetable,
-    Assignment,
-    AssignmentSubmission,
 )
-from django.core.exceptions import ValidationError
 
 
 class DepartmentForm(forms.ModelForm):

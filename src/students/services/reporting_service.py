@@ -1,30 +1,31 @@
 # students/services/reporting_service.py
-from django.template.loader import render_to_string
+import csv
+import io
+import json
+import logging
+import os
+from datetime import datetime, timedelta
+
 from django.conf import settings
+from django.db.models import Avg, Count, F, Q
+from django.template.loader import render_to_string
 from django.utils import timezone
-from django.db.models import Count, Q, F, Avg
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4, letter
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter, A4
 from reportlab.platypus import (
-    SimpleDocTemplate,
+    Image,
     Paragraph,
+    SimpleDocTemplate,
     Spacer,
     Table,
     TableStyle,
-    Image,
 )
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
-from reportlab.lib.units import inch
-import io
-import os
-import csv
-import json
-import logging
-from datetime import datetime, timedelta
 
-from ..models import Student, Parent, StudentParentRelation
 from ..exceptions import ExportError, ReportingError
+from ..models import Parent, Student, StudentParentRelation
 from .analytics_service import StudentAnalyticsService
 
 logger = logging.getLogger(__name__)

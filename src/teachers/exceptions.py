@@ -4,10 +4,11 @@ Custom exceptions for the teachers module.
 These exceptions provide specific error handling for teacher-related operations.
 """
 
+from typing import Any, Dict, Optional
+
 from django.core.exceptions import ValidationError
 from rest_framework import status
 from rest_framework.exceptions import APIException
-from typing import Dict, Any, Optional
 
 
 class TeacherModuleException(Exception):

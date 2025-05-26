@@ -1,12 +1,13 @@
-from django.core.management.base import BaseCommand, CommandError
-from django.utils.translation import gettext as _
-from django.db import transaction
-from datetime import datetime
 import json
+from datetime import datetime
 
-from subjects.models import Syllabus, Subject, TopicProgress
-from subjects.services import SubjectAnalyticsService, CurriculumService
+from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
+from django.utils.translation import gettext as _
+
 from academics.models import AcademicYear, Department
+from subjects.models import Subject, Syllabus, TopicProgress
+from subjects.services import CurriculumService, SubjectAnalyticsService
 
 
 class Command(BaseCommand):

@@ -4,9 +4,10 @@ Configuration settings for the teachers module.
 This file contains all configurable parameters for teacher management.
 """
 
-from django.conf import settings
-from datetime import timedelta
 import os
+from datetime import timedelta
+
+from django.conf import settings
 
 
 class TeacherModuleConfig:

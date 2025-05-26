@@ -2,28 +2,30 @@
 Finance report generation utilities.
 """
 
-import io
 import csv
+import io
 from datetime import datetime, timedelta
 from decimal import Decimal
-from django.db.models import Sum, Count, Q, Avg
-from django.utils import timezone
-from django.http import HttpResponse
 from typing import Dict, List, Optional, Union
 
+from django.db.models import Avg, Count, Q, Sum
+from django.http import HttpResponse
+from django.utils import timezone
+
+from academics.models import AcademicYear, Grade, Section, Term
+from students.models import Student
+
 from .models import (
-    Invoice,
-    Payment,
     FeeStructure,
-    SpecialFee,
-    Scholarship,
-    StudentScholarship,
     FeeWaiver,
     FinancialAnalytics,
+    Invoice,
+    Payment,
+    Scholarship,
+    SpecialFee,
+    StudentScholarship,
 )
 from .services.analytics_service import FinancialAnalyticsService
-from academics.models import AcademicYear, Term, Section, Grade
-from students.models import Student
 
 
 class FinanceReportGenerator:

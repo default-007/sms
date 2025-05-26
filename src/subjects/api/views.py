@@ -1,28 +1,27 @@
-from rest_framework import generics, status, permissions
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
-from rest_framework.pagination import PageNumberPagination
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, generics, permissions, status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.response import Response
 
-from ..models import Subject, Syllabus, TopicProgress, SubjectAssignment
-from ..services import SyllabusService, CurriculumService
+from ..models import Subject, SubjectAssignment, Syllabus, TopicProgress
+from ..services import CurriculumService, SyllabusService
 from .serializers import (
-    SubjectListSerializer,
-    SubjectDetailSerializer,
-    SubjectCreateUpdateSerializer,
-    SyllabusListSerializer,
-    SyllabusDetailSerializer,
-    SyllabusCreateUpdateSerializer,
-    TopicProgressSerializer,
-    SubjectAssignmentSerializer,
     BulkSubjectCreateSerializer,
-    SyllabusProgressUpdateSerializer,
     CurriculumAnalyticsSerializer,
+    SubjectAssignmentSerializer,
+    SubjectCreateUpdateSerializer,
+    SubjectDetailSerializer,
+    SubjectListSerializer,
+    SyllabusCreateUpdateSerializer,
+    SyllabusDetailSerializer,
+    SyllabusListSerializer,
+    SyllabusProgressUpdateSerializer,
     TeacherWorkloadSerializer,
+    TopicProgressSerializer,
 )
 
 
@@ -197,8 +196,8 @@ class SyllabusListCreateAPIView(generics.ListCreateAPIView):
                 )
 
             if assignment_filters_list:
-                from functools import reduce
                 import operator
+                from functools import reduce
 
                 combined_filter = reduce(operator.or_, assignment_filters_list)
                 queryset = queryset.filter(combined_filter)

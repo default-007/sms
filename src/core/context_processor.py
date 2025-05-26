@@ -1,5 +1,7 @@
-from django.conf import settings
 from functools import lru_cache
+
+from django.conf import settings
+
 from .utils import get_system_setting
 
 

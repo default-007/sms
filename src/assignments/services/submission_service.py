@@ -1,16 +1,18 @@
-from django.db import transaction
-from django.db.models import Q, Count, Avg
-from django.utils import timezone
-from django.core.exceptions import ValidationError, PermissionDenied
-from django.contrib.auth import get_user_model
-from typing import Dict, List, Optional, Tuple
 import difflib
 import hashlib
+from typing import Dict, List, Optional, Tuple
 
-from ..models import Assignment, AssignmentSubmission, StudentAssignmentProgress
+from django.contrib.auth import get_user_model
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
+from django.db.models import Avg, Count, Q
+from django.utils import timezone
+
+from communications.services.notification_service import NotificationService
 from students.models import Student
 from teachers.models import Teacher
-from communications.services.notification_service import NotificationService
+
+from ..models import Assignment, AssignmentSubmission, StudentAssignmentProgress
 
 User = get_user_model()
 

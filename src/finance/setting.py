@@ -3,8 +3,9 @@ Finance module settings configuration.
 Add these settings to your main Django settings file.
 """
 
-from celery.schedules import crontab
 from decimal import Decimal
+
+from celery.schedules import crontab
 
 # =============================================================================
 # FINANCE MODULE SETTINGS

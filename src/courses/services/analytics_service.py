@@ -1,15 +1,16 @@
-from django.db.models import Avg, Count, Sum, F, Q, Case, When, Value, IntegerField
-from django.utils import timezone
 from datetime import datetime, timedelta
 
+from django.db.models import Avg, Case, Count, F, IntegerField, Q, Sum, Value, When
+from django.utils import timezone
+
 from src.courses.models import (
-    Department,
     AcademicYear,
-    Grade,
-    Class,
-    Subject,
     Assignment,
     AssignmentSubmission,
+    Class,
+    Department,
+    Grade,
+    Subject,
     Timetable,
 )
 

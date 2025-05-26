@@ -1,21 +1,21 @@
 # students/views/relation_views.py
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse_lazy
 from django.views.generic import (
     CreateView,
-    UpdateView,
     DeleteView,
-    FormView,
     DetailView,
+    FormView,
+    UpdateView,
 )
-from django.urls import reverse_lazy
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.contrib import messages
-from django.http import JsonResponse
-from django.db import transaction
-from django.core.exceptions import ValidationError
 
-from ..models import Student, Parent, StudentParentRelation
 from ..forms import StudentParentRelationForm
+from ..models import Parent, Student, StudentParentRelation
 from ..services.parent_service import ParentService
 
 

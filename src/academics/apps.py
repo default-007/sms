@@ -35,7 +35,7 @@ class AcademicsConfig(AppConfig):
 
     def register_custom_checks(self):
         """Register custom system checks for the academics app"""
-        from django.core.checks import register, Tags
+        from django.core.checks import Tags, register
 
         @register(Tags.models)
         def check_academic_year_consistency(app_configs, **kwargs):

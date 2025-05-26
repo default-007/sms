@@ -5,12 +5,12 @@ This module contains signal handlers for maintaining data consistency
 and automatic updates in the academics module.
 """
 
-from django.db.models.signals import post_save, pre_save, post_delete, pre_delete
-from django.dispatch import receiver
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models.signals import post_delete, post_save, pre_delete, pre_save
+from django.dispatch import receiver
 
-from .models import AcademicYear, Term, Section, Grade, Class, Department
+from .models import AcademicYear, Class, Department, Grade, Section, Term
 
 
 @receiver(pre_save, sender=AcademicYear)

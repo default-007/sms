@@ -1,6 +1,7 @@
-from django.apps import AppConfig
-from django.db.models.signals import post_save, post_delete
 import logging
+
+from django.apps import AppConfig
+from django.db.models.signals import post_delete, post_save
 
 logger = logging.getLogger(__name__)
 

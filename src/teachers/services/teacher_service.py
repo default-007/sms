@@ -1,10 +1,11 @@
-from django.db.models import Avg, Count, Sum, Max, F, Q, Case, When, Value, IntegerField
-from django.utils import timezone
 from datetime import datetime, timedelta
-from django.db.models.functions import TruncMonth, ExtractYear, ExtractMonth
 
+from django.db.models import Avg, Case, Count, F, IntegerField, Max, Q, Sum, Value, When
+from django.db.models.functions import ExtractMonth, ExtractYear, TruncMonth
+from django.utils import timezone
+
+from src.courses.models import AcademicYear, Class, Department, Subject
 from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
-from src.courses.models import Department, Class, Subject, AcademicYear
 
 
 class TeacherService:

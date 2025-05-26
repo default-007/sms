@@ -1,8 +1,10 @@
+from datetime import timedelta
+
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
-from datetime import timedelta
-from ...services import RoleService
+
 from ...models import UserAuditLog, UserSession
+from ...services import RoleService
 
 
 class Command(BaseCommand):

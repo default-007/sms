@@ -1,16 +1,18 @@
-from django.test import TestCase, TransactionTestCase
+import json
+
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
-from rest_framework.test import APITestCase
-from rest_framework import status
+from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
-import json
+from rest_framework import status
+from rest_framework.test import APITestCase
 
-from .models import Subject, Syllabus, TopicProgress, SubjectAssignment
-from .services import SyllabusService, CurriculumService, SubjectAnalyticsService
-from academics.models import Grade, AcademicYear, Term, Class, Department, Section
+from academics.models import AcademicYear, Class, Department, Grade, Section, Term
 from teachers.models import Teacher
+
+from .models import Subject, SubjectAssignment, Syllabus, TopicProgress
+from .services import CurriculumService, SubjectAnalyticsService, SyllabusService
 
 User = get_user_model()
 

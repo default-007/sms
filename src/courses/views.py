@@ -1,49 +1,49 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import (
-    ListView,
-    DetailView,
-    CreateView,
-    UpdateView,
-    DeleteView,
-)
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.contrib.auth.decorators import login_required, permission_required
-from django.urls import reverse_lazy
 from django.contrib import messages
-from django.db.models import Q, Count
-from django.utils import timezone
+from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.db.models import Count, Q
 from django.http import JsonResponse
-
-from .models import (
-    Department,
-    AcademicYear,
-    Grade,
-    Section,
-    Class,
-    Subject,
-    Syllabus,
-    TimeSlot,
-    Timetable,
-    Assignment,
-    AssignmentSubmission,
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse_lazy
+from django.utils import timezone
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    UpdateView,
 )
+
 from .forms import (
-    DepartmentForm,
     AcademicYearForm,
-    GradeForm,
-    SectionForm,
+    AssignmentForm,
+    AssignmentSubmissionForm,
     ClassForm,
+    DepartmentForm,
+    GradeForm,
+    GradeSubmissionForm,
+    SectionForm,
     SubjectForm,
     SyllabusForm,
     TimeSlotForm,
     TimetableForm,
-    AssignmentForm,
-    AssignmentSubmissionForm,
-    GradeSubmissionForm,
 )
+from .models import (
+    AcademicYear,
+    Assignment,
+    AssignmentSubmission,
+    Class,
+    Department,
+    Grade,
+    Section,
+    Subject,
+    Syllabus,
+    TimeSlot,
+    Timetable,
+)
+from .services.assignment_service import AssignmentService
 from .services.class_service import ClassService
 from .services.timetable_service import TimetableService
-from .services.assignment_service import AssignmentService
 
 
 @login_required

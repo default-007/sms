@@ -1,22 +1,23 @@
+from decimal import Decimal
+
 from django.contrib import admin
-from django.utils.html import format_html
+from django.db.models import Count, Sum
 from django.urls import reverse
 from django.utils import timezone
-from django.db.models import Sum, Count
-from decimal import Decimal
+from django.utils.html import format_html
 
 from .models import (
     FeeCategory,
     FeeStructure,
-    SpecialFee,
-    Scholarship,
-    StudentScholarship,
+    FeeWaiver,
+    FinancialAnalytics,
+    FinancialSummary,
     Invoice,
     InvoiceItem,
     Payment,
-    FinancialSummary,
-    FinancialAnalytics,
-    FeeWaiver,
+    Scholarship,
+    SpecialFee,
+    StudentScholarship,
 )
 
 

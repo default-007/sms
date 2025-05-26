@@ -5,19 +5,19 @@ This module defines all REST API endpoints for the academics app,
 including ViewSet routes and custom API endpoints.
 """
 
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
-    DepartmentViewSet,
-    AcademicYearViewSet,
-    TermViewSet,
-    SectionViewSet,
-    GradeViewSet,
-    ClassViewSet,
-    AcademicStructureAPIView,
     AcademicCalendarAPIView,
+    AcademicStructureAPIView,
     AcademicValidationAPIView,
+    AcademicYearViewSet,
+    ClassViewSet,
+    DepartmentViewSet,
+    GradeViewSet,
+    SectionViewSet,
+    TermViewSet,
 )
 
 # Create router and register ViewSets
@@ -219,10 +219,11 @@ class SearchAPIView(APIView):
         return Response(results)
 
 
-# Import statements for the additional views
-from rest_framework import permissions
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
 from django.db.models import Q
-from ..models import Section, Grade, Class, Department
+
+# Import statements for the additional views
+from rest_framework import permissions, status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from ..models import Class, Department, Grade, Section

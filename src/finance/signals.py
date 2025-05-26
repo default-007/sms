@@ -1,16 +1,16 @@
 from django.db import models
-from django.db.models.signals import post_save, post_delete, pre_save
-from django.dispatch import receiver
 from django.db.models import F
+from django.db.models.signals import post_delete, post_save, pre_save
+from django.dispatch import receiver
 from django.utils import timezone
 
 from .models import (
-    Payment,
+    FinancialSummary,
     Invoice,
     InvoiceItem,
-    StudentScholarship,
+    Payment,
     Scholarship,
-    FinancialSummary,
+    StudentScholarship,
 )
 
 

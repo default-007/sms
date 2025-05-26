@@ -1,17 +1,18 @@
-from decimal import Decimal
-from django.db.models import Sum, Count, Avg, Q, F, Case, When
-from django.utils import timezone
 from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Dict, List, Optional
 
+from django.db.models import Avg, Case, Count, F, Q, Sum, When
+from django.utils import timezone
+
 from ..models import (
+    FeeStructure,
+    FinancialAnalytics,
+    FinancialSummary,
     Invoice,
     Payment,
-    FinancialSummary,
-    FinancialAnalytics,
     Scholarship,
     StudentScholarship,
-    FeeStructure,
 )
 
 

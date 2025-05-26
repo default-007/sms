@@ -1,17 +1,18 @@
 # students/tasks.py
-from celery import shared_task
-from django.core.mail import send_mass_mail
-from django.template.loader import render_to_string
-from django.conf import settings
-from django.utils import timezone
-from django.db.models import Q
-import logging
 import csv
 import io
+import logging
 
-from .models import Student, Parent, StudentParentRelation
-from .services.student_service import StudentService
+from celery import shared_task
+from django.conf import settings
+from django.core.mail import send_mass_mail
+from django.db.models import Q
+from django.template.loader import render_to_string
+from django.utils import timezone
+
+from .models import Parent, Student, StudentParentRelation
 from .services.parent_service import ParentService
+from .services.student_service import StudentService
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,8 @@
-from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.db.models import Q
+
 from ...services import RoleService
 
 User = get_user_model()

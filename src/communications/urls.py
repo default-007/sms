@@ -3,7 +3,7 @@ URL patterns for Communications module.
 Defines web interface URLs for notifications, announcements, messaging, and analytics.
 """
 
-from django.urls import path, include
+from django.urls import include, path
 
 from . import views
 

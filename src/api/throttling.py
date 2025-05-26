@@ -1,14 +1,15 @@
 # src/api/throttling.py
 """API Rate Limiting and Throttling"""
 
+import time
+
+from django.conf import settings
+from django.core.cache import cache
 from rest_framework.throttling import (
-    UserRateThrottle,
     AnonRateThrottle,
     ScopedRateThrottle,
+    UserRateThrottle,
 )
-from django.core.cache import cache
-from django.conf import settings
-import time
 
 
 class CustomUserRateThrottle(UserRateThrottle):

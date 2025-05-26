@@ -1,13 +1,13 @@
 # src/api/urls.py
 """Main API URL Router"""
 
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from django.urls import include, path
 from drf_spectacular.views import (
     SpectacularAPIView,
-    SpectacularSwaggerView,
     SpectacularRedocView,
+    SpectacularSwaggerView,
 )
+from rest_framework.routers import DefaultRouter
 
 # API version prefix
 app_name = "api"

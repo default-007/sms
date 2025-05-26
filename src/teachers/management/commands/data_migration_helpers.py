@@ -5,13 +5,14 @@ Helper utilities for teacher data migration and transformation.
 
 import csv
 import json
-import pandas as pd
-from datetime import datetime, date
+from datetime import date, datetime
 from decimal import Decimal
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
+
+import pandas as pd
 from django.core.exceptions import ValidationError
 
-from src.teachers.validators import validate_teacher_data, validate_evaluation_data
+from src.teachers.validators import validate_evaluation_data, validate_teacher_data
 from teachers.models import Teacher
 
 

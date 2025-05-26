@@ -1,34 +1,35 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.views.generic import (
-    ListView,
-    DetailView,
-    UpdateView,
-    CreateView,
-    DeleteView,
-)
-from django.utils.decorators import method_decorator
-from django.contrib import messages
-from django.db.models import Q, Count
-from django.apps import apps
-from django.urls import reverse_lazy
-from django.http import JsonResponse, HttpResponse
-from django.utils import timezone
-from django.core.paginator import Paginator
 import csv
 import json
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 
-from .models import SystemSetting, AuditLog, Document
+from django.apps import apps
+from django.contrib import messages
+from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.db.models import Count, Q
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse_lazy
+from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    UpdateView,
+)
+
+from .decorators import audit_log, module_access_required, role_required
 from .forms import (
-    SystemSettingForm,
+    AuditLogSearchForm,
     DocumentForm,
     DocumentSearchForm,
-    AuditLogSearchForm,
+    SystemSettingForm,
 )
-from .decorators import role_required, module_access_required, audit_log
-from .utils import get_system_setting, safe_get_count, academic_year_for_date
-from django.contrib.auth import get_user_model
+from .models import AuditLog, Document, SystemSetting
+from .utils import academic_year_for_date, get_system_setting, safe_get_count
 
 User = get_user_model()
 
@@ -772,6 +773,7 @@ def system_info_view(request):
     """View system information including versions, environment, etc."""
     import platform
     import sys
+
     import django
 
     context = {

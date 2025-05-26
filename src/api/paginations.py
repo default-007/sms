@@ -1,10 +1,11 @@
 # src/api/paginations.py
 """Custom Pagination Classes"""
 
-from rest_framework.pagination import PageNumberPagination, LimitOffsetPagination
-from rest_framework.response import Response
-from collections import OrderedDict
 import math
+from collections import OrderedDict
+
+from rest_framework.pagination import LimitOffsetPagination, PageNumberPagination
+from rest_framework.response import Response
 
 
 class StandardPagination(PageNumberPagination):

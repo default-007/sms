@@ -3,22 +3,23 @@ Django signals for Communications module.
 Handles automatic communication preferences creation, metric updates, and event tracking.
 """
 
-from django.db.models.signals import post_save, post_delete, pre_save
-from django.dispatch import receiver
-from django.contrib.auth import get_user_model
-from django.utils import timezone
-from django.db import transaction
 import logging
 
+from django.contrib.auth import get_user_model
+from django.db import transaction
+from django.db.models.signals import post_delete, post_save, pre_save
+from django.dispatch import receiver
+from django.utils import timezone
+
 from .models import (
-    Notification,
-    CommunicationPreference,
     Announcement,
-    CommunicationLog,
-    DirectMessage,
-    MessageThread,
     CommunicationChannel,
+    CommunicationLog,
+    CommunicationPreference,
+    DirectMessage,
     MessageStatus,
+    MessageThread,
+    Notification,
 )
 
 User = get_user_model()

@@ -1,10 +1,10 @@
-from rest_framework import permissions
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import PermissionDenied
 from django.utils.translation import gettext_lazy as _
+from rest_framework import permissions
 
-from .models import Subject, Syllabus, TopicProgress, SubjectAssignment
+from .models import Subject, SubjectAssignment, Syllabus, TopicProgress
 
 
 class SubjectPermissions:

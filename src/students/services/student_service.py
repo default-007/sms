@@ -1,25 +1,26 @@
 # students/services/student_service.py
-from django.db import transaction
-from django.conf import settings
-from django.contrib.auth import get_user_model
-from django.utils import timezone
-from django.core.cache import cache
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
 import csv
 import io
-import uuid
-import os
-from PIL import Image
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4, letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
-import qrcode
 import logging
+import os
+import uuid
 
-from ..models import Student, Parent, StudentParentRelation
+import qrcode
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from django.core.mail import send_mail
+from django.db import transaction
+from django.template.loader import render_to_string
+from django.utils import timezone
+from PIL import Image
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4, letter
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+from ..models import Parent, Student, StudentParentRelation
 
 User = get_user_model()
 logger = logging.getLogger(__name__)

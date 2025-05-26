@@ -3,39 +3,41 @@ School Management System - Exam Views
 File: src/exams/views.py
 """
 
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.http import JsonResponse, HttpResponse
-from django.core.paginator import Paginator
-from django.db.models import Q, Count, Avg
-from django.utils import timezone
-from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
 import json
 from datetime import datetime, timedelta
 
-from .models import (
-    Exam,
-    ExamType,
-    ExamSchedule,
-    StudentExamResult,
-    ReportCard,
-    ExamQuestion,
-    OnlineExam,
-    StudentOnlineExamAttempt,
-)
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.db.models import Avg, Count, Q
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+
+from academics.models import AcademicYear, Class, Term
+from students.models import Student
+
 from .forms import (
     ExamForm,
-    ExamScheduleForm,
-    ResultEntryForm,
     ExamQuestionForm,
+    ExamScheduleForm,
     OnlineExamConfigForm,
+    ResultEntryForm,
 )
-from .services.exam_service import ExamService, ResultService
+from .models import (
+    Exam,
+    ExamQuestion,
+    ExamSchedule,
+    ExamType,
+    OnlineExam,
+    ReportCard,
+    StudentExamResult,
+    StudentOnlineExamAttempt,
+)
 from .services.analytics_service import ExamAnalyticsService
-from academics.models import AcademicYear, Term, Class
-from students.models import Student
+from .services.exam_service import ExamService, ResultService
 
 
 @login_required

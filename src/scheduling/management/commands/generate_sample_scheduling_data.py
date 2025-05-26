@@ -1,20 +1,21 @@
-from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
-from django.contrib.auth import get_user_model
-from datetime import datetime, time, date, timedelta
 import random
 import string
+from datetime import date, datetime, time, timedelta
 
+from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
+
+from academics.models import AcademicYear, Class, Grade, Section, Term
 from scheduling.models import (
-    TimeSlot,
     Room,
+    SchedulingConstraint,
+    SubstituteTeacher,
+    TimeSlot,
     Timetable,
     TimetableTemplate,
-    SubstituteTeacher,
-    SchedulingConstraint,
 )
 from scheduling.services.timetable_service import TimetableService
-from academics.models import AcademicYear, Term, Section, Grade, Class
 from subjects.models import Subject
 from teachers.models import Teacher, TeacherClassAssignment
 

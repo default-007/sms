@@ -3,57 +3,58 @@ Django views for Communications module.
 Handles web interface for notifications, announcements, messaging, and analytics.
 """
 
-from django.shortcuts import render, get_object_or_404, redirect
+import json
+from datetime import datetime, timedelta
+
+from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib import messages
-from django.views.generic import (
-    ListView,
-    DetailView,
-    CreateView,
-    UpdateView,
-    DeleteView,
-)
-from django.urls import reverse_lazy, reverse
-from django.http import JsonResponse, HttpResponseForbidden
 from django.core.paginator import Paginator
-from django.db.models import Q, Count, Avg
+from django.db.models import Avg, Count, Q
+from django.http import HttpResponseForbidden, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.contrib.auth import get_user_model
-from datetime import datetime, timedelta
-import json
-
-from .models import (
-    Announcement,
-    Notification,
-    BulkMessage,
-    MessageTemplate,
-    CommunicationPreference,
-    MessageThread,
-    DirectMessage,
-    CommunicationAnalytics,
-    CommunicationLog,
-    CommunicationChannel,
-    Priority,
-    TargetAudience,
-    MessageStatus,
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    UpdateView,
 )
+
 from .forms import (
     AnnouncementForm,
     BulkMessageForm,
-    MessageTemplateForm,
-    CommunicationPreferenceForm,
-    MessageThreadForm,
-    DirectMessageForm,
-    QuickNotificationForm,
     BulkNotificationForm,
+    CommunicationPreferenceForm,
     CommunicationSearchForm,
+    DirectMessageForm,
+    MessageTemplateForm,
+    MessageThreadForm,
+    QuickNotificationForm,
+)
+from .models import (
+    Announcement,
+    BulkMessage,
+    CommunicationAnalytics,
+    CommunicationChannel,
+    CommunicationLog,
+    CommunicationPreference,
+    DirectMessage,
+    MessageStatus,
+    MessageTemplate,
+    MessageThread,
+    Notification,
+    Priority,
+    TargetAudience,
 )
 from .services import (
-    NotificationService,
     AnnouncementService,
-    MessagingService,
     CommunicationAnalyticsService,
+    MessagingService,
+    NotificationService,
 )
 
 User = get_user_model()

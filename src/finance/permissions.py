@@ -1,6 +1,6 @@
-from rest_framework.permissions import BasePermission
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
+from rest_framework.permissions import BasePermission
 
 
 class FinanceManagerPermission(BasePermission):
@@ -178,12 +178,12 @@ def create_finance_permissions():
     # Get content types
     from .models import (
         FeeStructure,
-        SpecialFee,
-        Scholarship,
-        Invoice,
-        Payment,
         FeeWaiver,
         FinancialAnalytics,
+        Invoice,
+        Payment,
+        Scholarship,
+        SpecialFee,
     )
 
     # Custom permissions beyond the default add/change/delete/view

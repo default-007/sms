@@ -1,5 +1,6 @@
 from django import forms
-from .models import SystemSetting, Document
+
+from .models import Document, SystemSetting
 
 
 class SystemSettingForm(forms.ModelForm):
@@ -64,6 +65,7 @@ class DocumentSearchForm(forms.Form):
         super().__init__(*args, **kwargs)
         # Dynamically get categories from existing documents
         from django.db.models import Distinct
+
         from .models import Document
 
         categories = Document.objects.values_list("category", flat=True).distinct()

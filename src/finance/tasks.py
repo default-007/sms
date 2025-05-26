@@ -1,16 +1,17 @@
-from celery import shared_task
-from django.utils import timezone
-from django.db import transaction, models
 from datetime import datetime, timedelta
 from decimal import Decimal
 
+from celery import shared_task
+from django.db import models, transaction
+from django.utils import timezone
+
 from .models import (
+    FeeStructure,
+    FinancialAnalytics,
+    FinancialSummary,
     Invoice,
     Payment,
-    FinancialSummary,
-    FinancialAnalytics,
     StudentScholarship,
-    FeeStructure,
 )
 from .services.analytics_service import FinancialAnalyticsService
 from .services.invoice_service import InvoiceService
@@ -105,9 +106,9 @@ def generate_bulk_invoices_task(
     """Generate invoices for multiple students in background."""
 
     try:
-        from students.models import Student
         from academics.models import AcademicYear, Term
         from accounts.models import User
+        from students.models import Student
 
         students = Student.objects.filter(id__in=student_ids)
         academic_year = AcademicYear.objects.get(id=academic_year_id)
@@ -201,7 +202,7 @@ def calculate_late_fees_task(self):
 
                     if late_fee > 0:
                         # Create special fee for late charges
-                        from .models import SpecialFee, FeeCategory
+                        from .models import FeeCategory, SpecialFee
 
                         late_fee_category, _ = FeeCategory.objects.get_or_create(
                             name="Late Fee",

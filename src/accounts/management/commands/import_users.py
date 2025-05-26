@@ -1,11 +1,13 @@
 # src/accounts/management/commands/import_users.py
 
-from django.core.management.base import BaseCommand, CommandError
+import csv
+
 from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.db.models import Q
+
 from ...services import RoleService
-import csv
 
 User = get_user_model()
 

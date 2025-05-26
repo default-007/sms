@@ -1,13 +1,14 @@
 # students/templatetags/student_tags.py
-from django import template
-from django.utils.safestring import mark_safe
-from django.utils.html import format_html
-from django.urls import reverse
-from django.db.models import Count, Q
-from django.core.cache import cache
 import datetime
 
-from ..models import Student, Parent, StudentParentRelation
+from django import template
+from django.core.cache import cache
+from django.db.models import Count, Q
+from django.urls import reverse
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
+
+from ..models import Parent, Student, StudentParentRelation
 
 register = template.Library()
 

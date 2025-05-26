@@ -1,9 +1,10 @@
 # management/commands/initialize_system.py
-from django.core.management.base import BaseCommand
-from src.core.services import SystemSettingService
-from django.contrib.auth.models import Group, Permission
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group, Permission
+from django.core.management.base import BaseCommand
 from django.db import transaction
+
+from src.core.services import SystemSettingService
 
 User = get_user_model()
 

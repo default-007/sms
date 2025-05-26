@@ -1,15 +1,15 @@
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
-    TimeSlotViewSet,
     RoomViewSet,
-    TimetableViewSet,
-    SubstituteTeacherViewSet,
-    TimetableGenerationViewSet,
     SchedulingAnalyticsViewSet,
     SchedulingConstraintViewSet,
+    SubstituteTeacherViewSet,
+    TimeSlotViewSet,
+    TimetableGenerationViewSet,
     TimetableTemplateViewSet,
+    TimetableViewSet,
 )
 
 # Create router and register viewsets

@@ -1,9 +1,10 @@
 # students/middleware.py
-import time
 import logging
-from django.utils.deprecation import MiddlewareMixin
-from django.core.cache import cache
+import time
+
 from django.conf import settings
+from django.core.cache import cache
+from django.utils.deprecation import MiddlewareMixin
 
 logger = logging.getLogger(__name__)
 

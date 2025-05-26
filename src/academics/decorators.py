@@ -5,20 +5,21 @@ This module provides decorators for common functionality in the academics app,
 including permission checking, caching, validation, and audit logging.
 """
 
+import logging
+import time
 from functools import wraps
-from django.core.exceptions import PermissionDenied
-from django.core.cache import cache
-from django.http import JsonResponse
+from typing import Any, Callable
+
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
+from django.core.exceptions import PermissionDenied
+from django.db import transaction
+from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
-from django.db import transaction
-import logging
-import time
-from typing import Any, Callable
 
-from .constants import CACHE_KEYS, ANALYTICS_CACHE_TIMEOUT
+from .constants import ANALYTICS_CACHE_TIMEOUT, CACHE_KEYS
 from .permissions import check_academic_permission
 
 logger = logging.getLogger(__name__)

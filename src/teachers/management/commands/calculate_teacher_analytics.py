@@ -1,12 +1,13 @@
 # src/teachers/management/commands/calculate_teacher_analytics.py
-from django.core.management.base import BaseCommand, CommandError
-from django.utils import timezone
-from django.db.models import Avg, Count
 from datetime import datetime, timedelta
 
+from django.core.management.base import BaseCommand, CommandError
+from django.db.models import Avg, Count
+from django.utils import timezone
+
+from src.courses.models import AcademicYear, Department
 from src.teachers.models import Teacher, TeacherEvaluation
 from src.teachers.services.analytics_service import TeacherAnalyticsService
-from src.courses.models import AcademicYear, Department
 
 
 class Command(BaseCommand):
@@ -156,17 +157,19 @@ class Command(BaseCommand):
             raise CommandError(f"Error calculating analytics: {str(e)}")
 
 
-# src/teachers/management/commands/generate_teacher_sample_data.py
-from django.core.management.base import BaseCommand, CommandError
-from django.contrib.auth import get_user_model
-from django.utils import timezone
-from faker import Faker
 import random
 from datetime import date, timedelta
 
-from src.teachers.models import Teacher, TeacherEvaluation, TeacherClassAssignment
-from src.courses.models import Department, Subject, Class, AcademicYear
+from django.contrib.auth import get_user_model
+
+# src/teachers/management/commands/generate_teacher_sample_data.py
+from django.core.management.base import BaseCommand, CommandError
+from django.utils import timezone
+from faker import Faker
+
 from src.accounts.models import UserRole, UserRoleAssignment
+from src.courses.models import AcademicYear, Class, Department, Subject
+from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
 
 User = get_user_model()
 fake = Faker()

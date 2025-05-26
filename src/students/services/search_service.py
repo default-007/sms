@@ -1,11 +1,12 @@
 # students/services/search_service.py
-from django.db.models import Q, Count, Avg, Case, When, IntegerField
-from django.core.cache import cache
-from django.utils import timezone
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime, timedelta
 
-from ..models import Student, Parent, StudentParentRelation
+from django.core.cache import cache
+from django.db.models import Avg, Case, Count, IntegerField, Q, When
+from django.utils import timezone
+
+from ..models import Parent, Student, StudentParentRelation
 
 logger = logging.getLogger(__name__)
 

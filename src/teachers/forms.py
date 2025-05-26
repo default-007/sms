@@ -1,9 +1,10 @@
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import HTML, Column, Div, Layout, Row, Submit
 from django import forms
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+
 from .models import Teacher, TeacherClassAssignment, TeacherEvaluation
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Row, Column, Submit, Div, HTML
 
 User = get_user_model()
 

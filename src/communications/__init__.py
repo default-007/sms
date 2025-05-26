@@ -80,40 +80,42 @@ __author__ = "School Management System Team"
 # Default app configuration
 default_app_config = "src.communications.apps.CommunicationsConfig"
 
-# Import main services for easy access
-from .services import (
-    NotificationService,
-    AnnouncementService,
-    MessagingService,
-    EmailService,
-    SMSService,
-    CommunicationAnalyticsService,
-)
-
+# Import constants
 # Import main models
 from .models import (
     Announcement,
-    Notification,
     BulkMessage,
+    CommunicationAnalytics,
+    CommunicationChannel,
+    CommunicationLog,
+    CommunicationPreference,
+    DirectMessage,
+    MessageStatus,
     MessageTemplate,
     MessageThread,
-    DirectMessage,
-    CommunicationPreference,
-    CommunicationAnalytics,
-    CommunicationLog,
+    Notification,
+    Priority,
+    TargetAudience,
+)
+
+# Import main services for easy access
+from .services import (
+    AnnouncementService,
+    CommunicationAnalyticsService,
+    EmailService,
+    MessagingService,
+    NotificationService,
+    SMSService,
 )
 
 # Import utilities
 from .utils import (
+    CommunicationMetrics,
     CommunicationValidator,
     ContentFormatter,
     TemplateProcessor,
     UserTargeting,
-    CommunicationMetrics,
 )
-
-# Import constants
-from .models import CommunicationChannel, Priority, TargetAudience, MessageStatus
 
 # Export main components
 __all__ = [
@@ -210,8 +212,9 @@ def check_configuration():
 # Quick setup function
 def setup_default_templates():
     """Set up default message templates"""
-    from .models import MessageTemplate
     from django.contrib.auth import get_user_model
+
+    from .models import MessageTemplate
 
     User = get_user_model()
 

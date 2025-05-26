@@ -8,34 +8,75 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='AttendanceRecord',
+            name="AttendanceRecord",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date', models.DateField(default=django.utils.timezone.now, verbose_name='date')),
-                ('marked_at', models.DateTimeField(auto_now_add=True, verbose_name='marked at')),
-                ('remarks', models.TextField(blank=True, verbose_name='remarks')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "date",
+                    models.DateField(
+                        default=django.utils.timezone.now, verbose_name="date"
+                    ),
+                ),
+                (
+                    "marked_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="marked at"),
+                ),
+                ("remarks", models.TextField(blank=True, verbose_name="remarks")),
             ],
             options={
-                'verbose_name': 'attendance record',
-                'verbose_name_plural': 'attendance records',
-                'ordering': ['-date'],
+                "verbose_name": "attendance record",
+                "verbose_name_plural": "attendance records",
+                "ordering": ["-date"],
             },
         ),
         migrations.CreateModel(
-            name='StudentAttendance',
+            name="StudentAttendance",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('status', models.CharField(choices=[('present', 'Present'), ('absent', 'Absent'), ('late', 'Late'), ('excused', 'Excused')], default='present', max_length=10, verbose_name='status')),
-                ('remarks', models.CharField(blank=True, max_length=255, verbose_name='remarks')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("present", "Present"),
+                            ("absent", "Absent"),
+                            ("late", "Late"),
+                            ("excused", "Excused"),
+                        ],
+                        default="present",
+                        max_length=10,
+                        verbose_name="status",
+                    ),
+                ),
+                (
+                    "remarks",
+                    models.CharField(
+                        blank=True, max_length=255, verbose_name="remarks"
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'student attendance',
-                'verbose_name_plural': 'student attendances',
+                "verbose_name": "student attendance",
+                "verbose_name_plural": "student attendances",
             },
         ),
     ]

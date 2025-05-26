@@ -3,12 +3,13 @@ Communications app models for School Management System.
 Handles announcements, notifications, messaging, and communication analytics.
 """
 
-from django.db import models
-from django.contrib.auth import get_user_model
-from django.core.validators import EmailValidator, RegexValidator
-from django.utils import timezone
-from django.contrib.postgres.fields import JSONField
 import uuid
+
+from django.contrib.auth import get_user_model
+from django.contrib.postgres.fields import JSONField
+from django.core.validators import EmailValidator, RegexValidator
+from django.db import models
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -231,7 +232,7 @@ class MessageTemplate(models.Model):
             context = {}
 
         try:
-            from django.template import Template, Context
+            from django.template import Context, Template
 
             template = Template(self.content_template)
             return template.render(Context(context))
@@ -244,7 +245,7 @@ class MessageTemplate(models.Model):
             context = {}
 
         try:
-            from django.template import Template, Context
+            from django.template import Context, Template
 
             template = Template(self.subject_template)
             return template.render(Context(context))

@@ -3,26 +3,27 @@ Django admin configuration for Communications module.
 Provides admin interface for managing communications, notifications, and analytics.
 """
 
-from django.contrib import admin
-from django.utils.html import format_html
-from django.urls import reverse
-from django.utils.safestring import mark_safe
-from django.db.models import Count, Avg
-from django.utils import timezone
 from datetime import timedelta
+
+from django.contrib import admin
+from django.db.models import Avg, Count
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 
 from .models import (
     Announcement,
-    Notification,
     BulkMessage,
-    MessageRecipient,
-    MessageTemplate,
-    CommunicationPreference,
     CommunicationAnalytics,
-    MessageThread,
+    CommunicationLog,
+    CommunicationPreference,
     DirectMessage,
     MessageRead,
-    CommunicationLog,
+    MessageRecipient,
+    MessageTemplate,
+    MessageThread,
+    Notification,
 )
 
 

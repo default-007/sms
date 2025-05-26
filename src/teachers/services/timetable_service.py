@@ -1,11 +1,13 @@
 # src/teachers/services/timetable_service.py
 import io
 from datetime import datetime
+
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse
 from django.template.loader import get_template
-from src.courses.models import AcademicYear
 from xhtml2pdf import pisa
-from django.core.exceptions import ObjectDoesNotExist
+
+from src.courses.models import AcademicYear
 
 
 class TimetableService:

@@ -1,12 +1,14 @@
-from django.db import transaction
-from django.utils import timezone
-from django.core.exceptions import ValidationError
-from django.db.models import Q, Count, Avg, Sum, Max, Min, F
-from typing import Dict, List, Optional, Tuple
 import logging
+from typing import Dict, List, Optional, Tuple
 
-from ..models import AssignmentSubmission, SubmissionGrade, AssignmentRubric
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.db.models import Avg, Count, F, Max, Min, Q, Sum
+from django.utils import timezone
+
 from teachers.models import Teacher
+
+from ..models import AssignmentRubric, AssignmentSubmission, SubmissionGrade
 
 logger = logging.getLogger(__name__)
 

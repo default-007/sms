@@ -1,13 +1,16 @@
-from django.db.models.signals import post_save, post_delete, pre_save
-from django.dispatch import receiver
+import logging
+from datetime import datetime
+
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.db.models.signals import post_delete, post_save, pre_save
+from django.dispatch import receiver
 from django.utils.translation import gettext_lazy as _
-from datetime import datetime
-import logging
 
-from .models import Subject, Syllabus, TopicProgress, SubjectAssignment
-from analytics.models import StudentPerformanceAnalytics, ClassPerformanceAnalytics
+from analytics.models import (ClassPerformanceAnalytics,
+                              StudentPerformanceAnalytics)
+
+from .models import Subject, SubjectAssignment, Syllabus, TopicProgress
 
 # Get logger
 logger = logging.getLogger(__name__)
@@ -290,7 +293,7 @@ def send_syllabus_completion_notification(syllabus):
     """
     try:
         from communications.models import Notification
-        
+
         # Get all teachers assigned to this syllabus
         assignments = SubjectAssignment.objects.filter(
             subject=syllabus.subject,
@@ -400,7 +403,7 @@ def check_syllabus_deadline_alerts(sender, instance, created, **kwargs):
     """
     try:
         from datetime import date
-        
+
         # Calculate expected progress based on term progress
         term = instance.term
         current_date = date.today()
@@ -427,7 +430,7 @@ def send_behind_schedule_alert(syllabus, expected_progress, actual_progress):
     """
     try:
         from communications.models import Notification
-        
+
         # Get assigned teachers
         assignments = SubjectAssignment.objects.filter(
             subject=syllabus.subject,

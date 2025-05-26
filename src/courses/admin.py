@@ -1,16 +1,17 @@
 from django.contrib import admin
+
 from .models import (
-    Department,
     AcademicYear,
+    Assignment,
+    AssignmentSubmission,
+    Class,
+    Department,
     Grade,
     Section,
-    Class,
     Subject,
     Syllabus,
     TimeSlot,
     Timetable,
-    Assignment,
-    AssignmentSubmission,
 )
 
 

@@ -1,8 +1,10 @@
-from src.courses.models import Assignment, AssignmentSubmission
-from django.db import transaction
-from django.db.models import Avg, Count, Q, F, When, Case, Value, IntegerField
-from django.utils import timezone
 from datetime import datetime, timedelta
+
+from django.db import transaction
+from django.db.models import Avg, Case, Count, F, IntegerField, Q, Value, When
+from django.utils import timezone
+
+from src.courses.models import Assignment, AssignmentSubmission
 
 
 class AssignmentService:
@@ -36,7 +38,7 @@ class AssignmentService:
         )
 
         # Add submission status
-        from django.db.models import OuterRef, Subquery, CharField
+        from django.db.models import CharField, OuterRef, Subquery
         from django.db.models.functions import Coalesce
 
         submission_subquery = AssignmentSubmission.objects.filter(

@@ -1,11 +1,11 @@
 # students/filters.py
 import django_filters
 from django import forms
-from django.db.models import Q, Count
 from django.contrib import admin
+from django.db.models import Count, Q
 from django.utils.translation import gettext_lazy as _
 
-from .models import Student, Parent, StudentParentRelation
+from .models import Parent, Student, StudentParentRelation
 
 
 class StudentFilter(django_filters.FilterSet):

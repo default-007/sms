@@ -1,23 +1,25 @@
+import os
+from datetime import datetime, timedelta
+
 from django import forms
-from django.core.exceptions import ValidationError
-from django.utils import timezone
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.forms import inlineformset_factory
 from django.forms.widgets import DateTimeInput
-from datetime import datetime, timedelta
-import os
+from django.utils import timezone
+
+from academics.models import Class, Term
+from students.models import Student
+from subjects.models import Subject
+from teachers.models import Teacher
 
 from .models import (
     Assignment,
-    AssignmentSubmission,
-    AssignmentRubric,
-    SubmissionGrade,
     AssignmentComment,
+    AssignmentRubric,
+    AssignmentSubmission,
+    SubmissionGrade,
 )
-from subjects.models import Subject
-from academics.models import Class, Term
-from teachers.models import Teacher
-from students.models import Student
 
 User = get_user_model()
 

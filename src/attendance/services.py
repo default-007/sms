@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
-from django.db.models import Count, Q, Case, When, IntegerField, F, Avg
-from django.utils import timezone
+
+from django.db.models import Avg, Case, Count, F, IntegerField, Q, When
 from django.db.models.functions import Extract
+from django.utils import timezone
+
 from .models import AttendanceRecord, StudentAttendance
 
 
@@ -277,8 +279,8 @@ class AttendanceService:
     @staticmethod
     def get_attendance_analytics_dashboard(days=30):
         """Get comprehensive analytics for dashboard"""
-        from src.students.models import Student
         from src.courses.models import Class
+        from src.students.models import Student
 
         end_date = timezone.now().date()
         start_date = end_date - timedelta(days=days)

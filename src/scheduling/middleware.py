@@ -2,19 +2,20 @@
 Custom middleware for the scheduling module
 """
 
-import time
 import json
+import logging
+import time
 from datetime import datetime, timedelta
-from django.utils.deprecation import MiddlewareMixin
-from django.core.cache import cache
+
 from django.conf import settings
+from django.core.cache import cache
 from django.http import JsonResponse
 from django.urls import resolve
 from django.utils import timezone
-import logging
+from django.utils.deprecation import MiddlewareMixin
 
-from .models import TimetableGeneration
 from .exceptions import TimetableGenerationInProgressError
+from .models import TimetableGeneration
 
 logger = logging.getLogger("scheduling.middleware")
 

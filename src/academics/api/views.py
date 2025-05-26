@@ -5,38 +5,38 @@ This module provides ViewSets and APIViews for managing academic data
 through the REST API, including CRUD operations and analytics endpoints.
 """
 
-from rest_framework import viewsets, status, permissions
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db.models import Q
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import SearchFilter, OrderingFilter
-from django.db.models import Q
-from django.core.exceptions import ValidationError as DjangoValidationError
 
-from ..models import Department, AcademicYear, Term, Section, Grade, Class
+from ..models import AcademicYear, Class, Department, Grade, Section, Term
 from ..services import (
     AcademicYearService,
-    SectionService,
-    GradeService,
     ClassService,
+    GradeService,
+    SectionService,
     TermService,
 )
 from .serializers import (
-    DepartmentSerializer,
-    AcademicYearSerializer,
     AcademicYearCreateSerializer,
-    TermSerializer,
-    SectionSerializer,
-    SectionHierarchySerializer,
-    GradeSerializer,
-    ClassSerializer,
-    ClassCreateSerializer,
-    BulkClassCreateSerializer,
+    AcademicYearSerializer,
     AcademicYearSummarySerializer,
-    TermSummarySerializer,
-    GradeSummarySerializer,
+    BulkClassCreateSerializer,
+    ClassCreateSerializer,
+    ClassSerializer,
     ClassSummarySerializer,
+    DepartmentSerializer,
+    GradeSerializer,
+    GradeSummarySerializer,
+    SectionHierarchySerializer,
+    SectionSerializer,
+    TermSerializer,
+    TermSummarySerializer,
 )
 
 

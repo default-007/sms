@@ -1,52 +1,53 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+import json
+from decimal import Decimal
+
 from django.contrib import messages
-from django.http import JsonResponse, HttpResponse
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.db.models import Count, Q, Sum
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views.generic import (
-    ListView,
-    DetailView,
     CreateView,
-    UpdateView,
     DeleteView,
+    DetailView,
+    ListView,
     TemplateView,
+    UpdateView,
     View,
 )
-from django.urls import reverse_lazy
-from django.db.models import Q, Sum, Count
-from django.utils import timezone
-from decimal import Decimal
-import json
 
+from academics.models import AcademicYear, Class, Grade, Section, Term
+from students.models import Student
+
+from .forms import (
+    BulkInvoiceGenerationForm,
+    FeeCategoryForm,
+    FeeStructureForm,
+    FeeWaiverForm,
+    FinancialReportFilterForm,
+    PaymentForm,
+    ScholarshipForm,
+    SpecialFeeForm,
+    StudentScholarshipForm,
+)
 from .models import (
     FeeCategory,
     FeeStructure,
-    SpecialFee,
-    Scholarship,
-    StudentScholarship,
-    Invoice,
-    Payment,
     FeeWaiver,
     FinancialAnalytics,
+    Invoice,
+    Payment,
+    Scholarship,
+    SpecialFee,
+    StudentScholarship,
 )
-from .forms import (
-    FeeCategoryForm,
-    FeeStructureForm,
-    SpecialFeeForm,
-    ScholarshipForm,
-    StudentScholarshipForm,
-    PaymentForm,
-    FeeWaiverForm,
-    BulkInvoiceGenerationForm,
-    FinancialReportFilterForm,
-)
+from .services.analytics_service import FinancialAnalyticsService
 from .services.fee_service import FeeService
 from .services.invoice_service import InvoiceService
 from .services.payment_service import PaymentService
 from .services.scholarship_service import ScholarshipService
-from .services.analytics_service import FinancialAnalyticsService
-
-from academics.models import AcademicYear, Term, Section, Grade, Class
-from students.models import Student
 
 
 class FinancePermissionMixin(PermissionRequiredMixin):

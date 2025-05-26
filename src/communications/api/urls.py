@@ -3,19 +3,19 @@ API URL patterns for Communications module.
 Defines REST API endpoints for notifications, announcements, messaging, and analytics.
 """
 
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
-    NotificationViewSet,
     AnnouncementViewSet,
-    MessageTemplateViewSet,
     BulkMessageViewSet,
-    MessageThreadViewSet,
-    CommunicationPreferenceViewSet,
     CommunicationAnalyticsViewSet,
     CommunicationLogViewSet,
+    CommunicationPreferenceViewSet,
     CommunicationUtilityViewSet,
+    MessageTemplateViewSet,
+    MessageThreadViewSet,
+    NotificationViewSet,
 )
 
 # Create router for ViewSets

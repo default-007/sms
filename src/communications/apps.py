@@ -3,9 +3,10 @@ Django app configuration for Communications module.
 Handles app initialization, signal registration, and ready() setup.
 """
 
-from django.apps import AppConfig
-from django.db.models.signals import post_save, post_delete
 import logging
+
+from django.apps import AppConfig
+from django.db.models.signals import post_delete, post_save
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +30,10 @@ class CommunicationsConfig(AppConfig):
             # Import models to ensure they're loaded
             from .models import (
                 Announcement,
-                Notification,
                 BulkMessage,
                 CommunicationAnalytics,
                 CommunicationLog,
+                Notification,
             )
 
             # Log successful initialization
@@ -52,6 +53,7 @@ class CommunicationsConfig(AppConfig):
         """Register additional signal handlers"""
 
         from django.contrib.auth import get_user_model
+
         from .signals import (
             create_user_communication_preferences,
             update_announcement_metrics_on_notification_read,
@@ -73,8 +75,9 @@ class CommunicationsConfig(AppConfig):
         """Initialize communication channels and default templates"""
 
         try:
-            from .models import MessageTemplate, CommunicationChannel
             from django.contrib.auth import get_user_model
+
+            from .models import CommunicationChannel, MessageTemplate
 
             # Create default message templates if they don't exist
             self._create_default_templates()
@@ -87,8 +90,9 @@ class CommunicationsConfig(AppConfig):
     def _create_default_templates(self):
         """Create default message templates"""
 
-        from .models import MessageTemplate
         from django.contrib.auth import get_user_model
+
+        from .models import MessageTemplate
 
         User = get_user_model()
 

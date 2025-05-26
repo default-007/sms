@@ -1,13 +1,13 @@
 # students/admin.py
 from django.contrib import admin
-from django.utils.html import format_html
-from django.urls import reverse
 from django.db.models import Count, Q
+from django.urls import reverse
+from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from import_export import resources, fields
+from import_export import fields, resources
 from import_export.admin import ImportExportModelAdmin
 
-from .models import Student, Parent, StudentParentRelation
+from .models import Parent, Student, StudentParentRelation
 
 
 class StudentResource(resources.ModelResource):

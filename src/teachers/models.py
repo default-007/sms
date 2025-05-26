@@ -1,9 +1,10 @@
-from django.db import models
+from decimal import Decimal
+
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models
 from django.db.models import Avg, Count, Sum
 from django.utils import timezone
-from django.core.validators import MinValueValidator, MaxValueValidator
-from decimal import Decimal
 
 
 class TeacherQuerySet(models.QuerySet):

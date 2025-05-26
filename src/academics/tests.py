@@ -5,20 +5,21 @@ This module contains comprehensive tests for the academics app,
 including model tests, service tests, and API tests.
 """
 
-from django.test import TestCase, TransactionTestCase
-from django.core.exceptions import ValidationError
-from django.contrib.auth import get_user_model
-from django.urls import reverse
-from rest_framework.test import APITestCase
-from rest_framework import status
 from datetime import datetime, timedelta
 
-from .models import Department, AcademicYear, Term, Section, Grade, Class
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+from django.test import TestCase, TransactionTestCase
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APITestCase
+
+from .models import AcademicYear, Class, Department, Grade, Section, Term
 from .services import (
     AcademicYearService,
-    SectionService,
-    GradeService,
     ClassService,
+    GradeService,
+    SectionService,
     TermService,
 )
 

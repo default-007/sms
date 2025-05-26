@@ -1,14 +1,15 @@
 # src/teachers/api/serializers.py
-from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
-from django.contrib.auth import get_user_model
-from django.utils import timezone
-from django.db.models import Avg, Count
 from decimal import Decimal
 
-from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
-from src.courses.models import Department, Subject, Class, AcademicYear
+from django.contrib.auth import get_user_model
+from django.db.models import Avg, Count
+from django.utils import timezone
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
+
 from src.accounts.api.serializers import UserBasicSerializer
+from src.courses.models import AcademicYear, Class, Department, Subject
+from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
 
 User = get_user_model()
 

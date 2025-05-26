@@ -1,8 +1,10 @@
-import time
 import json
-from django.utils.deprecation import MiddlewareMixin
-from django.urls import resolve
+import time
+
 from django.conf import settings
+from django.urls import resolve
+from django.utils.deprecation import MiddlewareMixin
+
 from .models import AuditLog
 
 
@@ -90,9 +92,10 @@ class MaintenanceModeMiddleware(MiddlewareMixin):
     """Middleware to handle site maintenance mode."""
 
     def process_request(self, request):
-        from .utils import get_system_setting
         from django.http import HttpResponse
         from django.template.loader import render_to_string
+
+        from .utils import get_system_setting
 
         # Check if maintenance mode is enabled
         maintenance_mode = get_system_setting("maintenance_mode", False)

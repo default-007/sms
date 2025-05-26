@@ -3,13 +3,14 @@ School Management System - Exam Management Commands
 File: src/exams/management/commands/calculate_exam_analytics.py
 """
 
-from django.core.management.base import BaseCommand, CommandError
-from django.utils import timezone
 from datetime import timedelta
 
-from exams.services.analytics_service import ExamAnalyticsService
-from exams.models import Exam
+from django.core.management.base import BaseCommand, CommandError
+from django.utils import timezone
+
 from academics.models import AcademicYear, Term
+from exams.models import Exam
+from exams.services.analytics_service import ExamAnalyticsService
 
 
 class Command(BaseCommand):

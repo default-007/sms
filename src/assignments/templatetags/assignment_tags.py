@@ -1,10 +1,11 @@
+import json
+from datetime import datetime, timedelta
+
 from django import template
+from django.contrib.humanize.templatetags.humanize import naturaltime
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html, mark_safe
-from django.urls import reverse
-from django.contrib.humanize.templatetags.humanize import naturaltime
-from datetime import datetime, timedelta
-import json
 
 from ..models import Assignment, AssignmentSubmission
 from ..services import AssignmentService, DeadlineService

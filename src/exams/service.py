@@ -1,23 +1,25 @@
-from typing import List, Dict, Union, Optional, Tuple
-from django.db.models import Avg, Sum, Count, F, Q
+from typing import Dict, List, Optional, Tuple, Union
+
 from django.db import transaction
+from django.db.models import Avg, Count, F, Q, Sum
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from src.courses.models import AcademicYear, Class, Subject
+from src.students.models import Student
+
 from .models import (
-    ExamType,
     Exam,
     ExamSchedule,
-    Quiz,
+    ExamType,
+    GradingSystem,
     Question,
+    Quiz,
+    ReportCard,
     StudentExamResult,
     StudentQuizAttempt,
     StudentQuizResponse,
-    GradingSystem,
-    ReportCard,
 )
-from src.students.models import Student
-from src.courses.models import Class, Subject, AcademicYear
 
 
 class ExamService:

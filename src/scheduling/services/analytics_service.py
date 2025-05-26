@@ -1,13 +1,15 @@
-from django.db.models import Count, Avg, Q, F
-from django.db.models.functions import TruncDate
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
-from collections import defaultdict
 
-from ..models import Timetable, TimeSlot, Room, SubstituteTeacher
-from academics.models import Term, Class, Grade
-from teachers.models import Teacher
+from django.db.models import Avg, Count, F, Q
+from django.db.models.functions import TruncDate
+
+from academics.models import Class, Grade, Term
 from subjects.models import Subject
+from teachers.models import Teacher
+
+from ..models import Room, SubstituteTeacher, TimeSlot, Timetable
 
 
 class SchedulingAnalyticsService:

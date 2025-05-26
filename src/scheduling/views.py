@@ -1,55 +1,57 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.views.generic import (
-    ListView,
-    DetailView,
-    CreateView,
-    UpdateView,
-    DeleteView,
-    TemplateView,
-    FormView,
-    View,
-)
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.contrib import messages
-from django.http import JsonResponse, HttpResponse, Http404
-from django.db.models import Q, Count, Avg
-from django.urls import reverse_lazy, reverse
-from django.utils import timezone
-from django.core.paginator import Paginator
-from django.db import transaction
-from datetime import datetime, timedelta
-import json
 import csv
+import json
+from datetime import datetime, timedelta
 from io import StringIO
 
-from .models import (
-    TimeSlot,
-    Room,
-    Timetable,
-    TimetableTemplate,
-    SubstituteTeacher,
-    SchedulingConstraint,
-    TimetableGeneration,
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.core.paginator import Paginator
+from django.db import transaction
+from django.db.models import Avg, Count, Q
+from django.http import Http404, HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse, reverse_lazy
+from django.utils import timezone
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    FormView,
+    ListView,
+    TemplateView,
+    UpdateView,
+    View,
 )
-from .forms import (
-    TimeSlotForm,
-    RoomForm,
-    TimetableForm,
-    BulkTimetableForm,
-    SubstituteTeacherForm,
-    TimetableGenerationForm,
-    SchedulingConstraintForm,
-    TimetableTemplateForm,
-    TimetableFilterForm,
-    ConflictAnalysisForm,
-)
-from .services.timetable_service import TimetableService, SubstituteService, RoomService
-from .services.optimization_service import OptimizationService
-from .services.analytics_service import SchedulingAnalyticsService
-from academics.models import Class, Term, Grade
+
+from academics.models import Class, Grade, Term
+from core.mixins import ModulePermissionMixin
 from subjects.models import Subject
 from teachers.models import Teacher
-from core.mixins import ModulePermissionMixin
+
+from .forms import (
+    BulkTimetableForm,
+    ConflictAnalysisForm,
+    RoomForm,
+    SchedulingConstraintForm,
+    SubstituteTeacherForm,
+    TimeSlotForm,
+    TimetableFilterForm,
+    TimetableForm,
+    TimetableGenerationForm,
+    TimetableTemplateForm,
+)
+from .models import (
+    Room,
+    SchedulingConstraint,
+    SubstituteTeacher,
+    TimeSlot,
+    Timetable,
+    TimetableGeneration,
+    TimetableTemplate,
+)
+from .services.analytics_service import SchedulingAnalyticsService
+from .services.optimization_service import OptimizationService
+from .services.timetable_service import RoomService, SubstituteService, TimetableService
 
 
 class SchedulingDashboardView(LoginRequiredMixin, ModulePermissionMixin, TemplateView):

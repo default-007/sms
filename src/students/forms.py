@@ -1,13 +1,15 @@
-from django import forms
-from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
-from django.utils.translation import gettext_lazy as _
-from django.db import transaction
 import csv
 import io
 
-from .models import Student, Parent, StudentParentRelation
-from src.courses.models import Class, AcademicYear
+from django import forms
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.utils.translation import gettext_lazy as _
+
+from src.courses.models import AcademicYear, Class
+
+from .models import Parent, Student, StudentParentRelation
 
 User = get_user_model()
 

@@ -1,11 +1,12 @@
-from django.db import models
-from django.conf import settings
-from django.utils import timezone
-from django.db.models import Count, Avg, Sum, Q, F, Max, Min, Case, When, Value
-from django.core.exceptions import ValidationError
-from django.core.cache import cache
-from datetime import datetime, date, timedelta
 import json
+from datetime import date, datetime, timedelta
+
+from django.conf import settings
+from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.db import models
+from django.db.models import Avg, Case, Count, F, Max, Min, Q, Sum, Value, When
+from django.utils import timezone
 
 
 class Department(models.Model):

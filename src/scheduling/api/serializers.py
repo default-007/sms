@@ -1,21 +1,23 @@
-from rest_framework import serializers
-from django.db import transaction
 from datetime import datetime
 from typing import Dict, List
 
-from ..models import (
-    TimeSlot,
-    Room,
-    Timetable,
-    TimetableTemplate,
-    SubstituteTeacher,
-    SchedulingConstraint,
-    TimetableGeneration,
-)
-from academics.models import Class, Term, Grade
+from django.db import transaction
+from rest_framework import serializers
+
+from academics.models import Class, Grade, Term
+from accounts.models import User
 from subjects.models import Subject
 from teachers.models import Teacher
-from accounts.models import User
+
+from ..models import (
+    Room,
+    SchedulingConstraint,
+    SubstituteTeacher,
+    TimeSlot,
+    Timetable,
+    TimetableGeneration,
+    TimetableTemplate,
+)
 
 
 class TimeSlotSerializer(serializers.ModelSerializer):

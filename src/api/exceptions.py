@@ -1,21 +1,22 @@
 # src/api/exceptions.py
 """Custom API Exception Handling"""
 
-from rest_framework.views import exception_handler
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.exceptions import (
-    ValidationError,
-    AuthenticationFailed,
-    PermissionDenied,
-    NotFound,
-    MethodNotAllowed,
-    Throttled,
-)
+import logging
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 from django.http import Http404
-import logging
+from rest_framework import status
+from rest_framework.exceptions import (
+    AuthenticationFailed,
+    MethodNotAllowed,
+    NotFound,
+    PermissionDenied,
+    Throttled,
+    ValidationError,
+)
+from rest_framework.response import Response
+from rest_framework.views import exception_handler
 
 logger = logging.getLogger(__name__)
 

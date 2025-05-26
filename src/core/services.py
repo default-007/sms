@@ -1,14 +1,16 @@
-import os
-import json
-import zipfile
 import io
+import json
+import os
+import zipfile
 from datetime import datetime, timedelta
-from django.conf import settings
-from django.core.mail import send_mail, EmailMultiAlternatives
-from django.template.loader import render_to_string
+
 from django.apps import apps
+from django.conf import settings
+from django.core.mail import EmailMultiAlternatives, send_mail
 from django.db.models import Q
-from .models import SystemSetting, Document, AuditLog
+from django.template.loader import render_to_string
+
+from .models import AuditLog, Document, SystemSetting
 from .utils import get_system_setting
 
 

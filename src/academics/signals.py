@@ -96,7 +96,7 @@ def class_post_save(sender, instance, created, **kwargs):
     if created:
         # Create default fee structure if finance module is available
         try:
-            from finance.services import FeeService
+            from finance._services import FeeService
 
             current_term = instance.academic_year.get_current_term()
             if current_term:

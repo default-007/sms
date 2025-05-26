@@ -1,63 +1,197 @@
 from django import forms
+from django.core.exceptions import ValidationError
 from django.utils import timezone
+from decimal import Decimal
+
 from .models import (
     FeeCategory,
     FeeStructure,
+    SpecialFee,
     Scholarship,
     StudentScholarship,
     Invoice,
-    InvoiceItem,
     Payment,
-    Expense,
+    FeeWaiver,
 )
-from src.students.models import Student
+from students.models import Student
+from academics.models import AcademicYear, Term, Section, Grade, Class
 
 
 class FeeCategoryForm(forms.ModelForm):
+    """Form for creating/editing fee categories."""
+
     class Meta:
         model = FeeCategory
-        fields = ["name", "description", "is_recurring", "frequency"]
+        fields = ["name", "description", "is_mandatory", "is_recurring", "frequency"]
         widgets = {
-            "description": forms.Textarea(attrs={"rows": 3}),
+            "name": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Enter category name"}
+            ),
+            "description": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 3,
+                    "placeholder": "Enter description",
+                }
+            ),
+            "is_mandatory": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "is_recurring": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "frequency": forms.Select(attrs={"class": "form-control"}),
         }
-
-    def clean(self):
-        cleaned_data = super().clean()
-        is_recurring = cleaned_data.get("is_recurring")
-        frequency = cleaned_data.get("frequency")
-
-        if is_recurring and not frequency:
-            raise forms.ValidationError(
-                "Frequency must be specified for recurring fees."
-            )
-
-        return cleaned_data
 
 
 class FeeStructureForm(forms.ModelForm):
+    """Form for creating/editing fee structures."""
+
     class Meta:
         model = FeeStructure
         fields = [
             "academic_year",
+            "term",
+            "section",
             "grade",
             "fee_category",
             "amount",
-            "due_day_of_month",
+            "due_date",
             "late_fee_percentage",
             "grace_period_days",
+            "is_active",
         ]
+        widgets = {
+            "academic_year": forms.Select(attrs={"class": "form-control"}),
+            "term": forms.Select(attrs={"class": "form-control"}),
+            "section": forms.Select(attrs={"class": "form-control"}),
+            "grade": forms.Select(attrs={"class": "form-control"}),
+            "fee_category": forms.Select(attrs={"class": "form-control"}),
+            "amount": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.01", "min": "0"}
+            ),
+            "due_date": forms.DateInput(
+                attrs={"class": "form-control", "type": "date"}
+            ),
+            "late_fee_percentage": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "step": "0.01",
+                    "min": "0",
+                    "max": "100",
+                }
+            ),
+            "grace_period_days": forms.NumberInput(
+                attrs={"class": "form-control", "min": "0"}
+            ),
+            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Make section and grade optional (one of them is required)
+        self.fields["section"].required = False
+        self.fields["grade"].required = False
+
+        # Set empty label for optional fields
+        self.fields["section"].empty_label = "Select Section (optional)"
+        self.fields["grade"].empty_label = "Select Grade (optional)"
 
     def clean(self):
+        """Validate that either section or grade is provided."""
         cleaned_data = super().clean()
-        due_day = cleaned_data.get("due_day_of_month")
+        section = cleaned_data.get("section")
+        grade = cleaned_data.get("grade")
 
-        if due_day and (due_day < 1 or due_day > 31):
-            raise forms.ValidationError("Due day must be between 1 and 31.")
+        if not section and not grade:
+            raise ValidationError("Either section or grade must be specified")
+
+        # Check for duplicate fee structures
+        academic_year = cleaned_data.get("academic_year")
+        term = cleaned_data.get("term")
+        fee_category = cleaned_data.get("fee_category")
+
+        if academic_year and term and fee_category:
+            existing = FeeStructure.objects.filter(
+                academic_year=academic_year,
+                term=term,
+                section=section,
+                grade=grade,
+                fee_category=fee_category,
+            )
+
+            if self.instance.pk:
+                existing = existing.exclude(pk=self.instance.pk)
+
+            if existing.exists():
+                raise ValidationError(
+                    "Fee structure already exists for this combination"
+                )
+
+        return cleaned_data
+
+
+class SpecialFeeForm(forms.ModelForm):
+    """Form for creating/editing special fees."""
+
+    class Meta:
+        model = SpecialFee
+        fields = [
+            "name",
+            "description",
+            "fee_category",
+            "amount",
+            "fee_type",
+            "class_obj",
+            "student",
+            "term",
+            "due_date",
+            "reason",
+            "is_active",
+        ]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "fee_category": forms.Select(attrs={"class": "form-control"}),
+            "amount": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.01", "min": "0"}
+            ),
+            "fee_type": forms.Select(attrs={"class": "form-control"}),
+            "class_obj": forms.Select(attrs={"class": "form-control"}),
+            "student": forms.Select(attrs={"class": "form-control"}),
+            "term": forms.Select(attrs={"class": "form-control"}),
+            "due_date": forms.DateInput(
+                attrs={"class": "form-control", "type": "date"}
+            ),
+            "reason": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Make class and student optional based on fee_type
+        self.fields["class_obj"].required = False
+        self.fields["student"].required = False
+
+        self.fields["class_obj"].empty_label = "Select Class"
+        self.fields["student"].empty_label = "Select Student"
+
+    def clean(self):
+        """Validate based on fee type."""
+        cleaned_data = super().clean()
+        fee_type = cleaned_data.get("fee_type")
+        class_obj = cleaned_data.get("class_obj")
+        student = cleaned_data.get("student")
+
+        if fee_type == "class_based" and not class_obj:
+            raise ValidationError("Class is required for class-based fees")
+        elif fee_type == "student_specific" and not student:
+            raise ValidationError("Student is required for student-specific fees")
 
         return cleaned_data
 
 
 class ScholarshipForm(forms.ModelForm):
+    """Form for creating/editing scholarships."""
+
     class Meta:
         model = Scholarship
         fields = [
@@ -67,261 +201,288 @@ class ScholarshipForm(forms.ModelForm):
             "discount_value",
             "criteria",
             "academic_year",
+            "applicable_terms",
+            "max_recipients",
+            "is_active",
         ]
         widgets = {
-            "description": forms.Textarea(attrs={"rows": 3}),
+            "name": forms.TextInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+            "discount_type": forms.Select(attrs={"class": "form-control"}),
+            "discount_value": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.01", "min": "0"}
+            ),
+            "criteria": forms.Select(attrs={"class": "form-control"}),
+            "academic_year": forms.Select(attrs={"class": "form-control"}),
+            "applicable_terms": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter term IDs separated by commas",
+                }
+            ),
+            "max_recipients": forms.NumberInput(
+                attrs={"class": "form-control", "min": "1"}
+            ),
+            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 
-    def clean(self):
-        cleaned_data = super().clean()
-        discount_type = cleaned_data.get("discount_type")
-        discount_value = cleaned_data.get("discount_value")
+    def clean_discount_value(self):
+        """Validate discount value."""
+        discount_value = self.cleaned_data.get("discount_value")
+        discount_type = self.cleaned_data.get("discount_type")
 
-        if discount_type == "percentage" and discount_value > 100:
-            raise forms.ValidationError("Percentage discount cannot exceed 100%.")
+        if discount_value is not None:
+            if discount_value <= 0:
+                raise ValidationError("Discount value must be positive")
 
-        if discount_value <= 0:
-            raise forms.ValidationError("Discount value must be greater than zero.")
+            if discount_type == "percentage" and discount_value > 100:
+                raise ValidationError("Percentage discount cannot exceed 100%")
 
-        return cleaned_data
+        return discount_value
 
 
 class StudentScholarshipForm(forms.ModelForm):
+    """Form for assigning scholarships to students."""
+
     class Meta:
         model = StudentScholarship
-        fields = [
-            "student",
-            "scholarship",
-            "start_date",
-            "end_date",
-            "remarks",
-            "status",
-        ]
+        fields = ["student", "scholarship", "start_date", "end_date", "remarks"]
         widgets = {
-            "start_date": forms.DateInput(attrs={"type": "date"}),
-            "end_date": forms.DateInput(attrs={"type": "date"}),
-            "remarks": forms.Textarea(attrs={"rows": 3}),
+            "student": forms.Select(attrs={"class": "form-control"}),
+            "scholarship": forms.Select(attrs={"class": "form-control"}),
+            "start_date": forms.DateInput(
+                attrs={"class": "form-control", "type": "date"}
+            ),
+            "end_date": forms.DateInput(
+                attrs={"class": "form-control", "type": "date"}
+            ),
+            "remarks": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
         }
 
     def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
+        self.fields["end_date"].required = False
 
-    def clean(self):
-        cleaned_data = super().clean()
-        start_date = cleaned_data.get("start_date")
-        end_date = cleaned_data.get("end_date")
-
-        if start_date and end_date and start_date > end_date:
-            raise forms.ValidationError("End date must be after start date.")
-
-        return cleaned_data
-
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        if self.user and not instance.approved_by:
-            instance.approved_by = self.user
-
-        if commit:
-            instance.save()
-        return instance
-
-
-class InvoiceForm(forms.ModelForm):
-    class Meta:
-        model = Invoice
-        fields = ["student", "academic_year", "issue_date", "due_date", "remarks"]
-        widgets = {
-            "issue_date": forms.DateInput(attrs={"type": "date"}),
-            "due_date": forms.DateInput(attrs={"type": "date"}),
-            "remarks": forms.Textarea(attrs={"rows": 3}),
-        }
-
-    def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop("user", None)
-        super().__init__(*args, **kwargs)
-
-        # Set default dates
+        # Set default start date to today
         if not self.instance.pk:
-            self.fields["issue_date"].initial = timezone.now().date()
-            self.fields["due_date"].initial = (
-                timezone.now() + timezone.timedelta(days=15)
-            ).date()
+            self.fields["start_date"].initial = timezone.now().date()
 
     def clean(self):
+        """Validate scholarship assignment."""
         cleaned_data = super().clean()
-        issue_date = cleaned_data.get("issue_date")
-        due_date = cleaned_data.get("due_date")
+        student = cleaned_data.get("student")
+        scholarship = cleaned_data.get("scholarship")
 
-        if issue_date and due_date and issue_date > due_date:
-            raise forms.ValidationError("Due date must be after issue date.")
+        if student and scholarship:
+            # Check if student already has this scholarship
+            existing = StudentScholarship.objects.filter(
+                student=student,
+                scholarship=scholarship,
+                status__in=["approved", "pending"],
+            )
 
-        return cleaned_data
+            if self.instance.pk:
+                existing = existing.exclude(pk=self.instance.pk)
 
-    def save(self, commit=True):
-        instance = super().save(commit=False)
+            if existing.exists():
+                raise ValidationError("Student already has this scholarship")
 
-        if self.user and not instance.created_by:
-            instance.created_by = self.user
-
-        if commit:
-            instance.save()
-        return instance
-
-
-class InvoiceItemForm(forms.ModelForm):
-    class Meta:
-        model = InvoiceItem
-        fields = ["fee_structure", "description", "amount", "discount_amount"]
-
-    def clean(self):
-        cleaned_data = super().clean()
-        amount = cleaned_data.get("amount")
-        discount_amount = cleaned_data.get("discount_amount")
-
-        if amount and discount_amount and discount_amount > amount:
-            raise forms.ValidationError("Discount cannot exceed the amount.")
-
-        return cleaned_data
-
-
-class InvoiceItemFormSet(forms.BaseInlineFormSet):
-    def clean(self):
-        super().clean()
-
-        # Ensure at least one invoice item exists
-        if any(self.errors):
-            return
-
-        if not any(
-            form.cleaned_data and not form.cleaned_data.get("DELETE", False)
-            for form in self.forms
-        ):
-            raise forms.ValidationError("At least one invoice item is required.")
-
-
-class BulkInvoiceGenerationForm(forms.Form):
-    academic_year = forms.ModelChoiceField(queryset=None, label="Academic Year")
-    grade = forms.ModelChoiceField(queryset=None, label="Grade", required=False)
-    fee_category = forms.ModelChoiceField(queryset=None, label="Fee Category")
-    issue_date = forms.DateField(
-        widget=forms.DateInput(attrs={"type": "date"}), initial=timezone.now().date()
-    )
-    due_date = forms.DateField(
-        widget=forms.DateInput(attrs={"type": "date"}),
-        initial=(timezone.now() + timezone.timedelta(days=15)).date(),
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        from src.courses.models import Grade, AcademicYear
-
-        # Initialize querysets
-        self.fields["academic_year"].queryset = AcademicYear.objects.all().order_by(
-            "-is_current", "-start_date"
-        )
-        self.fields["grade"].queryset = Grade.objects.all()
-        self.fields["fee_category"].queryset = FeeCategory.objects.all()
-
-    def clean(self):
-        cleaned_data = super().clean()
-        issue_date = cleaned_data.get("issue_date")
-        due_date = cleaned_data.get("due_date")
-
-        if issue_date and due_date and issue_date > due_date:
-            raise forms.ValidationError("Due date must be after issue date.")
+            # Check scholarship availability
+            if not scholarship.has_available_slots:
+                raise ValidationError("No available slots for this scholarship")
 
         return cleaned_data
 
 
 class PaymentForm(forms.ModelForm):
+    """Form for processing payments."""
+
     class Meta:
         model = Payment
         fields = [
             "invoice",
-            "payment_date",
             "amount",
             "payment_method",
             "transaction_id",
+            "reference_number",
             "remarks",
         ]
         widgets = {
-            "payment_date": forms.DateInput(attrs={"type": "date"}),
-            "remarks": forms.Textarea(attrs={"rows": 3}),
+            "invoice": forms.Select(attrs={"class": "form-control"}),
+            "amount": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.01", "min": "0.01"}
+            ),
+            "payment_method": forms.Select(attrs={"class": "form-control"}),
+            "transaction_id": forms.TextInput(attrs={"class": "form-control"}),
+            "reference_number": forms.TextInput(attrs={"class": "form-control"}),
+            "remarks": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
         }
 
     def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop("user", None)
-        invoice_id = kwargs.pop("invoice_id", None)
         super().__init__(*args, **kwargs)
 
-        # If invoice_id is provided, filter and preselect it
-        if invoice_id:
-            self.fields["invoice"].queryset = Invoice.objects.filter(id=invoice_id)
-            self.fields["invoice"].initial = invoice_id
-            self.fields["invoice"].widget.attrs["readonly"] = True
+        # Make optional fields not required
+        self.fields["transaction_id"].required = False
+        self.fields["reference_number"].required = False
+        self.fields["remarks"].required = False
 
-            # Set the max amount to the due amount
-            try:
-                invoice = Invoice.objects.get(id=invoice_id)
-                self.fields["amount"].widget.attrs["max"] = invoice.get_due_amount()
-            except Invoice.DoesNotExist:
-                pass
+        # Filter invoices to show only unpaid/partially paid
+        self.fields["invoice"].queryset = Invoice.objects.filter(
+            status__in=["unpaid", "partially_paid"]
+        ).select_related("student")
 
     def clean_amount(self):
+        """Validate payment amount."""
         amount = self.cleaned_data.get("amount")
-        invoice = self.cleaned_data.get("invoice")
 
-        if amount <= 0:
-            raise forms.ValidationError("Payment amount must be greater than zero.")
-
-        if invoice and amount > invoice.get_due_amount():
-            raise forms.ValidationError(
-                f"Payment amount cannot exceed the due amount ({invoice.get_due_amount()})."
-            )
+        if amount is not None and amount <= 0:
+            raise ValidationError("Payment amount must be positive")
 
         return amount
 
-    def save(self, commit=True):
-        instance = super().save(commit=False)
+    def clean(self):
+        """Validate payment against invoice."""
+        cleaned_data = super().clean()
+        invoice = cleaned_data.get("invoice")
+        amount = cleaned_data.get("amount")
 
-        if self.user and not instance.received_by:
-            instance.received_by = self.user
+        if invoice and amount:
+            outstanding = invoice.outstanding_amount
+            if outstanding <= 0:
+                raise ValidationError("Invoice is already fully paid")
 
-        if commit:
-            instance.save()
-        return instance
+            # Allow overpayment (will be treated as advance)
+            # if amount > outstanding:
+            #     raise ValidationError(f"Payment amount exceeds outstanding balance of {outstanding}")
+
+        return cleaned_data
 
 
-class ExpenseForm(forms.ModelForm):
+class FeeWaiverForm(forms.ModelForm):
+    """Form for requesting fee waivers."""
+
     class Meta:
-        model = Expense
-        fields = [
-            "expense_category",
-            "amount",
-            "expense_date",
-            "description",
-            "payment_method",
-            "paid_to",
-            "receipt_attachment",
-            "remarks",
-        ]
+        model = FeeWaiver
+        fields = ["student", "invoice", "waiver_type", "amount", "reason"]
         widgets = {
-            "expense_date": forms.DateInput(attrs={"type": "date"}),
-            "description": forms.Textarea(attrs={"rows": 3}),
-            "remarks": forms.Textarea(attrs={"rows": 3}),
+            "student": forms.Select(attrs={"class": "form-control"}),
+            "invoice": forms.Select(attrs={"class": "form-control"}),
+            "waiver_type": forms.Select(attrs={"class": "form-control"}),
+            "amount": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.01", "min": "0.01"}
+            ),
+            "reason": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 4,
+                    "placeholder": "Provide detailed justification for the waiver",
+                }
+            ),
         }
 
-    def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop("user", None)
-        super().__init__(*args, **kwargs)
+    def clean(self):
+        """Validate waiver request."""
+        cleaned_data = super().clean()
+        invoice = cleaned_data.get("invoice")
+        amount = cleaned_data.get("amount")
 
-    def save(self, commit=True):
-        instance = super().save(commit=False)
+        if invoice and amount:
+            outstanding = invoice.outstanding_amount
+            if amount > outstanding:
+                raise ValidationError(
+                    f"Waiver amount exceeds outstanding balance of {outstanding}"
+                )
 
-        if self.user and not instance.approved_by:
-            instance.approved_by = self.user
+        return cleaned_data
 
-        if commit:
-            instance.save()
-        return instance
+
+# Additional forms for bulk operations and filtering
+
+
+class BulkInvoiceGenerationForm(forms.Form):
+    """Form for bulk invoice generation."""
+
+    academic_year = forms.ModelChoiceField(
+        queryset=AcademicYear.objects.all(),
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    term = forms.ModelChoiceField(
+        queryset=Term.objects.all(),
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    section = forms.ModelChoiceField(
+        queryset=Section.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    grade = forms.ModelChoiceField(
+        queryset=Grade.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    class_obj = forms.ModelChoiceField(
+        queryset=Class.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+
+class FinancialReportFilterForm(forms.Form):
+    """Form for filtering financial reports."""
+
+    academic_year = forms.ModelChoiceField(
+        queryset=AcademicYear.objects.all(),
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    term = forms.ModelChoiceField(
+        queryset=Term.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    section = forms.ModelChoiceField(
+        queryset=Section.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    grade = forms.ModelChoiceField(
+        queryset=Grade.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    fee_category = forms.ModelChoiceField(
+        queryset=FeeCategory.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    date_from = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+    )
+    date_to = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+    )
+
+
+class PaymentMethodAnalysisForm(forms.Form):
+    """Form for payment method analysis."""
+
+    date_from = forms.DateField(
+        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"})
+    )
+    date_to = forms.DateField(
+        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"})
+    )
+    payment_method = forms.ChoiceField(
+        choices=[("", "All Methods")] + Payment.PAYMENT_METHOD_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    group_by = forms.ChoiceField(
+        choices=[
+            ("day", "Daily"),
+            ("month", "Monthly"),
+            ("method", "By Payment Method"),
+        ],
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )

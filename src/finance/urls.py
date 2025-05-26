@@ -1,185 +1,237 @@
-from django.urls import path
+from django.urls import path, include
+from django.contrib.auth.decorators import login_required
 from . import views
 
 app_name = "finance"
 
 urlpatterns = [
-    # Fee Categories
+    # API URLs
+    path("api/", include("finance.api.urls")),
+    # Web interface URLs (for future HTML templates)
+    path("", login_required(views.DashboardView.as_view()), name="dashboard"),
+    # Fee Management
     path(
-        "fee-categories/", views.FeeCategoryListView.as_view(), name="fee-category-list"
+        "fee-categories/",
+        login_required(views.FeeCategoryListView.as_view()),
+        name="fee-category-list",
     ),
     path(
         "fee-categories/create/",
-        views.FeeCategoryCreateView.as_view(),
+        login_required(views.FeeCategoryCreateView.as_view()),
         name="fee-category-create",
     ),
     path(
         "fee-categories/<int:pk>/",
-        views.FeeCategoryDetailView.as_view(),
+        login_required(views.FeeCategoryDetailView.as_view()),
         name="fee-category-detail",
     ),
     path(
-        "fee-categories/<int:pk>/update/",
-        views.FeeCategoryUpdateView.as_view(),
-        name="fee-category-update",
+        "fee-categories/<int:pk>/edit/",
+        login_required(views.FeeCategoryUpdateView.as_view()),
+        name="fee-category-edit",
     ),
-    path(
-        "fee-categories/<int:pk>/delete/",
-        views.FeeCategoryDeleteView.as_view(),
-        name="fee-category-delete",
-    ),
-    # Fee Structures
     path(
         "fee-structures/",
-        views.FeeStructureListView.as_view(),
+        login_required(views.FeeStructureListView.as_view()),
         name="fee-structure-list",
     ),
     path(
         "fee-structures/create/",
-        views.FeeStructureCreateView.as_view(),
+        login_required(views.FeeStructureCreateView.as_view()),
         name="fee-structure-create",
     ),
     path(
         "fee-structures/<int:pk>/",
-        views.FeeStructureDetailView.as_view(),
+        login_required(views.FeeStructureDetailView.as_view()),
         name="fee-structure-detail",
     ),
     path(
-        "fee-structures/<int:pk>/update/",
-        views.FeeStructureUpdateView.as_view(),
-        name="fee-structure-update",
+        "fee-structures/<int:pk>/edit/",
+        login_required(views.FeeStructureUpdateView.as_view()),
+        name="fee-structure-edit",
     ),
     path(
-        "fee-structures/<int:pk>/delete/",
-        views.FeeStructureDeleteView.as_view(),
-        name="fee-structure-delete",
+        "special-fees/",
+        login_required(views.SpecialFeeListView.as_view()),
+        name="special-fee-list",
     ),
-    # Scholarships
-    path("scholarships/", views.ScholarshipListView.as_view(), name="scholarship-list"),
+    path(
+        "special-fees/create/",
+        login_required(views.SpecialFeeCreateView.as_view()),
+        name="special-fee-create",
+    ),
+    path(
+        "special-fees/<int:pk>/",
+        login_required(views.SpecialFeeDetailView.as_view()),
+        name="special-fee-detail",
+    ),
+    # Scholarship Management
+    path(
+        "scholarships/",
+        login_required(views.ScholarshipListView.as_view()),
+        name="scholarship-list",
+    ),
     path(
         "scholarships/create/",
-        views.ScholarshipCreateView.as_view(),
+        login_required(views.ScholarshipCreateView.as_view()),
         name="scholarship-create",
     ),
     path(
         "scholarships/<int:pk>/",
-        views.ScholarshipDetailView.as_view(),
+        login_required(views.ScholarshipDetailView.as_view()),
         name="scholarship-detail",
     ),
     path(
-        "scholarships/<int:pk>/update/",
-        views.ScholarshipUpdateView.as_view(),
-        name="scholarship-update",
+        "scholarships/<int:pk>/assign/",
+        login_required(views.ScholarshipAssignView.as_view()),
+        name="scholarship-assign",
     ),
-    path(
-        "scholarships/<int:pk>/delete/",
-        views.ScholarshipDeleteView.as_view(),
-        name="scholarship-delete",
-    ),
-    # Student Scholarships
     path(
         "student-scholarships/",
-        views.StudentScholarshipListView.as_view(),
+        login_required(views.StudentScholarshipListView.as_view()),
         name="student-scholarship-list",
     ),
     path(
-        "student-scholarships/create/",
-        views.StudentScholarshipCreateView.as_view(),
-        name="student-scholarship-create",
+        "student-scholarships/<int:pk>/approve/",
+        login_required(views.StudentScholarshipApproveView.as_view()),
+        name="student-scholarship-approve",
+    ),
+    # Invoice Management
+    path(
+        "invoices/",
+        login_required(views.InvoiceListView.as_view()),
+        name="invoice-list",
     ),
     path(
-        "student-scholarships/<int:pk>/",
-        views.StudentScholarshipDetailView.as_view(),
-        name="student-scholarship-detail",
+        "invoices/generate/",
+        login_required(views.InvoiceGenerateView.as_view()),
+        name="invoice-generate",
     ),
-    path(
-        "student-scholarships/<int:pk>/update/",
-        views.StudentScholarshipUpdateView.as_view(),
-        name="student-scholarship-update",
-    ),
-    # Invoices
-    path("invoices/", views.InvoiceListView.as_view(), name="invoice-list"),
-    path("invoices/create/", views.InvoiceCreateView.as_view(), name="invoice-create"),
     path(
         "invoices/bulk-generate/",
-        views.BulkInvoiceGenerationView.as_view(),
-        name="invoice-bulk-generate",
+        login_required(views.BulkInvoiceGenerateView.as_view()),
+        name="bulk-invoice-generate",
     ),
     path(
-        "invoices/<int:pk>/", views.InvoiceDetailView.as_view(), name="invoice-detail"
+        "invoices/<int:pk>/",
+        login_required(views.InvoiceDetailView.as_view()),
+        name="invoice-detail",
     ),
     path(
-        "invoices/<int:pk>/update/",
-        views.InvoiceUpdateView.as_view(),
-        name="invoice-update",
+        "invoices/<int:pk>/pdf/",
+        login_required(views.InvoicePDFView.as_view()),
+        name="invoice-pdf",
+    ),
+    # Payment Management
+    path(
+        "payments/",
+        login_required(views.PaymentListView.as_view()),
+        name="payment-list",
     ),
     path(
-        "invoices/<int:pk>/delete/",
-        views.InvoiceDeleteView.as_view(),
-        name="invoice-delete",
+        "payments/process/",
+        login_required(views.PaymentProcessView.as_view()),
+        name="payment-process",
     ),
     path(
-        "invoices/<int:pk>/print/",
-        views.InvoicePrintView.as_view(),
-        name="invoice-print",
-    ),
-    # Payments
-    path("payments/", views.PaymentListView.as_view(), name="payment-list"),
-    path("payments/create/", views.PaymentCreateView.as_view(), name="payment-create"),
-    path(
-        "payments/<int:invoice_id>/create/",
-        views.PaymentCreateForInvoiceView.as_view(),
-        name="payment-create-for-invoice",
-    ),
-    path(
-        "payments/<int:pk>/", views.PaymentDetailView.as_view(), name="payment-detail"
+        "payments/<int:pk>/",
+        login_required(views.PaymentDetailView.as_view()),
+        name="payment-detail",
     ),
     path(
         "payments/<int:pk>/receipt/",
-        views.PaymentReceiptView.as_view(),
+        login_required(views.PaymentReceiptView.as_view()),
         name="payment-receipt",
     ),
-    # Expenses
-    path("expenses/", views.ExpenseListView.as_view(), name="expense-list"),
-    path("expenses/create/", views.ExpenseCreateView.as_view(), name="expense-create"),
+    # Fee Waivers
     path(
-        "expenses/<int:pk>/", views.ExpenseDetailView.as_view(), name="expense-detail"
+        "fee-waivers/",
+        login_required(views.FeeWaiverListView.as_view()),
+        name="fee-waiver-list",
     ),
     path(
-        "expenses/<int:pk>/update/",
-        views.ExpenseUpdateView.as_view(),
-        name="expense-update",
+        "fee-waivers/create/",
+        login_required(views.FeeWaiverCreateView.as_view()),
+        name="fee-waiver-create",
     ),
     path(
-        "expenses/<int:pk>/delete/",
-        views.ExpenseDeleteView.as_view(),
-        name="expense-delete",
+        "fee-waivers/<int:pk>/",
+        login_required(views.FeeWaiverDetailView.as_view()),
+        name="fee-waiver-detail",
     ),
-    # Reports
+    path(
+        "fee-waivers/<int:pk>/approve/",
+        login_required(views.FeeWaiverApproveView.as_view()),
+        name="fee-waiver-approve",
+    ),
+    # Reports and Analytics
+    path("reports/", login_required(views.ReportsView.as_view()), name="reports"),
+    path(
+        "reports/collection/",
+        login_required(views.CollectionReportView.as_view()),
+        name="collection-report",
+    ),
+    path(
+        "reports/defaulters/",
+        login_required(views.DefaultersReportView.as_view()),
+        name="defaulters-report",
+    ),
+    path(
+        "reports/scholarships/",
+        login_required(views.ScholarshipReportView.as_view()),
+        name="scholarship-report",
+    ),
     path(
         "reports/financial-summary/",
-        views.FinancialSummaryView.as_view(),
-        name="financial-summary",
+        login_required(views.FinancialSummaryReportView.as_view()),
+        name="financial-summary-report",
+    ),
+    path("analytics/", login_required(views.AnalyticsView.as_view()), name="analytics"),
+    path(
+        "analytics/collection-metrics/",
+        login_required(views.CollectionMetricsView.as_view()),
+        name="collection-metrics",
     ),
     path(
-        "reports/fee-collection/",
-        views.FeeCollectionReportView.as_view(),
-        name="fee-collection-report",
+        "analytics/payment-trends/",
+        login_required(views.PaymentTrendsView.as_view()),
+        name="payment-trends",
+    ),
+    # Utility endpoints
+    path(
+        "calculate-fees/",
+        login_required(views.CalculateFeesView.as_view()),
+        name="calculate-fees",
     ),
     path(
-        "reports/outstanding-fees/",
-        views.OutstandingFeesReportView.as_view(),
-        name="outstanding-fees-report",
+        "search-students/",
+        login_required(views.StudentSearchView.as_view()),
+        name="search-students",
     ),
     path(
-        "reports/expense-report/",
-        views.ExpenseReportView.as_view(),
-        name="expense-report",
+        "search-invoices/",
+        login_required(views.InvoiceSearchView.as_view()),
+        name="search-invoices",
     ),
-    # Dashboard
-    path("dashboard/", views.FinanceDashboardView.as_view(), name="dashboard"),
-    # Student Fee Portal
+    # AJAX endpoints for dynamic forms
     path(
-        "student-portal/", views.StudentFeePortalView.as_view(), name="student-portal"
+        "ajax/grades-by-section/",
+        views.GradesBySectionView.as_view(),
+        name="ajax-grades-by-section",
+    ),
+    path(
+        "ajax/classes-by-grade/",
+        views.ClassesByGradeView.as_view(),
+        name="ajax-classes-by-grade",
+    ),
+    path(
+        "ajax/students-by-class/",
+        views.StudentsByClassView.as_view(),
+        name="ajax-students-by-class",
+    ),
+    path(
+        "ajax/invoice-details/",
+        views.InvoiceDetailsView.as_view(),
+        name="ajax-invoice-details",
     ),
 ]

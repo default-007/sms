@@ -1,55 +1,90 @@
-from django.urls import path
+"""
+URL patterns for Communications module.
+Defines web interface URLs for notifications, announcements, messaging, and analytics.
+"""
+
+from django.urls import path, include
+
 from . import views
 
+# App namespace
 app_name = "communications"
 
 urlpatterns = [
-    # Announcement URLs
+    # Dashboard and Overview
+    path("", views.communications_dashboard, name="dashboard"),
+    path("notifications/", views.notifications_overview, name="notifications_overview"),
+    # Announcements
     path(
-        "announcements/", views.AnnouncementListView.as_view(), name="announcement-list"
-    ),
-    path(
-        "announcements/<int:pk>/",
-        views.AnnouncementDetailView.as_view(),
-        name="announcement-detail",
+        "announcements/", views.AnnouncementListView.as_view(), name="announcement_list"
     ),
     path(
         "announcements/create/",
         views.AnnouncementCreateView.as_view(),
-        name="announcement-create",
+        name="announcement_create",
     ),
     path(
-        "announcements/<int:pk>/update/",
+        "announcements/<uuid:pk>/",
+        views.AnnouncementDetailView.as_view(),
+        name="announcement_detail",
+    ),
+    path(
+        "announcements/<uuid:pk>/edit/",
         views.AnnouncementUpdateView.as_view(),
-        name="announcement-update",
+        name="announcement_edit",
+    ),
+    # Direct Messaging
+    path("messages/", views.MessageThreadListView.as_view(), name="thread_list"),
+    path(
+        "messages/new/", views.MessageThreadCreateView.as_view(), name="thread_create"
     ),
     path(
-        "announcements/<int:pk>/delete/",
-        views.AnnouncementDeleteView.as_view(),
-        name="announcement-delete",
+        "messages/<uuid:pk>/",
+        views.MessageThreadDetailView.as_view(),
+        name="thread_detail",
     ),
-    # Message URLs
-    path("messages/", views.MessageListView.as_view(), name="message-list"),
+    # Message Templates
+    path("templates/", views.MessageTemplateListView.as_view(), name="template_list"),
     path(
-        "messages/<int:pk>/", views.MessageDetailView.as_view(), name="message-detail"
+        "templates/create/",
+        views.MessageTemplateCreateView.as_view(),
+        name="template_create",
     ),
-    path("messages/create/", views.MessageCreateView.as_view(), name="message-create"),
-    path("messages/bulk/", views.bulk_message_view, name="message-bulk"),
-    # Notification URLs
+    # Bulk Messaging
+    path("bulk/", views.BulkMessageListView.as_view(), name="bulk_message_list"),
     path(
-        "notifications/", views.NotificationListView.as_view(), name="notification-list"
+        "bulk/create/",
+        views.BulkMessageCreateView.as_view(),
+        name="bulk_message_create",
     ),
+    # Quick Actions
+    path("quick/notification/", views.quick_notification, name="quick_notification"),
+    path("quick/bulk/", views.bulk_notification, name="bulk_notification"),
+    # Preferences
+    path("preferences/", views.communication_preferences, name="preferences"),
+    # Analytics (Staff only)
+    path("analytics/", views.analytics_dashboard, name="analytics_dashboard"),
+    path("analytics/export/", views.export_analytics, name="export_analytics"),
+    # Search
+    path("search/", views.communication_search, name="search"),
+    # AJAX Endpoints
     path(
-        "notifications/<int:pk>/mark-read/",
+        "ajax/notification/<uuid:notification_id>/read/",
         views.mark_notification_read,
-        name="notification-mark-read",
+        name="mark_notification_read",
     ),
     path(
-        "notifications/mark-all-read/",
+        "ajax/notifications/read-all/",
         views.mark_all_notifications_read,
-        name="notification-mark-all-read",
+        name="mark_all_notifications_read",
     ),
-    # Log URLs
-    path("logs/sms/", views.sms_log_list_view, name="sms-log-list"),
-    path("logs/email/", views.email_log_list_view, name="email-log-list"),
+    path("ajax/unread-counts/", views.get_unread_counts, name="get_unread_counts"),
+    path("ajax/search-users/", views.search_users, name="search_users"),
+    path(
+        "ajax/template/<uuid:template_id>/preview/",
+        views.template_preview,
+        name="template_preview",
+    ),
+    # API URLs
+    path("api/", include("src.communications.api.urls")),
 ]

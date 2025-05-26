@@ -5,7 +5,8 @@ from django.utils.translation import gettext_lazy as _
 class ExamsConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "src.exams"
-    verbose_name = _("Examinations")
+    verbose_name = "Examinations & Assessments"
 
     def ready(self):
-        import src.exams.signals
+        """Import signals when the app is ready"""
+        import exams.signals

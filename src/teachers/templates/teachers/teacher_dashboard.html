@@ -1,286 +1,434 @@
+<!DOCTYPE html>
 {% extends "base.html" %}
 {% load static %}
-{% load widget_tweaks %}
+{% load teacher_tags %}
 {% load teacher_filters %}
 
-{% block title %}Teacher Dashboard{% endblock %}
+{% block title %}Teacher Dashboard - {{ block.super }}{% endblock %}
 
 {% block extra_css %}
-<!-- ApexCharts CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/apexcharts@3.35.0/dist/apexcharts.css">
-<!-- DataTables CSS -->
-<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+<link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" rel="stylesheet">
+<style>
+  .stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    padding: 1.5rem;
+    color: white;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100px;
+    height: 100px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    transform: translate(30px, -30px);
+  }
+
+  .stat-card.success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  }
+
+  .stat-card.warning {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  }
+
+  .stat-card.info {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  }
+
+  .stat-card.danger {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  }
+
+  .dashboard-card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  .quick-action-btn {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    border: none;
+    border-radius: 25px;
+    padding: 0.75rem 1.5rem;
+    color: white;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .quick-action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    color: white;
+  }
+
+  .metric-icon {
+    font-size: 2.5rem;
+    opacity: 0.8;
+  }
+
+  .chart-container {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  }
+
+  .table-card {
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  }
+
+  .performance-badge {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+  }
+
+  .workload-indicator {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .workload-fill {
+    height: 100%;
+    transition: width 0.5s ease;
+    border-radius: 4px;
+  }
+
+  .alert-card {
+    border-left: 4px solid;
+    border-radius: 8px;
+    background: white;
+    margin-bottom: 1rem;
+  }
+
+  .alert-card.urgent {
+    border-left-color: #dc3545;
+  }
+
+  .alert-card.warning {
+    border-left-color: #ffc107;
+  }
+
+  .alert-card.info {
+    border-left-color: #0dcaf0;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Teacher Management Dashboard</h2>
-    <div class="btn-group">
-      <a href="{% url 'teachers:teacher-list' %}" class="btn btn-primary">
-        <i class="fas fa-users"></i> All Teachers
-      </a>
-      <a href="{% url 'teachers:teacher-statistics' %}" class="btn btn-outline-primary">
-        <i class="fas fa-chart-line"></i> Statistics
-      </a>
-      <a href="{% url 'teachers:teacher-performance' %}" class="btn btn-outline-primary">
-        <i class="fas fa-award"></i> Performance
-      </a>
-    </div>
-  </div>
-
-  <!-- Summary Cards -->
+<div class="container-fluid py-4">
+  <!-- Page Header -->
   <div class="row mb-4">
-    <div class="col-xl-3 col-md-6 mb-4">
-      <div class="card border-left-primary shadow h-100 py-2">
-        <div class="card-body">
-          <div class="row no-gutters align-items-center">
-            <div class="col mr-2">
-              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Teachers</div>
-              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_teachers }}</div>
-            </div>
-            <div class="col-auto">
-              <i class="fas fa-users fa-2x text-gray-300"></i>
-            </div>
-          </div>
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-1">Teacher Dashboard</h1>
+          <p class="text-muted mb-0">Overview of teacher performance and management</p>
         </div>
-      </div>
-    </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
-      <div class="card border-left-success shadow h-100 py-2">
-        <div class="card-body">
-          <div class="row no-gutters align-items-center">
-            <div class="col mr-2">
-              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Active Teachers</div>
-              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ active_teachers }}</div>
-            </div>
-            <div class="col-auto">
-              <i class="fas fa-user-check fa-2x text-gray-300"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
-      <div class="card border-left-warning shadow h-100 py-2">
-        <div class="card-body">
-          <div class="row no-gutters align-items-center">
-            <div class="col mr-2">
-              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">On Leave</div>
-              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ on_leave_teachers }}</div>
-            </div>
-            <div class="col-auto">
-              <i class="fas fa-user-clock fa-2x text-gray-300"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
-      <div class="card border-left-info shadow h-100 py-2">
-        <div class="card-body">
-          <div class="row no-gutters align-items-center">
-            <div class="col mr-2">
-              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Average Experience</div>
-              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ avg_experience|floatformat:1 }} years</div>
-            </div>
-            <div class="col-auto">
-              <i class="fas fa-graduation-cap fa-2x text-gray-300"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Content Row -->
-  <div class="row">
-    <!-- Department Distribution Chart -->
-    <div class="col-xl-6 col-lg-6">
-      <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-          <h6 class="m-0 font-weight-bold text-primary">Teachers by Department</h6>
-          <div class="dropdown no-arrow">
-            <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown"
-              aria-haspopup="true" aria-expanded="false">
-              <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-            </a>
-            <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
-              <div class="dropdown-header">Export Options:</div>
-              <a class="dropdown-item" href="#" id="exportDeptPNG">Export as PNG</a>
-              <a class="dropdown-item" href="#" id="exportDeptCSV">Export Data as CSV</a>
-            </div>
-          </div>
-        </div>
-        <div class="card-body">
-          <div id="departmentChart" style="height: 350px;"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Department Performance Chart -->
-    <div class="col-xl-6 col-lg-6">
-      <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-          <h6 class="m-0 font-weight-bold text-primary">Department Performance</h6>
-          <div class="dropdown no-arrow">
-            <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown"
-              aria-haspopup="true" aria-expanded="false">
-              <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-            </a>
-            <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
-              <div class="dropdown-header">Export Options:</div>
-              <a class="dropdown-item" href="#" id="exportPerfPNG">Export as PNG</a>
-              <a class="dropdown-item" href="#" id="exportPerfCSV">Export Data as CSV</a>
-            </div>
-          </div>
-        </div>
-        <div class="card-body">
-          <div id="performanceChart" style="height: 350px;"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row">
-    <!-- Top Performing Teachers -->
-    <div class="col-xl-6 col-lg-6">
-      <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-          <h6 class="m-0 font-weight-bold text-primary">Top Performing Teachers</h6>
-          <a href="{% url 'teachers:teacher-performance' %}" class="btn btn-sm btn-primary">
-            View All
+        <div class="d-flex gap-2">
+          <a href="{% url 'teachers:teacher-create' %}" class="quick-action-btn">
+            <i class="fas fa-plus me-2"></i>Add Teacher
+          </a>
+          <a href="{% url 'teachers:teacher-export' 'csv' %}" class="quick-action-btn">
+            <i class="fas fa-download me-2"></i>Export Data
           </a>
         </div>
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-hover mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th>Teacher</th>
-                  <th>Department</th>
-                  <th>Score</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for teacher in top_teachers %}
-                <tr>
-                  <td>
-                    <div class="d-flex align-items-center">
-                      {% if teacher.user.profile_picture %}
-                      <img src="{{ teacher.user.profile_picture.url }}" class="rounded-circle me-2" width="30"
-                        height="30">
-                      {% else %}
-                      <div class="bg-light rounded-circle me-2 d-flex justify-content-center align-items-center"
-                        style="width: 30px; height: 30px;">
-                        <i class="fas fa-user text-secondary"></i>
-                      </div>
-                      {% endif %}
-                      {{ teacher.get_full_name }}
-                    </div>
-                  </td>
-                  <td>{{ teacher.department.name|default:"Not Assigned" }}</td>
-                  <td>
-                    <div class="d-flex align-items-center">
-                      <div class="progress flex-grow-1 me-2" style="height: 6px;">
-                        <div class="progress-bar bg-success" role="progressbar"
-                          style="width: {{ teacher.avg_evaluation_score }}%"></div>
-                      </div>
-                      <span class="badge bg-success">{{ teacher.avg_evaluation_score|floatformat:1 }}%</span>
-                    </div>
-                  </td>
-                  <td>
-                    <a href="{% url 'teachers:teacher-detail' teacher.id %}" class="btn btn-sm btn-outline-primary">
-                      <i class="fas fa-eye"></i>
-                    </a>
-                  </td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="4" class="text-center py-4">
-                    <div class="py-4">
-                      <i class="fas fa-award fa-2x mb-3 text-muted"></i>
-                      <p class="text-muted">No evaluation data available.</p>
-                    </div>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Statistics -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h3 class="mb-1">{{ total_teachers|default:0 }}</h3>
+            <p class="mb-0 opacity-75">Total Teachers</p>
           </div>
+          <i class="fas fa-users metric-icon"></i>
+        </div>
+        <div class="mt-2">
+          <small>
+            <i class="fas fa-arrow-up me-1"></i>
+            +{{ recent_hires|default:0 }} this month
+          </small>
         </div>
       </div>
     </div>
 
-    <!-- Performance Trend -->
-    <div class="col-xl-6 col-lg-6">
-      <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-          <h6 class="m-0 font-weight-bold text-primary">Performance Trend</h6>
-          <div class="dropdown no-arrow">
-            <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown"
-              aria-haspopup="true" aria-expanded="false">
-              <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-            </a>
-            <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
-              <div class="dropdown-header">View Options:</div>
-              <a class="dropdown-item" href="#" id="viewTrend3M">Last 3 Months</a>
-              <a class="dropdown-item" href="#" id="viewTrend6M">Last 6 Months</a>
-              <a class="dropdown-item" href="#" id="viewTrend12M">Last 12 Months</a>
-            </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="stat-card success">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h3 class="mb-1">{{ active_teachers|default:0 }}</h3>
+            <p class="mb-0 opacity-75">Active Teachers</p>
           </div>
+          <i class="fas fa-user-check metric-icon"></i>
         </div>
-        <div class="card-body">
-          <div id="trendChart" style="height: 350px;"></div>
+        <div class="mt-2">
+          <small>
+            {{ active_teachers|percentage_of:total_teachers|floatformat:1 }}% of total
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="stat-card info">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h3 class="mb-1">{{ avg_evaluation_score|floatformat:1|default:"N/A" }}</h3>
+            <p class="mb-0 opacity-75">Avg Performance</p>
+          </div>
+          <i class="fas fa-chart-line metric-icon"></i>
+        </div>
+        <div class="mt-2">
+          <small>
+            <i class="fas fa-star me-1"></i>
+            Out of 100 points
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="stat-card warning">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h3 class="mb-1">{{ on_leave_teachers|default:0 }}</h3>
+            <p class="mb-0 opacity-75">On Leave</p>
+          </div>
+          <i class="fas fa-user-clock metric-icon"></i>
+        </div>
+        <div class="mt-2">
+          <small>
+            <i class="fas fa-exclamation-triangle me-1"></i>
+            Requires coverage
+          </small>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="row">
-    <!-- Teachers Requiring Follow-up -->
-    <div class="col-xl-6 col-lg-6">
-      <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-          <h6 class="m-0 font-weight-bold text-primary">Follow-up Required</h6>
-          <span class="badge bg-warning">{{ followup_evaluations|length }}</span>
+  <!-- Charts Row -->
+  <div class="row mb-4">
+    <!-- Performance Distribution Chart -->
+    <div class="col-lg-6 mb-3">
+      <div class="dashboard-card">
+        <div class="card-header bg-transparent border-0 pb-0">
+          <h5 class="card-title mb-0">Performance Distribution</h5>
+          <p class="text-muted small">Teacher evaluation scores by category</p>
         </div>
-        <div class="card-body p-0">
+        <div class="card-body">
+          <div id="performanceChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Department Comparison -->
+    <div class="col-lg-6 mb-3">
+      <div class="dashboard-card">
+        <div class="card-header bg-transparent border-0 pb-0">
+          <h5 class="card-title mb-0">Department Overview</h5>
+          <p class="text-muted small">Teacher count and average performance by department</p>
+        </div>
+        <div class="card-body">
+          <div id="departmentChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Performance Trends and Workload -->
+  <div class="row mb-4">
+    <!-- Performance Trends -->
+    <div class="col-lg-8 mb-3">
+      <div class="dashboard-card">
+        <div class="card-header bg-transparent border-0 pb-0 d-flex justify-content-between align-items-center">
+          <div>
+            <h5 class="card-title mb-0">Performance Trends</h5>
+            <p class="text-muted small">Monthly evaluation scores and trends</p>
+          </div>
+          <div class="btn-group btn-group-sm" role="group">
+            <input type="radio" class="btn-check" name="trendPeriod" id="trend6" value="6">
+            <label class="btn btn-outline-primary" for="trend6">6M</label>
+
+            <input type="radio" class="btn-check" name="trendPeriod" id="trend12" value="12" checked>
+            <label class="btn btn-outline-primary" for="trend12">1Y</label>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="trendsChart" style="height: 350px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="col-lg-4 mb-3">
+      <div class="dashboard-card h-100">
+        <div class="card-header bg-transparent border-0 pb-0">
+          <h5 class="card-title mb-0">Quick Insights</h5>
+        </div>
+        <div class="card-body">
+          <!-- Top Performer -->
+          <div class="d-flex align-items-center mb-3 p-3 bg-light rounded">
+            <div class="flex-shrink-0 me-3">
+              <div class="bg-success rounded-circle d-flex align-items-center justify-content-center"
+                style="width: 40px; height: 40px;">
+                <i class="fas fa-crown text-white"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1">
+              <h6 class="mb-1">Top Performer</h6>
+              {% if top_teachers.0 %}
+              <p class="mb-0 text-muted small">{{ top_teachers.0.get_full_name }}</p>
+              <span class="badge bg-success">{{ top_teachers.0.avg_evaluation_score|floatformat:1 }}%</span>
+              {% else %}
+              <p class="mb-0 text-muted small">No evaluations yet</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Workload Alert -->
+          <div class="d-flex align-items-center mb-3 p-3 bg-light rounded">
+            <div class="flex-shrink-0 me-3">
+              <div class="bg-warning rounded-circle d-flex align-items-center justify-content-center"
+                style="width: 40px; height: 40px;">
+                <i class="fas fa-tasks text-white"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1">
+              <h6 class="mb-1">Overloaded Teachers</h6>
+              <p class="mb-0 text-muted small">{{ teacher_workload.overloaded|default:0 }} teachers need attention</p>
+            </div>
+          </div>
+
+          <!-- Evaluation Pending -->
+          <div class="d-flex align-items-center mb-3 p-3 bg-light rounded">
+            <div class="flex-shrink-0 me-3">
+              <div class="bg-info rounded-circle d-flex align-items-center justify-content-center"
+                style="width: 40px; height: 40px;">
+                <i class="fas fa-clipboard-check text-white"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1">
+              <h6 class="mb-1">Pending Evaluations</h6>
+              <p class="mb-0 text-muted small">{{ followup_evaluations|length }} require follow-up</p>
+            </div>
+          </div>
+
+          <!-- Recent Hires -->
+          <div class="d-flex align-items-center p-3 bg-light rounded">
+            <div class="flex-shrink-0 me-3">
+              <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center"
+                style="width: 40px; height: 40px;">
+                <i class="fas fa-user-plus text-white"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1">
+              <h6 class="mb-1">New Hires</h6>
+              <p class="mb-0 text-muted small">{{ recent_hires|default:0 }} joined this month</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Evaluations and Alerts -->
+  <div class="row">
+    <!-- Recent Evaluations Table -->
+    <div class="col-lg-8 mb-3">
+      <div class="table-card">
+        <div class="card-header bg-transparent border-0 pb-0">
+          <h5 class="card-title mb-0">Recent Evaluations</h5>
+          <p class="text-muted small">Latest teacher performance evaluations</p>
+        </div>
+        <div class="card-body">
           <div class="table-responsive">
-            <table class="table table-hover mb-0">
-              <thead class="table-light">
+            <table id="recentEvaluationsTable" class="table table-hover align-middle">
+              <thead>
                 <tr>
                   <th>Teacher</th>
+                  <th>Date</th>
                   <th>Score</th>
-                  <th>Follow-up Date</th>
+                  <th>Performance</th>
+                  <th>Evaluator</th>
+                  <th>Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {% for evaluation in followup_evaluations %}
+                {% for evaluation in recent_evaluations %}
                 <tr>
-                  <td>{{ evaluation.teacher.get_full_name }}</td>
                   <td>
-                    <span class="badge bg-danger">{{ evaluation.score|floatformat:1 }}%</span>
+                    <div class="d-flex align-items-center">
+                      <div class="me-3">
+                        {{ evaluation.teacher|teacher_avatar:32 }}
+                      </div>
+                      <div>
+                        <h6 class="mb-0">{{ evaluation.teacher.get_full_name }}</h6>
+                        <small class="text-muted">{{ evaluation.teacher.employee_id }}</small>
+                      </div>
+                    </div>
                   </td>
-                  <td>{{ evaluation.followup_date|default:"Not set" }}</td>
                   <td>
-                    <a href="{% url 'teachers:teacher-detail' evaluation.teacher.id %}"
-                      class="btn btn-sm btn-outline-primary">
-                      <i class="fas fa-eye"></i>
-                    </a>
+                    <span class="fw-medium">{{ evaluation.evaluation_date|date:"M d, Y" }}</span>
+                  </td>
+                  <td>
+                    <span class="fw-bold">{{ evaluation.score|floatformat:1 }}%</span>
+                  </td>
+                  <td>
+                    {{ evaluation.score|performance_badge }}
+                  </td>
+                  <td>
+                    <span class="text-muted">{{ evaluation.evaluator.get_full_name }}</span>
+                  </td>
+                  <td>
+                    {{ evaluation.status|evaluation_status_badge }}
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <a href="{% url 'teachers:teacher-detail' evaluation.teacher.id %}"
+                        class="btn btn-outline-primary btn-sm" title="View Teacher">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      {% if perms.teachers.view_teacherevaluation %}
+                      <a href="#" class="btn btn-outline-info btn-sm" title="View Evaluation">
+                        <i class="fas fa-chart-bar"></i>
+                      </a>
+                      {% endif %}
+                    </div>
                   </td>
                 </tr>
                 {% empty %}
                 <tr>
-                  <td colspan="4" class="text-center py-4">
-                    <div class="py-4">
-                      <i class="fas fa-check-circle fa-2x mb-3 text-success"></i>
-                      <p class="text-muted">No follow-ups required at this time.</p>
+                  <td colspan="7" class="text-center py-4">
+                    <div class="text-muted">
+                      <i class="fas fa-clipboard-list fa-2x mb-2"></i>
+                      <p class="mb-0">No recent evaluations found</p>
                     </div>
                   </td>
                 </tr>
@@ -292,52 +440,72 @@
       </div>
     </div>
 
-    <!-- Teacher Workload -->
-    <div class="col-xl-6 col-lg-6">
-      <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-          <h6 class="m-0 font-weight-bold text-primary">Teacher Workload</h6>
-          <span class="text-muted small">{{ current_academic_year.name }}</span>
+    <!-- Alerts and Notifications -->
+    <div class="col-lg-4 mb-3">
+      <div class="dashboard-card h-100">
+        <div class="card-header bg-transparent border-0 pb-0">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-bell me-2 text-warning"></i>Alerts & Notifications
+          </h5>
         </div>
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-hover mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th>Teacher</th>
-                  <th>Classes</th>
-                  <th>Subjects</th>
-                  <th>Workload</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for teacher in teacher_workload %}
-                <tr>
-                  <td>{{ teacher.get_full_name }}</td>
-                  <td>{{ teacher.class_count }}</td>
-                  <td>{{ teacher.subject_count }}</td>
-                  <td>
-                    <div class="progress" style="height: 6px;">
-                      <div
-                        class="progress-bar {% if teacher.class_count > 10 %}bg-danger{% elif teacher.class_count > 5 %}bg-warning{% else %}bg-success{% endif %}"
-                        role="progressbar" style="width: {{ teacher.class_count|multiply:10 }}%"
-                        aria-valuenow="{{ teacher.class_count }}" aria-valuemin="0" aria-valuemax="10">
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="4" class="text-center py-4">
-                    <div class="py-4">
-                      <i class="fas fa-book fa-2x mb-3 text-muted"></i>
-                      <p class="text-muted">No class assignments found.</p>
-                    </div>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+        <div class="card-body">
+          <!-- Followup Required -->
+          {% if followup_evaluations %}
+          <div class="alert-card urgent p-3 mb-3">
+            <div class="d-flex align-items-start">
+              <i class="fas fa-exclamation-circle text-danger me-2 mt-1"></i>
+              <div>
+                <h6 class="mb-1">Evaluation Follow-ups Required</h6>
+                <p class="mb-2 small text-muted">{{ followup_evaluations|length }} evaluations need follow-up action</p>
+                <a href="#" class="btn btn-sm btn-outline-danger">Review Now</a>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Overloaded Teachers -->
+          {% if teacher_workload.overloaded > 0 %}
+          <div class="alert-card warning p-3 mb-3">
+            <div class="d-flex align-items-start">
+              <i class="fas fa-weight-hanging text-warning me-2 mt-1"></i>
+              <div>
+                <h6 class="mb-1">Workload Alert</h6>
+                <p class="mb-2 small text-muted">{{ teacher_workload.overloaded }} teachers are overloaded</p>
+                <a href="{% url 'teachers:teacher-statistics' %}" class="btn btn-sm btn-outline-warning">View
+                  Details</a>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Evaluation Due -->
+          <div class="alert-card info p-3 mb-3">
+            <div class="d-flex align-items-start">
+              <i class="fas fa-calendar-check text-info me-2 mt-1"></i>
+              <div>
+                <h6 class="mb-1">Evaluations Due</h6>
+                <p class="mb-2 small text-muted">{{ teachers_needing_evaluation|default:0 }} teachers need evaluation
+                </p>
+                <a href="#" class="btn btn-sm btn-outline-info">Schedule Evaluations</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- System Status -->
+          <div class="mt-4 p-3 bg-light rounded">
+            <h6 class="mb-2">System Status</h6>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="small">Database</span>
+              <span class="badge bg-success">Online</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="small">Analytics</span>
+              <span class="badge bg-success">Updated</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="small">Last Backup</span>
+              <span class="small text-muted">2 hours ago</span>
+            </div>
           </div>
         </div>
       </div>
@@ -347,140 +515,148 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- ApexCharts JS -->
-<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.35.0/dist/apexcharts.min.js"></script>
-<!-- DataTables JS -->
-<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    // Department Distribution Chart
-    var departmentOptions = {
-      series: {{ chart_data.dept_counts| safe
-  }},
+  $(document).ready(function () {
+    // Initialize DataTable
+    $('#recentEvaluationsTable').DataTable({
+      responsive: true,
+      pageLength: 5,
+      lengthChange: false,
+      searching: false,
+      info: false,
+      order: [[1, 'desc']], // Sort by date
+      columnDefs: [
+        { orderable: false, targets: [6] } // Actions column
+      ]
+    });
+
+    // Performance Distribution Donut Chart
+    const performanceChart = new ApexCharts(document.querySelector("#performanceChart"), {
+      series: [
+        {{ performance_distribution.excellent |default: 0 }},
+      {{ performance_distribution.good |default: 0 }},
+    {{ performance_distribution.satisfactory |default: 0 }},
+    {{ performance_distribution.needs_improvement |default: 0 }},
+    {{ performance_distribution.poor |default: 0 }}
+        ],
     chart: {
     type: 'donut',
-    height: 350,
-    toolbar: {
-      show: true,
-      tools: {
-        download: true,
-        selection: false,
-        zoom: false,
-        zoomin: false,
-        zoomout: false,
-        pan: false,
-        reset: false
+    height: 300
+  },
+    labels: ['Excellent (90%+)', 'Good (80-89%)', 'Satisfactory (70-79%)', 'Needs Improvement (60-69%)', 'Poor (<60%)'],
+    colors: ['#28a745', '#17a2b8', '#007bff', '#ffc107', '#dc3545'],
+    legend: {
+    position: 'bottom'
+  },
+    plotOptions: {
+    pie: {
+      donut: {
+        size: '70%',
+        labels: {
+          show: true,
+          total: {
+            show: true,
+            label: 'Total',
+            formatter: function () {
+              return '{{ total_teachers|default:0 }}'
+            }
+          }
+        }
       }
     }
   },
-    labels: {{ chart_data.departments | safe }},
     responsive: [{
       breakpoint: 480,
       options: {
         chart: {
-          width: 300
+          height: 250
         },
         legend: {
           position: 'bottom'
         }
       }
-    }],
-    plotOptions: {
-    pie: {
-      donut: {
-        size: '50%'
-      }
-    }
-  },
-    colors: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796', '#4e73df', '#1cc88a', '#36b9cc'],
-    legend: {
-    position: 'bottom',
-    formatter: function (val, opts) {
-      return val + " - " + opts.w.globals.series[opts.seriesIndex];
-    }
-  },
-    tooltip: {
-    y: {
-      formatter: function (val) {
-        return val + " teachers";
-      }
-    }
-  }
-                  };
-  var departmentChart = new ApexCharts(document.querySelector("#departmentChart"), departmentOptions);
-  departmentChart.render();
+    }]
+    });
+  performanceChart.render();
 
-  // Department Performance Chart
-  var performanceOptions = {
+  // Department Comparison Chart
+  const departmentChart = new ApexCharts(document.querySelector("#departmentChart"), {
     series: [{
-      name: 'Teachers',
+      name: 'Teacher Count',
       type: 'column',
       data: {{ chart_data.dept_counts | safe }}
-                    }, {
-    name: 'Avg. Score',
+        }, {
+    name: 'Average Score',
       type: 'line',
         data: { { chart_data.dept_scores | safe } }
   }],
   chart: {
-    height: 350,
+    height: 300,
       type: 'line',
         toolbar: {
-      show: true
+      show: false
     }
   },
   stroke: {
     width: [0, 4]
   },
-  title: {
-    text: 'Performance by Department'
-  },
-  dataLabels: {
-    enabled: true,
-      enabledOnSeries: [1]
-  },
   labels: { { chart_data.departments | safe } },
   xaxis: {
-    type: 'category',
-      title: {
-      text: 'Department'
-    }
+    type: 'category'
   },
   yaxis: [{
     title: {
-      text: 'Number of Teachers',
-    },
+      text: 'Teacher Count',
+    }
   }, {
     opposite: true,
     title: {
       text: 'Average Score (%)'
-    },
-    min: 0,
-    max: 100
+    }
   }],
-    colors: ['#4e73df', '#1cc88a']
-                  };
-  var performanceChart = new ApexCharts(document.querySelector("#performanceChart"), performanceOptions);
-  performanceChart.render();
+    colors: ['#667eea', '#f093fb'],
+      legend: {
+    position: 'top'
+  }
+    });
+  departmentChart.render();
 
-  // Performance Trend Chart
-  var trendOptions = {
-    series: [{
-      name: 'Average Score',
-      data: {{ chart_data.trend_scores | safe }}
-                    }, {
-    name: 'Evaluations',
+  // Performance Trends Chart
+  let trendsChart;
+
+  function initTrendsChart(months = 12) {
+    if (trendsChart) {
+      trendsChart.destroy();
+    }
+
+    trendsChart = new ApexCharts(document.querySelector("#trendsChart"), {
+      series: [{
+        name: 'Average Score',
+        data: {{ chart_data.trend_scores | safe }}
+            }, {
+    name: 'Evaluation Count',
       data: { { chart_data.trend_counts | safe } }
   }],
   chart: {
     height: 350,
-      type: 'line',
-        zoom: {
-      enabled: false
-    },
-    toolbar: {
-      show: true
+      type: 'area',
+        toolbar: {
+      show: true,
+        tools: {
+        download: true,
+          selection: true,
+            zoom: true,
+              zoomin: true,
+                zoomout: true,
+                  pan: true,
+                    reset: true
+      }
     }
   },
   dataLabels: {
@@ -488,23 +664,11 @@
   },
   stroke: {
     curve: 'smooth',
-      width: [4, 2],
-        dashArray: [0, 5]
-  },
-  grid: {
-    row: {
-      colors: ['#f3f3f3', 'transparent'],
-        opacity: 0.5
-    },
-  },
-  markers: {
-    size: 5
+      width: 3
   },
   xaxis: {
     categories: { { chart_data.trend_months | safe } },
-    title: {
-      text: 'Month'
-    }
+    type: 'category'
   },
   yaxis: [{
     title: {
@@ -515,75 +679,65 @@
   }, {
     opposite: true,
     title: {
-      text: 'Number of Evaluations'
+      text: 'Evaluation Count'
     }
   }],
-    legend: {
-    position: 'top',
-      horizontalAlign: 'right'
+    colors: ['#667eea', '#764ba2'],
+      fill: {
+    type: 'gradient',
+      gradient: {
+      shadeIntensity: 1,
+        type: 'vertical',
+          colorStops: [
+            { offset: 0, color: '#667eea', opacity: 0.8 },
+            { offset: 100, color: '#667eea', opacity: 0.1 }
+          ]
+    }
   },
-  colors: ['#1cc88a', '#4e73df']
-                  };
-  var trendChart = new ApexCharts(document.querySelector("#trendChart"), trendOptions);
-  trendChart.render();
+  legend: {
+    position: 'top'
+  },
+  grid: {
+    borderColor: '#f1f3fa'
+  }
+        });
+  trendsChart.render();
+    }
 
-  // Export handlers
-  document.getElementById('exportDeptPNG').addEventListener('click', function () {
-    departmentChart.exportToSVG();
+  initTrendsChart();
+
+  // Trend period selector
+  $('input[name="trendPeriod"]').change(function () {
+    const months = $(this).val();
+    // In a real implementation, you would fetch new data here
+    // For now, we'll just re-render with the same data
+    initTrendsChart(months);
   });
 
-  document.getElementById('exportPerfPNG').addEventListener('click', function () {
-    performanceChart.exportToSVG();
+  // Animate statistics on page load
+  $('.stat-card h3').each(function () {
+    const $this = $(this);
+    const countTo = parseInt($this.text());
+
+    $({ countNum: 0 }).animate({
+      countNum: countTo
+    }, {
+      duration: 2000,
+      easing: 'swing',
+      step: function () {
+        $this.text(Math.floor(this.countNum));
+      },
+      complete: function () {
+        $this.text(this.countNum);
+      }
+    });
   });
 
-  // Time period filters for trend chart
-  document.getElementById('viewTrend3M').addEventListener('click', function (e) {
-    e.preventDefault();
-    trendChart.updateOptions({
-      xaxis: {
-        categories: {{ chart_data.trend_months | safe }}.slice(-3)
-                      }
-                    });
-  trendChart.updateSeries([{
-    name: 'Average Score',
-    data: {{ chart_data.trend_scores | safe }}.slice(-3)
-                    }, {
-    name: 'Evaluations',
-    data: {{ chart_data.trend_counts | safe }}.slice(-3)
-                    }]);
-                  });
-
-  document.getElementById('viewTrend6M').addEventListener('click', function (e) {
-    e.preventDefault();
-    trendChart.updateOptions({
-      xaxis: {
-        categories: {{ chart_data.trend_months | safe }}.slice(-6)
-                      }
-                    });
-  trendChart.updateSeries([{
-    name: 'Average Score',
-    data: {{ chart_data.trend_scores | safe }}.slice(-6)
-                    }, {
-    name: 'Evaluations',
-    data: {{ chart_data.trend_counts | safe }}.slice(-6)
-                    }]);
-                  });
-
-  document.getElementById('viewTrend12M').addEventListener('click', function (e) {
-    e.preventDefault();
-    trendChart.updateOptions({
-      xaxis: {
-        categories: {{ chart_data.trend_months | safe }}
-                      }
-                    });
-  trendChart.updateSeries([{
-    name: 'Average Score',
-    data: {{ chart_data.trend_scores | safe }}
-                    }, {
-    name: 'Evaluations',
-    data: {{ chart_data.trend_counts | safe }}
-                    }]);
-                  });
-                });
+  // Refresh data periodically (every 5 minutes)
+  setInterval(function () {
+    // In a real implementation, you would fetch updated data via AJAX
+    console.log('Refreshing dashboard data...');
+  }, 300000);
+});
 </script>
 {% endblock %}

@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 from datetime import timedelta
 from decouple import config, Csv
+from celery.schedules import crontab
 
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -70,13 +71,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 # MIDDLEWARE SETTINGS
 # ==============================================================================
 
-# Add our custom middleware to MIDDLEWARE setting
-CUSTOM_MIDDLEWARE = [
-    "accounts.middleware.SecurityMiddleware",
-    "accounts.middleware.RateLimitMiddleware",
-    "accounts.middleware.AuditMiddleware",
-    "accounts.middleware.SessionSecurityMiddleware",
-]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -87,6 +81,13 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "assignments.middleware.AssignmentDeadlineNotificationMiddleware",
+    "accounts.middleware.SecurityMiddleware",
+    "accounts.middleware.RateLimitMiddleware",
+    "accounts.middleware.AuditMiddleware",
+    "accounts.middleware.SessionSecurityMiddleware",
+    "assignments.middleware.AssignmentAccessControlMiddleware",
+    "assignments.middleware.AssignmentActivityTrackingMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -489,4 +490,32 @@ CELERY_BEAT_SCHEDULE = {
         "task": "accounts.tasks.send_login_alerts",
         "schedule": 3600.0,  # Run every hour
     },
+    """ SUBJECTS """
+    "update-syllabus-completion": {
+        "task": "subjects.tasks.update_syllabus_completion_percentages",
+        "schedule": crontab(hour=2, minute=0),  # Daily at 2 AM
+    },
+    "check-syllabus-deadlines": {
+        "task": "subjects.tasks.send_syllabus_deadline_alerts",
+        "schedule": crontab(hour=8, minute=0),  # Daily at 8 AM
+    },
+    "weekly-curriculum-report": {
+        "task": "subjects.tasks.generate_weekly_curriculum_report",
+        "schedule": crontab(hour=6, minute=0, day_of_week=1),  # Monday at 6 AM
+    },
+    "cleanup-analytics-cache": {
+        "task": "subjects.tasks.cleanup_old_analytics_cache",
+        "schedule": crontab(hour=3, minute=0, day_of_week=0),  # Sunday at 3 AM
+    },
+}
+
+ASSIGNMENTS_SETTINGS = {
+    "MAX_FILE_SIZE_MB": 50,
+    "ALLOWED_FILE_TYPES": ["pdf", "doc", "docx", "txt", "jpg", "jpeg", "png"],
+    "DEFAULT_LATE_PENALTY": 10,  # Percentage
+    "PLAGIARISM_THRESHOLD": 30,  # Percentage
+    "AUTO_GRADE_ENABLED": False,
+    "PEER_REVIEW_ENABLED": True,
+    "NOTIFICATION_DAYS_BEFORE": 2,
+    "BATCH_SIZE": 100,
 }

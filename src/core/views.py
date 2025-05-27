@@ -1,797 +1,779 @@
-import csv
-import json
-from datetime import datetime, timedelta
-
-from django.apps import apps
-from django.contrib import messages
-from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator
-from django.db.models import Count, Q
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse_lazy
-from django.utils import timezone
-from django.utils.decorators import method_decorator
+# views.py
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.urls import reverse
 from django.views.generic import (
-    CreateView,
-    DeleteView,
-    DetailView,
+    TemplateView,
     ListView,
+    DetailView,
     UpdateView,
+    CreateView,
 )
+from django.contrib import messages
+from django.http import JsonResponse, HttpResponse
+from django.core.paginator import Paginator
+from django.db.models import Q, Count, Avg, Sum
+from django.utils import timezone
+from django.contrib.auth import get_user_model
+from datetime import datetime, timedelta
+import json
 
-from .decorators import audit_log, module_access_required, role_required
-from .forms import (
-    AuditLogSearchForm,
-    DocumentForm,
-    DocumentSearchForm,
-    SystemSettingForm,
+from .models import (
+    SystemSetting,
+    AuditLog,
+    StudentPerformanceAnalytics,
+    ClassPerformanceAnalytics,
+    AttendanceAnalytics,
+    FinancialAnalytics,
+    TeacherPerformanceAnalytics,
+    SystemHealthMetrics,
 )
-from .models import AuditLog, Document, SystemSetting
-from .utils import academic_year_for_date, get_system_setting, safe_get_count
+from .services import (
+    ConfigurationService,
+    AuditService,
+    AnalyticsService,
+    SecurityService,
+    UtilityService,
+)
+from .decorators import system_admin_required, school_admin_required, audit_action
+from .forms import SystemSettingForm, UserSearchForm
 
 User = get_user_model()
 
 
-@login_required
-def dashboard(request):
-    """Main dashboard view with enhanced statistics."""
-    context = {
-        "title": "Dashboard",
-    }
+class SystemAdminMixin(UserPassesTestMixin):
+    """Mixin to require system admin access"""
 
-    # Get current academic year
-    current_academic_year = academic_year_for_date()
-    if current_academic_year:
-        context["current_academic_year"] = current_academic_year
-
-    # Get relevant statistics based on user role
-    if request.user.is_staff:
-        # Admin dashboard with enhanced statistics
-        Student = apps.get_model("students", "Student")
-        Teacher = apps.get_model("teachers", "Teacher")
-        Class = apps.get_model("courses", "Class")
-
-        # Basic counts
-        student_count = safe_get_count(Student)
-        teacher_count = safe_get_count(Teacher)
-        class_count = safe_get_count(Class)
-
-        # Enhanced student statistics
-        try:
-            # Student status distribution for pie chart
-            student_status = list(
-                Student.objects.values("status")
-                .annotate(count=Count("status"))
-                .order_by("status")
-            )
-
-            # Gender distribution
-            gender_distribution = list(
-                Student.objects.values("user__gender")
-                .annotate(count=Count("user__gender"))
-                .order_by("user__gender")
-            )
-
-            # Class distribution (top 5 classes by enrollment)
-            class_distribution = list(
-                Student.objects.values(
-                    "current_class__grade__name", "current_class__section__name"
-                )
-                .annotate(count=Count("id"))
-                .order_by("-count")[:5]
-            )
-
-            # New admissions in the last 6 months
-            six_months_ago = timezone.now() - timedelta(days=180)
-            monthly_admissions = list(
-                Student.objects.filter(admission_date__gte=six_months_ago)
-                .annotate(month=TruncMonth("admission_date"))
-                .values("month")
-                .annotate(count=Count("id"))
-                .order_by("month")
-            )
-        except:
-            student_status = []
-            gender_distribution = []
-            class_distribution = []
-            monthly_admissions = []
-
-        # Teacher statistics
-        try:
-            # Department distribution
-            department_distribution = list(
-                Teacher.objects.values("department__name")
-                .annotate(count=Count("id"))
-                .order_by("-count")
-            )
-
-            # Experience levels
-            experience_levels = {
-                "0-2 years": Teacher.objects.filter(experience_years__lt=2).count(),
-                "2-5 years": Teacher.objects.filter(
-                    experience_years__gte=2, experience_years__lt=5
-                ).count(),
-                "5-10 years": Teacher.objects.filter(
-                    experience_years__gte=5, experience_years__lt=10
-                ).count(),
-                "10+ years": Teacher.objects.filter(experience_years__gte=10).count(),
-            }
-        except:
-            department_distribution = []
-            experience_levels = {}
-
-        # Attendance statistics
-        try:
-            Attendance = apps.get_model("attendance", "Attendance")
-            # Last 30 days attendance trend
-            thirty_days_ago = timezone.now().date() - timedelta(days=30)
-            attendance_trend = list(
-                Attendance.objects.filter(date__gte=thirty_days_ago)
-                .values("date")
-                .annotate(
-                    present=Count("id", filter=Q(status="Present")),
-                    absent=Count("id", filter=Q(status="Absent")),
-                    late=Count("id", filter=Q(status="Late")),
-                )
-                .order_by("date")
-            )
-
-            # Overall attendance rate
-            total_records = Attendance.objects.filter(date__gte=thirty_days_ago).count()
-            present_count = Attendance.objects.filter(
-                date__gte=thirty_days_ago, status="Present"
-            ).count()
-            attendance_rate = (
-                round((present_count / total_records) * 100, 2)
-                if total_records > 0
-                else 0
-            )
-        except:
-            attendance_trend = []
-            attendance_rate = 0
-
-        # Financial statistics
-        try:
-            Invoice = apps.get_model("finance", "Invoice")
-            Payment = apps.get_model("finance", "Payment")
-
-            # Fee collection statistics for current academic year
-            current_year_invoices = Invoice.objects.filter(
-                academic_year=current_academic_year
-            )
-            total_invoiced = (
-                current_year_invoices.aggregate(Sum("total_amount"))[
-                    "total_amount__sum"
-                ]
-                or 0
-            )
-            total_collected = (
-                Payment.objects.filter(
-                    invoice__academic_year=current_academic_year
-                ).aggregate(Sum("amount"))["amount__sum"]
-                or 0
-            )
-            collection_rate = (
-                round((total_collected / total_invoiced) * 100, 2)
-                if total_invoiced > 0
-                else 0
-            )
-
-            # Monthly fee collection for the current academic year
-            monthly_collection = list(
-                Payment.objects.filter(invoice__academic_year=current_academic_year)
-                .annotate(month=TruncMonth("payment_date"))
-                .values("month")
-                .annotate(amount=Sum("amount"))
-                .order_by("month")
-            )
-        except:
-            total_invoiced = 0
-            total_collected = 0
-            collection_rate = 0
-            monthly_collection = []
-
-        # System usage statistics
-        active_users_24h = User.objects.filter(
-            last_login__gte=timezone.now() - timedelta(hours=24)
-        ).count()
-        document_count = safe_get_count(Document)
-
-        # Compile all statistics
-        context.update(
-            {
-                # Basic counts
-                "total_students": student_count,
-                "total_teachers": teacher_count,
-                "total_classes": class_count,
-                # Student statistics
-                "student_status": student_status,
-                "gender_distribution": gender_distribution,
-                "class_distribution": class_distribution,
-                "monthly_admissions": monthly_admissions,
-                # Teacher statistics
-                "department_distribution": department_distribution,
-                "experience_levels": experience_levels,
-                # Attendance statistics
-                "attendance_trend": attendance_trend,
-                "attendance_rate": attendance_rate,
-                # Financial statistics
-                "total_invoiced": total_invoiced,
-                "total_collected": total_collected,
-                "collection_rate": collection_rate,
-                "monthly_collection": monthly_collection,
-                # System statistics
-                "active_users_24h": active_users_24h,
-                "document_count": document_count,
-                # Recent activities for audit log
-                "recent_activities": AuditLog.objects.order_by("-timestamp")[:10],
-                "recent_documents": Document.objects.filter(is_public=True).order_by(
-                    "-upload_date"
-                )[:5],
-            }
+    def test_func(self):
+        return self.request.user.is_authenticated and (
+            self.request.user.is_superuser
+            or self.request.user.groups.filter(name="System Administrators").exists()
         )
 
-    # Continue with role-specific dashboards with enhanced statistics
-    elif hasattr(request.user, "teacher_profile"):
-        # Teacher dashboard with enhanced statistics
-        teacher = request.user.teacher_profile
 
-        # Get assigned classes with student counts
-        assigned_classes = []
-        try:
-            from django.db.models import Count
+class SchoolAdminMixin(UserPassesTestMixin):
+    """Mixin to require school admin access or higher"""
 
-            TeacherClassAssignment = apps.get_model(
-                "teachers", "TeacherClassAssignment"
-            )
+    def test_func(self):
+        return self.request.user.is_authenticated and (
+            self.request.user.is_superuser
+            or self.request.user.groups.filter(
+                name__in=["System Administrators", "School Administrators"]
+            ).exists()
+        )
 
-            assigned_classes = (
-                TeacherClassAssignment.objects.filter(teacher=teacher)
-                .select_related("class_instance", "subject", "academic_year")
-                .annotate(student_count=Count("class_instance__students"))
-                .order_by("class_instance__grade__name")
-            )
 
-            # Get assignment statistics
-            Assignment = apps.get_model("courses", "Assignment")
-            AssignmentSubmission = apps.get_model("courses", "AssignmentSubmission")
+class DashboardView(LoginRequiredMixin, TemplateView):
+    """Main dashboard view"""
 
-            # Assignments by status
-            assignment_stats = (
-                Assignment.objects.filter(teacher=teacher)
-                .values("status")
-                .annotate(count=Count("id"))
-                .order_by("status")
-            )
+    template_name = "core/dashboard.html"
 
-            # Assignments by submission status (for published assignments)
-            published_assignments = Assignment.objects.filter(
-                teacher=teacher, status="published"
-            )
-            submission_stats = []
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
 
-            for assignment in published_assignments:
-                total_students = assignment.class_obj.students.count()
-                submitted = AssignmentSubmission.objects.filter(
-                    assignment=assignment
-                ).count()
-                not_submitted = total_students - submitted
+        # Get current academic year and term
+        from academics.models import AcademicYear, Term
 
-                submission_stats.append(
-                    {
-                        "assignment": assignment.title,
-                        "submitted": submitted,
-                        "not_submitted": not_submitted,
-                    }
-                )
+        current_year = AcademicYear.objects.filter(is_current=True).first()
+        current_term = (
+            Term.objects.filter(is_current=True).first() if current_year else None
+        )
 
-            # Recent submissions
-            recent_submissions = (
-                AssignmentSubmission.objects.filter(assignment__teacher=teacher)
-                .select_related("student", "student__user", "assignment")
-                .order_by("-submission_date")[:10]
-            )
-        except:
-            assigned_classes = []
-            assignment_stats = []
-            submission_stats = []
-            recent_submissions = []
+        # Basic statistics
+        from students.models import Student
+        from teachers.models import Teacher
+        from academics.models import Class
 
         context.update(
             {
-                "teacher": teacher,
-                "assigned_classes": assigned_classes,
-                "assignment_stats": assignment_stats,
-                "submission_stats": submission_stats,
-                "recent_submissions": recent_submissions,
+                "current_academic_year": current_year,
+                "current_term": current_term,
+                "total_students": Student.objects.filter(status="active").count(),
+                "total_teachers": Teacher.objects.filter(status="active").count(),
+                "total_classes": (
+                    Class.objects.filter(academic_year=current_year).count()
+                    if current_year
+                    else 0
+                ),
+                "user_role": self.get_user_role(),
             }
         )
 
-    elif hasattr(request.user, "parent_profile"):
-        # Parent dashboard with enhanced statistics
-        parent = request.user.parent_profile
+        # Role-specific dashboard data
+        if (
+            self.request.user.is_superuser
+            or self.request.user.groups.filter(
+                name__in=["System Administrators", "School Administrators"]
+            ).exists()
+        ):
+            context.update(self.get_admin_dashboard_data(current_year, current_term))
+        elif hasattr(self.request.user, "teacher"):
+            context.update(self.get_teacher_dashboard_data())
+        elif hasattr(self.request.user, "parent"):
+            context.update(self.get_parent_dashboard_data())
+        elif hasattr(self.request.user, "student"):
+            context.update(self.get_student_dashboard_data())
 
-        try:
-            # Get children with enhanced data
-            Student = apps.get_model("students", "Student")
-            StudentParentRelation = apps.get_model("students", "StudentParentRelation")
-            Attendance = apps.get_model("attendance", "Attendance")
-            ExamResult = apps.get_model("exams", "StudentExamResult")
+        return context
 
-            # Get children IDs
-            children_relations = StudentParentRelation.objects.filter(parent=parent)
-            children_ids = [rel.student_id for rel in children_relations]
+    def get_user_role(self):
+        """Determine user's primary role"""
+        user = self.request.user
 
-            # Get children with attendance data
-            children = Student.objects.filter(id__in=children_ids).select_related(
-                "user", "current_class"
+        if user.is_superuser:
+            return "superuser"
+        elif user.groups.filter(name="System Administrators").exists():
+            return "system_admin"
+        elif user.groups.filter(name="School Administrators").exists():
+            return "school_admin"
+        elif hasattr(user, "teacher"):
+            return "teacher"
+        elif hasattr(user, "parent"):
+            return "parent"
+        elif hasattr(user, "student"):
+            return "student"
+        else:
+            return "user"
+
+    def get_admin_dashboard_data(self, current_year, current_term):
+        """Get dashboard data for administrators"""
+        data = {}
+
+        if current_year and current_term:
+            # Financial summary
+            financial_analytics = FinancialAnalytics.objects.filter(
+                academic_year=current_year, term=current_term
+            ).aggregate(
+                total_expected=Sum("total_expected_revenue"),
+                total_collected=Sum("total_collected_revenue"),
+                avg_collection_rate=Avg("collection_rate"),
             )
 
-            children_data = []
-            for child in children:
-                # Get attendance statistics
-                thirty_days_ago = timezone.now().date() - timedelta(days=30)
-                attendance_records = Attendance.objects.filter(
-                    student=child, date__gte=thirty_days_ago
-                )
-                present_count = attendance_records.filter(status="Present").count()
-                absent_count = attendance_records.filter(status="Absent").count()
-                late_count = attendance_records.filter(status="Late").count()
-                total_days = present_count + absent_count + late_count
+            data["financial_summary"] = financial_analytics
 
-                # Calculate attendance percentage
-                attendance_percentage = (
-                    (present_count / total_days * 100) if total_days > 0 else 0
-                )
-
-                # Get recent exam results
-                recent_exams = (
-                    ExamResult.objects.filter(student=child)
-                    .select_related("exam_schedule", "exam_schedule__subject")
-                    .order_by("-entry_date")[:3]
-                )
-
-                # Calculate average marks
-                all_exams = ExamResult.objects.filter(student=child)
-                avg_percentage = (
-                    all_exams.aggregate(Avg("percentage"))["percentage__avg"] or 0
-                )
-
-                children_data.append(
-                    {
-                        "student": child,
-                        "attendance": {
-                            "present": present_count,
-                            "absent": absent_count,
-                            "late": late_count,
-                            "percentage": round(attendance_percentage, 2),
-                        },
-                        "recent_exams": recent_exams,
-                        "avg_percentage": round(avg_percentage, 2),
-                    }
-                )
-
-            # Fee information
-            Invoice = apps.get_model("finance", "Invoice")
-            pending_invoices = Invoice.objects.filter(
-                student__in=children_ids,
-                status__in=["unpaid", "partially_paid", "overdue"],
-            ).select_related("student", "student__user")
-        except:
-            children_data = []
-            pending_invoices = []
-
-        context.update(
-            {
-                "parent": parent,
-                "children_data": children_data,
-                "pending_invoices": pending_invoices,
-            }
-        )
-
-    elif hasattr(request.user, "student_profile"):
-        # Student dashboard with enhanced statistics
-        student = request.user.student_profile
-
-        try:
-            # Get attendance statistics
-            Attendance = apps.get_model("attendance", "Attendance")
-
-            # Monthly attendance for current academic year
-            current_year_start = (
-                current_academic_year.start_date
-                if current_academic_year
-                else timezone.now().date().replace(month=1, day=1)
+            # Performance summary
+            student_analytics = StudentPerformanceAnalytics.objects.filter(
+                academic_year=current_year, term=current_term, subject__isnull=True
+            ).aggregate(
+                avg_performance=Avg("average_marks"),
+                avg_attendance=Avg("attendance_percentage"),
             )
 
-            monthly_attendance = (
-                Attendance.objects.filter(student=student, date__gte=current_year_start)
-                .annotate(month=TruncMonth("date"))
-                .values("month", "status")
-                .annotate(count=Count("id"))
-                .order_by("month", "status")
+            data["performance_summary"] = student_analytics
+
+        # System health
+        latest_health = SystemHealthMetrics.objects.first()
+        data["system_health"] = latest_health
+
+        # Recent activity
+        recent_logs = AuditLog.objects.select_related("user").order_by("-timestamp")[
+            :10
+        ]
+        data["recent_activity"] = recent_logs
+
+        return data
+
+    def get_teacher_dashboard_data(self):
+        """Get dashboard data for teachers"""
+        teacher = self.request.user.teacher
+
+        # Get classes taught
+        from teachers.models import TeacherClassAssignment
+
+        assignments = TeacherClassAssignment.objects.filter(
+            teacher=teacher, academic_year__is_current=True
+        ).select_related("class_instance", "subject")
+
+        return {
+            "teacher_assignments": assignments,
+            "classes_count": assignments.values("class_instance").distinct().count(),
+            "subjects_count": assignments.values("subject").distinct().count(),
+        }
+
+    def get_parent_dashboard_data(self):
+        """Get dashboard data for parents"""
+        parent = self.request.user.parent
+
+        # Get children
+        from students.models import StudentParentRelation
+
+        children_relations = StudentParentRelation.objects.filter(
+            parent=parent
+        ).select_related("student__user", "student__current_class")
+
+        children_data = []
+        for relation in children_relations:
+            student = relation.student
+
+            # Get latest performance
+            latest_performance = (
+                StudentPerformanceAnalytics.objects.filter(
+                    student=student, subject__isnull=True
+                )
+                .order_by("-calculated_at")
+                .first()
             )
 
-            # Format for chart display
-            attendance_by_month = {}
-            for item in monthly_attendance:
-                month_str = item["month"].strftime("%b %Y")
-                if month_str not in attendance_by_month:
-                    attendance_by_month[month_str] = {
-                        "Present": 0,
-                        "Absent": 0,
-                        "Late": 0,
-                    }
-                attendance_by_month[month_str][item["status"]] = item["count"]
-
-            # Get academic performance data
-            ExamResult = apps.get_model("exams", "StudentExamResult")
-
-            # Get all exam results for the student
-            exam_results = (
-                ExamResult.objects.filter(student=student)
-                .select_related("exam_schedule", "exam_schedule__subject")
-                .order_by("-exam_schedule__date")
-            )
-
-            # Calculate subject-wise performance
-            subject_performance = {}
-            for result in exam_results:
-                subject_name = result.exam_schedule.subject.name
-                if subject_name not in subject_performance:
-                    subject_performance[subject_name] = {
-                        "total_exams": 0,
-                        "total_percentage": 0,
-                        "highest": 0,
-                        "lowest": 100,
-                    }
-
-                subject_performance[subject_name]["total_exams"] += 1
-                subject_performance[subject_name][
-                    "total_percentage"
-                ] += result.percentage
-                subject_performance[subject_name]["highest"] = max(
-                    subject_performance[subject_name]["highest"], result.percentage
-                )
-                subject_performance[subject_name]["lowest"] = min(
-                    subject_performance[subject_name]["lowest"], result.percentage
-                )
-
-            # Calculate averages
-            for subject in subject_performance:
-                if subject_performance[subject]["total_exams"] > 0:
-                    subject_performance[subject]["average"] = round(
-                        subject_performance[subject]["total_percentage"]
-                        / subject_performance[subject]["total_exams"],
-                        2,
-                    )
-
-            # Get assignment statistics
-            Assignment = apps.get_model("courses", "Assignment")
-            AssignmentSubmission = apps.get_model("courses", "AssignmentSubmission")
-
-            if student.current_class:
-                # Get all assignments for student's class
-                assignments = Assignment.objects.filter(class_obj=student.current_class)
-
-                # Count by status
-                completed_assignments = AssignmentSubmission.objects.filter(
-                    student=student, assignment__in=assignments
-                ).count()
-
-                pending_assignments = assignments.filter(
-                    status="published", due_date__gte=timezone.now().date()
-                ).exclude(submissions__student=student)
-
-                overdue_assignments = assignments.filter(
-                    status="published", due_date__lt=timezone.now().date()
-                ).exclude(submissions__student=student)
-
-                # Assignment statistics
-                assignment_stats = {
-                    "completed": completed_assignments,
-                    "pending": pending_assignments.count(),
-                    "overdue": overdue_assignments.count(),
-                    "total": assignments.count(),
+            children_data.append(
+                {
+                    "student": student,
+                    "relation_type": relation.relation_type,
+                    "performance": latest_performance,
                 }
-        except:
-            attendance_by_month = {}
-            exam_results = []
-            subject_performance = {}
-            assignment_stats = {"completed": 0, "pending": 0, "overdue": 0, "total": 0}
-            pending_assignments = []
-            overdue_assignments = []
+            )
 
+        return {"children": children_data, "children_count": len(children_data)}
+
+    def get_student_dashboard_data(self):
+        """Get dashboard data for students"""
+        student = self.request.user.student
+
+        # Get latest performance
+        latest_performance = (
+            StudentPerformanceAnalytics.objects.filter(
+                student=student, subject__isnull=True
+            )
+            .order_by("-calculated_at")
+            .first()
+        )
+
+        # Get recent assignments
+        from assignments.models import AssignmentSubmission
+
+        recent_assignments = (
+            AssignmentSubmission.objects.filter(student=student)
+            .select_related("assignment")
+            .order_by("-submission_date")[:5]
+        )
+
+        return {
+            "student": student,
+            "performance": latest_performance,
+            "recent_assignments": recent_assignments,
+        }
+
+
+class SystemAdminView(SystemAdminMixin, TemplateView):
+    """System administration overview"""
+
+    template_name = "core/system_admin.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # System statistics
         context.update(
             {
-                "student": student,
-                "attendance_by_month": attendance_by_month,
-                "exam_results": exam_results[:5],  # Most recent 5
-                "subject_performance": subject_performance,
-                "assignment_stats": assignment_stats,
-                "pending_assignments": pending_assignments[:5],  # Top 5 pending
-                "overdue_assignments": overdue_assignments[:5],  # Top 5 overdue
+                "total_users": User.objects.count(),
+                "active_users": User.objects.filter(is_active=True).count(),
+                "total_settings": SystemSetting.objects.count(),
+                "audit_logs_count": AuditLog.objects.count(),
             }
         )
 
-    return render(request, "dashboard.html", context)
+        # Recent system activity
+        recent_logs = (
+            AuditLog.objects.filter(
+                action__in=["create", "update", "delete", "system_action"]
+            )
+            .select_related("user")
+            .order_by("-timestamp")[:20]
+        )
+
+        context["recent_system_activity"] = recent_logs
+
+        # System health metrics
+        latest_health = SystemHealthMetrics.objects.first()
+        context["system_health"] = latest_health
+
+        return context
 
 
-@method_decorator(login_required, name="dispatch")
-class DocumentListView(ListView):
-    model = Document
-    template_name = "core/document_list.html"
-    context_object_name = "documents"
+class SystemSettingsView(SystemAdminMixin, ListView):
+    """System settings management"""
+
+    model = SystemSetting
+    template_name = "core/system_settings.html"
+    context_object_name = "settings"
     paginate_by = 20
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = SystemSetting.objects.all()
 
-        # Filter by public documents or user's own documents
-        if not self.request.user.is_staff:
-            queryset = queryset.filter(
-                Q(is_public=True) | Q(uploaded_by=self.request.user)
-            )
-
-        # Get form data
-        form = DocumentSearchForm(self.request.GET)
-
-        # Apply search if provided
-        search_query = self.request.GET.get("q")
-        if search_query:
-            queryset = queryset.filter(
-                Q(title__icontains=search_query)
-                | Q(description__icontains=search_query)
-                | Q(category__icontains=search_query)
-            )
-
-        # Filter by category if provided
+        # Filter by category
         category = self.request.GET.get("category")
         if category:
             queryset = queryset.filter(category=category)
 
-        return queryset.order_by("-upload_date")
+        # Search
+        search = self.request.GET.get("search")
+        if search:
+            queryset = queryset.filter(
+                Q(setting_key__icontains=search) | Q(description__icontains=search)
+            )
+
+        return queryset.order_by("category", "setting_key")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["form"] = DocumentSearchForm(self.request.GET)
+
+        # Get categories for filter
+        categories = (
+            SystemSetting.objects.values_list("category", flat=True)
+            .distinct()
+            .order_by("category")
+        )
+
+        context["categories"] = categories
+        context["current_category"] = self.request.GET.get("category", "")
+        context["search_query"] = self.request.GET.get("search", "")
+
         return context
 
 
-@method_decorator(login_required, name="dispatch")
-class DocumentDetailView(DetailView):
-    model = Document
-    template_name = "core/document_detail.html"
-    context_object_name = "document"
+class SystemSettingEditView(SystemAdminMixin, UpdateView):
+    """Edit system setting"""
 
-    def get_object(self):
-        obj = super().get_object()
-        # Check access permissions
-        if (
-            not obj.is_public
-            and obj.uploaded_by != self.request.user
-            and not self.request.user.is_staff
-        ):
-            raise PermissionDenied
-        return obj
-
-
-@method_decorator(login_required, name="dispatch")
-class DocumentCreateView(CreateView):
-    model = Document
-    form_class = DocumentForm
-    template_name = "core/document_form.html"
-    success_url = reverse_lazy("core:document_list")
-
-    def form_valid(self, form):
-        form.instance.uploaded_by = self.request.user
-
-        # Set file type based on uploaded file
-        file = form.cleaned_data.get("file_path")
-        if file:
-            form.instance.file_type = file.name.split(".")[-1].lower()
-
-        messages.success(self.request, "Document uploaded successfully.")
-        return super().form_valid(form)
-
-
-@method_decorator(login_required, name="dispatch")
-class DocumentUpdateView(UpdateView):
-    model = Document
-    form_class = DocumentForm
-    template_name = "core/document_form.html"
-    success_url = reverse_lazy("core:document_list")
-
-    def get_queryset(self):
-        # Only allow users to edit their own documents or staff to edit any
-        if self.request.user.is_staff:
-            return Document.objects.all()
-        return Document.objects.filter(uploaded_by=self.request.user)
-
-    def form_valid(self, form):
-        messages.success(self.request, "Document updated successfully.")
-        return super().form_valid(form)
-
-
-@method_decorator(login_required, name="dispatch")
-class DocumentDeleteView(DeleteView):
-    model = Document
-    template_name = "core/document_confirm_delete.html"
-    success_url = reverse_lazy("core:document_list")
-
-    def get_queryset(self):
-        # Only allow users to delete their own documents or staff to delete any
-        if self.request.user.is_staff:
-            return Document.objects.all()
-        return Document.objects.filter(uploaded_by=self.request.user)
-
-    def delete(self, request, *args, **kwargs):
-        messages.success(request, "Document deleted successfully.")
-        return super().delete(request, *args, **kwargs)
-
-
-@method_decorator(login_required, name="dispatch")
-@method_decorator(role_required("Admin"), name="dispatch")
-class SystemSettingListView(ListView):
-    model = SystemSetting
-    template_name = "core/system_setting_list.html"
-    context_object_name = "settings"
-
-    def get_queryset(self):
-        return SystemSetting.objects.filter(is_editable=True).order_by("setting_key")
-
-
-@method_decorator(login_required, name="dispatch")
-@method_decorator(role_required("Admin"), name="dispatch")
-class SystemSettingUpdateView(UpdateView):
     model = SystemSetting
     form_class = SystemSettingForm
-    template_name = "core/system_setting_form.html"
-    success_url = reverse_lazy("core:system_setting_list")
-
-    def get_queryset(self):
-        return SystemSetting.objects.filter(is_editable=True)
+    template_name = "core/system_setting_edit.html"
 
     def form_valid(self, form):
-        messages.success(
-            self.request,
-            f"System setting '{self.object.setting_key}' updated successfully.",
+        # Track changes for audit
+        old_value = self.object.get_typed_value()
+
+        response = super().form_valid(form)
+
+        # Log the change
+        AuditService.log_action(
+            user=self.request.user,
+            action="update",
+            content_object=self.object,
+            description=f"Updated system setting: {self.object.setting_key}",
+            data_before={"value": old_value},
+            data_after={"value": self.object.get_typed_value()},
+            ip_address=self.request.META.get("REMOTE_ADDR"),
+            user_agent=self.request.META.get("HTTP_USER_AGENT", ""),
+            module_name="core",
         )
-        return super().form_valid(form)
+
+        messages.success(
+            self.request, f"Setting '{self.object.setting_key}' updated successfully."
+        )
+
+        return response
+
+    def get_success_url(self):
+        return reverse("core:settings")
 
 
-@login_required
-@role_required("Admin")
-def system_maintenance_toggle(request):
-    """Toggle maintenance mode."""
-    from .services import SystemSettingService
+class AuditLogsView(SystemAdminMixin, ListView):
+    """Audit logs view"""
 
-    current_state = get_system_setting("maintenance_mode", False)
-    new_state = not current_state
+    model = AuditLog
+    template_name = "core/audit_logs.html"
+    context_object_name = "logs"
+    paginate_by = 50
 
-    success, message = SystemSettingService.update_setting(
-        "maintenance_mode", new_state
-    )
+    def get_queryset(self):
+        queryset = AuditLog.objects.select_related("user", "content_type")
 
-    if success:
-        status_message = "enabled" if new_state else "disabled"
-        messages.success(request, f"Maintenance mode {status_message} successfully.")
-    else:
-        messages.error(request, f"Failed to update maintenance mode: {message}")
-
-    return redirect("core:system_setting_list")
-
-
-@login_required
-@role_required("Admin")
-def audit_log_view(request):
-    """View system audit logs with filtering."""
-    # Initialize queryset
-    queryset = AuditLog.objects.select_related("user").order_by("-timestamp")
-
-    # Create and populate form
-    form = AuditLogSearchForm(request.GET)
-
-    # Apply filters if form is valid
-    if form.is_valid():
         # Filter by user
-        user_filter = form.cleaned_data.get("user")
-        if user_filter:
-            queryset = queryset.filter(
-                Q(user__username__icontains=user_filter)
-                | Q(user__first_name__icontains=user_filter)
-                | Q(user__last_name__icontains=user_filter)
-            )
+        user_id = self.request.GET.get("user")
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
 
         # Filter by action
-        action_filter = form.cleaned_data.get("action")
-        if action_filter:
-            queryset = queryset.filter(action=action_filter)
+        action = self.request.GET.get("action")
+        if action:
+            queryset = queryset.filter(action=action)
 
-        # Filter by entity type
-        entity_type_filter = form.cleaned_data.get("entity_type")
-        if entity_type_filter:
-            queryset = queryset.filter(entity_type__icontains=entity_type_filter)
+        # Filter by module
+        module = self.request.GET.get("module")
+        if module:
+            queryset = queryset.filter(module_name=module)
 
         # Filter by date range
-        date_from = form.cleaned_data.get("date_from")
-        if date_from:
-            queryset = queryset.filter(timestamp__date__gte=date_from)
+        start_date = self.request.GET.get("start_date")
+        end_date = self.request.GET.get("end_date")
 
-        date_to = form.cleaned_data.get("date_to")
-        if date_to:
-            queryset = queryset.filter(timestamp__date__lte=date_to)
+        if start_date:
+            try:
+                start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+                queryset = queryset.filter(timestamp__gte=start_dt)
+            except ValueError:
+                pass
 
-    # Paginate results
-    paginator = Paginator(queryset, 30)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
+        if end_date:
+            try:
+                end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+                end_dt = end_dt.replace(hour=23, minute=59, second=59)
+                queryset = queryset.filter(timestamp__lte=end_dt)
+            except ValueError:
+                pass
 
-    context = {
-        "form": form,
-        "page_obj": page_obj,
-        "audit_logs": page_obj.object_list,
-    }
+        return queryset.order_by("-timestamp")
 
-    # Handle export if requested
-    if "export" in request.GET:
-        return export_audit_logs(request, queryset)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
 
-    return render(request, "core/audit_log.html", context)
-
-
-def export_audit_logs(request, queryset):
-    """Export audit logs to CSV."""
-    response = HttpResponse(content_type="text/csv")
-    response["Content-Disposition"] = 'attachment; filename="audit_logs.csv"'
-
-    writer = csv.writer(response)
-    writer.writerow(
-        ["Timestamp", "User", "Action", "Entity Type", "Entity ID", "IP Address"]
-    )
-
-    for log in queryset:
-        writer.writerow(
-            [
-                log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-                log.user.username if log.user else "System",
-                log.action,
-                log.entity_type,
-                log.entity_id or "",
-                log.ip_address or "",
-            ]
+        # Get filter options
+        context["actions"] = (
+            AuditLog.objects.values_list("action", flat=True)
+            .distinct()
+            .order_by("action")
         )
 
-    return response
+        context["modules"] = (
+            AuditLog.objects.values_list("module_name", flat=True)
+            .distinct()
+            .order_by("module_name")
+        )
+
+        # Current filters
+        context["current_filters"] = {
+            "user": self.request.GET.get("user", ""),
+            "action": self.request.GET.get("action", ""),
+            "module": self.request.GET.get("module", ""),
+            "start_date": self.request.GET.get("start_date", ""),
+            "end_date": self.request.GET.get("end_date", ""),
+        }
+
+        return context
 
 
-@login_required
-@role_required("Admin")
-def system_info_view(request):
-    """View system information including versions, environment, etc."""
-    import platform
-    import sys
+class SystemHealthView(SystemAdminMixin, TemplateView):
+    """System health monitoring"""
 
-    import django
+    template_name = "core/system_health.html"
 
-    context = {
-        "python_version": platform.python_version(),
-        "django_version": django.get_version(),
-        "system_platform": platform.platform(),
-        "system_node": platform.node(),
-        "system_time": timezone.now(),
-    }
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
 
-    # Get installed apps
-    context["installed_apps"] = [app.name for app in apps.get_app_configs()]
+        # Latest health metrics
+        latest_health = SystemHealthMetrics.objects.first()
+        context["latest_health"] = latest_health
 
-    # Get database info
-    from django.db import connection
+        # Health metrics over time (last 24 hours)
+        twenty_four_hours_ago = timezone.now() - timedelta(hours=24)
+        health_history = SystemHealthMetrics.objects.filter(
+            timestamp__gte=twenty_four_hours_ago
+        ).order_by("timestamp")
 
-    db_info = connection.settings_dict
-    context["database_engine"] = db_info["ENGINE"].split(".")[-1]
-    context["database_name"] = db_info["NAME"]
+        context["health_history"] = health_history
 
-    return render(request, "core/system_info.html", context)
+        # System status indicators
+        if latest_health:
+            context["system_status"] = {
+                "overall": self.get_overall_status(latest_health),
+                "database": self.get_database_status(latest_health),
+                "cache": self.get_cache_status(latest_health),
+                "storage": self.get_storage_status(latest_health),
+                "performance": self.get_performance_status(latest_health),
+            }
+
+        return context
+
+    def get_overall_status(self, health):
+        """Determine overall system status"""
+        if (
+            health.avg_response_time_ms < 500
+            and health.error_rate < 1
+            and health.cache_hit_rate > 80
+        ):
+            return "healthy"
+        elif health.error_rate > 5 or health.avg_response_time_ms > 2000:
+            return "critical"
+        else:
+            return "warning"
+
+    def get_database_status(self, health):
+        """Determine database status"""
+        if health.avg_query_time_ms < 100:
+            return "healthy"
+        elif health.avg_query_time_ms < 500:
+            return "warning"
+        else:
+            return "critical"
+
+    def get_cache_status(self, health):
+        """Determine cache status"""
+        if health.cache_hit_rate > 80:
+            return "healthy"
+        elif health.cache_hit_rate > 60:
+            return "warning"
+        else:
+            return "critical"
+
+    def get_storage_status(self, health):
+        """Determine storage status"""
+        total_storage = health.storage_used_gb + health.storage_available_gb
+        if total_storage > 0:
+            usage_percentage = (health.storage_used_gb / total_storage) * 100
+            if usage_percentage < 70:
+                return "healthy"
+            elif usage_percentage < 85:
+                return "warning"
+            else:
+                return "critical"
+        return "unknown"
+
+    def get_performance_status(self, health):
+        """Determine performance status"""
+        if health.avg_response_time_ms < 300:
+            return "healthy"
+        elif health.avg_response_time_ms < 1000:
+            return "warning"
+        else:
+            return "critical"
+
+
+class AnalyticsView(SchoolAdminMixin, TemplateView):
+    """Analytics overview"""
+
+    template_name = "core/analytics.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get current academic year and term
+        from academics.models import AcademicYear, Term
+
+        current_year = AcademicYear.objects.filter(is_current=True).first()
+        current_term = Term.objects.filter(is_current=True).first()
+
+        context["current_academic_year"] = current_year
+        context["current_term"] = current_term
+
+        if current_year and current_term:
+            # Analytics summary
+            context["analytics_summary"] = self.get_analytics_summary(
+                current_year, current_term
+            )
+
+        return context
+
+    def get_analytics_summary(self, academic_year, term):
+        """Get analytics summary data"""
+        summary = {}
+
+        # Student performance
+        student_analytics = StudentPerformanceAnalytics.objects.filter(
+            academic_year=academic_year, term=term, subject__isnull=True
+        )
+
+        summary["student_performance"] = {
+            "total_students": student_analytics.count(),
+            "avg_marks": student_analytics.aggregate(avg=Avg("average_marks"))["avg"]
+            or 0,
+            "avg_attendance": student_analytics.aggregate(
+                avg=Avg("attendance_percentage")
+            )["avg"]
+            or 0,
+        }
+
+        # Class performance
+        class_analytics = ClassPerformanceAnalytics.objects.filter(
+            academic_year=academic_year, term=term, subject__isnull=True
+        )
+
+        summary["class_performance"] = {
+            "total_classes": class_analytics.count(),
+            "avg_class_performance": class_analytics.aggregate(
+                avg=Avg("class_average")
+            )["avg"]
+            or 0,
+            "avg_pass_rate": class_analytics.aggregate(avg=Avg("pass_rate"))["avg"]
+            or 0,
+        }
+
+        # Financial analytics
+        financial_analytics = FinancialAnalytics.objects.filter(
+            academic_year=academic_year, term=term
+        )
+
+        summary["financial"] = {
+            "total_expected": financial_analytics.aggregate(
+                sum=Sum("total_expected_revenue")
+            )["sum"]
+            or 0,
+            "total_collected": financial_analytics.aggregate(
+                sum=Sum("total_collected_revenue")
+            )["sum"]
+            or 0,
+            "avg_collection_rate": financial_analytics.aggregate(
+                avg=Avg("collection_rate")
+            )["avg"]
+            or 0,
+        }
+
+        return summary
+
+
+class StudentAnalyticsView(SchoolAdminMixin, ListView):
+    """Student analytics view"""
+
+    model = StudentPerformanceAnalytics
+    template_name = "core/student_analytics.html"
+    context_object_name = "analytics"
+    paginate_by = 20
+
+    def get_queryset(self):
+        queryset = StudentPerformanceAnalytics.objects.select_related(
+            "student__user",
+            "student__current_class",
+            "academic_year",
+            "term",
+            "subject",
+        )
+
+        # Filter by academic year and term
+        academic_year_id = self.request.GET.get("academic_year")
+        term_id = self.request.GET.get("term")
+
+        if academic_year_id:
+            queryset = queryset.filter(academic_year_id=academic_year_id)
+
+        if term_id:
+            queryset = queryset.filter(term_id=term_id)
+
+        # Filter by subject (or overall performance)
+        subject_id = self.request.GET.get("subject")
+        if subject_id == "overall":
+            queryset = queryset.filter(subject__isnull=True)
+        elif subject_id:
+            queryset = queryset.filter(subject_id=subject_id)
+
+        return queryset.order_by("-average_marks")
+
+
+class UserManagementView(SystemAdminMixin, ListView):
+    """User management view"""
+
+    model = User
+    template_name = "core/user_management.html"
+    context_object_name = "users"
+    paginate_by = 20
+
+    def get_queryset(self):
+        queryset = User.objects.select_related().prefetch_related("groups")
+
+        # Search functionality
+        search = self.request.GET.get("search")
+        if search:
+            queryset = queryset.filter(
+                Q(username__icontains=search)
+                | Q(first_name__icontains=search)
+                | Q(last_name__icontains=search)
+                | Q(email__icontains=search)
+            )
+
+        # Filter by role
+        role = self.request.GET.get("role")
+        if role == "teacher":
+            queryset = queryset.filter(teacher__isnull=False)
+        elif role == "parent":
+            queryset = queryset.filter(parent__isnull=False)
+        elif role == "student":
+            queryset = queryset.filter(student__isnull=False)
+        elif role == "admin":
+            queryset = queryset.filter(
+                Q(is_superuser=True)
+                | Q(groups__name__in=["System Administrators", "School Administrators"])
+            )
+
+        # Filter by status
+        status = self.request.GET.get("status")
+        if status == "active":
+            queryset = queryset.filter(is_active=True)
+        elif status == "inactive":
+            queryset = queryset.filter(is_active=False)
+
+        return queryset.distinct().order_by("-date_joined")
+
+
+class UserDetailView(SystemAdminMixin, DetailView):
+    """User detail view"""
+
+    model = User
+    template_name = "core/user_detail.html"
+    context_object_name = "user_obj"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        user = self.object
+
+        # User's roles
+        context["user_roles"] = self.get_user_roles(user)
+
+        # Recent activity
+        recent_activity = AuditLog.objects.filter(user=user).order_by("-timestamp")[:20]
+        context["recent_activity"] = recent_activity
+
+        # Related objects
+        if hasattr(user, "student"):
+            context["student"] = user.student
+        if hasattr(user, "teacher"):
+            context["teacher"] = user.teacher
+        if hasattr(user, "parent"):
+            context["parent"] = user.parent
+
+        return context
+
+    def get_user_roles(self, user):
+        """Get user's roles"""
+        roles = []
+
+        if user.is_superuser:
+            roles.append("Superuser")
+
+        for group in user.groups.all():
+            roles.append(group.name)
+
+        if hasattr(user, "teacher"):
+            roles.append("Teacher")
+        if hasattr(user, "parent"):
+            roles.append("Parent")
+        if hasattr(user, "student"):
+            roles.append("Student")
+
+        return roles
+
+
+class UserActivityView(SystemAdminMixin, TemplateView):
+    """User activity view"""
+
+    template_name = "core/user_activity.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        user = get_object_or_404(User, pk=kwargs["pk"])
+        context["user_obj"] = user
+
+        # Get activity logs
+        days = int(self.request.GET.get("days", 30))
+        logs = AuditService.get_user_activity(user, days)
+
+        # Paginate logs
+        paginator = Paginator(logs, 50)
+        page_number = self.request.GET.get("page")
+        page_obj = paginator.get_page(page_number)
+
+        context["logs"] = page_obj
+        context["days"] = days
+
+        # Activity summary
+        context["activity_summary"] = {
+            "total_actions": logs.count(),
+            "most_common_action": logs.values("action")
+            .annotate(count=Count("id"))
+            .order_by("-count")
+            .first(),
+            "modules_accessed": logs.values_list("module_name", flat=True)
+            .distinct()
+            .count(),
+        }
+
+        return context

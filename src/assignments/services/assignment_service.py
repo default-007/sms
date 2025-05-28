@@ -7,11 +7,10 @@ from django.db import transaction
 from django.db.models import Avg, Count, Max, Min, Q
 from django.utils import timezone
 
-from academics.models import Class, Term
-from communications.services.notification_service import NotificationService
-from students.models import Student
-from subjects.models import Subject
-from teachers.models import Teacher
+from src.academics.models import Class, Term
+from src.students.models import Student
+from src.subjects.models import Subject
+from src.teachers.models import Teacher
 
 from ..models import (
     Assignment,

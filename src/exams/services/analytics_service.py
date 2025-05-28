@@ -25,9 +25,9 @@ from django.db.models import (
 from django.forms import CharField
 from django.utils import timezone
 
-from academics.models import AcademicYear, Class, Grade, Section, Term
-from students.models import Student
-from teachers.models import Teacher
+from src.academics.models import AcademicYear, Class, Grade, Section, Term
+from src.students.models import Student
+from src.teachers.models import Teacher
 
 from ..models import (
     Exam,

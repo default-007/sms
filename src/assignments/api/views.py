@@ -10,9 +10,13 @@ from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
-from api.filters import AssignmentFilter, SubmissionFilter
-from api.paginations import StandardResultsSetPagination
-from api.permissions import IsStudentOwnerOrTeacher, IsTeacherOrReadOnly
+# from src.api.filters import AssignmentFilter, SubmissionFilter
+from src.api.permissions import IsTeacherOrReadOnly
+from src.assignments.filters import AssignmentFilter
+from src.subjects.api.views import StandardResultsSetPagination
+
+# from src.api.paginations import StandardResultsSetPagination
+# from src.api.permissions import IsStudentOwnerOrTeacher, IsTeacherOrReadOnly
 
 from ..models import (
     Assignment,
@@ -324,7 +328,7 @@ class AssignmentSubmissionViewSet(viewsets.ModelViewSet):
         "graded_by__user",
     ).prefetch_related("rubric_grades__rubric")
 
-    permission_classes = [permissions.IsAuthenticated, IsStudentOwnerOrTeacher]
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_class = SubmissionFilter
     pagination_class = StandardResultsSetPagination

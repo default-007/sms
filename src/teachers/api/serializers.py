@@ -7,9 +7,11 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from src.accounts.api.serializers import UserBasicSerializer
-from src.courses.models import AcademicYear, Class, Department, Subject
+# from src.accounts.api.serializers import UserBasicSerializer
+from src.accounts.api.serializers import UserProfileSerializer
+from src.academics.models import AcademicYear, Class, Department
 from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
+from src.subjects.models import Subject
 
 User = get_user_model()
 
@@ -69,7 +71,7 @@ class TeacherListSerializer(serializers.ModelSerializer):
 class TeacherDetailSerializer(serializers.ModelSerializer):
     """Detailed teacher serializer with all information."""
 
-    user = UserBasicSerializer(read_only=True)
+    user = UserProfileSerializer(read_only=True)
     department = DepartmentSerializer(read_only=True)
     full_name = serializers.SerializerMethodField()
     years_of_service = serializers.SerializerMethodField()
@@ -392,7 +394,7 @@ class TeacherEvaluationDetailSerializer(serializers.ModelSerializer):
     """Detailed evaluation serializer."""
 
     teacher = TeacherListSerializer(read_only=True)
-    evaluator = UserBasicSerializer(read_only=True)
+    evaluator = UserProfileSerializer(read_only=True)
     performance_level = serializers.SerializerMethodField()
     is_followup_required = serializers.SerializerMethodField()
     is_followup_overdue = serializers.SerializerMethodField()

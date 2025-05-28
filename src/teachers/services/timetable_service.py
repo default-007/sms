@@ -7,7 +7,8 @@ from django.http import HttpResponse
 from django.template.loader import get_template
 from xhtml2pdf import pisa
 
-from src.courses.models import AcademicYear
+from src.academics.models import AcademicYear
+from src.scheduling.models import Timetable
 
 
 class TimetableService:
@@ -58,7 +59,6 @@ class TimetableService:
     @staticmethod
     def get_teacher_availability(teacher, date=None):
         """Get teacher availability for a specific date or current day."""
-        from src.courses.models import Timetable
 
         if date is None:
             date = datetime.now().date()

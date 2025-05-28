@@ -3,7 +3,7 @@ from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
-from communications.models import Notification
+from src.communications.models import Notification
 
 from .models import (
     Exam,

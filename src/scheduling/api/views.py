@@ -9,10 +9,10 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from academics.models import Class, Grade, Term
-from api.permissions import HasModulePermission
-from subjects.models import Subject
-from teachers.models import Teacher
+from src.academics.models import Class, Grade, Term
+from src.api.permissions import HasModulePermission
+from src.subjects.models import Subject
+from src.teachers.models import Teacher
 
 from ..models import (
     Room,

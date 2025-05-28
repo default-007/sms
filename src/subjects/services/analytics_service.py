@@ -6,8 +6,8 @@ from django.db.models import Avg, Case, Count, F, Q, QuerySet, Sum, Value, When
 from django.db.models.functions import Coalesce, Round
 from django.utils.translation import gettext_lazy as _
 
-from academics.models import AcademicYear, Class, Department, Grade, Term
-from teachers.models import Teacher
+from src.academics.models import AcademicYear, Class, Department, Grade, Term
+from src.teachers.models import Teacher
 
 from ..models import Subject, SubjectAssignment, Syllabus, TopicProgress
 

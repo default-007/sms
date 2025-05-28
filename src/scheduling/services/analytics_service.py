@@ -5,9 +5,9 @@ from typing import Dict, List, Optional, Tuple
 from django.db.models import Avg, Count, F, Q
 from django.db.models.functions import TruncDate
 
-from academics.models import Class, Grade, Term
-from subjects.models import Subject
-from teachers.models import Teacher
+from src.academics.models import Class, Grade, Term
+from src.subjects.models import Subject
+from src.teachers.models import Teacher
 
 from ..models import Room, SubstituteTeacher, TimeSlot, Timetable
 

@@ -10,9 +10,10 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from src.academics.models import AcademicYear
 from src.api.filters import TeacherFilter
-from src.api.permissions import TeacherModulePermissions
-from src.courses.models import AcademicYear, Department
+
+# from src.api.permissions import TeacherModulePermissions
 from src.teachers.api.serializers import (
     TeacherAnalyticsSerializer,
     TeacherClassAssignmentCreateSerializer,
@@ -45,7 +46,9 @@ class TeacherListCreateAPIView(generics.ListCreateAPIView):
     queryset = Teacher.objects.select_related("user", "department").order_by(
         "employee_id"
     )
-    permission_classes = [IsAuthenticated, TeacherModulePermissions]
+    permission_classes = [
+        IsAuthenticated,
+    ]
     pagination_class = StandardResultsSetPagination
     filter_backends = [
         DjangoFilterBackend,
@@ -135,7 +138,9 @@ class TeacherRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView)
     """Retrieve, update or delete a teacher."""
 
     queryset = Teacher.objects.select_related("user", "department")
-    permission_classes = [IsAuthenticated, TeacherModulePermissions]
+    permission_classes = [
+        IsAuthenticated,
+    ]
 
     def get_serializer_class(self):
         if self.request.method in ["PUT", "PATCH"]:
@@ -195,7 +200,9 @@ class TeacherRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView)
 class TeacherClassAssignmentListCreateAPIView(generics.ListCreateAPIView):
     """List or create teacher class assignments."""
 
-    permission_classes = [IsAuthenticated, TeacherModulePermissions]
+    permission_classes = [
+        IsAuthenticated,
+    ]
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["teacher", "academic_year", "subject", "is_class_teacher"]
@@ -250,7 +257,9 @@ class TeacherClassAssignmentDetailAPIView(generics.RetrieveUpdateDestroyAPIView)
     queryset = TeacherClassAssignment.objects.select_related(
         "teacher", "teacher__user", "class_instance", "subject", "academic_year"
     )
-    permission_classes = [IsAuthenticated, TeacherModulePermissions]
+    permission_classes = [
+        IsAuthenticated,
+    ]
 
     def get_serializer_class(self):
         if self.request.method in ["PUT", "PATCH"]:
@@ -261,7 +270,9 @@ class TeacherClassAssignmentDetailAPIView(generics.RetrieveUpdateDestroyAPIView)
 class TeacherEvaluationListCreateAPIView(generics.ListCreateAPIView):
     """List or create teacher evaluations."""
 
-    permission_classes = [IsAuthenticated, TeacherModulePermissions]
+    permission_classes = [
+        IsAuthenticated,
+    ]
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ["teacher", "status", "evaluator"]
@@ -322,11 +333,17 @@ class TeacherEvaluationDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
         "teacher", "teacher__user", "evaluator"
     )
     serializer_class = TeacherEvaluationDetailSerializer
-    permission_classes = [IsAuthenticated, TeacherModulePermissions]
+    permission_classes = [
+        IsAuthenticated,
+    ]
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated, TeacherModulePermissions])
+@permission_classes(
+    [
+        IsAuthenticated,
+    ]
+)
 def teacher_analytics_overview(request):
     """Get comprehensive teacher analytics overview."""
 
@@ -373,7 +390,11 @@ def teacher_analytics_overview(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated, TeacherModulePermissions])
+@permission_classes(
+    [
+        IsAuthenticated,
+    ]
+)
 def teacher_performance_analysis(request, teacher_id):
     """Get detailed performance analysis for a specific teacher."""
 
@@ -405,7 +426,11 @@ def teacher_performance_analysis(request, teacher_id):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated, TeacherModulePermissions])
+@permission_classes(
+    [
+        IsAuthenticated,
+    ]
+)
 def teacher_workload_analysis(request):
     """Get teacher workload analysis."""
 
@@ -427,7 +452,7 @@ def teacher_workload_analysis(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated, TeacherModulePermissions])
+@permission_classes([IsAuthenticated])
 def evaluation_criteria_analysis(request):
     """Get detailed analysis of evaluation criteria."""
 
@@ -454,7 +479,7 @@ def evaluation_criteria_analysis(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated, TeacherModulePermissions])
+@permission_classes([IsAuthenticated])
 def teacher_dashboard_metrics(request):
     """Get key metrics for teacher dashboard."""
 
@@ -477,7 +502,7 @@ def teacher_dashboard_metrics(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated, TeacherModulePermissions])
+@permission_classes([IsAuthenticated])
 def evaluation_trends(request):
     """Get evaluation trends over time."""
 
@@ -498,7 +523,11 @@ def evaluation_trends(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated, TeacherModulePermissions])
+@permission_classes(
+    [
+        IsAuthenticated,
+    ]
+)
 def teacher_timetable(request, teacher_id):
     """Get teacher's timetable."""
 
@@ -532,7 +561,7 @@ def teacher_timetable(request, teacher_id):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated, TeacherModulePermissions])
+@permission_classes([IsAuthenticated])
 def teacher_student_correlation(request):
     """Get correlation between teacher performance and student outcomes."""
 
@@ -559,7 +588,7 @@ def teacher_student_correlation(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated, TeacherModulePermissions])
+@permission_classes([IsAuthenticated])
 def retention_analysis(request):
     """Get teacher retention analysis."""
 
@@ -568,7 +597,7 @@ def retention_analysis(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated, TeacherModulePermissions])
+@permission_classes([IsAuthenticated])
 def hiring_analysis(request):
     """Get teacher hiring analysis."""
 
@@ -622,7 +651,7 @@ def update_teacher_profile(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, TeacherModulePermissions])
+@permission_classes([IsAuthenticated])
 def bulk_assign_teachers(request):
     """Bulk assign teachers to classes and subjects."""
 
@@ -658,7 +687,7 @@ def bulk_assign_teachers(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated, TeacherModulePermissions])
+@permission_classes([IsAuthenticated])
 def teacher_search(request):
     """Advanced teacher search with multiple criteria."""
 

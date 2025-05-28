@@ -9,6 +9,8 @@ import re
 import hashlib
 import secrets
 import string
+import random
+import uuid
 from typing import Any, Dict, List, Optional, Union
 import logging
 
@@ -70,6 +72,242 @@ class ValidationUtils:
             return 0 <= marks <= max_val
         except (ValueError, TypeError):
             return False
+
+
+class IDUtils:
+    """Utility class for ID generation functions"""
+
+    # Characters to avoid confusion (no 0, O, 1, I, l)
+    SAFE_CHARS = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
+
+    @staticmethod
+    def generate_unique_id(length: int = 6, prefix: str = "", suffix: str = "") -> str:
+        """
+        Generate a unique alphanumeric ID
+
+        Args:
+            length: Length of the random part
+            prefix: Optional prefix
+            suffix: Optional suffix
+
+        Returns:
+            Unique ID string
+        """
+        # Generate random part using safe characters
+        random_part = "".join(random.choices(IDUtils.SAFE_CHARS, k=length))
+
+        # Combine parts
+        unique_id = f"{prefix}{random_part}{suffix}"
+
+        return unique_id
+
+    @staticmethod
+    def generate_sequential_id(sequence_number: int, length: int = 6) -> str:
+        """
+        Generate ID with zero-padded sequence number
+
+        Args:
+            sequence_number: The sequence number
+            length: Total length including padding
+
+        Returns:
+            Zero-padded sequential ID
+        """
+        return str(sequence_number).zfill(length)
+
+    @staticmethod
+    def generate_uuid_short(length: int = 8) -> str:
+        """
+        Generate short UUID-based ID
+
+        Args:
+            length: Length of the ID (max 32)
+
+        Returns:
+            Short UUID string
+        """
+        uuid_str = str(uuid.uuid4()).replace("-", "").upper()
+        return uuid_str[: min(length, 32)]
+
+    @staticmethod
+    def generate_timestamp_id(length: int = 6) -> str:
+        """
+        Generate ID based on timestamp
+
+        Args:
+            length: Length of random suffix
+
+        Returns:
+            Timestamp-based ID
+        """
+        timestamp = int(datetime.now().timestamp() * 1000) % 1000000  # Last 6 digits
+        random_suffix = "".join(random.choices(IDUtils.SAFE_CHARS, k=length))
+        return f"{timestamp}{random_suffix}"
+
+    @staticmethod
+    def generate_checksum_id(base_data: str, length: int = 6) -> str:
+        """
+        Generate ID with checksum for validation
+
+        Args:
+            base_data: Base data to generate checksum from
+            length: Length of the random part
+
+        Returns:
+            ID with checksum
+        """
+        import hashlib
+
+        # Generate random part
+        random_part = "".join(random.choices(IDUtils.SAFE_CHARS, k=length - 1))
+
+        # Calculate checksum
+        checksum_data = f"{base_data}{random_part}"
+        checksum = sum(ord(c) for c in checksum_data) % len(IDUtils.SAFE_CHARS)
+        checksum_char = IDUtils.SAFE_CHARS[checksum]
+
+        return f"{random_part}{checksum_char}"
+
+
+# Add this function at module level for backward compatibility
+def generate_unique_id(length: int = 6, prefix: str = "", suffix: str = "") -> str:
+    """
+    Generate a unique alphanumeric ID (backward compatibility function)
+
+    Args:
+        length: Length of the random part (default: 6)
+        prefix: Optional prefix
+        suffix: Optional suffix
+
+    Returns:
+        Unique ID string
+
+    Example:
+        generate_unique_id(6) -> "A3F9K2"
+        generate_unique_id(4, "STU-") -> "STU-B7M9"
+    """
+    return IDUtils.generate_unique_id(length, prefix, suffix)
+
+
+# Alternative implementations for different use cases
+
+
+def generate_student_registration_id(admission_year: int, sequence: int = None) -> str:
+    """
+    Generate student registration ID optimized for school use
+
+    Args:
+        admission_year: Year of admission
+        sequence: Optional sequence number
+
+    Returns:
+        Student registration ID
+
+    Example:
+        generate_student_registration_id(2024) -> "STU-2024-A3F9K2"
+        generate_student_registration_id(2024, 123) -> "STU-2024-000123"
+    """
+    if sequence is not None:
+        return f"STU-{admission_year}-{str(sequence).zfill(6)}"
+    else:
+        random_id = generate_unique_id(6)
+        return f"STU-{admission_year}-{random_id}"
+
+
+def generate_employee_id(department_code: str = "EMP") -> str:
+    """
+    Generate employee ID
+
+    Args:
+        department_code: Department code (default: "EMP")
+
+    Returns:
+        Employee ID
+
+    Example:
+        generate_employee_id("TCH") -> "TCH-A3F9K2"
+    """
+    return f"{department_code}-{generate_unique_id(6)}"
+
+
+def generate_invoice_number(year: int = None) -> str:
+    """
+    Generate invoice number
+
+    Args:
+        year: Year for invoice (default: current year)
+
+    Returns:
+        Invoice number
+
+    Example:
+        generate_invoice_number(2024) -> "INV-2024-A3F9K2"
+    """
+    if year is None:
+        year = datetime.now().year
+
+    return f"INV-{year}-{generate_unique_id(8)}"
+
+
+# Enhanced version with database uniqueness check
+def generate_unique_id_with_db_check(
+    model_class,
+    field_name: str,
+    length: int = 6,
+    prefix: str = "",
+    suffix: str = "",
+    max_attempts: int = 10,
+) -> str:
+    """
+    Generate unique ID with database uniqueness verification
+
+    Args:
+        model_class: Django model class to check against
+        field_name: Field name to check for uniqueness
+        length: Length of random part
+        prefix: Optional prefix
+        suffix: Optional suffix
+        max_attempts: Maximum attempts to generate unique ID
+
+    Returns:
+        Verified unique ID
+
+    Raises:
+        ValueError: If unable to generate unique ID after max_attempts
+    """
+    for attempt in range(max_attempts):
+        unique_id = generate_unique_id(length, prefix, suffix)
+
+        # Check if ID exists in database
+        if not model_class.objects.filter(**{field_name: unique_id}).exists():
+            return unique_id
+
+    # If we reach here, we couldn't generate a unique ID
+    raise ValueError(f"Unable to generate unique ID after {max_attempts} attempts")
+
+
+# Usage example for your Student model:
+def generate_student_registration_number(
+    student_model_class, admission_year: int
+) -> str:
+    """
+    Generate unique student registration number with database check
+
+    Args:
+        student_model_class: Student model class
+        admission_year: Year of admission
+
+    Returns:
+        Unique registration number
+    """
+    prefix = f"STU-{admission_year}-"
+    return generate_unique_id_with_db_check(
+        model_class=student_model_class,
+        field_name="registration_number",
+        length=6,
+        prefix=prefix,
+        max_attempts=10,
+    )
 
 
 class DateUtils:

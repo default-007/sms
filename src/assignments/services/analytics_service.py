@@ -9,7 +9,6 @@ from django.db.models import (
     Case,
     CharField,
     Count,
-    DateTrunc,
     F,
     FloatField,
     IntegerField,
@@ -24,9 +23,9 @@ from django.db.models import (
 from django.db.models.functions import Coalesce, Round
 from django.utils import timezone
 
-from academics.models import AcademicYear, Class, Term
-from students.models import Student
-from teachers.models import Teacher
+from src.academics.models import AcademicYear, Class, Term
+from src.students.models import Student
+from src.teachers.models import Teacher
 
 from ..models import Assignment, AssignmentSubmission, SubmissionGrade
 

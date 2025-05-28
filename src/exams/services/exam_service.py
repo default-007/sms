@@ -12,9 +12,9 @@ from django.db import transaction
 from django.db.models import Avg, Count, F, Max, Min, Q, Sum
 from django.utils import timezone
 
-from academics.models import AcademicYear, Class, Term
-from students.models import Student
-from teachers.models import Teacher
+from src.academics.models import AcademicYear, Class, Term
+from src.students.models import Student
+from src.teachers.models import Teacher
 
 from ..models import (
     Exam,

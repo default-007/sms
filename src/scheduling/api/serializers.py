@@ -4,10 +4,10 @@ from typing import Dict, List
 from django.db import transaction
 from rest_framework import serializers
 
-from academics.models import Class, Grade, Term
-from accounts.models import User
-from subjects.models import Subject
-from teachers.models import Teacher
+from src.academics.models import Class, Grade, Term
+from src.accounts.models import User
+from src.subjects.models import Subject
+from src.teachers.models import Teacher
 
 from ..models import (
     Room,

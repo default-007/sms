@@ -3,14 +3,13 @@ from datetime import datetime
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.db.models.signals import post_delete, post_save, pre_save
+from django.db.models.signals import post_delete, post_save, pre_save, m2m_changed
 from django.dispatch import receiver
 from django.utils.translation import gettext_lazy as _
 
-from analytics.models import (ClassPerformanceAnalytics,
-                              StudentPerformanceAnalytics)
+from analytics.models import ClassPerformanceAnalytics, StudentPerformanceAnalytics
 
-from .models import Subject, SubjectAssignment, Syllabus, TopicProgress
+from .models import Subject, SubjectAssignment, Syllabus, TopicProgress, Curriculum
 
 # Get logger
 logger = logging.getLogger(__name__)
@@ -25,31 +24,31 @@ def update_syllabus_completion_on_topic_progress(sender, instance, created, **kw
     """
     try:
         syllabus = instance.syllabus
-        
+
         # Recalculate completion percentage
         total_topics = syllabus.get_total_topics()
         completed_topics = syllabus.get_completed_topics()
-        
+
         if total_topics > 0:
             completion_percentage = (completed_topics / total_topics) * 100
-            
+
             # Only update if percentage has changed
             if abs(syllabus.completion_percentage - completion_percentage) > 0.01:
                 syllabus.completion_percentage = completion_percentage
-                syllabus.save(update_fields=['completion_percentage'])
-                
+                syllabus.save(update_fields=["completion_percentage"])
+
                 logger.info(
                     f"Updated syllabus {syllabus.id} completion to {completion_percentage:.2f}%"
                 )
-                
+
                 # Clear related cache
                 cache_key = f"syllabus_progress_{syllabus.id}"
                 cache.delete(cache_key)
-                
+
                 # Send notification if syllabus is completed
                 if completion_percentage == 100 and not created:
                     send_syllabus_completion_notification(syllabus)
-        
+
     except Exception as e:
         logger.error(f"Error updating syllabus completion: {str(e)}")
 
@@ -59,24 +58,24 @@ def initialize_topic_progress_on_syllabus_creation(sender, instance, created, **
     """
     Initialize topic progress entries when a syllabus is created with topics.
     """
-    if created and instance.content and 'topics' in instance.content:
+    if created and instance.content and "topics" in instance.content:
         try:
-            topics = instance.content.get('topics', [])
-            
+            topics = instance.content.get("topics", [])
+
             for index, topic in enumerate(topics):
                 TopicProgress.objects.get_or_create(
                     syllabus=instance,
                     topic_index=index,
                     defaults={
-                        'topic_name': topic.get('name', f'Topic {index + 1}'),
-                        'is_completed': topic.get('completed', False)
-                    }
+                        "topic_name": topic.get("name", f"Topic {index + 1}"),
+                        "is_completed": topic.get("completed", False),
+                    },
                 )
-            
+
             logger.info(
                 f"Initialized {len(topics)} topic progress entries for syllabus {instance.id}"
             )
-            
+
         except Exception as e:
             logger.error(f"Error initializing topic progress: {str(e)}")
 
@@ -90,15 +89,17 @@ def sync_topic_progress_on_content_change(sender, instance, **kwargs):
         try:
             # Get the old instance to compare
             old_instance = Syllabus.objects.get(pk=instance.pk)
-            old_topics = old_instance.content.get('topics', []) if old_instance.content else []
-            new_topics = instance.content.get('topics', []) if instance.content else []
-            
+            old_topics = (
+                old_instance.content.get("topics", []) if old_instance.content else []
+            )
+            new_topics = instance.content.get("topics", []) if instance.content else []
+
             # Check if topics have changed
             if old_topics != new_topics:
                 instance._topics_changed = True
                 instance._old_topics_count = len(old_topics)
                 instance._new_topics_count = len(new_topics)
-        
+
         except Syllabus.DoesNotExist:
             pass
         except Exception as e:
@@ -110,36 +111,39 @@ def update_topic_progress_after_content_change(sender, instance, created, **kwar
     """
     Update topic progress entries after syllabus content changes.
     """
-    if not created and hasattr(instance, '_topics_changed') and instance._topics_changed:
+    if (
+        not created
+        and hasattr(instance, "_topics_changed")
+        and instance._topics_changed
+    ):
         try:
-            new_topics = instance.content.get('topics', []) if instance.content else []
-            
+            new_topics = instance.content.get("topics", []) if instance.content else []
+
             # Remove excess topic progress entries
             if instance._new_topics_count < instance._old_topics_count:
                 TopicProgress.objects.filter(
-                    syllabus=instance,
-                    topic_index__gte=instance._new_topics_count
+                    syllabus=instance, topic_index__gte=instance._new_topics_count
                 ).delete()
-            
+
             # Update or create topic progress entries
             for index, topic in enumerate(new_topics):
                 TopicProgress.objects.update_or_create(
                     syllabus=instance,
                     topic_index=index,
                     defaults={
-                        'topic_name': topic.get('name', f'Topic {index + 1}'),
-                        'is_completed': topic.get('completed', False)
-                    }
+                        "topic_name": topic.get("name", f"Topic {index + 1}"),
+                        "is_completed": topic.get("completed", False),
+                    },
                 )
-            
+
             # Recalculate completion percentage
             instance.update_completion_percentage()
-            
+
             logger.info(
                 f"Synced topic progress for syllabus {instance.id}: "
                 f"{instance._old_topics_count} -> {instance._new_topics_count} topics"
             )
-        
+
         except Exception as e:
             logger.error(f"Error syncing topic progress: {str(e)}")
 
@@ -153,26 +157,28 @@ def notify_teacher_assignment(sender, instance, created, **kwargs):
         try:
             # Create notification for the teacher
             from communications.models import Notification
-            
+
             message = _(
                 "You have been assigned to teach {subject} for {class_name} in {term}"
             ).format(
                 subject=instance.subject.name,
                 class_name=str(instance.class_assigned),
-                term=instance.term.name
+                term=instance.term.name,
             )
-            
+
             Notification.objects.create(
                 user=instance.teacher.user,
                 title=_("New Subject Assignment"),
                 content=message,
-                notification_type='assignment',
+                notification_type="assignment",
                 reference_id=instance.id,
-                reference_type='SubjectAssignment'
+                reference_type="SubjectAssignment",
             )
-            
-            logger.info(f"Sent assignment notification to teacher {instance.teacher.user.username}")
-        
+
+            logger.info(
+                f"Sent assignment notification to teacher {instance.teacher.user.username}"
+            )
+
         except Exception as e:
             logger.error(f"Error sending assignment notification: {str(e)}")
 
@@ -185,13 +191,15 @@ def recalculate_completion_on_topic_deletion(sender, instance, **kwargs):
     try:
         syllabus = instance.syllabus
         syllabus.update_completion_percentage()
-        
+
         # Clear cache
         cache_key = f"syllabus_progress_{syllabus.id}"
         cache.delete(cache_key)
-        
-        logger.info(f"Recalculated completion for syllabus {syllabus.id} after topic deletion")
-    
+
+        logger.info(
+            f"Recalculated completion for syllabus {syllabus.id} after topic deletion"
+        )
+
     except Exception as e:
         logger.error(f"Error recalculating completion on deletion: {str(e)}")
 
@@ -202,17 +210,102 @@ def clear_subject_cache_on_save(sender, instance, **kwargs):
     Clear related cache when subject is saved.
     """
     try:
+        # Build the cache keys list properly
+        cache_keys = [f"curriculum_structure_{instance.department_id}"]
+
+        # Add grade-specific cache keys if grade_level exists and is not None
+        if hasattr(instance, "grade_level") and instance.grade_level:
+            cache_keys.extend(
+                [f"subjects_by_grade_{grade_id}" for grade_id in instance.grade_level]
+            )
+
         # Clear curriculum structure cache
-        cache.delete_many([
-            f"curriculum_structure_{instance.department_id}",
-            f"subjects_by_grade_{grade_id}" for grade_id in instance.grade_level
-        ])
-        
+        cache.delete_many(cache_keys)
+
         # Clear subject analytics cache
         cache.delete(f"subject_analytics_{instance.id}")
-        
+
     except Exception as e:
         logger.error(f"Error clearing subject cache: {str(e)}")
+
+
+@receiver(post_delete, sender=Subject)
+def clear_subject_cache_on_delete(sender, instance, **kwargs):
+    """
+    Clear related cache when subject is deleted.
+    """
+    try:
+        # Build the cache keys list properly
+        cache_keys = [f"curriculum_structure_{instance.department_id}"]
+
+        # Add grade-specific cache keys if grade_level exists and is not None
+        if hasattr(instance, "grade_level") and instance.grade_level:
+            cache_keys.extend(
+                [f"subjects_by_grade_{grade_id}" for grade_id in instance.grade_level]
+            )
+
+        # Clear curriculum structure cache
+        cache.delete_many(cache_keys)
+
+        # Clear subject analytics cache
+        cache.delete(f"subject_analytics_{instance.id}")
+
+    except Exception as e:
+        logger.error(f"Error clearing subject cache on delete: {str(e)}")
+
+
+@receiver(post_save, sender=Syllabus)
+def update_syllabus_completion_on_save(sender, instance, created, **kwargs):
+    """
+    Update syllabus completion tracking when syllabus is saved.
+    """
+    try:
+        if created:
+            logger.info(
+                f"New syllabus created: {instance.title} for {instance.subject.name}"
+            )
+
+        # Clear related cache
+        cache.delete(f"syllabus_progress_{instance.subject.id}_{instance.grade.id}")
+
+    except Exception as e:
+        logger.error(f"Error updating syllabus completion: {str(e)}")
+
+
+@receiver(post_save, sender=Curriculum)
+def clear_curriculum_cache_on_save(sender, instance, **kwargs):
+    """
+    Clear curriculum cache when curriculum is saved.
+    """
+    try:
+        cache_keys = [
+            f"curriculum_structure_{instance.department.id}",
+            f"curriculum_by_grade_{instance.grade.id}",
+            f"curriculum_analytics_{instance.id}",
+        ]
+
+        cache.delete_many(cache_keys)
+
+    except Exception as e:
+        logger.error(f"Error clearing curriculum cache: {str(e)}")
+
+
+@receiver(m2m_changed, sender=Subject.prerequisites.through)
+def handle_subject_prerequisites_change(sender, instance, action, pk_set, **kwargs):
+    """
+    Handle changes to subject prerequisites.
+    """
+    if action in ["post_add", "post_remove", "post_clear"]:
+        try:
+            # Clear prerequisite-related cache
+            cache.delete(f"subject_prerequisites_{instance.id}")
+
+            # Clear curriculum structure cache
+            if hasattr(instance, "department") and instance.department:
+                cache.delete(f"curriculum_structure_{instance.department.id}")
+
+        except Exception as e:
+            logger.error(f"Error handling prerequisite changes: {str(e)}")
 
 
 @receiver(post_save, sender=Syllabus)
@@ -227,22 +320,24 @@ def update_analytics_on_syllabus_change(sender, instance, created, **kwargs):
             completion_change = abs(
                 instance.completion_percentage - old_instance.completion_percentage
             )
-            
+
             if completion_change >= 10:
                 # Trigger analytics recalculation (async task)
                 from .tasks import recalculate_curriculum_analytics
+
                 recalculate_curriculum_analytics.delay(
-                    instance.academic_year.id,
-                    instance.subject.department.id
+                    instance.academic_year.id, instance.subject.department.id
                 )
-        
+
         # Clear related cache
-        cache.delete_many([
-            f"curriculum_analytics_{instance.academic_year.id}",
-            f"department_analytics_{instance.subject.department.id}_{instance.academic_year.id}",
-            f"grade_overview_{instance.grade.id}_{instance.academic_year.id}"
-        ])
-    
+        cache.delete_many(
+            [
+                f"curriculum_analytics_{instance.academic_year.id}",
+                f"department_analytics_{instance.subject.department.id}_{instance.academic_year.id}",
+                f"grade_overview_{instance.grade.id}_{instance.academic_year.id}",
+            ]
+        )
+
     except Exception as e:
         logger.error(f"Error updating analytics: {str(e)}")
 
@@ -254,14 +349,16 @@ def update_teacher_workload_cache(sender, instance, created, **kwargs):
     """
     try:
         # Clear teacher workload cache
-        cache.delete_many([
-            f"teacher_workload_{instance.teacher.id}_{instance.academic_year.id}",
-            f"teacher_assignments_{instance.teacher.id}_{instance.academic_year.id}",
-            f"teacher_assignments_{instance.teacher.id}_{instance.academic_year.id}_{instance.term.id}"
-        ])
-        
+        cache.delete_many(
+            [
+                f"teacher_workload_{instance.teacher.id}_{instance.academic_year.id}",
+                f"teacher_assignments_{instance.teacher.id}_{instance.academic_year.id}",
+                f"teacher_assignments_{instance.teacher.id}_{instance.academic_year.id}_{instance.term.id}",
+            ]
+        )
+
         logger.info(f"Cleared teacher workload cache for teacher {instance.teacher.id}")
-    
+
     except Exception as e:
         logger.error(f"Error clearing teacher workload cache: {str(e)}")
 
@@ -275,14 +372,16 @@ def track_teaching_hours(sender, instance, created, **kwargs):
         try:
             # Update subject statistics (this could be stored in a separate model)
             syllabus = instance.syllabus
-            
+
             # Clear related analytics cache
-            cache.delete_many([
-                f"subject_hours_{syllabus.subject.id}_{syllabus.academic_year.id}",
-                f"teacher_hours_{syllabus.id}",
-                f"department_hours_{syllabus.subject.department.id}_{syllabus.academic_year.id}"
-            ])
-            
+            cache.delete_many(
+                [
+                    f"subject_hours_{syllabus.subject.id}_{syllabus.academic_year.id}",
+                    f"teacher_hours_{syllabus.id}",
+                    f"department_hours_{syllabus.subject.department.id}_{syllabus.academic_year.id}",
+                ]
+            )
+
         except Exception as e:
             logger.error(f"Error tracking teaching hours: {str(e)}")
 
@@ -299,28 +398,28 @@ def send_syllabus_completion_notification(syllabus):
             subject=syllabus.subject,
             academic_year=syllabus.academic_year,
             term=syllabus.term,
-            is_active=True
+            is_active=True,
         )
-        
+
         for assignment in assignments:
             message = _(
                 "Congratulations! You have completed the syllabus for {subject} - {grade} in {term}"
             ).format(
                 subject=syllabus.subject.name,
                 grade=syllabus.grade.name,
-                term=syllabus.term.name
+                term=syllabus.term.name,
             )
-            
+
             Notification.objects.create(
                 user=assignment.teacher.user,
                 title=_("Syllabus Completed"),
                 content=message,
-                notification_type='achievement',
+                notification_type="achievement",
                 reference_id=syllabus.id,
-                reference_type='Syllabus',
-                priority='medium'
+                reference_type="Syllabus",
+                priority="medium",
             )
-        
+
         # Also notify administrators
         admin_users = User.objects.filter(is_staff=True, is_active=True)
         for admin in admin_users:
@@ -330,21 +429,25 @@ def send_syllabus_completion_notification(syllabus):
                 subject=syllabus.subject.name,
                 grade=syllabus.grade.name,
                 term=syllabus.term.name,
-                teacher=assignments.first().teacher.user.get_full_name() if assignments.exists() else "Unknown"
+                teacher=(
+                    assignments.first().teacher.user.get_full_name()
+                    if assignments.exists()
+                    else "Unknown"
+                ),
             )
-            
+
             Notification.objects.create(
                 user=admin,
                 title=_("Syllabus Completion Report"),
                 content=message,
-                notification_type='system',
+                notification_type="system",
                 reference_id=syllabus.id,
-                reference_type='Syllabus',
-                priority='low'
+                reference_type="Syllabus",
+                priority="low",
             )
-        
+
         logger.info(f"Sent completion notifications for syllabus {syllabus.id}")
-    
+
     except Exception as e:
         logger.error(f"Error sending completion notification: {str(e)}")
 
@@ -359,9 +462,9 @@ def validate_syllabus_prerequisites(sender, instance, created, **kwargs):
             # This is a complex validation that could check if prerequisite
             # subjects have been completed in previous terms
             # Implementation would depend on specific business rules
-            
+
             logger.info(f"Validated prerequisites for syllabus {instance.id}")
-        
+
         except Exception as e:
             logger.error(f"Error validating prerequisites: {str(e)}")
 
@@ -373,25 +476,25 @@ def audit_subject_changes(sender, instance, created, **kwargs):
     """
     try:
         from core.models import AuditLog
-        
-        action = 'Create' if created else 'Update'
-        
+
+        action = "Create" if created else "Update"
+
         AuditLog.objects.create(
-            user=getattr(instance, '_current_user', None),
+            user=getattr(instance, "_current_user", None),
             action=action,
-            entity_type='Subject',
+            entity_type="Subject",
             entity_id=instance.id,
             data_after={
-                'name': instance.name,
-                'code': instance.code,
-                'department': instance.department.name,
-                'credit_hours': instance.credit_hours,
-                'is_elective': instance.is_elective,
-                'grade_level': instance.grade_level,
-                'is_active': instance.is_active
-            }
+                "name": instance.name,
+                "code": instance.code,
+                "department": instance.department.name,
+                "credit_hours": instance.credit_hours,
+                "is_elective": instance.is_elective,
+                "grade_level": instance.grade_level,
+                "is_active": instance.is_active,
+            },
         )
-        
+
     except Exception as e:
         logger.error(f"Error creating audit log: {str(e)}")
 
@@ -407,19 +510,21 @@ def check_syllabus_deadline_alerts(sender, instance, created, **kwargs):
         # Calculate expected progress based on term progress
         term = instance.term
         current_date = date.today()
-        
+
         if term.start_date <= current_date <= term.end_date:
             total_days = (term.end_date - term.start_date).days
             elapsed_days = (current_date - term.start_date).days
-            
+
             if total_days > 0:
                 expected_progress = (elapsed_days / total_days) * 100
                 actual_progress = instance.completion_percentage
-                
+
                 # If behind by more than 20%, send alert
                 if expected_progress - actual_progress > 20:
-                    send_behind_schedule_alert(instance, expected_progress, actual_progress)
-    
+                    send_behind_schedule_alert(
+                        instance, expected_progress, actual_progress
+                    )
+
     except Exception as e:
         logger.error(f"Error checking deadline alerts: {str(e)}")
 
@@ -436,9 +541,9 @@ def send_behind_schedule_alert(syllabus, expected_progress, actual_progress):
             subject=syllabus.subject,
             academic_year=syllabus.academic_year,
             term=syllabus.term,
-            is_active=True
+            is_active=True,
         )
-        
+
         for assignment in assignments:
             message = _(
                 "Alert: {subject} - {grade} syllabus is behind schedule. "
@@ -447,20 +552,108 @@ def send_behind_schedule_alert(syllabus, expected_progress, actual_progress):
                 subject=syllabus.subject.name,
                 grade=syllabus.grade.name,
                 expected=expected_progress,
-                actual=actual_progress
+                actual=actual_progress,
             )
-            
+
             Notification.objects.create(
                 user=assignment.teacher.user,
                 title=_("Syllabus Behind Schedule"),
                 content=message,
-                notification_type='alert',
+                notification_type="alert",
                 reference_id=syllabus.id,
-                reference_type='Syllabus',
-                priority='high'
+                reference_type="Syllabus",
+                priority="high",
             )
-        
+
         logger.info(f"Sent behind schedule alert for syllabus {syllabus.id}")
-    
+
     except Exception as e:
         logger.error(f"Error sending behind schedule alert: {str(e)}")
+
+
+# Additional signal handlers for better cache management
+
+
+@receiver(post_save, sender=Subject)
+def log_subject_changes(sender, instance, created, **kwargs):
+    """
+    Log subject changes for audit purposes.
+    """
+    try:
+        action = "created" if created else "updated"
+        logger.info(f"Subject {action}: {instance.name} (ID: {instance.id})")
+
+        # Log important changes
+        if (
+            not created
+            and hasattr(instance, "_state")
+            and instance._state.adding is False
+        ):
+            # This is an update, log what might have changed
+            logger.info(
+                f"Subject updated - Name: {instance.name}, Code: {instance.code}"
+            )
+
+    except Exception as e:
+        logger.error(f"Error logging subject changes: {str(e)}")
+
+
+@receiver(post_delete, sender=Subject)
+def log_subject_deletion(sender, instance, **kwargs):
+    """
+    Log subject deletion for audit purposes.
+    """
+    try:
+        logger.warning(f"Subject deleted: {instance.name} (ID: {instance.id})")
+
+    except Exception as e:
+        logger.error(f"Error logging subject deletion: {str(e)}")
+
+
+# Signal to handle syllabus progress updates
+@receiver(post_save, sender=Syllabus)
+def calculate_syllabus_progress(sender, instance, **kwargs):
+    """
+    Calculate and update syllabus completion progress.
+    """
+    try:
+        if (
+            hasattr(instance, "completion_percentage")
+            and instance.completion_percentage is not None
+        ):
+            # Update subject progress tracking
+            subject = instance.subject
+
+            # Calculate overall progress for the subject
+            total_syllabi = Syllabus.objects.filter(subject=subject).count()
+            if total_syllabi > 0:
+                avg_completion = Syllabus.objects.filter(subject=subject).aggregate(
+                    avg_completion=models.Avg("completion_percentage")
+                )["avg_completion"]
+
+                # You could store this in a separate model or cache
+                cache.set(
+                    f"subject_overall_progress_{subject.id}",
+                    avg_completion or 0,
+                    timeout=3600,  # 1 hour
+                )
+
+    except Exception as e:
+        logger.error(f"Error calculating syllabus progress: {str(e)}")
+
+
+# Signal to maintain data consistency
+@receiver(post_delete, sender=Syllabus)
+def cleanup_syllabus_references(sender, instance, **kwargs):
+    """
+    Clean up references when syllabus is deleted.
+    """
+    try:
+        # Clear related cache
+        cache.delete(f"syllabus_progress_{instance.subject.id}_{instance.grade.id}")
+
+        # Log the deletion
+        logger.info(f"Syllabus deleted: {instance.title} for {instance.subject.name}")
+
+    except Exception as e:
+        logger.error(f"Error cleaning up syllabus references: {str(e)}")

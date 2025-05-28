@@ -7,9 +7,9 @@ from typing import Dict, List, Optional, Tuple
 from django.db import transaction
 from django.db.models import Count, Q
 
-from academics.models import Class, Grade, Term
-from subjects.models import Subject
-from teachers.models import Teacher, TeacherClassAssignment
+from src.academics.models import Class, Grade, Term
+from src.subjects.models import Subject
+from src.teachers.models import Teacher, TeacherClassAssignment
 
 from ..models import (
     Room,

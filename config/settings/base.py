@@ -49,7 +49,6 @@ INSTALLED_APPS = [
     "src.core",
     "src.students",
     "src.teachers",
-    "src.courses",
     "src.exams",
     "src.attendance",
     "src.academics",

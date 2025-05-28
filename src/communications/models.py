@@ -10,6 +10,7 @@ from django.contrib.postgres.fields import JSONField
 from django.core.validators import EmailValidator, RegexValidator
 from django.db import models
 from django.utils import timezone
+from src.accounts.models import User
 
 User = get_user_model()
 

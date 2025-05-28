@@ -238,7 +238,7 @@ class Teacher(models.Model):
 
     def get_current_workload(self):
         """Get current academic year workload"""
-        from src.academics.models import AcademicYear
+        from academics.models import AcademicYear
 
         current_year = AcademicYear.objects.filter(is_current=True).first()
         if not current_year:

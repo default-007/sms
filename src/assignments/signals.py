@@ -9,9 +9,16 @@ from django.utils import timezone
 
 from core.models import AuditLog
 
-from .models import Assignment, AssignmentSubmission, SubmissionGrade
+# from .models import Assignment, AssignmentSubmission, SubmissionGrade
 
 logger = logging.getLogger(__name__)
+
+try:
+    from .models import Assignment, AssignmentSubmission
+except ImportError:
+    # Models not yet loaded, will be imported later
+    Assignment = None
+    AssignmentSubmission = None
 
 
 @receiver(pre_save, sender=Assignment)

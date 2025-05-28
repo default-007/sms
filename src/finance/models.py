@@ -3,7 +3,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from src.courses.models import AcademicYear, Grade
+from src.academics.models import AcademicYear, Grade
 
 
 class FeeCategory(models.Model):
@@ -230,7 +230,7 @@ class Invoice(models.Model):
 
         # Auto-generate invoice number if not provided
         if not self.invoice_number:
-            from src.core.utils import generate_unique_id
+            from core.utils import generate_unique_id
 
             self.invoice_number = generate_unique_id("INV")
 
@@ -354,7 +354,7 @@ class Payment(models.Model):
     def save(self, *args, **kwargs):
         # Auto-generate receipt number if not provided
         if not self.receipt_number:
-            from src.core.utils import generate_unique_id
+            from core.utils import generate_unique_id
 
             self.receipt_number = generate_unique_id("RCPT")
 

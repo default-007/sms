@@ -11,7 +11,7 @@ import logging
 from typing import Dict, Any, Optional, List, Union
 from datetime import datetime, timedelta
 
-from students.models import Student
+from src.students.models import Student
 
 from .models import (
     SystemSetting,

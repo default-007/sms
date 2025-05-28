@@ -34,8 +34,7 @@ from django.db.models.functions import (
 )
 from django.utils import timezone
 
-from src.attendance.models import Attendance
-from src.courses.models import AcademicYear, Class, Department, Subject, Term
+from src.academics.models import AcademicYear, Department
 from src.students.models import Student
 from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
 

@@ -13,9 +13,9 @@ from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from academics.models import AcademicYear, Term
-from communications.models import Notification
-from students.models import Student
+from src.academics.models import AcademicYear, Term
+from src.communications.models import Notification
+from src.students.models import Student
 
 from .models import (
     Exam,

@@ -1,8 +1,9 @@
 # src/teachers/management/commands/optimize_teacher_database.py
+import time
+
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import connection, transaction
-from django.conf import settings
-import time
 
 
 class Command(BaseCommand):

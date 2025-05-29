@@ -1,21 +1,22 @@
 # src/teachers/utils.py
-from django.http import HttpResponse, JsonResponse
-from django.core.exceptions import ValidationError
-from django.utils import timezone
-from django.contrib.auth import get_user_model
-from django.db.models import Q, Avg, Count, Sum
-from django.conf import settings
-from datetime import datetime, timedelta, date
 import csv
-import json
-import xlsxwriter
 import io
+import json
 import logging
-from typing import List, Dict, Any, Optional, Union
 import re
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, List, Optional, Union
 
-from src.teachers.models import Teacher, TeacherEvaluation, TeacherClassAssignment
-from src.courses.models import AcademicYear, Department, Subject, Class
+import xlsxwriter
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+from django.db.models import Avg, Count, Q, Sum
+from django.http import HttpResponse, JsonResponse
+from django.utils import timezone
+
+from src.courses.models import AcademicYear, Class, Department, Subject
+from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
 
 User = get_user_model()
 logger = logging.getLogger(__name__)

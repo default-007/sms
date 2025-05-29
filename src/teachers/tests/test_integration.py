@@ -7,35 +7,36 @@ Tests the interaction between different components of the teacher system.
 import json
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from django.test import TestCase, TransactionTestCase
+from unittest.mock import Mock, patch
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
+from django.core.cache import cache
+from django.core.management import call_command
+from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 from django.utils import timezone
-from django.core.management import call_command
-from django.core.cache import cache
-from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
-from unittest.mock import patch, Mock
+from rest_framework.test import APIClient, APITestCase
 
-from src.teachers.models import Teacher, TeacherEvaluation, TeacherClassAssignment
-from src.teachers.services import TeacherService, EvaluationService
+from src.communications.models import Notification
+from src.courses.models import (
+    AcademicYear,
+    Class,
+    Department,
+    Grade,
+    Section,
+    Subject,
+    Term,
+)
+from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
+from src.teachers.services import EvaluationService, TeacherService
 from src.teachers.services.analytics_service import TeacherAnalyticsService
 from src.teachers.tasks import (
     calculate_daily_teacher_analytics,
-    send_evaluation_reminders,
     process_bulk_teacher_assignments,
+    send_evaluation_reminders,
 )
-from src.courses.models import (
-    Department,
-    AcademicYear,
-    Term,
-    Subject,
-    Grade,
-    Section,
-    Class,
-)
-from src.communications.models import Notification
 
 User = get_user_model()
 

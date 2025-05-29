@@ -3,9 +3,10 @@ School Management System - Exam Middleware
 File: src/exams/middleware.py
 """
 
-from django.utils.deprecation import MiddlewareMixin
 from django.http import JsonResponse
 from django.utils import timezone
+from django.utils.deprecation import MiddlewareMixin
+
 from .models import StudentOnlineExamAttempt
 
 

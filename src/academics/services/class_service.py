@@ -8,13 +8,14 @@ Business logic for class management including:
 - Class analytics and optimization
 """
 
-from django.db import transaction
-from django.core.exceptions import ValidationError
-from django.db.models import Count, Avg, Q, Sum
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
-from ..models import Class, Grade, Section, AcademicYear
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.db.models import Avg, Count, Q, Sum
+
+from ..models import AcademicYear, Class, Grade, Section
 
 User = get_user_model()
 
@@ -368,8 +369,9 @@ class ClassService:
         }
 
         # Age distribution
-        from django.utils import timezone
         from datetime import datetime
+
+        from django.utils import timezone
 
         current_date = timezone.now().date()
 

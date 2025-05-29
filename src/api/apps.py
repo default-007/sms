@@ -12,7 +12,6 @@ class ApiConfig(AppConfig):
     def ready(self):
         """Initialize API configurations when app is ready"""
         # Import signal handlers
-        from . import signals  # noqa
-
         # Register custom exception handlers
         from . import exceptions  # noqa
+        from . import signals  # noqa

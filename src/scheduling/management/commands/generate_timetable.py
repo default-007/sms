@@ -2,17 +2,18 @@
 Utility functions for the scheduling module
 """
 
-from datetime import datetime, time, timedelta, date
-from typing import List, Dict, Tuple, Optional, Any
-from django.db.models import Q, Count, Sum
-from django.utils import timezone
 import calendar
 import json
+from datetime import date, datetime, time, timedelta
+from typing import Any, Dict, List, Optional, Tuple
 
-from scheduling.models import TimeSlot, Timetable, Room
-from academics.models import Term, Class, Grade
-from teachers.models import Teacher
+from django.db.models import Count, Q, Sum
+from django.utils import timezone
+
+from academics.models import Class, Grade, Term
+from scheduling.models import Room, TimeSlot, Timetable
 from subjects.models import Subject
+from teachers.models import Teacher
 
 
 class TimetableGenerator:
@@ -492,8 +493,8 @@ class ScheduleExporter:
         Returns:
             CSV string
         """
-        from io import StringIO
         import csv
+        from io import StringIO
 
         output = StringIO()
         writer = csv.writer(output)

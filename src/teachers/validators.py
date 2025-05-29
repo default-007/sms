@@ -9,19 +9,19 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List, Optional, Union
 
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator, RegexValidator
-from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from src.teachers.models import Teacher, TeacherEvaluation, TeacherClassAssignment
 from src.teachers.exceptions import (
-    TeacherValidationException,
     DuplicateEmployeeIdException,
     DuplicateTeacherEmailException,
     InvalidEvaluationCriteriaException,
+    TeacherValidationException,
 )
+from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
 
 User = get_user_model()
 

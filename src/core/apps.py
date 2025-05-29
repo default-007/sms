@@ -1,38 +1,30 @@
+# apps.py
 from django.apps import AppConfig
-from django.utils.translation import gettext_lazy as _
+from django.db.models.signals import post_migrate
 
 
 class CoreConfig(AppConfig):
-    """Configuration for the Core application."""
-
     default_auto_field = "django.db.models.BigAutoField"
     name = "src.core"
     verbose_name = "Core System"
 
     def ready(self):
-        """
-        Initialize application during startup.
-        """
-        # Import any signals
-        import src.core.signals
+        """Initialize the core app"""
+        # Import signals to register them
+        from . import signals
 
-        # Use an atomic transaction to avoid issues during app startup
-        from django.db import connection
+        # Connect post-migration signal to initialize default settings
+        post_migrate.connect(self.create_default_settings, sender=self)
 
-        if connection.connection is not None:
-            # Only run if database is ready
-            from django.db.utils import ProgrammingError, OperationalError
+    def create_default_settings(self, sender, **kwargs):
+        """Create default system settings after migrations"""
+        from .services import ConfigurationService
 
-            try:
-                from django.core.management import call_command
+        try:
+            ConfigurationService.initialize_default_settings()
+        except Exception as e:
+            # Log error but don't fail app startup
+            import logging
 
-                # Only check, don't create during startup
-                from .models import SystemSetting
-
-                if not SystemSetting.objects.exists():
-                    self.stdout.write(
-                        'No system settings found. Run "python manage.py init_settings" to initialize settings.'
-                    )
-            except (ProgrammingError, OperationalError):
-                # Table doesn't exist yet, likely during migration
-                pass
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error initializing default settings: {str(e)}")

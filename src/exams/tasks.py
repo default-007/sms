@@ -3,28 +3,30 @@ School Management System - Exam Celery Tasks
 File: src/exams/tasks.py
 """
 
-from celery import shared_task
-from django.utils import timezone
-from django.db import transaction
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.conf import settings
-from typing import List, Dict
 import logging
+from typing import Dict, List
+
+from celery import shared_task
+from django.conf import settings
+from django.core.mail import send_mail
+from django.db import transaction
+from django.template.loader import render_to_string
+from django.utils import timezone
+
+from src.academics.models import AcademicYear, Term
+from src.communications.models import Notification
+from src.students.models import Student
 
 from .models import (
     Exam,
     ExamSchedule,
-    StudentExamResult,
-    ReportCard,
     OnlineExam,
+    ReportCard,
+    StudentExamResult,
     StudentOnlineExamAttempt,
 )
-from .services.exam_service import ResultService, ExamService
 from .services.analytics_service import ExamAnalyticsService
-from students.models import Student
-from communications.models import Notification
-from academics.models import Term, AcademicYear
+from .services.exam_service import ExamService, ResultService
 
 logger = logging.getLogger(__name__)
 
@@ -477,9 +479,10 @@ def generate_weekly_exam_summary():
 def backup_exam_data():
     """Backup critical exam data"""
     try:
-        from django.core.management import call_command
         import os
         from datetime import datetime
+
+        from django.core.management import call_command
 
         # Generate backup filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

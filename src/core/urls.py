@@ -1,48 +1,60 @@
+# urls.py
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
 from . import views
 
 app_name = "core"
 
 urlpatterns = [
     # Dashboard
-    path("", views.dashboard, name="dashboard"),
-    # Document management
-    path("documents/", views.DocumentListView.as_view(), name="document_list"),
+    path("", views.DashboardView.as_view(), name="dashboard"),
+    # System Administration
+    path("admin/", views.SystemAdminView.as_view(), name="system_admin"),
+    path("settings/", views.SystemSettingsView.as_view(), name="settings"),
     path(
-        "documents/<int:pk>/",
-        views.DocumentDetailView.as_view(),
-        name="document_detail",
+        "settings/<int:pk>/edit/",
+        views.SystemSettingEditView.as_view(),
+        name="setting_edit",
+    ),
+    path("audit-logs/", views.AuditLogsView.as_view(), name="audit_logs"),
+    path("system-health/", views.SystemHealthView.as_view(), name="system_health"),
+    # Analytics
+    path("analytics/", views.AnalyticsView.as_view(), name="analytics"),
+    path(
+        "analytics/student/",
+        views.StudentAnalyticsView.as_view(),
+        name="student_analytics",
     ),
     path(
-        "documents/create/", views.DocumentCreateView.as_view(), name="document_create"
+        "analytics/class/", views.ClassAnalyticsView.as_view(), name="class_analytics"
     ),
     path(
-        "documents/<int:pk>/update/",
-        views.DocumentUpdateView.as_view(),
-        name="document_update",
+        "analytics/attendance/",
+        views.AttendanceAnalyticsView.as_view(),
+        name="attendance_analytics",
     ),
     path(
-        "documents/<int:pk>/delete/",
-        views.DocumentDeleteView.as_view(),
-        name="document_delete",
-    ),
-    # System settings
-    path(
-        "settings/", views.SystemSettingListView.as_view(), name="system_setting_list"
+        "analytics/financial/",
+        views.FinancialAnalyticsView.as_view(),
+        name="financial_analytics",
     ),
     path(
-        "settings/<int:pk>/update/",
-        views.SystemSettingUpdateView.as_view(),
-        name="system_setting_update",
+        "analytics/teacher/",
+        views.TeacherAnalyticsView.as_view(),
+        name="teacher_analytics",
     ),
+    # Reports
+    path("reports/", views.ReportsView.as_view(), name="reports"),
     path(
-        "settings/maintenance-toggle/",
-        views.system_maintenance_toggle,
-        name="maintenance_toggle",
+        "reports/generate/", views.GenerateReportView.as_view(), name="generate_report"
     ),
-    path("system-info/", views.system_info_view, name="system_info"),
-    # Audit logs
-    path("audit-logs/", views.audit_log_view, name="audit_logs"),
-    # API endpoints will be registered in src.api.urls
+    # User Management
+    path("users/", views.UserManagementView.as_view(), name="user_management"),
+    path("users/<int:pk>/", views.UserDetailView.as_view(), name="user_detail"),
+    path(
+        "users/<int:pk>/activity/",
+        views.UserActivityView.as_view(),
+        name="user_activity",
+    ),
+    # API URLs
+    path("api/", include("core.api.urls")),
 ]

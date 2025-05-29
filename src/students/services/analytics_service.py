@@ -1,12 +1,13 @@
 # students/services/analytics_service.py
-from django.db.models import Count, Q, Avg, Max, Min, F
-from django.utils import timezone
-from django.core.cache import cache
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime, timedelta
 
-from ..models import Student, Parent, StudentParentRelation
+from django.core.cache import cache
+from django.db.models import Avg, Count, F, Max, Min, Q
+from django.utils import timezone
+
 from ..exceptions import AnalyticsError
+from ..models import Parent, Student, StudentParentRelation
 
 logger = logging.getLogger(__name__)
 

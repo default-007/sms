@@ -1,13 +1,15 @@
-from typing import Dict, List, Optional, Tuple, Any
-from django.db.models import QuerySet, Q, Avg, Count, Sum, F, Case, When, Value
+import json
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
+
+from django.db.models import Avg, Case, Count, F, Q, QuerySet, Sum, Value, When
 from django.db.models.functions import Coalesce, Round
 from django.utils.translation import gettext_lazy as _
-from datetime import datetime, date, timedelta
-import json
 
-from ..models import Subject, Syllabus, TopicProgress, SubjectAssignment
-from academics.models import Grade, AcademicYear, Term, Class, Department
-from teachers.models import Teacher
+from src.academics.models import AcademicYear, Class, Department, Grade, Term
+from src.teachers.models import Teacher
+
+from ..models import Subject, SubjectAssignment, Syllabus, TopicProgress
 
 
 class SubjectAnalyticsService:
@@ -204,8 +206,8 @@ class SubjectAnalyticsService:
             )
 
         if syllabus_filters:
-            from functools import reduce
             import operator
+            from functools import reduce
 
             combined_filter = reduce(operator.or_, syllabus_filters)
             syllabi = Syllabus.objects.filter(combined_filter).annotate(

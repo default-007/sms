@@ -1,32 +1,32 @@
 # students/api/views.py
-from rest_framework import generics, status, permissions
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import SearchFilter, OrderingFilter
-from django.shortcuts import get_object_or_404
-from django.db import transaction
 from django.core.cache import cache
+from django.db import transaction
+from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import generics, permissions, status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.response import Response
 
-from ..models import Student, Parent, StudentParentRelation
-from ..filters import StudentFilter, ParentFilter
-from ..permissions import IsSchoolAdmin, IsTeacher, IsParent
-from ..services.student_service import StudentService
+from ..exceptions import handle_service_exceptions
+from ..filters import ParentFilter, StudentFilter
+from ..models import Parent, Student, StudentParentRelation
+from ..permissions import IsParent, IsSchoolAdmin, IsTeacher
+from ..services.analytics_service import StudentAnalyticsService
 from ..services.parent_service import ParentService
 from ..services.search_service import StudentSearchService
-from ..services.analytics_service import StudentAnalyticsService
-from ..exceptions import handle_service_exceptions
+from ..services.student_service import StudentService
 from .serializers import (
-    StudentListSerializer,
-    StudentDetailSerializer,
-    ParentListSerializer,
-    ParentDetailSerializer,
-    StudentParentRelationSerializer,
-    BulkImportResultSerializer,
-    StudentAnalyticsSerializer,
-    SearchResultSerializer,
     AutocompleteSerializer,
+    BulkImportResultSerializer,
+    ParentDetailSerializer,
+    ParentListSerializer,
+    SearchResultSerializer,
+    StudentAnalyticsSerializer,
+    StudentDetailSerializer,
+    StudentListSerializer,
+    StudentParentRelationSerializer,
 )
 
 

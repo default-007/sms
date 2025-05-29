@@ -1,6 +1,7 @@
-from django.apps import AppConfig
-from django.db.models.signals import post_save, post_delete
 import logging
+
+from django.apps import AppConfig
+from django.db.models.signals import post_delete, post_save
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +32,6 @@ class AssignmentsConfig(AppConfig):
             # Import signals to register them
             from . import signals
 
-            # Import models to ensure they're loaded
-            from .models import Assignment, AssignmentSubmission
-
             # Log app initialization
             logger.info("Assignments app initialized successfully")
 
@@ -42,9 +40,10 @@ class AssignmentsConfig(AppConfig):
         except Exception as e:
             logger.error(f"Error initializing assignments app: {e}")
 
-    def get_models(self):
+    def get_model_names(self):
         """
-        Get all models in this app for management commands and utilities.
+        Get all model names in this app for management commands and utilities.
+        Note: This is a custom method, not overriding Django's get_models()
         """
         return [
             "Assignment",

@@ -1,15 +1,16 @@
+from datetime import datetime, timedelta
+
 import django_filters
 from django import forms
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
-from datetime import datetime, timedelta
 
 from .models import (
     Assignment,
-    AssignmentSubmission,
-    AssignmentRubric,
     AssignmentComment,
+    AssignmentRubric,
+    AssignmentSubmission,
 )
 
 
@@ -194,9 +195,9 @@ class AssignmentFilter(django_filters.FilterSet):
 
         else:
             # Default querysets for non-authenticated contexts
-            from teachers.models import Teacher
-            from subjects.models import Subject
             from academics.models import Class, Term
+            from subjects.models import Subject
+            from teachers.models import Teacher
 
             self.filters["teacher"].queryset = Teacher.objects.all()
             self.filters["subject"].queryset = Subject.objects.all()

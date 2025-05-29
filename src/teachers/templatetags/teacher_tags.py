@@ -4,23 +4,24 @@ Comprehensive template tags for the teachers module.
 Provides formatting, display, and utility functions for teacher-related templates.
 """
 
+import hashlib
+import json
+from datetime import date, datetime, timedelta
+from decimal import Decimal
+from typing import Any, Dict, List, Optional, Union
+
 from django import template
-from django.utils.safestring import mark_safe
+from django.conf import settings
+from django.core.cache import cache
+from django.db.models import Avg, Count, Max, Min, Q, Sum
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
-from django.urls import reverse
-from django.db.models import Avg, Count, Q, Sum, Max, Min
-from django.core.cache import cache
-from django.conf import settings
-from datetime import datetime, timedelta, date
-import json
-import hashlib
-from decimal import Decimal
-from typing import Dict, List, Any, Optional, Union
+from django.utils.safestring import mark_safe
 
-from src.teachers.models import Teacher, TeacherEvaluation, TeacherClassAssignment
 from src.academics.models import AcademicYear, Department, Term
 from src.subjects.models import Subject
+from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
 
 register = template.Library()
 

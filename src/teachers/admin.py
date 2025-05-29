@@ -1,6 +1,7 @@
 from django.contrib import admin
-from django.utils.html import format_html
 from django.db.models import Avg, Count
+from django.utils.html import format_html
+
 from .models import Teacher, TeacherClassAssignment, TeacherEvaluation
 
 

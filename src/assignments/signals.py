@@ -1,15 +1,24 @@
-from django.db.models.signals import post_save, post_delete, pre_save
-from django.dispatch import receiver
-from django.utils import timezone
-from django.core.cache import cache
-from django.conf import settings
 import logging
 from datetime import timedelta
 
-from .models import Assignment, AssignmentSubmission, SubmissionGrade
+from django.conf import settings
+from django.core.cache import cache
+from django.db.models.signals import post_delete, post_save, pre_save
+from django.dispatch import receiver
+from django.utils import timezone
+
 from core.models import AuditLog
 
+# from .models import Assignment, AssignmentSubmission, SubmissionGrade
+
 logger = logging.getLogger(__name__)
+
+try:
+    from .models import Assignment, AssignmentSubmission
+except ImportError:
+    # Models not yet loaded, will be imported later
+    Assignment = None
+    AssignmentSubmission = None
 
 
 @receiver(pre_save, sender=Assignment)

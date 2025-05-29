@@ -3,31 +3,32 @@
 Custom managers and querysets for optimized database operations in the teachers module.
 """
 
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, List, Optional, Union
+
+from django.contrib.auth import get_user_model
 from django.db import models
 from django.db.models import (
-    Q,
-    F,
-    Count,
     Avg,
-    Sum,
+    BooleanField,
+    Case,
+    Count,
+    DecimalField,
+    Exists,
+    F,
+    FloatField,
+    IntegerField,
     Max,
     Min,
-    Case,
-    When,
-    Value,
-    DecimalField,
-    IntegerField,
-    FloatField,
-    BooleanField,
-    Subquery,
     OuterRef,
-    Exists,
     Prefetch,
+    Q,
+    Subquery,
+    Sum,
+    Value,
+    When,
 )
 from django.utils import timezone
-from django.contrib.auth import get_user_model
-from datetime import datetime, timedelta, date
-from typing import Optional, List, Dict, Any, Union
 
 User = get_user_model()
 
@@ -711,8 +712,8 @@ class TeacherAnalyticsManager:
     def __init__(self):
         from src.teachers.models import (
             Teacher,
-            TeacherEvaluation,
             TeacherClassAssignment,
+            TeacherEvaluation,
         )
 
         self.teacher_model = Teacher

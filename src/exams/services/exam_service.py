@@ -3,27 +3,29 @@ School Management System - Exam Services
 File: src/exams/services/exam_service.py
 """
 
-from typing import List, Dict, Optional, Tuple
 from datetime import datetime, timedelta
-from django.db import transaction
-from django.utils import timezone
-from django.core.exceptions import ValidationError
-from django.db.models import Q, Avg, Sum, Count, Max, Min, F
 from decimal import Decimal
+from typing import Dict, List, Optional, Tuple
+
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.db.models import Avg, Count, F, Max, Min, Q, Sum
+from django.utils import timezone
+
+from src.academics.models import AcademicYear, Class, Term
+from src.students.models import Student
+from src.teachers.models import Teacher
 
 from ..models import (
     Exam,
-    ExamType,
+    ExamQuestion,
     ExamSchedule,
-    StudentExamResult,
-    ReportCard,
+    ExamType,
     GradingSystem,
     OnlineExam,
-    ExamQuestion,
+    ReportCard,
+    StudentExamResult,
 )
-from academics.models import Class, Term, AcademicYear
-from students.models import Student
-from teachers.models import Teacher
 
 
 class ExamService:

@@ -1,33 +1,35 @@
-from django.test import TestCase, TransactionTestCase, Client
+import json
+import os
+import tempfile
+from datetime import datetime, timedelta
+from unittest.mock import Mock, patch
+
 from django.contrib.auth import get_user_model
-from django.urls import reverse
-from django.utils import timezone
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
-from datetime import datetime, timedelta
-from unittest.mock import patch, Mock
-import json
-import tempfile
-import os
+from django.test import Client, TestCase, TransactionTestCase
+from django.urls import reverse
+from django.utils import timezone
+
+from academics.models import AcademicYear, Class, Grade, Section, Term
+from students.models import Student
+from subjects.models import Subject
+from teachers.models import Teacher
 
 from .models import (
     Assignment,
-    AssignmentSubmission,
-    AssignmentRubric,
-    SubmissionGrade,
     AssignmentComment,
+    AssignmentRubric,
+    AssignmentSubmission,
+    SubmissionGrade,
 )
 from .services import (
     AssignmentService,
-    SubmissionService,
     GradingService,
     PlagiarismService,
+    SubmissionService,
 )
 from .services.analytics_service import AssignmentAnalyticsService
-from teachers.models import Teacher
-from students.models import Student
-from subjects.models import Subject
-from academics.models import AcademicYear, Term, Section, Grade, Class
 
 User = get_user_model()
 

@@ -3,6 +3,7 @@ Celery configuration for scheduling module
 """
 
 import os
+
 from celery import Celery
 from django.conf import settings
 
@@ -130,6 +131,7 @@ def task_failure_handler(self, task_id, error, traceback):
 def monitor_queue_health(self):
     """Monitor Celery queue health"""
     import time
+
     from celery import current_app
 
     # Get queue statistics

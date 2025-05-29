@@ -1,19 +1,18 @@
 from django import forms
+from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import (
     AuthenticationForm,
-    UserCreationForm,
     PasswordChangeForm,
     PasswordResetForm,
     SetPasswordForm,
+    UserCreationForm,
 )
-from django.contrib.auth import get_user_model
-from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.utils.translation import gettext_lazy as _
 
 from .constants import PERMISSION_SCOPES
-
-from .models import UserRole, UserRoleAssignment, UserProfile
+from .models import UserProfile, UserRole, UserRoleAssignment
 from .utils import validate_password_strength
 
 User = get_user_model()

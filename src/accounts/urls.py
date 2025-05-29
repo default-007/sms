@@ -1,22 +1,22 @@
-from django.urls import path
 from django.contrib.auth import views as auth_views
+from django.urls import path
 
 from .views import (
     CustomLoginView,
     CustomLogoutView,
     CustomPasswordChangeView,
-    CustomPasswordResetView,
     CustomPasswordResetConfirmView,
-    UserListView,
-    UserDetailView,
-    UserCreateView,
-    UserUpdateView,
-    UserDeleteView,
-    RoleListView,
-    RoleDetailView,
+    CustomPasswordResetView,
     RoleCreateView,
-    RoleUpdateView,
     RoleDeleteView,
+    RoleDetailView,
+    RoleListView,
+    RoleUpdateView,
+    UserCreateView,
+    UserDeleteView,
+    UserDetailView,
+    UserListView,
+    UserUpdateView,
     bulk_user_action,
     export_users,
     profile_view,

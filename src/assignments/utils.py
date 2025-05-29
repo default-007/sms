@@ -1,19 +1,20 @@
-from django.core.mail import send_mail, EmailMultiAlternatives
-from django.template.loader import render_to_string
-from django.conf import settings
-from django.utils import timezone
-from django.core.files.storage import default_storage
-from django.core.exceptions import ValidationError
-from datetime import datetime, timedelta
-import os
-import hashlib
-import mimetypes
 import csv
+import hashlib
 import io
-import zipfile
 import logging
-from typing import List, Dict, Tuple, Optional
+import mimetypes
+import os
+import zipfile
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple
+
 import pandas as pd
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.files.storage import default_storage
+from django.core.mail import EmailMultiAlternatives, send_mail
+from django.template.loader import render_to_string
+from django.utils import timezone
 from PIL import Image
 
 logger = logging.getLogger(__name__)
@@ -132,8 +133,9 @@ class FileUtils:
         Compress and resize image file
         """
         try:
-            from PIL import Image
             import io
+
+            from PIL import Image
 
             # Open image
             img = Image.open(image_file)
@@ -783,6 +785,7 @@ class SearchUtils:
         Search assignments with various criteria
         """
         from django.db.models import Q
+
         from .models import Assignment
 
         # Base queryset based on user permissions

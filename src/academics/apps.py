@@ -5,7 +5,12 @@ This module configures the academics Django app and handles
 initialization tasks including signal registration.
 """
 
+import logging
 from django.apps import AppConfig
+from django.core.checks import register, Warning, Error
+
+logger = logging.getLogger(__name__)
+
 from django.utils.translation import gettext_lazy as _
 
 
@@ -18,94 +23,197 @@ class AcademicsConfig(AppConfig):
 
     def ready(self):
         """
-        Called when the app is ready. Used to import signal handlers
-        and perform any other initialization tasks.
+        Called when Django starts up. Used to register signals and
+        perform any necessary initialization.
         """
-        # Import signal handlers
         try:
+            # Import signals to register them
             from . import signals
-        except ImportError:
-            pass
 
-        # Register custom checks
-        self.register_custom_checks()
+            # Register custom system checks (but don't run database queries here!)
+            register(self.check_academic_structure_consistency, "academics")
 
-        # Initialize default academic structure if needed
-        self.initialize_defaults()
+            logger.info("Academics app initialized successfully")
 
-    def register_custom_checks(self):
-        """Register custom system checks for the academics app"""
-        from django.core.checks import register, Tags
+        except ImportError as e:
+            logger.warning(f"Could not import academics signals: {e}")
+        except Exception as e:
+            logger.error(f"Error initializing academics app: {e}")
 
-        @register(Tags.models)
-        def check_academic_year_consistency(app_configs, **kwargs):
-            """Check for academic year data consistency"""
-            from .models import AcademicYear, Term
+    def check_academic_structure_consistency(self, app_configs, **kwargs):
+        """
+        Custom Django system check for academic structure consistency.
 
-            errors = []
+        NOTE: This runs during system checks, so we need to handle the case
+        where database tables might not exist yet (e.g., before migrations).
+        """
+        errors = []
 
-            # Check for multiple current academic years
-            current_years = AcademicYear.objects.filter(is_current=True).count()
-            if current_years > 1:
-                errors.append(
-                    f"Multiple academic years marked as current: {current_years} found. "
-                    "Only one academic year should be current at a time."
-                )
+        try:
+            # Check if the database tables exist before running queries
+            from django.db import connection
 
-            # Check for academic years without terms
-            years_without_terms = AcademicYear.objects.filter(
-                terms__isnull=True
-            ).count()
-            if years_without_terms > 0:
-                errors.append(
-                    f"{years_without_terms} academic year(s) have no terms defined. "
-                    "Each academic year should have at least one term."
-                )
+            table_names = connection.introspection.table_names()
+            required_tables = [
+                "academics_section",
+                "academics_grade",
+                "academics_class",
+            ]
 
-            # Check for terms with invalid date ranges
-            invalid_terms = Term.objects.filter(
-                start_date__gte=models.F("end_date")
-            ).count()
-            if invalid_terms > 0:
-                errors.append(
-                    f"{invalid_terms} term(s) have invalid date ranges "
-                    "(start date >= end date)."
-                )
+            # Only run checks if all required tables exist
+            if not all(table in table_names for table in required_tables):
+                # Tables don't exist yet (probably before migrations)
+                # This is normal during initial setup, so we just return empty errors
+                return errors
 
-            return errors
-
-        @register(Tags.models)
-        def check_class_capacity_consistency(app_configs, **kwargs):
-            """Check for class capacity issues"""
-            from .models import Class
-
-            warnings = []
+            # Now it's safe to import models and run queries
+            from .models import Section, Grade, Class
 
             # Check for classes with zero capacity
-            zero_capacity = Class.objects.filter(capacity=0, is_active=True).count()
-            if zero_capacity > 0:
-                warnings.append(
-                    f"{zero_capacity} active class(es) have zero capacity. "
-                    "Classes should have a positive capacity."
+            zero_capacity_classes = Class.objects.filter(capacity=0).count()
+            if zero_capacity_classes > 0:
+                errors.append(
+                    Warning(
+                        f"{zero_capacity_classes} classes have zero capacity",
+                        hint="Consider setting appropriate capacity values for all classes",
+                        id="academics.W001",
+                    )
                 )
 
-            # Check for classes with very high capacity
-            high_capacity = Class.objects.filter(
-                capacity__gt=50, is_active=True
-            ).count()
-            if high_capacity > 0:
-                warnings.append(
-                    f"{high_capacity} class(es) have capacity > 50 students. "
-                    "Consider reviewing if these capacities are appropriate."
+            # Check for grades without classes
+            grades_without_classes = Grade.objects.filter(class__isnull=True).count()
+            if grades_without_classes > 0:
+                errors.append(
+                    Warning(
+                        f"{grades_without_classes} grades have no classes assigned",
+                        hint="Consider creating classes for all grades",
+                        id="academics.W002",
+                    )
                 )
 
-            return warnings
+            # Check for sections without grades
+            sections_without_grades = Section.objects.filter(grade__isnull=True).count()
+            if sections_without_grades > 0:
+                errors.append(
+                    Warning(
+                        f"{sections_without_grades} sections have no grades assigned",
+                        hint="Consider creating grades for all sections",
+                        id="academics.W003",
+                    )
+                )
 
-    def initialize_defaults(self):
-        """Initialize default academic structure if needed"""
-        # This could be used to create default sections, departments, etc.
-        # For now, we'll just check if the app is properly configured
-        pass
+        except Exception as e:
+            # If there's any error during checks, log it but don't crash Django
+            logger.warning(f"Could not run academic structure checks: {e}")
+
+        return errors
+
+    @property
+    def permissions(self):
+        """
+        Define custom permissions for the academics module.
+        """
+        return [
+            ("view_all_academics", "Can view all academic structures"),
+            ("manage_sections", "Can create and manage sections"),
+            ("manage_grades", "Can create and manage grades"),
+            ("manage_classes", "Can create and manage classes"),
+            ("manage_academic_years", "Can manage academic years"),
+            ("manage_terms", "Can manage terms"),
+            ("view_analytics", "Can view academic analytics"),
+            ("export_data", "Can export academic data"),
+            ("bulk_operations", "Can perform bulk operations"),
+        ]
+
+    @property
+    def default_settings(self):
+        """
+        Default settings for the academics module.
+        """
+        return {
+            "ACADEMICS_DEFAULT_TERMS_PER_YEAR": 3,
+            "ACADEMICS_DEFAULT_CLASS_CAPACITY": 30,
+            "ACADEMICS_AUTO_GENERATE_CLASS_NAMES": True,
+            "ACADEMICS_SECTION_COLORS": {
+                "Lower Primary": "#FF6B6B",
+                "Upper Primary": "#4ECDC4",
+                "Secondary": "#45B7D1",
+                "Senior Secondary": "#96CEB4",
+            },
+            "ACADEMICS_GRADE_PROGRESSION_RULES": {
+                "min_attendance_percentage": 75,
+                "min_passing_grade": 40,
+                "allow_grade_skip": False,
+            },
+        }
+
+    def get_menu_items(self):
+        """
+        Return menu items for the academics module.
+        """
+        return [
+            {
+                "name": "Academic Structure",
+                "icon": "fas fa-graduation-cap",
+                "url": "academics:dashboard",
+                "permission": "academics.view_section",
+                "children": [
+                    {
+                        "name": "Sections",
+                        "url": "academics:section_list",
+                        "permission": "academics.view_section",
+                    },
+                    {
+                        "name": "Grades",
+                        "url": "academics:grade_list",
+                        "permission": "academics.view_grade",
+                    },
+                    {
+                        "name": "Classes",
+                        "url": "academics:class_list",
+                        "permission": "academics.view_class",
+                    },
+                    {
+                        "name": "Academic Years",
+                        "url": "academics:academic_year_list",
+                        "permission": "academics.view_academicyear",
+                    },
+                    {
+                        "name": "Terms",
+                        "url": "academics:term_list",
+                        "permission": "academics.view_term",
+                    },
+                ],
+            }
+        ]
+
+    def get_dashboard_widgets(self, user):
+        """
+        Return dashboard widgets for different user types.
+        """
+        widgets = []
+
+        if user.has_perm("academics.view_section"):
+            widgets.extend(
+                [
+                    {
+                        "title": "Academic Structure Overview",
+                        "template": "academics/widgets/structure_overview.html",
+                        "context_processor": "academics.context_processors.structure_overview",
+                        "size": "col-md-6",
+                        "order": 5,
+                    },
+                    {
+                        "title": "Current Term Info",
+                        "template": "academics/widgets/current_term.html",
+                        "context_processor": "academics.context_processors.current_term_info",
+                        "size": "col-md-6",
+                        "order": 6,
+                    },
+                ]
+            )
+
+        return widgets
 
 
 # App metadata

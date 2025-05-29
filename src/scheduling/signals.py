@@ -1,16 +1,18 @@
-from django.db.models.signals import post_save, post_delete, pre_save, pre_delete
-from django.dispatch import receiver
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.conf import settings
-from django.utils import timezone
 from datetime import datetime, timedelta
 
-from .models import Timetable, SubstituteTeacher, TimetableGeneration, TimeSlot, Room
-from communications.models import Notification
-from analytics.models import SchedulingAnalytics
-from teachers.models import Teacher
+from django.conf import settings
+from django.core.mail import send_mail
+from django.db.models.signals import post_delete, post_save, pre_delete, pre_save
+from django.dispatch import receiver
+from django.template.loader import render_to_string
+from django.utils import timezone
+
 from academics.models import Term
+from analytics.models import SchedulingAnalytics
+from communications.models import Notification
+from teachers.models import Teacher
+
+from .models import Room, SubstituteTeacher, TimeSlot, Timetable, TimetableGeneration
 
 
 @receiver(post_save, sender=Timetable)

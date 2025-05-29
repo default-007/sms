@@ -1,5 +1,6 @@
 # Import appropriate settings based on environment
 import os
+
 from .base import *
 
 # Set environment based on DJANGO_SETTINGS_MODULE or default to development

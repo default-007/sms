@@ -3,24 +3,26 @@ School Management System - Exam Integration Services
 File: src/exams/services/integration_service.py
 """
 
-from typing import Dict, List, Optional, Any
-from django.db.models import Q, Count, Avg, Sum
-from django.utils import timezone
 from decimal import Decimal
+from typing import Any, Dict, List, Optional
+
+from django.db.models import Avg, Count, Q, Sum
+from django.utils import timezone
+
+from academics.models import AcademicYear, Class, Term
+from attendance.models import Attendance
+from finance.models import FeeStructure, Invoice
+from students.models import Student
+from teachers.models import Teacher
 
 from ..models import (
     Exam,
-    ExamSchedule,
-    StudentExamResult,
-    ReportCard,
     ExamQuestion,
+    ExamSchedule,
     OnlineExam,
+    ReportCard,
+    StudentExamResult,
 )
-from students.models import Student
-from teachers.models import Teacher
-from academics.models import Class, Term, AcademicYear
-from attendance.models import Attendance
-from finance.models import Invoice, FeeStructure
 
 
 class ExamIntegrationService:

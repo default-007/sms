@@ -3,19 +3,20 @@ School Management System - Exam Utilities
 File: src/exams/utils.py
 """
 
-from typing import Dict, List, Optional, Tuple
-from datetime import datetime, timedelta
-from django.utils import timezone
-from django.db.models import Q
-import uuid
 import random
 import string
+import uuid
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple
+
+from django.db.models import Q
+from django.utils import timezone
 
 from .models import (
-    ExamSchedule,
-    StudentExamResult,
     ExamQuestion,
+    ExamSchedule,
     OnlineExam,
+    StudentExamResult,
     StudentOnlineExamAttempt,
 )
 

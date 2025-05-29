@@ -5,12 +5,12 @@ This module defines custom permissions for the academics app,
 including role-based access control and object-level permissions.
 """
 
-from rest_framework import permissions
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import PermissionDenied
+from rest_framework import permissions
 
-from .models import Department, AcademicYear, Term, Section, Grade, Class
+from .models import AcademicYear, Class, Department, Grade, Section, Term
 
 
 class IsAcademicAdmin(permissions.BasePermission):

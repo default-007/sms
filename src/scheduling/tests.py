@@ -1,29 +1,31 @@
-from django.test import TestCase, TransactionTestCase
-from django.core.exceptions import ValidationError
+import json
+from datetime import date, datetime, time, timedelta
+
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 from django.utils import timezone
-from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
-from datetime import datetime, time, date, timedelta
-import json
+from rest_framework.test import APIClient, APITestCase
 
-from .models import (
-    TimeSlot,
-    Room,
-    Timetable,
-    TimetableTemplate,
-    SubstituteTeacher,
-    SchedulingConstraint,
-    TimetableGeneration,
-)
-from .services.timetable_service import TimetableService, SubstituteService, RoomService
-from .services.optimization_service import OptimizationService
-from .services.analytics_service import SchedulingAnalyticsService
-from academics.models import AcademicYear, Term, Grade, Section, Class
+from academics.models import AcademicYear, Class, Grade, Section, Term
+from accounts.models import User
 from subjects.models import Subject
 from teachers.models import Teacher, TeacherClassAssignment
-from accounts.models import User
+
+from .models import (
+    Room,
+    SchedulingConstraint,
+    SubstituteTeacher,
+    TimeSlot,
+    Timetable,
+    TimetableGeneration,
+    TimetableTemplate,
+)
+from .services.analytics_service import SchedulingAnalyticsService
+from .services.optimization_service import OptimizationService
+from .services.timetable_service import RoomService, SubstituteService, TimetableService
 
 User = get_user_model()
 

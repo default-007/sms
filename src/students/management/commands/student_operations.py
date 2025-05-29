@@ -1,17 +1,18 @@
 # students/management/commands/student_operations.py
+import csv
+import logging
+import os
+
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-from django.core.cache import cache
 from django.utils import timezone
-from django.contrib.auth import get_user_model
-import csv
-import os
-import logging
 
-from students.models import Student, Parent, StudentParentRelation
-from students.services.student_service import StudentService
-from students.services.parent_service import ParentService
+from students.models import Parent, Student, StudentParentRelation
 from students.services.analytics_service import StudentAnalyticsService
+from students.services.parent_service import ParentService
+from students.services.student_service import StudentService
 
 User = get_user_model()
 logger = logging.getLogger(__name__)

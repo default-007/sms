@@ -1,22 +1,23 @@
-from django.db.models.signals import post_save, post_delete, pre_save
+from django.db import transaction
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
-from django.db import transaction
+
+from src.communications.models import Notification
 
 from .models import (
-    StudentExamResult,
-    ExamSchedule,
     Exam,
-    StudentOnlineExamAttempt,
+    ExamSchedule,
     ReportCard,
+    StudentExamResult,
+    StudentOnlineExamAttempt,
 )
 from .tasks import (
-    calculate_exam_rankings,
-    send_result_notifications,
     auto_grade_online_exam,
+    calculate_exam_rankings,
     send_report_card_notifications,
+    send_result_notifications,
 )
-from communications.models import Notification
 
 
 @receiver(post_save, sender=StudentExamResult)

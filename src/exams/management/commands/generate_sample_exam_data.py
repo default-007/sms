@@ -3,25 +3,26 @@ School Management System - Generate Sample Exam Data
 File: src/exams/management/commands/generate_sample_exam_data.py
 """
 
-from django.core.management.base import BaseCommand
-from django.contrib.auth import get_user_model
-from django.utils import timezone
-from decimal import Decimal
 import random
 from datetime import date, time, timedelta
+from decimal import Decimal
 
+from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand
+from django.utils import timezone
+
+from academics.models import AcademicYear, Class, Grade, Term
 from exams.models import (
-    ExamType,
     Exam,
-    ExamSchedule,
-    StudentExamResult,
     ExamQuestion,
-    GradingSystem,
+    ExamSchedule,
+    ExamType,
     GradeScale,
+    GradingSystem,
+    StudentExamResult,
 )
-from academics.models import AcademicYear, Term, Class, Grade
-from subjects.models import Subject
 from students.models import Student
+from subjects.models import Subject
 from teachers.models import Teacher
 
 User = get_user_model()

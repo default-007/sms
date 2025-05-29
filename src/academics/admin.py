@@ -11,11 +11,11 @@ providing user-friendly interfaces for managing:
 from django.contrib import admin
 from django.db import models
 from django.forms import Textarea
-from django.utils.html import format_html
 from django.urls import reverse
+from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
-from .models import Department, AcademicYear, Term, Section, Grade, Class
+from .models import AcademicYear, Class, Department, Grade, Section, Term
 
 
 @admin.register(Department)

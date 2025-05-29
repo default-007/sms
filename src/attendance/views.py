@@ -1,27 +1,29 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import (
-    ListView,
-    DetailView,
-    CreateView,
-    UpdateView,
-    DeleteView,
-)
-from django.urls import reverse_lazy
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.contrib.auth.decorators import login_required, permission_required
-from django.contrib import messages
-from django.utils import timezone
-from django.db.models import Q, Count, Avg, F, Case, When, IntegerField
-from django.http import JsonResponse
-from datetime import datetime, timedelta
 import json
+from datetime import datetime, timedelta
 
-from .models import AttendanceRecord, StudentAttendance
-from .forms import AttendanceRecordForm, StudentAttendanceFormSet, AttendanceFilterForm
-from .services import AttendanceService
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.db.models import Avg, Case, Count, F, IntegerField, Q, When
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse_lazy
+from django.utils import timezone
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    UpdateView,
+)
+
+from src.core.decorators import audit_log
 from src.courses.models import Class
 from src.students.models import Student
-from src.core.decorators import audit_log
+
+from .forms import AttendanceFilterForm, AttendanceRecordForm, StudentAttendanceFormSet
+from .models import AttendanceRecord, StudentAttendance
+from .services import AttendanceService
 
 
 class AttendanceRecordListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):

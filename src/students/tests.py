@@ -1,20 +1,22 @@
 # students/tests.py
-from django.test import TestCase, TransactionTestCase
-from django.urls import reverse
-from django.contrib.auth import get_user_model
-from django.utils import timezone
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.core.cache import cache
-from django.test.utils import override_settings
-from unittest.mock import patch
-import tempfile
 import csv
 import io
+import tempfile
+from unittest.mock import patch
 
-from .models import Student, Parent, StudentParentRelation
-from .services.student_service import StudentService
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, TransactionTestCase
+from django.test.utils import override_settings
+from django.urls import reverse
+from django.utils import timezone
+
+from src.courses.models import AcademicYear, Class, Department, Grade, Section
+
+from .models import Parent, Student, StudentParentRelation
 from .services.parent_service import ParentService
-from src.courses.models import Class, Grade, Section, AcademicYear, Department
+from .services.student_service import StudentService
 
 User = get_user_model()
 

@@ -1,8 +1,8 @@
-from django.db.models.signals import post_save, post_delete
-from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.db import transaction
+from django.db.models.signals import post_delete, post_save
+from django.dispatch import receiver
 from django.utils import timezone
 
 from src.teachers.models import Teacher, TeacherEvaluation
@@ -72,8 +72,8 @@ def handle_evaluation_save(sender, instance, created, **kwargs):
             instance.save(update_fields=["followup_date"])
 
         # Log the evaluation
-        from src.core.models import AuditLog
         from src.communications.models import Notification
+        from src.core.models import AuditLog
 
         # Create audit log
         AuditLog.objects.create(

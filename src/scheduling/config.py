@@ -2,8 +2,9 @@
 Configuration settings for the scheduling module
 """
 
-from django.conf import settings
 from datetime import time
+
+from django.conf import settings
 
 
 class SchedulingConfig:

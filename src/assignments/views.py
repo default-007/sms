@@ -1,60 +1,61 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.urls import reverse_lazy, reverse
-from django.views.generic import (
-    ListView,
-    DetailView,
-    CreateView,
-    UpdateView,
-    DeleteView,
-    FormView,
-    TemplateView,
-    View,
-)
-from django.http import JsonResponse, HttpResponse, Http404, HttpResponseForbidden
-from django.db.models import Q, Count, Avg, Sum, Prefetch
-from django.utils import timezone
-from django.core.paginator import Paginator
-from django.core.exceptions import PermissionDenied
-from django.utils.decorators import method_decorator
-from datetime import datetime, timedelta
 import csv
 import json
 import logging
+from datetime import datetime, timedelta
+
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
+from django.db.models import Avg, Count, Prefetch, Q, Sum
+from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse, reverse_lazy
+from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    FormView,
+    ListView,
+    TemplateView,
+    UpdateView,
+    View,
+)
 
 from assignments.services.analytics_service import AssignmentAnalyticsService
+from core.mixins import ParentRequiredMixin, StudentRequiredMixin, TeacherRequiredMixin
 
-from .models import (
-    Assignment,
-    AssignmentSubmission,
-    AssignmentRubric,
-    AssignmentComment,
-)
+from .filters import AssignmentFilter, AssignmentSubmissionFilter
 from .forms import (
-    AssignmentForm,
-    AssignmentSubmissionForm,
-    SubmissionGradingForm,
-    AssignmentRubricForm,
-    RubricFormSet,
     AssignmentCommentForm,
+    AssignmentForm,
+    AssignmentRubricForm,
     AssignmentSearchForm,
+    AssignmentSubmissionForm,
+    AssignmentTemplateForm,
     BulkGradeForm,
     DeadlineExtensionForm,
     NotificationSettingsForm,
-    AssignmentTemplateForm,
+    RubricFormSet,
+    SubmissionGradingForm,
+)
+from .models import (
+    Assignment,
+    AssignmentComment,
+    AssignmentRubric,
+    AssignmentSubmission,
 )
 from .services import (
     AssignmentService,
-    SubmissionService,
+    DeadlineService,
     GradingService,
     PlagiarismService,
-    DeadlineService,
     RubricService,
+    SubmissionService,
 )
-from .filters import AssignmentFilter, AssignmentSubmissionFilter
-from core.mixins import TeacherRequiredMixin, StudentRequiredMixin, ParentRequiredMixin
 
 logger = logging.getLogger(__name__)
 

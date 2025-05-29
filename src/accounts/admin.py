@@ -2,8 +2,8 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
 
-from .models import User, UserRole, UserRoleAssignment
 from .forms import CustomUserCreationForm
+from .models import User, UserRole, UserRoleAssignment
 
 
 class UserRoleAssignmentInline(admin.TabularInline):

@@ -17,28 +17,27 @@ Available endpoints:
 """
 
 from .serializers import (
-    DepartmentSerializer,
-    AcademicYearSerializer,
     AcademicYearCreateSerializer,
-    TermSerializer,
-    SectionSerializer,
-    SectionHierarchySerializer,
-    GradeSerializer,
-    ClassSerializer,
-    ClassCreateSerializer,
+    AcademicYearSerializer,
     BulkClassCreateSerializer,
+    ClassCreateSerializer,
+    ClassSerializer,
+    DepartmentSerializer,
+    GradeSerializer,
+    SectionHierarchySerializer,
+    SectionSerializer,
+    TermSerializer,
 )
-
 from .views import (
-    DepartmentViewSet,
-    AcademicYearViewSet,
-    TermViewSet,
-    SectionViewSet,
-    GradeViewSet,
-    ClassViewSet,
-    AcademicStructureAPIView,
     AcademicCalendarAPIView,
+    AcademicStructureAPIView,
     AcademicValidationAPIView,
+    AcademicYearViewSet,
+    ClassViewSet,
+    DepartmentViewSet,
+    GradeViewSet,
+    SectionViewSet,
+    TermViewSet,
 )
 
 __all__ = [

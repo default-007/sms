@@ -1,13 +1,15 @@
-from django.db import transaction
-from django.core.cache import cache
-from django.utils import timezone
-from django.conf import settings
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.contrib.auth import get_user_model
-from ..models import UserRole, UserRoleAssignment, UserAuditLog
-from ..constants import DEFAULT_ROLES, PERMISSION_SCOPES
 import logging
+
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from django.core.mail import send_mail
+from django.db import transaction
+from django.template.loader import render_to_string
+from django.utils import timezone
+
+from ..constants import DEFAULT_ROLES, PERMISSION_SCOPES
+from ..models import UserAuditLog, UserRole, UserRoleAssignment
 
 logger = logging.getLogger(__name__)
 User = get_user_model()

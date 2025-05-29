@@ -8,13 +8,14 @@ Business logic for grade management including:
 - Class assignment within grades
 """
 
-from django.db import transaction
-from django.core.exceptions import ValidationError
-from django.db.models import Count, Avg, Q
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
-from ..models import Grade, Section, Class, Department
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.db.models import Avg, Count, Q
+
+from ..models import Class, Department, Grade, Section
 
 User = get_user_model()
 

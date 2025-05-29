@@ -1,9 +1,9 @@
 # src/teachers/permissions.py
-from rest_framework import permissions
 from django.contrib.auth.models import Group
 from django.core.exceptions import PermissionDenied
+from rest_framework import permissions
 
-from src.teachers.models import Teacher, TeacherEvaluation, TeacherClassAssignment
+from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
 
 
 class TeacherModulePermissions(permissions.BasePermission):

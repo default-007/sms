@@ -1,23 +1,24 @@
 # src/teachers/tasks.py
-from celery import shared_task
-from django.core.mail import send_mail, EmailMultiAlternatives
-from django.template.loader import render_to_string
-from django.utils import timezone
-from django.conf import settings
-from django.contrib.auth import get_user_model
-from django.db.models import Avg, Count, Q
-from datetime import datetime, timedelta, date
-import logging
-import json
 import csv
 import io
-from typing import List, Dict, Any
+import json
+import logging
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, List
 
-from src.teachers.models import Teacher, TeacherEvaluation, TeacherClassAssignment
-from src.teachers.services.analytics_service import TeacherAnalyticsService
+from celery import shared_task
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.mail import EmailMultiAlternatives, send_mail
+from django.db.models import Avg, Count, Q
+from django.template.loader import render_to_string
+from django.utils import timezone
+
 from src.communications.models import Notification
-from src.courses.models import AcademicYear, Department
 from src.core.models import AuditLog
+from src.courses.models import AcademicYear, Department
+from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
+from src.teachers.services.analytics_service import TeacherAnalyticsService
 
 User = get_user_model()
 logger = logging.getLogger(__name__)

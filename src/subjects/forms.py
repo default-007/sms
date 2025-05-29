@@ -1,12 +1,14 @@
-from django import forms
-from django.core.exceptions import ValidationError
-from django.utils.translation import gettext_lazy as _
-from django.contrib.auth import get_user_model
 import json
 
-from .models import Subject, Syllabus, TopicProgress, SubjectAssignment
-from academics.models import Grade, AcademicYear, Term, Class, Department
+from django import forms
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
+
+from academics.models import AcademicYear, Class, Department, Grade, Term
 from teachers.models import Teacher
+
+from .models import Subject, SubjectAssignment, Syllabus, TopicProgress
 
 User = get_user_model()
 

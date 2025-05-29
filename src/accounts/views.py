@@ -1,53 +1,54 @@
+import csv
+import json
+from io import StringIO
+
 from django.conf import settings
-from django.db.models import Q, Count, Prefetch
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import login, authenticate, logout
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.urls import reverse_lazy, reverse
-from django.views.generic import (
-    ListView,
-    DetailView,
-    CreateView,
-    UpdateView,
-    DeleteView,
-)
-from django.utils.decorators import method_decorator
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import (
     LoginView,
     LogoutView,
     PasswordChangeView,
-    PasswordResetView,
     PasswordResetConfirmView,
+    PasswordResetView,
 )
-from django.db import transaction
-from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
+from django.db import transaction
+from django.db.models import Count, Prefetch, Q
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.decorators.http import require_http_methods
+from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-import json
-import csv
-from io import StringIO
+from django.views.decorators.http import require_http_methods
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    UpdateView,
+)
 
-from .models import User, UserProfile, UserRole, UserRoleAssignment, UserAuditLog
+from .decorators import admin_required, permission_required
 from .forms import (
     CustomAuthenticationForm,
-    CustomUserCreationForm,
-    UserProfileForm,
     CustomPasswordChangeForm,
     CustomPasswordResetForm,
     CustomSetPasswordForm,
+    CustomUserCreationForm,
+    UserProfileForm,
     UserRoleForm,
 )
-from .services import RoleService, AuthenticationService
-from .decorators import admin_required, permission_required
+from .models import User, UserAuditLog, UserProfile, UserRole, UserRoleAssignment
+from .services import AuthenticationService, RoleService
 from .utils import (
-    generate_secure_password,
-    send_notification_email,
-    get_client_info,
     format_file_size,
+    generate_secure_password,
+    get_client_info,
+    send_notification_email,
 )
 
 

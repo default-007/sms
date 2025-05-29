@@ -1,12 +1,13 @@
-from rest_framework import serializers
-from django.db import models
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.db import models
 from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
 
-from ..models import Subject, Syllabus, TopicProgress, SubjectAssignment
-from academics.models import Grade, AcademicYear, Term, Class, Department
-from teachers.models import Teacher
+from src.academics.models import AcademicYear, Class, Department, Grade, Term
+from src.teachers.models import Teacher
+
+from ..models import Subject, SubjectAssignment, Syllabus, TopicProgress
 
 User = get_user_model()
 

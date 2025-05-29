@@ -1,32 +1,33 @@
+import logging
+from collections import defaultdict
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple
+
+from django.core.cache import cache
 from django.db.models import (
-    Q,
-    Count,
     Avg,
-    Sum,
+    Case,
+    CharField,
+    Count,
+    F,
+    FloatField,
+    IntegerField,
     Max,
     Min,
+    Q,
     StdDev,
-    Case,
-    When,
-    IntegerField,
-    FloatField,
-    DateTrunc,
-    F,
+    Sum,
     Value,
-    CharField,
+    When,
 )
 from django.db.models.functions import Coalesce, Round
 from django.utils import timezone
-from django.core.cache import cache
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
-import logging
-from collections import defaultdict
+
+from src.academics.models import AcademicYear, Class, Term
+from src.students.models import Student
+from src.teachers.models import Teacher
 
 from ..models import Assignment, AssignmentSubmission, SubmissionGrade
-from students.models import Student
-from teachers.models import Teacher
-from academics.models import Class, Term, AcademicYear
 
 logger = logging.getLogger(__name__)
 

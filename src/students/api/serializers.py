@@ -1,11 +1,11 @@
 # students/api/serializers.py
-from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from rest_framework import serializers
 
-from ..models import Student, Parent, StudentParentRelation
-from ..validators import validate_student_data, validate_parent_data
 from ..exceptions import AdmissionNumberExistsError, RelationshipExistsError
+from ..models import Parent, Student, StudentParentRelation
+from ..validators import validate_parent_data, validate_student_data
 
 User = get_user_model()
 

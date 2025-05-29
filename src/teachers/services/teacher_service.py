@@ -1,10 +1,12 @@
-from django.db.models import Avg, Count, Sum, Max, F, Q, Case, When, Value, IntegerField
-from django.utils import timezone
 from datetime import datetime, timedelta
-from django.db.models.functions import TruncMonth, ExtractYear, ExtractMonth
 
+from django.db.models import Avg, Case, Count, F, IntegerField, Max, Q, Sum, Value, When
+from django.db.models.functions import ExtractMonth, ExtractYear, TruncMonth
+from django.utils import timezone
+
+from src.academics.models import AcademicYear, Class, Department
+from src.scheduling.services.timetable_service import TimetableService
 from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
-from src.courses.models import Department, Class, Subject, AcademicYear
 
 
 class TeacherService:
@@ -50,7 +52,6 @@ class TeacherService:
     @staticmethod
     def get_teacher_timetable(teacher, academic_year=None):
         """Get the timetable for a specific teacher."""
-        from src.courses.services.timetable_service import TimetableService
 
         return TimetableService.get_teacher_timetable(
             teacher, academic_year=academic_year

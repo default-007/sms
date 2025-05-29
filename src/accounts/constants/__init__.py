@@ -1,25 +1,20 @@
 # src/accounts/constants/__init__.py
 
 from .choices import *
-from .permissions import *
+from .choices import ACCOUNT_STATUS_CHOICES, GENDER_CHOICES, USER_STATUS
 
 # Explicit imports to avoid issues
+from .permissions import *
 from .permissions import (
-    DEFAULT_ROLES,
-    PERMISSION_SCOPES,
     DEFAULT_ADMIN_PERMISSIONS,
-    DEFAULT_TEACHER_PERMISSIONS,
     DEFAULT_PARENT_PERMISSIONS,
-    DEFAULT_STUDENT_PERMISSIONS,
-    SYSTEM_ROLE_NAMES,
-    ROLE_HIERARCHY,
     DEFAULT_ROLE_MAPPINGS,
-)
-
-from .choices import (
-    GENDER_CHOICES,
-    ACCOUNT_STATUS_CHOICES,
-    USER_STATUS,
+    DEFAULT_ROLES,
+    DEFAULT_STUDENT_PERMISSIONS,
+    DEFAULT_TEACHER_PERMISSIONS,
+    PERMISSION_SCOPES,
+    ROLE_HIERARCHY,
+    SYSTEM_ROLE_NAMES,
 )
 
 __all__ = [

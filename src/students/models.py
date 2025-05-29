@@ -1,14 +1,15 @@
 # students/models.py
-from django.db import models
-from django.db.models import Count
-from django.conf import settings
-from django.utils import timezone
-from django.core.validators import RegexValidator, MinLengthValidator
-from django.core.cache import cache
-from django.db.models import Q
-from src.courses.models import Class, AcademicYear
-from src.core.utils import generate_unique_id
 import uuid
+
+from django.conf import settings
+from django.core.cache import cache
+from django.core.validators import MinLengthValidator, RegexValidator
+from django.db import models
+from django.db.models import Count, Q
+from django.utils import timezone
+
+from src.academics.models import AcademicYear, Class
+from src.core.utils import generate_unique_id, generate_unique_id_with_db_check
 
 
 class StudentQuerySet(models.QuerySet):
@@ -156,20 +157,18 @@ class Student(models.Model):
         return f"{self.user.first_name} {self.user.last_name} ({self.admission_number})"
 
     def save(self, *args, **kwargs):
-        # Generate registration number if not provided
         if not self.registration_number:
             admission_year = self.admission_date.year
-            self.registration_number = (
-                f"STU-{admission_year}-{generate_unique_id(length=6)}"
-            )
+            self.registration_number = f"STU-{admission_year}-{generate_unique_id(6)}"
 
-        # Clear related cache
-        cache_keys = [
-            f"student_attendance_percentage_{self.id}",
-            f"student_siblings_{self.id}",
-            f"student_parents_{self.id}",
-        ]
-        cache.delete_many(cache_keys)
+        if self.pk:  # Only clear cache for existing objects
+            cache.delete_many(
+                [
+                    f"student_attendance_percentage_{self.id}",
+                    f"student_siblings_{self.id}",
+                    f"student_parents_{self.id}",
+                ]
+            )
 
         super().save(*args, **kwargs)
 
@@ -274,7 +273,7 @@ class Student(models.Model):
 
         if percentage is None:
             try:
-                from src.attendance.models import Attendance
+                from attendance.models import Attendance
 
                 query = Attendance.objects.filter(student=self)
 
@@ -310,7 +309,7 @@ class Student(models.Model):
         cache.delete(f"student_attendance_percentage_{self.id}")
 
         # Log the promotion
-        from src.core.models import AuditLog
+        from core.models import AuditLog
 
         AuditLog.objects.create(
             user=None,
@@ -330,7 +329,7 @@ class Student(models.Model):
         self.save()
 
         # Log the graduation
-        from src.core.models import AuditLog
+        from core.models import AuditLog
 
         AuditLog.objects.create(
             user=None,
@@ -350,7 +349,7 @@ class Student(models.Model):
         self.save()
 
         # Log the withdrawal
-        from src.core.models import AuditLog
+        from core.models import AuditLog
 
         AuditLog.objects.create(
             user=None,

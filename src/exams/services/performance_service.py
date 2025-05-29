@@ -3,12 +3,13 @@ School Management System - Exam Performance Optimization
 File: src/exams/services/performance_service.py
 """
 
-from datetime import timezone
-from django.db import connection, transaction
-from django.core.cache import cache
-from django.conf import settings
-from typing import Dict, List, Any
 import logging
+from datetime import timezone
+from typing import Any, Dict, List
+
+from django.conf import settings
+from django.core.cache import cache
+from django.db import connection, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -100,8 +101,9 @@ class ExamPerformanceService:
     @staticmethod
     def precompute_report_card_data(term_id: str, class_ids: List[str] = None):
         """Precompute and cache report card data for faster generation"""
+        from academics.models import Class, Term
+
         from ..models import ReportCard, StudentExamResult
-        from academics.models import Term, Class
 
         term = Term.objects.get(id=term_id)
         classes = (
@@ -186,7 +188,7 @@ class ExamPerformanceService:
     @staticmethod
     def monitor_exam_performance() -> Dict:
         """Monitor exam module performance metrics"""
-        from ..models import Exam, StudentExamResult, ExamSchedule
+        from ..models import Exam, ExamSchedule, StudentExamResult
 
         with connection.cursor() as cursor:
             # Get database performance metrics

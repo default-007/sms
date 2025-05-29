@@ -1,12 +1,14 @@
 # src/accounts/management/commands/user_statistics.py
 
-from django.core.management.base import BaseCommand, CommandError
-from django.contrib.auth import get_user_model
-from django.utils import timezone
-from ...models import UserRole, UserAuditLog
-import json
 import csv
 import io
+import json
+
+from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand, CommandError
+from django.utils import timezone
+
+from ...models import UserAuditLog, UserRole
 
 User = get_user_model()
 

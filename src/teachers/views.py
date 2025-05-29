@@ -1,35 +1,37 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.views.generic import (
-    ListView,
-    DetailView,
-    CreateView,
-    UpdateView,
-    DeleteView,
-    TemplateView,
-    View,
-)
-from django.views.generic.edit import FormView
-from django.urls import reverse_lazy, reverse
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.contrib import messages
-from django.db.models import Q, Count, Avg, Sum, F, Case, When, Value, IntegerField
-from django.http import HttpResponse, JsonResponse
-from django.utils import timezone
-from django.core.paginator import Paginator
-from django.core.exceptions import PermissionDenied
 import csv
 import json
 from datetime import datetime, timedelta
 
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
+from django.db.models import Avg, Case, Count, F, IntegerField, Q, Sum, Value, When
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse, reverse_lazy
+from django.utils import timezone
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    TemplateView,
+    UpdateView,
+    View,
+)
+from django.views.generic.edit import FormView
+
 from src.courses.models import AcademicYear, Department
-from .models import Teacher, TeacherClassAssignment, TeacherEvaluation
+
 from .forms import (
-    TeacherForm,
     TeacherClassAssignmentForm,
     TeacherEvaluationForm,
     TeacherFilterForm,
+    TeacherForm,
 )
-from .services import TeacherService, EvaluationService, TimetableService
+from .models import Teacher, TeacherClassAssignment, TeacherEvaluation
+from .services import EvaluationService, TeacherService, TimetableService
 
 
 class TeacherListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):

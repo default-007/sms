@@ -1,28 +1,28 @@
 # students/views/student_views.py
-from django.shortcuts import get_object_or_404, redirect
-from django.views.generic import (
-    ListView,
-    DetailView,
-    CreateView,
-    UpdateView,
-    DeleteView,
-    FormView,
-    TemplateView,
-)
-from django.urls import reverse_lazy
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib import messages
-from django.db.models import Q, Prefetch
-from django.http import JsonResponse, HttpResponse
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.db import transaction
+from django.db.models import Prefetch, Q
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
-from django.db import transaction
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    FormView,
+    ListView,
+    TemplateView,
+    UpdateView,
+)
 
 from students.exceptions import *
 from students.services.analytics_service import StudentAnalyticsService
 
-from ..models import Student, Parent, StudentParentRelation
 from ..forms import QuickStudentAddForm, StudentForm, StudentPromotionForm
+from ..models import Parent, Student, StudentParentRelation
 from ..services.student_service import StudentService
 
 

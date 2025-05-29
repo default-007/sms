@@ -3,10 +3,11 @@ Base settings for School Management System.
 """
 
 import os
-from pathlib import Path
 from datetime import timedelta
-from decouple import config, Csv
+from pathlib import Path
+
 from celery.schedules import crontab
+from decouple import Csv, config
 
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -48,7 +49,6 @@ INSTALLED_APPS = [
     "src.core",
     "src.students",
     "src.teachers",
-    "src.courses",
     "src.exams",
     "src.attendance",
     "src.academics",

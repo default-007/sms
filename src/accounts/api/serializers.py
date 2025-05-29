@@ -1,13 +1,13 @@
 # src/accounts/api/serializers.py
 
-from rest_framework import serializers
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from django.contrib.auth import get_user_model, authenticate
-from django.utils.translation import gettext_lazy as _
+from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from ..models import UserRole, UserRoleAssignment, UserProfile, UserAuditLog
+from ..models import UserAuditLog, UserProfile, UserRole, UserRoleAssignment
 from ..utils import validate_password_strength
 
 User = get_user_model()

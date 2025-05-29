@@ -1,11 +1,12 @@
-from django.core.management.base import BaseCommand
-from django.contrib.auth import get_user_model
-from django.utils import timezone
-from faker import Faker
 import random
 
-from src.students.models import Student, Parent, StudentParentRelation
-from src.courses.models import Class, Grade, Section, AcademicYear, Department
+from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand
+from django.utils import timezone
+from faker import Faker
+
+from src.courses.models import AcademicYear, Class, Department, Grade, Section
+from src.students.models import Parent, Student, StudentParentRelation
 
 User = get_user_model()
 fake = Faker()

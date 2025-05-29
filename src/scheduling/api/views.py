@@ -1,51 +1,53 @@
-from rest_framework import viewsets, status, permissions
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from django.shortcuts import get_object_or_404
-from django.db.models import Q
-from django.utils import timezone
 from datetime import datetime, timedelta
 from typing import Dict, List
 
+from django.db.models import Q
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+from src.academics.models import Class, Grade, Term
+from src.api.permissions import HasModulePermission
+from src.subjects.models import Subject
+from src.teachers.models import Teacher
+
 from ..models import (
-    TimeSlot,
     Room,
-    Timetable,
-    TimetableTemplate,
-    SubstituteTeacher,
     SchedulingConstraint,
+    SubstituteTeacher,
+    TimeSlot,
+    Timetable,
     TimetableGeneration,
+    TimetableTemplate,
 )
-from ..services.timetable_service import (
-    TimetableService,
-    SubstituteService,
-    RoomService,
-)
-from ..services.optimization_service import OptimizationService
 from ..services.analytics_service import SchedulingAnalyticsService
+from ..services.optimization_service import OptimizationService
+from ..services.timetable_service import (
+    RoomService,
+    SubstituteService,
+    TimetableService,
+)
 from .serializers import (
-    TimeSlotSerializer,
-    RoomSerializer,
-    TimetableListSerializer,
-    TimetableDetailSerializer,
+    AvailableRoomsSerializer,
+    AvailableTeachersSerializer,
     BulkTimetableCreateSerializer,
-    SubstituteTeacherSerializer,
+    ConflictAnalyticsSerializer,
+    ConflictCheckSerializer,
+    OptimizationScoreSerializer,
+    RoomSerializer,
+    RoomUtilizationSerializer,
     SchedulingConstraintSerializer,
+    SubstituteTeacherSerializer,
+    TimeSlotSerializer,
+    TimetableDetailSerializer,
     TimetableGenerationSerializer,
+    TimetableListSerializer,
     TimetableTemplateSerializer,
     WorkloadAnalyticsSerializer,
-    RoomUtilizationSerializer,
-    ConflictAnalyticsSerializer,
-    OptimizationScoreSerializer,
-    AvailableTeachersSerializer,
-    AvailableRoomsSerializer,
-    ConflictCheckSerializer,
 )
-from academics.models import Term, Class, Grade
-from subjects.models import Subject
-from teachers.models import Teacher
-from api.permissions import HasModulePermission
 
 
 class TimeSlotViewSet(viewsets.ModelViewSet):

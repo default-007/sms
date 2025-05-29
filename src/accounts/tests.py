@@ -1,13 +1,14 @@
 import unittest
-from django.test import TestCase, TransactionTestCase
+from unittest.mock import MagicMock, patch
+
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
-from unittest.mock import patch, MagicMock
+from django.test import TestCase, TransactionTestCase
 
-from ..models import UserRole, UserRoleAssignment, UserProfile, UserAuditLog
-from ..services import RoleService, AuthenticationService
 from ..constants import DEFAULT_ROLES
+from ..models import UserAuditLog, UserProfile, UserRole, UserRoleAssignment
+from ..services import AuthenticationService, RoleService
 
 User = get_user_model()
 
@@ -188,6 +189,7 @@ class UserRoleAssignmentTest(TestCase):
     def test_assignment_expiry(self):
         """Test assignment expiry checking."""
         from datetime import timedelta
+
         from django.utils import timezone
 
         # Non-expiring assignment
@@ -467,8 +469,9 @@ class UserRoleIntegrationTest(TransactionTestCase):
 
     def test_expired_role_cleanup(self):
         """Test cleanup of expired role assignments."""
-        from django.utils import timezone
         from datetime import timedelta
+
+        from django.utils import timezone
 
         RoleService.create_default_roles()
 

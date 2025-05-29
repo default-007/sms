@@ -4,29 +4,29 @@ Middleware for the teachers module.
 Handles logging, performance monitoring, security, and teacher-specific operations.
 """
 
-import time
-import logging
 import json
+import logging
+import time
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
-from django.db import models
+from typing import Any, Dict, Optional
 
-from django.utils.deprecation import MiddlewareMixin
-from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.core.cache import cache
 from django.conf import settings
-from django.utils import timezone
 from django.contrib.auth.models import AnonymousUser
-from django.urls import resolve, reverse
+from django.core.cache import cache
+from django.db import models
 from django.db.models import Q
+from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.urls import resolve, reverse
+from django.utils import timezone
+from django.utils.deprecation import MiddlewareMixin
 
-from src.teachers.models import Teacher, TeacherEvaluation
+from src.core.models import AuditLog
 from src.teachers.exceptions import (
-    TeacherModuleException,
     TeacherInactiveException,
+    TeacherModuleException,
     handle_teacher_exception,
 )
-from src.core.models import AuditLog
+from src.teachers.models import Teacher, TeacherEvaluation
 
 logger = logging.getLogger(__name__)
 

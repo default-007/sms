@@ -1,18 +1,19 @@
 # src/accounts/services/authentication_service.py
 
-from django.contrib.auth import get_user_model
-from django.utils import timezone
-from django.db import transaction
-from django.core.cache import cache
-from django.conf import settings
-from django.db.models import Q
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
-import secrets
 import hashlib
 import logging
+import secrets
 
-from ..models import UserSession, UserAuditLog
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from django.db import transaction
+from django.db.models import Q
+from django.utils import timezone
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from ..models import UserAuditLog, UserSession
 from ..utils import get_client_info, send_notification_email
 
 logger = logging.getLogger(__name__)
@@ -352,6 +353,7 @@ class AuthenticationService:
     def get_login_statistics(user, days=30):
         """Get login statistics for a user."""
         from datetime import timedelta
+
         from django.db.models import Count
 
         start_date = timezone.now() - timedelta(days=days)
@@ -398,6 +400,7 @@ class AuthenticationService:
     def check_suspicious_activity(user, threshold_hours=24):
         """Check for suspicious login activity."""
         from datetime import timedelta
+
         from django.db.models import Count
 
         since = timezone.now() - timedelta(hours=threshold_hours)

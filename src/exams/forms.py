@@ -3,23 +3,25 @@ School Management System - Exam Forms
 File: src/exams/forms.py
 """
 
+import json
+from datetime import date, time
+
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from datetime import date, time
-import json
+
+from academics.models import AcademicYear, Class, Term
+from subjects.models import Subject
+from teachers.models import Teacher
 
 from .models import (
     Exam,
-    ExamType,
-    ExamSchedule,
-    StudentExamResult,
     ExamQuestion,
+    ExamSchedule,
+    ExamType,
     OnlineExam,
+    StudentExamResult,
 )
-from academics.models import AcademicYear, Term, Class
-from subjects.models import Subject
-from teachers.models import Teacher
 
 
 class ExamForm(forms.ModelForm):

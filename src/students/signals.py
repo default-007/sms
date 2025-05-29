@@ -1,17 +1,18 @@
 # students/signals.py
-from django.db.models.signals import post_save, post_delete, pre_save, pre_delete
-from django.dispatch import receiver
-from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
-from django.utils import timezone
-from django.db import transaction
-from django.core.cache import cache
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.conf import settings
 import logging
 
-from .models import Student, Parent, StudentParentRelation
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from django.core.cache import cache
+from django.core.mail import send_mail
+from django.db import transaction
+from django.db.models.signals import post_delete, post_save, pre_delete, pre_save
+from django.dispatch import receiver
+from django.template.loader import render_to_string
+from django.utils import timezone
+
+from .models import Parent, Student, StudentParentRelation
 
 User = get_user_model()
 logger = logging.getLogger(__name__)

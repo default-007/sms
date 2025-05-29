@@ -1,16 +1,18 @@
 # students/services/parent_service.py
-from django.db import transaction
-from django.conf import settings
-from django.contrib.auth import get_user_model
-from django.utils import timezone
-from django.core.cache import cache
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
 import csv
 import io
 import logging
 
-from ..models import Parent, StudentParentRelation, Student
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from django.core.mail import send_mail
+from django.db import transaction
+from django.db.models import Count
+from django.template.loader import render_to_string
+from django.utils import timezone
+
+from ..models import Parent, Student, StudentParentRelation
 
 User = get_user_model()
 logger = logging.getLogger(__name__)

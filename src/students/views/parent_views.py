@@ -1,23 +1,23 @@
 # students/views/parent_views.py
-from django.shortcuts import get_object_or_404, redirect
-from django.views.generic import (
-    ListView,
-    DetailView,
-    CreateView,
-    UpdateView,
-    DeleteView,
-)
-from django.urls import reverse_lazy
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib import messages
-from django.db.models import Q, Count, Prefetch
-from django.http import JsonResponse
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.cache import cache
+from django.db.models import Count, Prefetch, Q
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    UpdateView,
+)
 
-from ..models import Student, Parent, StudentParentRelation
 from ..forms import ParentForm
+from ..models import Parent, Student, StudentParentRelation
 from ..services.parent_service import ParentService
 
 

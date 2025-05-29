@@ -1,15 +1,16 @@
 # src/api/middleware.py
 """Custom API Middleware"""
 
-import time
 import json
 import logging
-from django.utils.deprecation import MiddlewareMixin
-from django.http import JsonResponse
-from django.core.cache import cache
-from django.conf import settings
-from django.utils import timezone
+import time
 import uuid
+
+from django.conf import settings
+from django.core.cache import cache
+from django.http import JsonResponse
+from django.utils import timezone
+from django.utils.deprecation import MiddlewareMixin
 
 logger = logging.getLogger(__name__)
 

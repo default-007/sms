@@ -1,9 +1,10 @@
-from django.db import models
+from decimal import Decimal
+
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models
 from django.db.models import Avg, Count, Sum
 from django.utils import timezone
-from django.core.validators import MinValueValidator, MaxValueValidator
-from decimal import Decimal
 
 
 class TeacherQuerySet(models.QuerySet):
@@ -237,7 +238,7 @@ class Teacher(models.Model):
 
     def get_current_workload(self):
         """Get current academic year workload"""
-        from src.academics.models import AcademicYear
+        from academics.models import AcademicYear
 
         current_year = AcademicYear.objects.filter(is_current=True).first()
         if not current_year:

@@ -1,21 +1,23 @@
-import random
 import copy
-from typing import List, Dict, Tuple, Optional
+import random
 from dataclasses import dataclass
-from django.db import transaction
-from django.db.models import Q, Count
 from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple
+
+from django.db import transaction
+from django.db.models import Count, Q
+
+from src.academics.models import Class, Grade, Term
+from src.subjects.models import Subject
+from src.teachers.models import Teacher, TeacherClassAssignment
 
 from ..models import (
-    Timetable,
-    TimeSlot,
     Room,
     SchedulingConstraint,
+    TimeSlot,
+    Timetable,
     TimetableGeneration,
 )
-from academics.models import Class, Term, Grade
-from subjects.models import Subject
-from teachers.models import Teacher, TeacherClassAssignment
 
 
 @dataclass

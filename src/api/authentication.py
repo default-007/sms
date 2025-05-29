@@ -1,8 +1,11 @@
 # src/api/authentication.py
 """Custom Authentication Classes"""
 
-import jwt
+import logging
 from datetime import datetime, timedelta
+
+import jwt
+import redis
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import BaseBackend
@@ -12,8 +15,6 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
-import redis
-import logging
 
 User = get_user_model()
 logger = logging.getLogger(__name__)

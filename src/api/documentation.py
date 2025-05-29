@@ -1,16 +1,15 @@
 # src/api/documentation.py
 """API Documentation Configuration"""
 
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiParameter,
+    OpenApiResponse,
     extend_schema,
     extend_schema_view,
-    OpenApiParameter,
-    OpenApiExample,
-    OpenApiResponse,
 )
-from drf_spectacular.types import OpenApiTypes
 from rest_framework import status
-
 
 # Common parameters
 ACADEMIC_YEAR_PARAM = OpenApiParameter(

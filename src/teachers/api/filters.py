@@ -1,11 +1,12 @@
 # src/teachers/api/filters.py
-import django_filters
-from django.db.models import Q, Avg, Count
-from django.utils import timezone
 from datetime import timedelta
 
+import django_filters
+from django.db.models import Avg, Count, Q
+from django.utils import timezone
+
+from src.courses.models import AcademicYear, Department, Subject
 from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
-from src.courses.models import Department, Subject, AcademicYear
 
 
 class TeacherFilter(django_filters.FilterSet):

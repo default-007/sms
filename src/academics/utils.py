@@ -5,13 +5,14 @@ This module provides helper functions and utilities for the academics app,
 including data processing, validation, and common operations.
 """
 
-from django.db.models import Q, Count, Sum, Avg
-from django.core.cache import cache
-from django.utils import timezone
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-from .models import AcademicYear, Term, Section, Grade, Class, Department
+from django.core.cache import cache
+from django.db.models import Avg, Count, Q, Sum
+from django.utils import timezone
+
+from .models import AcademicYear, Class, Department, Grade, Section, Term
 
 
 def get_current_academic_context() -> Dict[str, Any]:

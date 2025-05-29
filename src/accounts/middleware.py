@@ -1,15 +1,15 @@
 import logging
-from django.contrib.auth import logout
+
+from django.conf import settings
+from django.contrib.auth import get_user_model, logout
 from django.core.cache import cache
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.deprecation import MiddlewareMixin
-from django.contrib.auth import get_user_model
-from django.conf import settings
 
-from ..models import UserSession, UserAuditLog
+from ..models import UserAuditLog, UserSession
 
 logger = logging.getLogger(__name__)
 User = get_user_model()

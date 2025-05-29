@@ -1,33 +1,33 @@
 # src/accounts/api/views.py
 
-from rest_framework import generics, status, permissions
+from django.contrib.auth import get_user_model
+from django.db import transaction
+from django.db.models import Count, Prefetch, Q
+from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import generics, permissions, status
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
-from django.contrib.auth import get_user_model
-from django.db import transaction
-from django.db.models import Q, Count, Prefetch
-from django.utils import timezone
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import SearchFilter, OrderingFilter
 
-from ..models import UserRole, UserRoleAssignment, UserAuditLog
-from ..permissions import IsAdmin, CanManageUsers
+from ..models import UserAuditLog, UserRole, UserRoleAssignment
+from ..permissions import CanManageUsers, IsAdmin
+from ..services import AuthenticationService, RoleService
 from .serializers import (
-    UserListSerializer,
-    UserDetailSerializer,
-    UserCreateSerializer,
-    UserUpdateSerializer,
-    UserRoleSerializer,
-    UserRoleAssignmentSerializer,
+    BulkUserActionSerializer,
+    CustomTokenObtainPairSerializer,
     PasswordChangeSerializer,
     PasswordResetSerializer,
     UserAuditLogSerializer,
-    CustomTokenObtainPairSerializer,
-    BulkUserActionSerializer,
+    UserCreateSerializer,
+    UserDetailSerializer,
+    UserListSerializer,
+    UserRoleAssignmentSerializer,
+    UserRoleSerializer,
+    UserUpdateSerializer,
 )
-from ..services import RoleService, AuthenticationService
 
 User = get_user_model()
 

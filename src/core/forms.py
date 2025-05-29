@@ -1,99 +1,99 @@
+# forms.py
+import json
 from django import forms
-from .models import SystemSetting, Document
+from .models import SystemSetting
 
 
 class SystemSettingForm(forms.ModelForm):
+    """Form for editing system settings"""
+
     class Meta:
         model = SystemSetting
-        fields = ["setting_value", "description"]
+        fields = ["setting_value", "description", "is_editable"]
         widgets = {
             "setting_value": forms.Textarea(attrs={"rows": 3}),
-            "description": forms.Textarea(attrs={"rows": 3}),
+            "description": forms.Textarea(attrs={"rows": 2}),
         }
-
-
-class DocumentForm(forms.ModelForm):
-    class Meta:
-        model = Document
-        fields = [
-            "title",
-            "description",
-            "file_path",
-            "category",
-            "related_to_type",
-            "related_to_id",
-            "is_public",
-        ]
-        widgets = {
-            "description": forms.Textarea(attrs={"rows": 3}),
-        }
-
-    def clean_file_path(self):
-        file = self.cleaned_data.get("file_path")
-        if file:
-            # Get the file extension and validate if needed
-            file_extension = file.name.split(".")[-1].lower()
-            valid_extensions = [
-                "pdf",
-                "doc",
-                "docx",
-                "xls",
-                "xlsx",
-                "jpg",
-                "jpeg",
-                "png",
-            ]
-
-            if file_extension not in valid_extensions:
-                raise forms.ValidationError(
-                    f"Unsupported file type. Allowed types: {', '.join(valid_extensions)}"
-                )
-
-            # Check file size (max 10MB)
-            if file.size > 10 * 1024 * 1024:
-                raise forms.ValidationError("File size must be under 10MB")
-
-        return file
-
-
-class DocumentSearchForm(forms.Form):
-    q = forms.CharField(label="Search", required=False)
-    category = forms.ChoiceField(label="Category", required=False, choices=[])
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Dynamically get categories from existing documents
-        from django.db.models import Distinct
-        from .models import Document
 
-        categories = Document.objects.values_list("category", flat=True).distinct()
-        category_choices = [("", "-------")] + [(c, c) for c in categories]
-        self.fields["category"].choices = category_choices
+        if self.instance and self.instance.pk:
+            # Customize widget based on data type
+            if self.instance.data_type == "boolean":
+                self.fields["setting_value"].widget = forms.Select(
+                    choices=[("true", "True"), ("false", "False")]
+                )
+            elif self.instance.data_type == "integer":
+                self.fields["setting_value"].widget = forms.NumberInput()
+            elif self.instance.data_type == "float":
+                self.fields["setting_value"].widget = forms.NumberInput(
+                    attrs={"step": "any"}
+                )
+            elif self.instance.data_type == "json":
+                self.fields["setting_value"].widget = forms.Textarea(attrs={"rows": 5})
+
+    def clean_setting_value(self):
+        """Validate setting value based on data type"""
+        value = self.cleaned_data["setting_value"]
+
+        if self.instance and self.instance.pk:
+            data_type = self.instance.data_type
+
+            if data_type == "boolean":
+                if value.lower() not in ["true", "false"]:
+                    raise forms.ValidationError("Value must be 'true' or 'false'")
+            elif data_type == "integer":
+                try:
+                    int(value)
+                except ValueError:
+                    raise forms.ValidationError("Value must be a valid integer")
+            elif data_type == "float":
+                try:
+                    float(value)
+                except ValueError:
+                    raise forms.ValidationError("Value must be a valid number")
+            elif data_type == "json":
+                try:
+                    json.loads(value)
+                except json.JSONDecodeError:
+                    raise forms.ValidationError("Value must be valid JSON")
+
+        return value
 
 
-class AuditLogSearchForm(forms.Form):
-    user = forms.CharField(label="User", required=False)
-    action = forms.ChoiceField(
-        label="Action",
+class UserSearchForm(forms.Form):
+    """Form for searching users"""
+
+    search = forms.CharField(
+        max_length=100,
         required=False,
-        choices=[("", "-------")]
-        + [
-            ("create", "Create"),
-            ("update", "Update"),
-            ("delete", "Delete"),
-            ("login", "Login"),
-            ("logout", "Logout"),
-            ("view", "View"),
-            ("download", "Download"),
-            ("other", "Other"),
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Search by name, username, or email...",
+                "class": "form-control",
+            }
+        ),
+    )
+
+    role = forms.ChoiceField(
+        choices=[
+            ("", "All Roles"),
+            ("admin", "Administrators"),
+            ("teacher", "Teachers"),
+            ("parent", "Parents"),
+            ("student", "Students"),
         ],
-    )
-    entity_type = forms.CharField(label="Entity Type", required=False)
-    date_from = forms.DateField(
-        label="Date From",
         required=False,
-        widget=forms.DateInput(attrs={"type": "date"}),
+        widget=forms.Select(attrs={"class": "form-select"}),
     )
-    date_to = forms.DateField(
-        label="Date To", required=False, widget=forms.DateInput(attrs={"type": "date"})
+
+    status = forms.ChoiceField(
+        choices=[
+            ("", "All Status"),
+            ("active", "Active"),
+            ("inactive", "Inactive"),
+        ],
+        required=False,
+        widget=forms.Select(attrs={"class": "form-select"}),
     )

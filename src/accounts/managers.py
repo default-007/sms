@@ -1,8 +1,8 @@
 from django.contrib.auth.models import BaseUserManager
-from django.db import models
-from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
-from django.db.models import Q, Count, Prefetch
+from django.db import models
+from django.db.models import Count, Prefetch, Q
+from django.utils.translation import gettext_lazy as _
 
 
 class UserManager(BaseUserManager):
@@ -85,8 +85,9 @@ class UserManager(BaseUserManager):
 
     def recent_registrations(self, days=30):
         """Return users registered in the last N days."""
-        from django.utils import timezone
         from datetime import timedelta
+
+        from django.utils import timezone
 
         cutoff_date = timezone.now() - timedelta(days=days)
         return self.filter(date_joined__gte=cutoff_date)
@@ -97,8 +98,9 @@ class UserManager(BaseUserManager):
 
     def locked_accounts(self):
         """Return accounts that are locked due to failed login attempts."""
-        from django.utils import timezone
         from datetime import timedelta
+
+        from django.utils import timezone
 
         lockout_time = timezone.now() - timedelta(minutes=30)
         return self.filter(
@@ -107,8 +109,9 @@ class UserManager(BaseUserManager):
 
     def get_statistics(self):
         """Get user statistics."""
-        from django.utils import timezone
         from datetime import timedelta
+
+        from django.utils import timezone
 
         total = self.count()
         active = self.active().count()
@@ -220,8 +223,9 @@ class UserRoleAssignmentManager(models.Manager):
 
     def expiring_soon(self, days=7):
         """Return assignments expiring within N days."""
-        from django.utils import timezone
         from datetime import timedelta
+
+        from django.utils import timezone
 
         expiry_date = timezone.now() + timedelta(days=days)
         return self.filter(
@@ -280,8 +284,9 @@ class UserAuditLogManager(models.Manager):
 
     def recent(self, days=30):
         """Get recent audit logs."""
-        from django.utils import timezone
         from datetime import timedelta
+
+        from django.utils import timezone
 
         cutoff_date = timezone.now() - timedelta(days=days)
         return self.filter(timestamp__gte=cutoff_date).order_by("-timestamp")
@@ -308,8 +313,9 @@ class UserAuditLogManager(models.Manager):
 
     def cleanup_old_logs(self, days=365):
         """Clean up old audit logs."""
-        from django.utils import timezone
         from datetime import timedelta
+
+        from django.utils import timezone
 
         cutoff_date = timezone.now() - timedelta(days=days)
         deleted_count, _ = self.filter(timestamp__lt=cutoff_date).delete()
@@ -317,9 +323,10 @@ class UserAuditLogManager(models.Manager):
 
     def get_activity_summary(self, user=None, days=30):
         """Get activity summary for a user or all users."""
-        from django.utils import timezone
         from datetime import timedelta
+
         from django.db.models import Count
+        from django.utils import timezone
 
         cutoff_date = timezone.now() - timedelta(days=days)
         queryset = self.filter(timestamp__gte=cutoff_date)
@@ -343,16 +350,18 @@ class UserSessionManager(models.Manager):
 
     def recent(self, days=30):
         """Get recent sessions."""
-        from django.utils import timezone
         from datetime import timedelta
+
+        from django.utils import timezone
 
         cutoff_date = timezone.now() - timedelta(days=days)
         return self.filter(last_activity__gte=cutoff_date)
 
     def cleanup_old_sessions(self, days=30):
         """Clean up old inactive sessions."""
-        from django.utils import timezone
         from datetime import timedelta
+
+        from django.utils import timezone
 
         cutoff_date = timezone.now() - timedelta(days=days)
         deleted_count, _ = self.filter(

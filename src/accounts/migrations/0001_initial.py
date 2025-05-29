@@ -12,203 +12,578 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('auth', '0012_alter_user_first_name_max_length'),
+        ("auth", "0012_alter_user_first_name_max_length"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='User',
+            name="User",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('password', models.CharField(max_length=128, verbose_name='password')),
-                ('is_superuser', models.BooleanField(default=False, help_text='Designates that this user has all permissions without explicitly assigning them.', verbose_name='superuser status')),
-                ('username', models.CharField(error_messages={'unique': 'A user with that username already exists.'}, help_text='150 characters or fewer. Letters, digits and underscore only.', max_length=150, unique=True, validators=[django.core.validators.RegexValidator('^[a-zA-Z0-9_]+$', 'Username must contain only letters, numbers, and underscores.')], verbose_name='username')),
-                ('email', models.EmailField(max_length=254, unique=True, verbose_name='email address')),
-                ('first_name', models.CharField(blank=True, max_length=150, verbose_name='first name')),
-                ('last_name', models.CharField(blank=True, max_length=150, verbose_name='last name')),
-                ('phone_number', models.CharField(blank=True, max_length=20, validators=[django.core.validators.RegexValidator('^\\+?1?\\d{9,15}$', 'Phone number must be entered in the format: "+999999999". Up to 15 digits allowed.')], verbose_name='phone number')),
-                ('address', models.TextField(blank=True, verbose_name='address')),
-                ('date_of_birth', models.DateField(blank=True, null=True, verbose_name='date of birth')),
-                ('gender', models.CharField(blank=True, choices=[('M', 'Male'), ('F', 'Female'), ('O', 'Other'), ('P', 'Prefer not to say')], max_length=1, verbose_name='gender')),
-                ('profile_picture', models.ImageField(blank=True, null=True, upload_to='profile_pictures/%Y/%m/', verbose_name='profile picture')),
-                ('failed_login_attempts', models.PositiveIntegerField(default=0)),
-                ('last_failed_login', models.DateTimeField(blank=True, null=True)),
-                ('password_changed_at', models.DateTimeField(default=django.utils.timezone.now)),
-                ('requires_password_change', models.BooleanField(default=False)),
-                ('is_staff', models.BooleanField(default=False, help_text='Designates whether the user can log into the admin site.', verbose_name='staff status')),
-                ('is_active', models.BooleanField(default=True, help_text='Designates whether this user should be treated as active. Unselect this instead of deleting accounts.', verbose_name='active')),
-                ('date_joined', models.DateTimeField(default=django.utils.timezone.now, verbose_name='date joined')),
-                ('last_login', models.DateTimeField(blank=True, null=True, verbose_name='last login')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('groups', models.ManyToManyField(blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.', related_name='user_set', related_query_name='user', to='auth.group', verbose_name='groups')),
-                ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.', related_name='user_set', related_query_name='user', to='auth.permission', verbose_name='user permissions')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("password", models.CharField(max_length=128, verbose_name="password")),
+                (
+                    "is_superuser",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Designates that this user has all permissions without explicitly assigning them.",
+                        verbose_name="superuser status",
+                    ),
+                ),
+                (
+                    "username",
+                    models.CharField(
+                        error_messages={
+                            "unique": "A user with that username already exists."
+                        },
+                        help_text="150 characters or fewer. Letters, digits and underscore only.",
+                        max_length=150,
+                        unique=True,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                "^[a-zA-Z0-9_]+$",
+                                "Username must contain only letters, numbers, and underscores.",
+                            )
+                        ],
+                        verbose_name="username",
+                    ),
+                ),
+                (
+                    "email",
+                    models.EmailField(
+                        max_length=254, unique=True, verbose_name="email address"
+                    ),
+                ),
+                (
+                    "first_name",
+                    models.CharField(
+                        blank=True, max_length=150, verbose_name="first name"
+                    ),
+                ),
+                (
+                    "last_name",
+                    models.CharField(
+                        blank=True, max_length=150, verbose_name="last name"
+                    ),
+                ),
+                (
+                    "phone_number",
+                    models.CharField(
+                        blank=True,
+                        max_length=20,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                "^\\+?1?\\d{9,15}$",
+                                'Phone number must be entered in the format: "+999999999". Up to 15 digits allowed.',
+                            )
+                        ],
+                        verbose_name="phone number",
+                    ),
+                ),
+                ("address", models.TextField(blank=True, verbose_name="address")),
+                (
+                    "date_of_birth",
+                    models.DateField(
+                        blank=True, null=True, verbose_name="date of birth"
+                    ),
+                ),
+                (
+                    "gender",
+                    models.CharField(
+                        blank=True,
+                        choices=[
+                            ("M", "Male"),
+                            ("F", "Female"),
+                            ("O", "Other"),
+                            ("P", "Prefer not to say"),
+                        ],
+                        max_length=1,
+                        verbose_name="gender",
+                    ),
+                ),
+                (
+                    "profile_picture",
+                    models.ImageField(
+                        blank=True,
+                        null=True,
+                        upload_to="profile_pictures/%Y/%m/",
+                        verbose_name="profile picture",
+                    ),
+                ),
+                ("failed_login_attempts", models.PositiveIntegerField(default=0)),
+                ("last_failed_login", models.DateTimeField(blank=True, null=True)),
+                (
+                    "password_changed_at",
+                    models.DateTimeField(default=django.utils.timezone.now),
+                ),
+                ("requires_password_change", models.BooleanField(default=False)),
+                (
+                    "is_staff",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Designates whether the user can log into the admin site.",
+                        verbose_name="staff status",
+                    ),
+                ),
+                (
+                    "is_active",
+                    models.BooleanField(
+                        default=True,
+                        help_text="Designates whether this user should be treated as active. Unselect this instead of deleting accounts.",
+                        verbose_name="active",
+                    ),
+                ),
+                (
+                    "date_joined",
+                    models.DateTimeField(
+                        default=django.utils.timezone.now, verbose_name="date joined"
+                    ),
+                ),
+                (
+                    "last_login",
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="last login"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "groups",
+                    models.ManyToManyField(
+                        blank=True,
+                        help_text="The groups this user belongs to. A user will get all permissions granted to each of their groups.",
+                        related_name="user_set",
+                        related_query_name="user",
+                        to="auth.group",
+                        verbose_name="groups",
+                    ),
+                ),
+                (
+                    "user_permissions",
+                    models.ManyToManyField(
+                        blank=True,
+                        help_text="Specific permissions for this user.",
+                        related_name="user_set",
+                        related_query_name="user",
+                        to="auth.permission",
+                        verbose_name="user permissions",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'user',
-                'verbose_name_plural': 'users',
-                'ordering': ['username'],
+                "verbose_name": "user",
+                "verbose_name_plural": "users",
+                "ordering": ["username"],
             },
         ),
         migrations.CreateModel(
-            name='UserAuditLog',
+            name="UserAuditLog",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('action', models.CharField(choices=[('create', 'Create'), ('update', 'Update'), ('delete', 'Delete'), ('login', 'Login'), ('logout', 'Logout'), ('password_change', 'Password Change'), ('role_assign', 'Role Assigned'), ('role_remove', 'Role Removed'), ('account_lock', 'Account Locked'), ('account_unlock', 'Account Unlocked')], max_length=20, verbose_name='action')),
-                ('description', models.TextField(verbose_name='description')),
-                ('ip_address', models.GenericIPAddressField(blank=True, null=True, verbose_name='IP address')),
-                ('user_agent', models.TextField(blank=True, verbose_name='user agent')),
-                ('timestamp', models.DateTimeField(auto_now_add=True)),
-                ('extra_data', models.JSONField(blank=True, default=dict, verbose_name='extra data')),
-                ('performed_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='audit_logs_performed', to=settings.AUTH_USER_MODEL, verbose_name='performed by')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='user_audit_logs', to=settings.AUTH_USER_MODEL, verbose_name='user')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "action",
+                    models.CharField(
+                        choices=[
+                            ("create", "Create"),
+                            ("update", "Update"),
+                            ("delete", "Delete"),
+                            ("login", "Login"),
+                            ("logout", "Logout"),
+                            ("password_change", "Password Change"),
+                            ("role_assign", "Role Assigned"),
+                            ("role_remove", "Role Removed"),
+                            ("account_lock", "Account Locked"),
+                            ("account_unlock", "Account Unlocked"),
+                        ],
+                        max_length=20,
+                        verbose_name="action",
+                    ),
+                ),
+                ("description", models.TextField(verbose_name="description")),
+                (
+                    "ip_address",
+                    models.GenericIPAddressField(
+                        blank=True, null=True, verbose_name="IP address"
+                    ),
+                ),
+                ("user_agent", models.TextField(blank=True, verbose_name="user agent")),
+                ("timestamp", models.DateTimeField(auto_now_add=True)),
+                (
+                    "extra_data",
+                    models.JSONField(
+                        blank=True, default=dict, verbose_name="extra data"
+                    ),
+                ),
+                (
+                    "performed_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="audit_logs_performed",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="performed by",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="user_audit_logs",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="user",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'user audit log',
-                'verbose_name_plural': 'user audit logs',
-                'ordering': ['-timestamp'],
+                "verbose_name": "user audit log",
+                "verbose_name_plural": "user audit logs",
+                "ordering": ["-timestamp"],
             },
         ),
         migrations.CreateModel(
-            name='UserProfile',
+            name="UserProfile",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('bio', models.TextField(blank=True, max_length=500, verbose_name='biography')),
-                ('website', models.URLField(blank=True, verbose_name='website')),
-                ('location', models.CharField(blank=True, max_length=100, verbose_name='location')),
-                ('birth_date', models.DateField(blank=True, null=True, verbose_name='birth date')),
-                ('language', models.CharField(default='en', max_length=10, verbose_name='language')),
-                ('timezone', models.CharField(default='UTC', max_length=50, verbose_name='timezone')),
-                ('email_notifications', models.BooleanField(default=True, verbose_name='email notifications')),
-                ('sms_notifications', models.BooleanField(default=False, verbose_name='SMS notifications')),
-                ('linkedin_url', models.URLField(blank=True, verbose_name='LinkedIn URL')),
-                ('twitter_url', models.URLField(blank=True, verbose_name='Twitter URL')),
-                ('facebook_url', models.URLField(blank=True, verbose_name='Facebook URL')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='profile', to=settings.AUTH_USER_MODEL, verbose_name='user')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "bio",
+                    models.TextField(
+                        blank=True, max_length=500, verbose_name="biography"
+                    ),
+                ),
+                ("website", models.URLField(blank=True, verbose_name="website")),
+                (
+                    "location",
+                    models.CharField(
+                        blank=True, max_length=100, verbose_name="location"
+                    ),
+                ),
+                (
+                    "birth_date",
+                    models.DateField(blank=True, null=True, verbose_name="birth date"),
+                ),
+                (
+                    "language",
+                    models.CharField(
+                        default="en", max_length=10, verbose_name="language"
+                    ),
+                ),
+                (
+                    "timezone",
+                    models.CharField(
+                        default="UTC", max_length=50, verbose_name="timezone"
+                    ),
+                ),
+                (
+                    "email_notifications",
+                    models.BooleanField(
+                        default=True, verbose_name="email notifications"
+                    ),
+                ),
+                (
+                    "sms_notifications",
+                    models.BooleanField(
+                        default=False, verbose_name="SMS notifications"
+                    ),
+                ),
+                (
+                    "linkedin_url",
+                    models.URLField(blank=True, verbose_name="LinkedIn URL"),
+                ),
+                (
+                    "twitter_url",
+                    models.URLField(blank=True, verbose_name="Twitter URL"),
+                ),
+                (
+                    "facebook_url",
+                    models.URLField(blank=True, verbose_name="Facebook URL"),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "user",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="profile",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="user",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'user profile',
-                'verbose_name_plural': 'user profiles',
+                "verbose_name": "user profile",
+                "verbose_name_plural": "user profiles",
             },
         ),
         migrations.CreateModel(
-            name='UserRole',
+            name="UserRole",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100, unique=True, verbose_name='role name')),
-                ('description', models.TextField(blank=True, verbose_name='description')),
-                ('permissions', models.JSONField(blank=True, default=dict, verbose_name='permissions')),
-                ('is_system_role', models.BooleanField(default=False, verbose_name='system role')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('created_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_roles', to=settings.AUTH_USER_MODEL, verbose_name='created by')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "name",
+                    models.CharField(
+                        max_length=100, unique=True, verbose_name="role name"
+                    ),
+                ),
+                (
+                    "description",
+                    models.TextField(blank=True, verbose_name="description"),
+                ),
+                (
+                    "permissions",
+                    models.JSONField(
+                        blank=True, default=dict, verbose_name="permissions"
+                    ),
+                ),
+                (
+                    "is_system_role",
+                    models.BooleanField(default=False, verbose_name="system role"),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="created_roles",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="created by",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'user role',
-                'verbose_name_plural': 'user roles',
-                'ordering': ['name'],
+                "verbose_name": "user role",
+                "verbose_name_plural": "user roles",
+                "ordering": ["name"],
             },
         ),
         migrations.CreateModel(
-            name='UserRoleAssignment',
+            name="UserRoleAssignment",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('assigned_date', models.DateTimeField(default=django.utils.timezone.now, verbose_name='assigned date')),
-                ('expires_at', models.DateTimeField(blank=True, null=True, verbose_name='expires at')),
-                ('is_active', models.BooleanField(default=True, verbose_name='is active')),
-                ('notes', models.TextField(blank=True, verbose_name='notes')),
-                ('assigned_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='role_assignments_made', to=settings.AUTH_USER_MODEL, verbose_name='assigned by')),
-                ('role', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='user_assignments', to='accounts.userrole', verbose_name='role')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='role_assignments', to=settings.AUTH_USER_MODEL, verbose_name='user')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "assigned_date",
+                    models.DateTimeField(
+                        default=django.utils.timezone.now, verbose_name="assigned date"
+                    ),
+                ),
+                (
+                    "expires_at",
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="expires at"
+                    ),
+                ),
+                (
+                    "is_active",
+                    models.BooleanField(default=True, verbose_name="is active"),
+                ),
+                ("notes", models.TextField(blank=True, verbose_name="notes")),
+                (
+                    "assigned_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="role_assignments_made",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="assigned by",
+                    ),
+                ),
+                (
+                    "role",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="user_assignments",
+                        to="accounts.userrole",
+                        verbose_name="role",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="role_assignments",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="user",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'user role assignment',
-                'verbose_name_plural': 'user role assignments',
-                'ordering': ['-assigned_date'],
+                "verbose_name": "user role assignment",
+                "verbose_name_plural": "user role assignments",
+                "ordering": ["-assigned_date"],
             },
         ),
         migrations.CreateModel(
-            name='UserSession',
+            name="UserSession",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('session_key', models.CharField(max_length=40, unique=True, verbose_name='session key')),
-                ('ip_address', models.GenericIPAddressField(verbose_name='IP address')),
-                ('user_agent', models.TextField(verbose_name='user agent')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('last_activity', models.DateTimeField(auto_now=True)),
-                ('is_active', models.BooleanField(default=True)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='sessions', to=settings.AUTH_USER_MODEL, verbose_name='user')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "session_key",
+                    models.CharField(
+                        max_length=40, unique=True, verbose_name="session key"
+                    ),
+                ),
+                ("ip_address", models.GenericIPAddressField(verbose_name="IP address")),
+                ("user_agent", models.TextField(verbose_name="user agent")),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("last_activity", models.DateTimeField(auto_now=True)),
+                ("is_active", models.BooleanField(default=True)),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="sessions",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="user",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'user session',
-                'verbose_name_plural': 'user sessions',
-                'ordering': ['-last_activity'],
+                "verbose_name": "user session",
+                "verbose_name_plural": "user sessions",
+                "ordering": ["-last_activity"],
             },
         ),
         migrations.AddIndex(
-            model_name='user',
-            index=models.Index(fields=['username'], name='accounts_us_usernam_c0ea66_idx'),
+            model_name="user",
+            index=models.Index(
+                fields=["username"], name="accounts_us_usernam_c0ea66_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='user',
-            index=models.Index(fields=['email'], name='accounts_us_email_74c8d6_idx'),
+            model_name="user",
+            index=models.Index(fields=["email"], name="accounts_us_email_74c8d6_idx"),
         ),
         migrations.AddIndex(
-            model_name='user',
-            index=models.Index(fields=['is_active', 'date_joined'], name='accounts_us_is_acti_2d5cee_idx'),
+            model_name="user",
+            index=models.Index(
+                fields=["is_active", "date_joined"],
+                name="accounts_us_is_acti_2d5cee_idx",
+            ),
         ),
         migrations.AddIndex(
-            model_name='userauditlog',
-            index=models.Index(fields=['user', 'timestamp'], name='accounts_us_user_id_61b38b_idx'),
+            model_name="userauditlog",
+            index=models.Index(
+                fields=["user", "timestamp"], name="accounts_us_user_id_61b38b_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='userauditlog',
-            index=models.Index(fields=['action', 'timestamp'], name='accounts_us_action_fd87e4_idx'),
+            model_name="userauditlog",
+            index=models.Index(
+                fields=["action", "timestamp"], name="accounts_us_action_fd87e4_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='userauditlog',
-            index=models.Index(fields=['performed_by', 'timestamp'], name='accounts_us_perform_c94047_idx'),
+            model_name="userauditlog",
+            index=models.Index(
+                fields=["performed_by", "timestamp"],
+                name="accounts_us_perform_c94047_idx",
+            ),
         ),
         migrations.AddIndex(
-            model_name='userrole',
-            index=models.Index(fields=['name'], name='accounts_us_name_23470c_idx'),
+            model_name="userrole",
+            index=models.Index(fields=["name"], name="accounts_us_name_23470c_idx"),
         ),
         migrations.AddIndex(
-            model_name='userrole',
-            index=models.Index(fields=['is_system_role'], name='accounts_us_is_syst_f98329_idx'),
+            model_name="userrole",
+            index=models.Index(
+                fields=["is_system_role"], name="accounts_us_is_syst_f98329_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='userroleassignment',
-            index=models.Index(fields=['user', 'is_active'], name='accounts_us_user_id_55ae20_idx'),
+            model_name="userroleassignment",
+            index=models.Index(
+                fields=["user", "is_active"], name="accounts_us_user_id_55ae20_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='userroleassignment',
-            index=models.Index(fields=['role', 'is_active'], name='accounts_us_role_id_e1094b_idx'),
+            model_name="userroleassignment",
+            index=models.Index(
+                fields=["role", "is_active"], name="accounts_us_role_id_e1094b_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='userroleassignment',
-            index=models.Index(fields=['assigned_date'], name='accounts_us_assigne_9a355c_idx'),
+            model_name="userroleassignment",
+            index=models.Index(
+                fields=["assigned_date"], name="accounts_us_assigne_9a355c_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='userroleassignment',
-            index=models.Index(fields=['expires_at'], name='accounts_us_expires_0bd155_idx'),
+            model_name="userroleassignment",
+            index=models.Index(
+                fields=["expires_at"], name="accounts_us_expires_0bd155_idx"
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='userroleassignment',
-            unique_together={('user', 'role')},
+            name="userroleassignment",
+            unique_together={("user", "role")},
         ),
         migrations.AddIndex(
-            model_name='usersession',
-            index=models.Index(fields=['user', 'is_active'], name='accounts_us_user_id_91ed82_idx'),
+            model_name="usersession",
+            index=models.Index(
+                fields=["user", "is_active"], name="accounts_us_user_id_91ed82_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='usersession',
-            index=models.Index(fields=['session_key'], name='accounts_us_session_511f42_idx'),
+            model_name="usersession",
+            index=models.Index(
+                fields=["session_key"], name="accounts_us_session_511f42_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='usersession',
-            index=models.Index(fields=['last_activity'], name='accounts_us_last_ac_a630f7_idx'),
+            model_name="usersession",
+            index=models.Index(
+                fields=["last_activity"], name="accounts_us_last_ac_a630f7_idx"
+            ),
         ),
     ]

@@ -1,42 +1,42 @@
 # src/teachers/services/analytics_service.py
+import json
+from datetime import date, datetime, timedelta
+from decimal import Decimal
+
+from django.contrib.auth import get_user_model
 from django.db.models import (
     Avg,
+    Case,
     Count,
-    Sum,
+    DateField,
+    F,
+    FloatField,
+    IntegerField,
     Max,
     Min,
-    StdDev,
-    F,
-    Q,
-    Case,
-    When,
-    Value,
-    IntegerField,
-    FloatField,
-    DateField,
-    Subquery,
     OuterRef,
+    Q,
+    StdDev,
+    Subquery,
+    Sum,
+    Value,
+    When,
 )
-from django.utils import timezone
-from datetime import datetime, timedelta, date
 from django.db.models.functions import (
+    Coalesce,
+    Extract,
+    ExtractMonth,
+    ExtractYear,
     TruncMonth,
-    TruncYear,
     TruncQuarter,
     TruncWeek,
-    ExtractYear,
-    ExtractMonth,
-    Extract,
-    Coalesce,
+    TruncYear,
 )
-from django.contrib.auth import get_user_model
-from decimal import Decimal
-import json
+from django.utils import timezone
 
-from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
-from src.courses.models import Department, Class, Subject, AcademicYear, Term
+from src.academics.models import AcademicYear, Department
 from src.students.models import Student
-from src.attendance.models import Attendance
+from src.teachers.models import Teacher, TeacherClassAssignment, TeacherEvaluation
 
 User = get_user_model()
 

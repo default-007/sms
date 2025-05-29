@@ -5,11 +5,12 @@ File: src/exams/migrations/0001_initial.py
 
 # Generated migration file for the exams app
 
-from django.conf import settings
-import django.core.validators
-from django.db import migrations, models
-import django.db.models.deletion
 import uuid
+
+import django.core.validators
+import django.db.models.deletion
+from django.conf import settings
+from django.db import migrations, models
 
 
 class Migration(migrations.Migration):

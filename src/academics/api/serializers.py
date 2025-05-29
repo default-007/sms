@@ -5,10 +5,10 @@ This module provides serializers for converting model instances to/from JSON
 for the REST API endpoints. Includes nested serializers for hierarchical data.
 """
 
-from rest_framework import serializers
 from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework import serializers
 
-from ..models import Department, AcademicYear, Term, Section, Grade, Class
+from ..models import AcademicYear, Class, Department, Grade, Section, Term
 
 
 class DepartmentSerializer(serializers.ModelSerializer):

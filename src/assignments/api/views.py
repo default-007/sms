@@ -1,48 +1,54 @@
-from rest_framework import viewsets, status, permissions
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser
-from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q, Count, Avg
-from django.utils import timezone
-from django.http import HttpResponse, Http404
-from django.core.exceptions import ValidationError
 import logging
+
+from django.core.exceptions import ValidationError
+from django.db.models import Avg, Count, Q
+from django.http import Http404, HttpResponse
+from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.response import Response
+
+# from src.api.filters import AssignmentFilter, SubmissionFilter
+from src.api.permissions import IsTeacherOrReadOnly
+from src.assignments.filters import AssignmentFilter
+from src.subjects.api.views import StandardResultsSetPagination
+
+# from src.api.paginations import StandardResultsSetPagination
+# from src.api.permissions import IsStudentOwnerOrTeacher, IsTeacherOrReadOnly
 
 from ..models import (
     Assignment,
-    AssignmentSubmission,
-    AssignmentRubric,
-    SubmissionGrade,
     AssignmentComment,
+    AssignmentRubric,
+    AssignmentSubmission,
+    SubmissionGrade,
 )
 from ..services import (
     AssignmentService,
-    SubmissionService,
+    DeadlineService,
     GradingService,
     PlagiarismService,
-    DeadlineService,
     RubricService,
+    SubmissionService,
 )
 from .serializers import (
-    AssignmentListSerializer,
-    AssignmentDetailSerializer,
-    AssignmentCreateSerializer,
-    AssignmentUpdateSerializer,
-    AssignmentSubmissionListSerializer,
-    AssignmentSubmissionDetailSerializer,
-    AssignmentSubmissionCreateSerializer,
-    AssignmentSubmissionGradeSerializer,
-    AssignmentRubricSerializer,
-    SubmissionGradeSerializer,
-    AssignmentCommentSerializer,
     AssignmentAnalyticsSerializer,
-    PlagiarismResultSerializer,
+    AssignmentCommentSerializer,
+    AssignmentCreateSerializer,
+    AssignmentDetailSerializer,
+    AssignmentListSerializer,
+    AssignmentRubricSerializer,
+    AssignmentSubmissionCreateSerializer,
+    AssignmentSubmissionDetailSerializer,
+    AssignmentSubmissionGradeSerializer,
+    AssignmentSubmissionListSerializer,
+    AssignmentUpdateSerializer,
     DeadlineReminderSerializer,
+    PlagiarismResultSerializer,
+    SubmissionGradeSerializer,
 )
-from api.permissions import IsTeacherOrReadOnly, IsStudentOwnerOrTeacher
-from api.filters import AssignmentFilter, SubmissionFilter
-from api.paginations import StandardResultsSetPagination
 
 logger = logging.getLogger(__name__)
 
@@ -322,7 +328,7 @@ class AssignmentSubmissionViewSet(viewsets.ModelViewSet):
         "graded_by__user",
     ).prefetch_related("rubric_grades__rubric")
 
-    permission_classes = [permissions.IsAuthenticated, IsStudentOwnerOrTeacher]
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_class = SubmissionFilter
     pagination_class = StandardResultsSetPagination

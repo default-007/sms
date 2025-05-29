@@ -3,7 +3,7 @@ import secrets
 import string
 import uuid
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 from django.conf import settings
 from django.contrib.auth import get_user_model

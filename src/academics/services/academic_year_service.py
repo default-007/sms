@@ -8,14 +8,15 @@ Business logic for academic year management including:
 - Year transition workflows
 """
 
-from django.db import transaction
-from django.core.exceptions import ValidationError
-from django.utils import timezone
 from datetime import datetime, timedelta
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
+
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.utils import timezone
 
 from ..models import AcademicYear, Term
-from django.contrib.auth import get_user_model
 
 User = get_user_model()
 

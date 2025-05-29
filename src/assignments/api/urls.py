@@ -1,12 +1,13 @@
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
+
 from .views import (
-    AssignmentViewSet,
-    AssignmentSubmissionViewSet,
-    AssignmentRubricViewSet,
     AssignmentCommentViewSet,
-    TeacherAnalyticsView,
+    AssignmentRubricViewSet,
+    AssignmentSubmissionViewSet,
+    AssignmentViewSet,
     StudentAnalyticsView,
+    TeacherAnalyticsView,
 )
 
 app_name = "assignments_api"

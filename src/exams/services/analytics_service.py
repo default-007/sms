@@ -3,39 +3,41 @@ School Management System - Exam Analytics Service
 File: src/exams/services/analytics_service.py
 """
 
-from typing import Dict, List, Optional, Tuple
+from collections import defaultdict
 from datetime import datetime, timedelta
+from decimal import Decimal
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 from django.db.models import (
-    Q,
     Avg,
-    Sum,
+    Case,
     Count,
+    F,
+    FloatField,
     Max,
     Min,
-    F,
-    Case,
-    When,
+    Q,
+    Sum,
     Value,
-    FloatField,
+    When,
 )
 from django.forms import CharField
 from django.utils import timezone
-from decimal import Decimal
-import numpy as np
-from collections import defaultdict
+
+from src.academics.models import AcademicYear, Class, Grade, Section, Term
+from src.students.models import Student
+from src.teachers.models import Teacher
 
 from ..models import (
     Exam,
     ExamSchedule,
-    StudentExamResult,
-    ReportCard,
     ExamType,
     OnlineExam,
+    ReportCard,
+    StudentExamResult,
     StudentOnlineExamAttempt,
 )
-from academics.models import Class, Grade, Section, Term, AcademicYear
-from students.models import Student
-from teachers.models import Teacher
 
 
 class ExamAnalyticsService:

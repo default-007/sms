@@ -7,7 +7,7 @@ app_name = "finance"
 
 urlpatterns = [
     # API URLs
-    path("api/", include("finance.api.urls")),
+    path("api/", include("src.finance.api.urls")),
     # Web interface URLs (for future HTML templates)
     path("", login_required(views.DashboardView.as_view()), name="dashboard"),
     # Fee Management

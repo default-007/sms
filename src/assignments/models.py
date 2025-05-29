@@ -54,7 +54,7 @@ class Assignment(models.Model):
         "academics.Class", on_delete=models.CASCADE, related_name="assignments"
     )
     subject = models.ForeignKey(
-        "subjects.Subject", on_delete=models.CASCADE, related_name="assignments"
+        "subjects.Subject", on_delete=models.CASCADE, related_name="assignment_subject"
     )
     teacher = models.ForeignKey(
         "teachers.Teacher", on_delete=models.CASCADE, related_name="assignments_created"

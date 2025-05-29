@@ -6,7 +6,7 @@ from django.db import transaction
 from django.db.models import Avg, Count, F, Max, Min, Q, Sum
 from django.utils import timezone
 
-from teachers.models import Teacher
+from src.teachers.models import Teacher
 
 from ..models import AssignmentRubric, AssignmentSubmission, SubmissionGrade
 

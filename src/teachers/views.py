@@ -22,7 +22,8 @@ from django.views.generic import (
 )
 from django.views.generic.edit import FormView
 
-from src.courses.models import AcademicYear, Department
+from src.academics.models import AcademicYear, Department
+
 
 from .forms import (
     TeacherClassAssignmentForm,
@@ -180,7 +181,7 @@ class TeacherDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView)
         ).select_related("class_instance", "subject", "academic_year")
 
         # Get timetable for current teacher
-        from src.courses.services.timetable_service import TimetableService
+        from src.scheduling.services.timetable_service import TimetableService
 
         context["timetable"] = TimetableService.get_teacher_timetable(
             teacher=teacher, academic_year=current_academic_year
@@ -335,7 +336,7 @@ class TeacherTimetableView(LoginRequiredMixin, PermissionRequiredMixin, DetailVi
         current_academic_year = AcademicYear.objects.filter(is_current=True).first()
 
         # Get timetable for the teacher
-        from src.courses.services.timetable_service import (
+        from src.scheduling.services.timetable_service import (
             TimetableService as CourseTimetableService,
         )
 

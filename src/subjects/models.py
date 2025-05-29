@@ -321,7 +321,7 @@ class SubjectAssignment(models.Model):
     subject = models.ForeignKey(
         Subject,
         on_delete=models.CASCADE,
-        related_name="assignments",
+        related_name="subject_assignments",
         verbose_name=_("Subject"),
     )
     teacher = models.ForeignKey(

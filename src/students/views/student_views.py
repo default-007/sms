@@ -18,8 +18,8 @@ from django.views.generic import (
     UpdateView,
 )
 
-from students.exceptions import *
-from students.services.analytics_service import StudentAnalyticsService
+from src.students.exceptions import *
+from src.students.services.analytics_service import StudentAnalyticsService
 
 from ..forms import QuickStudentAddForm, StudentForm, StudentPromotionForm
 from ..models import Parent, Student, StudentParentRelation

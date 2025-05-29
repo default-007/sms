@@ -7,9 +7,10 @@ from django.db.models import Q, Count, Avg, Sum, Max, Min
 from django.utils import timezone
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
-from django_filters.rest_framework import DjangoFilterFilter
 from datetime import datetime, timedelta
 import logging
+
+from src.finance.models import FinancialAnalytics
 
 from ..models import (
     SystemSetting,
@@ -17,7 +18,7 @@ from ..models import (
     StudentPerformanceAnalytics,
     ClassPerformanceAnalytics,
     AttendanceAnalytics,
-    FinancialAnalytics,
+    # FinancialAnalytics,
     TeacherPerformanceAnalytics,
     SystemHealthMetrics,
 )
@@ -44,13 +45,13 @@ from .serializers import (
     SystemMetricsSummarySerializer,
     BulkAnalyticsCalculationSerializer,
 )
-from api.filters import BaseFilterSet
-from api.permissions import IsAdminOrReadOnly, IsSystemAdmin
+from src.api.filters import BaseFilter
+from src.api.permissions import IsAdminOrReadOnly
 
 logger = logging.getLogger(__name__)
 
 
-class SystemSettingFilter(BaseFilterSet):
+class SystemSettingFilter(BaseFilter):
     """Filter for system settings"""
 
     class Meta:
@@ -68,7 +69,7 @@ class SystemSettingViewSet(viewsets.ModelViewSet):
 
     queryset = SystemSetting.objects.all()
     serializer_class = SystemSettingSerializer
-    permission_classes = [IsSystemAdmin]
+    permission_classes = [IsAdminOrReadOnly]
     filterset_class = SystemSettingFilter
     search_fields = ["setting_key", "description"]
     ordering_fields = ["category", "setting_key", "updated_at"]
@@ -205,7 +206,7 @@ class SystemSettingViewSet(viewsets.ModelViewSet):
         return Response({"updated": updated_settings, "errors": errors})
 
 
-class AuditLogFilter(BaseFilterSet):
+class AuditLogFilter(BaseFilter):
     """Filter for audit logs"""
 
     class Meta:
@@ -224,7 +225,7 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = AuditLog.objects.select_related("user", "content_type").all()
     serializer_class = AuditLogSerializer
-    permission_classes = [IsSystemAdmin]
+    permission_classes = [IsAdminOrReadOnly]
     filterset_class = AuditLogFilter
     search_fields = [
         "description",
@@ -543,7 +544,7 @@ class SystemHealthMetricsViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = SystemHealthMetrics.objects.all()
     serializer_class = SystemHealthMetricsSerializer
-    permission_classes = [IsSystemAdmin]
+    permission_classes = [IsAdminOrReadOnly]
     filterset_fields = ["timestamp"]
     ordering = ["-timestamp"]
 
@@ -703,7 +704,7 @@ class AnalyticsDashboardView(APIView):
 class BulkAnalyticsCalculationView(APIView):
     """API view for triggering bulk analytics calculations"""
 
-    permission_classes = [IsSystemAdmin]
+    permission_classes = [IsAdminOrReadOnly]
 
     def post(self, request):
         """Trigger analytics calculation"""
@@ -799,7 +800,7 @@ class BulkAnalyticsCalculationView(APIView):
 class SystemMetricsView(APIView):
     """API view for system metrics and health"""
 
-    permission_classes = [IsSystemAdmin]
+    permission_classes = [IsAdminOrReadOnly]
 
     def get(self, request):
         """Get current system metrics"""

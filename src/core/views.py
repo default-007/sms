@@ -18,13 +18,15 @@ from django.contrib.auth import get_user_model
 from datetime import datetime, timedelta
 import json
 
+from src.finance.models import FinancialAnalytics
+
 from .models import (
     SystemSetting,
     AuditLog,
     StudentPerformanceAnalytics,
     ClassPerformanceAnalytics,
     AttendanceAnalytics,
-    FinancialAnalytics,
+    # FinancialAnalytics,
     TeacherPerformanceAnalytics,
     SystemHealthMetrics,
 )
@@ -36,7 +38,7 @@ from .services import (
     UtilityService,
 )
 from .decorators import system_admin_required, school_admin_required, audit_action
-from .forms import SystemSettingForm, UserSearchForm
+from .forms import SystemSettingForm, UserSearchForm, ReportGenerationForm
 
 User = get_user_model()
 
@@ -777,3 +779,643 @@ class UserActivityView(SystemAdminMixin, TemplateView):
         }
 
         return context
+
+
+class ClassAnalyticsView(SchoolAdminMixin, ListView):
+    """Class analytics view"""
+
+    model = ClassPerformanceAnalytics
+    template_name = "core/class_analytics.html"
+    context_object_name = "analytics"
+    paginate_by = 20
+
+    def get_queryset(self):
+        queryset = ClassPerformanceAnalytics.objects.select_related(
+            "class_instance__grade__section", "academic_year", "term", "subject"
+        )
+
+        # Filter by academic year and term
+        academic_year_id = self.request.GET.get("academic_year")
+        term_id = self.request.GET.get("term")
+
+        if academic_year_id:
+            queryset = queryset.filter(academic_year_id=academic_year_id)
+        else:
+            # Default to current academic year
+            from academics.models import AcademicYear
+
+            current_year = AcademicYear.objects.filter(is_current=True).first()
+            if current_year:
+                queryset = queryset.filter(academic_year=current_year)
+
+        if term_id:
+            queryset = queryset.filter(term_id=term_id)
+        else:
+            # Default to current term
+            from academics.models import Term
+
+            current_term = Term.objects.filter(is_current=True).first()
+            if current_term:
+                queryset = queryset.filter(term=current_term)
+
+        # Filter by subject (or overall performance)
+        subject_id = self.request.GET.get("subject")
+        if subject_id == "overall":
+            queryset = queryset.filter(subject__isnull=True)
+        elif subject_id:
+            queryset = queryset.filter(subject_id=subject_id)
+        else:
+            # Default to overall performance
+            queryset = queryset.filter(subject__isnull=True)
+
+        # Filter by section
+        section_id = self.request.GET.get("section")
+        if section_id:
+            queryset = queryset.filter(class_instance__grade__section_id=section_id)
+
+        # Filter by grade
+        grade_id = self.request.GET.get("grade")
+        if grade_id:
+            queryset = queryset.filter(class_instance__grade_id=grade_id)
+
+        return queryset.order_by("-class_average")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get filter options
+        from academics.models import AcademicYear, Term, Section, Grade
+        from subjects.models import Subject
+
+        context["academic_years"] = AcademicYear.objects.all().order_by("-start_date")
+        context["terms"] = Term.objects.all().order_by("term_number")
+        context["sections"] = Section.objects.all().order_by("name")
+        context["grades"] = Grade.objects.all().order_by("order_sequence")
+        context["subjects"] = Subject.objects.all().order_by("name")
+
+        # Current filter values
+        context["current_filters"] = {
+            "academic_year": self.request.GET.get("academic_year", ""),
+            "term": self.request.GET.get("term", ""),
+            "section": self.request.GET.get("section", ""),
+            "grade": self.request.GET.get("grade", ""),
+            "subject": self.request.GET.get("subject", "overall"),
+        }
+
+        # Summary statistics
+        analytics = context["analytics"]
+        if analytics:
+            context["summary_stats"] = self.get_summary_statistics(analytics)
+
+        return context
+
+    def get_summary_statistics(self, analytics):
+        """Calculate summary statistics for the filtered analytics"""
+        if not analytics:
+            return {}
+
+        # Get all analytics for calculations (not just the paginated ones)
+        all_analytics = self.get_queryset()
+
+        return {
+            "total_classes": all_analytics.count(),
+            "avg_class_performance": all_analytics.aggregate(avg=Avg("class_average"))[
+                "avg"
+            ]
+            or 0,
+            "highest_performing_class": all_analytics.order_by(
+                "-class_average"
+            ).first(),
+            "lowest_performing_class": all_analytics.order_by("class_average").first(),
+            "avg_pass_rate": all_analytics.aggregate(avg=Avg("pass_rate"))["avg"] or 0,
+            "total_students": all_analytics.aggregate(sum=Sum("total_students"))["sum"]
+            or 0,
+        }
+
+
+class AttendanceAnalyticsView(SchoolAdminMixin, ListView):
+    """Attendance analytics view"""
+
+    model = AttendanceAnalytics
+    template_name = "core/attendance_analytics.html"
+    context_object_name = "analytics"
+    paginate_by = 20
+
+    def get_queryset(self):
+        queryset = AttendanceAnalytics.objects.select_related("academic_year", "term")
+
+        # Filter by academic year and term
+        academic_year_id = self.request.GET.get("academic_year")
+        term_id = self.request.GET.get("term")
+
+        if academic_year_id:
+            queryset = queryset.filter(academic_year_id=academic_year_id)
+
+        if term_id:
+            queryset = queryset.filter(term_id=term_id)
+
+        # Filter by entity type
+        entity_type = self.request.GET.get("entity_type", "student")
+        queryset = queryset.filter(entity_type=entity_type)
+
+        # Filter by attendance threshold (show low attendance)
+        threshold = self.request.GET.get("threshold")
+        if threshold:
+            try:
+                threshold_val = float(threshold)
+                queryset = queryset.filter(attendance_percentage__lt=threshold_val)
+            except ValueError:
+                pass
+
+        # Search by entity name
+        search = self.request.GET.get("search")
+        if search:
+            queryset = queryset.filter(entity_name__icontains=search)
+
+        return queryset.order_by("attendance_percentage")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get filter options
+        from academics.models import AcademicYear, Term
+
+        context["academic_years"] = AcademicYear.objects.all().order_by("-start_date")
+        context["terms"] = Term.objects.all().order_by("term_number")
+        context["entity_types"] = AttendanceAnalytics.ENTITY_TYPES
+
+        # Current filter values
+        context["current_filters"] = {
+            "academic_year": self.request.GET.get("academic_year", ""),
+            "term": self.request.GET.get("term", ""),
+            "entity_type": self.request.GET.get("entity_type", "student"),
+            "threshold": self.request.GET.get("threshold", ""),
+            "search": self.request.GET.get("search", ""),
+        }
+
+        # Summary statistics
+        analytics = context["analytics"]
+        if analytics:
+            context["summary_stats"] = self.get_summary_statistics()
+
+        return context
+
+    def get_summary_statistics(self):
+        """Calculate summary statistics for attendance"""
+        all_analytics = self.get_queryset()
+
+        if not all_analytics.exists():
+            return {}
+
+        return {
+            "total_entities": all_analytics.count(),
+            "avg_attendance": all_analytics.aggregate(avg=Avg("attendance_percentage"))[
+                "avg"
+            ]
+            or 0,
+            "below_75_percent": all_analytics.filter(
+                attendance_percentage__lt=75
+            ).count(),
+            "below_80_percent": all_analytics.filter(
+                attendance_percentage__lt=80
+            ).count(),
+            "above_90_percent": all_analytics.filter(
+                attendance_percentage__gte=90
+            ).count(),
+            "chronic_absentees": all_analytics.filter(
+                consecutive_absences__gte=5
+            ).count(),
+        }
+
+
+class FinancialAnalyticsView(SchoolAdminMixin, ListView):
+    """Financial analytics view"""
+
+    model = FinancialAnalytics
+    template_name = "core/financial_analytics.html"
+    context_object_name = "analytics"
+    paginate_by = 20
+
+    def get_queryset(self):
+        queryset = FinancialAnalytics.objects.select_related(
+            "academic_year", "term", "section", "grade", "fee_category"
+        )
+
+        # Filter by academic year and term
+        academic_year_id = self.request.GET.get("academic_year")
+        term_id = self.request.GET.get("term")
+
+        if academic_year_id:
+            queryset = queryset.filter(academic_year_id=academic_year_id)
+
+        if term_id:
+            queryset = queryset.filter(term_id=term_id)
+
+        # Filter by section
+        section_id = self.request.GET.get("section")
+        if section_id:
+            queryset = queryset.filter(section_id=section_id)
+
+        # Filter by grade
+        grade_id = self.request.GET.get("grade")
+        if grade_id:
+            queryset = queryset.filter(grade_id=grade_id)
+
+        # Filter by fee category
+        fee_category_id = self.request.GET.get("fee_category")
+        if fee_category_id:
+            queryset = queryset.filter(fee_category_id=fee_category_id)
+
+        # Filter by collection rate
+        collection_filter = self.request.GET.get("collection_filter")
+        if collection_filter == "low":
+            queryset = queryset.filter(collection_rate__lt=70)
+        elif collection_filter == "high":
+            queryset = queryset.filter(collection_rate__gte=90)
+
+        return queryset.order_by("-total_expected_revenue")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get filter options
+        from academics.models import AcademicYear, Term, Section, Grade
+        from finance.models import FeeCategory
+
+        context["academic_years"] = AcademicYear.objects.all().order_by("-start_date")
+        context["terms"] = Term.objects.all().order_by("term_number")
+        context["sections"] = Section.objects.all().order_by("name")
+        context["grades"] = Grade.objects.all().order_by("order_sequence")
+        context["fee_categories"] = FeeCategory.objects.all().order_by("name")
+
+        # Current filter values
+        context["current_filters"] = {
+            "academic_year": self.request.GET.get("academic_year", ""),
+            "term": self.request.GET.get("term", ""),
+            "section": self.request.GET.get("section", ""),
+            "grade": self.request.GET.get("grade", ""),
+            "fee_category": self.request.GET.get("fee_category", ""),
+            "collection_filter": self.request.GET.get("collection_filter", ""),
+        }
+
+        # Summary statistics
+        context["summary_stats"] = self.get_summary_statistics()
+
+        return context
+
+    def get_summary_statistics(self):
+        """Calculate summary financial statistics"""
+        all_analytics = self.get_queryset()
+
+        if not all_analytics.exists():
+            return {}
+
+        totals = all_analytics.aggregate(
+            total_expected=Sum("total_expected_revenue"),
+            total_collected=Sum("total_collected_revenue"),
+            total_outstanding=Sum("total_outstanding"),
+            avg_collection_rate=Avg("collection_rate"),
+            total_students=Sum("total_students"),
+        )
+
+        return {
+            "total_expected_revenue": totals["total_expected"] or 0,
+            "total_collected_revenue": totals["total_collected"] or 0,
+            "total_outstanding": totals["total_outstanding"] or 0,
+            "overall_collection_rate": totals["avg_collection_rate"] or 0,
+            "total_students": totals["total_students"] or 0,
+            "collection_efficiency": (
+                (totals["total_collected"] / totals["total_expected"] * 100)
+                if totals["total_expected"] and totals["total_expected"] > 0
+                else 0
+            ),
+            "high_performers": all_analytics.filter(collection_rate__gte=90).count(),
+            "low_performers": all_analytics.filter(collection_rate__lt=70).count(),
+        }
+
+
+class TeacherAnalyticsView(SchoolAdminMixin, ListView):
+    """Teacher analytics view"""
+
+    model = TeacherPerformanceAnalytics
+    template_name = "core/teacher_analytics.html"
+    context_object_name = "analytics"
+    paginate_by = 20
+
+    def get_queryset(self):
+        queryset = TeacherPerformanceAnalytics.objects.select_related(
+            "teacher__user", "academic_year", "term"
+        )
+
+        # Filter by academic year and term
+        academic_year_id = self.request.GET.get("academic_year")
+        term_id = self.request.GET.get("term")
+
+        if academic_year_id:
+            queryset = queryset.filter(academic_year_id=academic_year_id)
+
+        if term_id:
+            queryset = queryset.filter(term_id=term_id)
+
+        # Search by teacher name
+        search = self.request.GET.get("search")
+        if search:
+            queryset = queryset.filter(
+                Q(teacher__user__first_name__icontains=search)
+                | Q(teacher__user__last_name__icontains=search)
+                | Q(teacher__employee_id__icontains=search)
+            )
+
+        # Filter by performance level
+        performance_filter = self.request.GET.get("performance_filter")
+        if performance_filter == "high":
+            queryset = queryset.filter(overall_performance_score__gte=4.0)
+        elif performance_filter == "low":
+            queryset = queryset.filter(overall_performance_score__lt=3.0)
+
+        # Sort by performance score by default
+        return queryset.order_by("-overall_performance_score")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get filter options
+        from academics.models import AcademicYear, Term
+
+        context["academic_years"] = AcademicYear.objects.all().order_by("-start_date")
+        context["terms"] = Term.objects.all().order_by("term_number")
+
+        # Current filter values
+        context["current_filters"] = {
+            "academic_year": self.request.GET.get("academic_year", ""),
+            "term": self.request.GET.get("term", ""),
+            "search": self.request.GET.get("search", ""),
+            "performance_filter": self.request.GET.get("performance_filter", ""),
+        }
+
+        # Summary statistics
+        context["summary_stats"] = self.get_summary_statistics()
+
+        return context
+
+    def get_summary_statistics(self):
+        """Calculate teacher performance statistics"""
+        all_analytics = self.get_queryset()
+
+        if not all_analytics.exists():
+            return {}
+
+        stats = all_analytics.aggregate(
+            total_teachers=Count("teacher", distinct=True),
+            avg_performance=Avg("overall_performance_score"),
+            avg_class_performance=Avg("average_class_performance"),
+            avg_attendance_rate=Avg("attendance_rate"),
+            total_classes_taught=Sum("classes_taught"),
+            total_students_taught=Sum("total_students"),
+        )
+
+        return {
+            "total_teachers": stats["total_teachers"] or 0,
+            "avg_performance_score": stats["avg_performance"] or 0,
+            "avg_class_performance": stats["avg_class_performance"] or 0,
+            "avg_attendance_rate": stats["avg_attendance_rate"] or 0,
+            "total_classes_taught": stats["total_classes_taught"] or 0,
+            "total_students_taught": stats["total_students_taught"] or 0,
+            "high_performers": all_analytics.filter(
+                overall_performance_score__gte=4.0
+            ).count(),
+            "low_performers": all_analytics.filter(
+                overall_performance_score__lt=3.0
+            ).count(),
+            "top_performer": all_analytics.order_by(
+                "-overall_performance_score"
+            ).first(),
+        }
+
+
+class ReportsView(SchoolAdminMixin, TemplateView):
+    """Reports dashboard and management"""
+
+    template_name = "core/reports.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Available report types
+        context["report_types"] = [
+            {
+                "id": "student_performance",
+                "name": "Student Performance Report",
+                "description": "Comprehensive student academic performance analysis",
+                "icon": "fas fa-user-graduate",
+                "category": "Academic",
+            },
+            {
+                "id": "class_performance",
+                "name": "Class Performance Report",
+                "description": "Class-wise performance comparison and analysis",
+                "icon": "fas fa-door-open",
+                "category": "Academic",
+            },
+            {
+                "id": "attendance_summary",
+                "name": "Attendance Summary Report",
+                "description": "Attendance patterns and statistics",
+                "icon": "fas fa-user-check",
+                "category": "Academic",
+            },
+            {
+                "id": "financial_summary",
+                "name": "Financial Summary Report",
+                "description": "Fee collection and financial overview",
+                "icon": "fas fa-money-bill-wave",
+                "category": "Financial",
+            },
+            {
+                "id": "teacher_performance",
+                "name": "Teacher Performance Report",
+                "description": "Teacher effectiveness and performance metrics",
+                "icon": "fas fa-chalkboard-teacher",
+                "category": "Administrative",
+            },
+            {
+                "id": "enrollment_report",
+                "name": "Enrollment Report",
+                "description": "Student enrollment statistics and trends",
+                "icon": "fas fa-chart-line",
+                "category": "Administrative",
+            },
+            {
+                "id": "fee_defaulters",
+                "name": "Fee Defaulters Report",
+                "description": "List of students with outstanding fees",
+                "icon": "fas fa-exclamation-triangle",
+                "category": "Financial",
+            },
+            {
+                "id": "system_usage",
+                "name": "System Usage Report",
+                "description": "System usage statistics and user activity",
+                "icon": "fas fa-chart-bar",
+                "category": "System",
+            },
+        ]
+
+        # Group reports by category
+        context["reports_by_category"] = {}
+        for report in context["report_types"]:
+            category = report["category"]
+            if category not in context["reports_by_category"]:
+                context["reports_by_category"][category] = []
+            context["reports_by_category"][category].append(report)
+
+        # Recent reports (this would be from a ReportGeneration model if you have one)
+        context["recent_reports"] = []  # Placeholder for recent report history
+
+        # Quick stats
+        context["stats"] = {
+            "total_reports_available": len(context["report_types"]),
+            "reports_generated_today": 0,  # Would query actual data
+            "reports_generated_this_month": 0,  # Would query actual data
+        }
+
+        return context
+
+
+class GenerateReportView(SchoolAdminMixin, TemplateView):
+    """Generate specific reports"""
+
+    template_name = "core/generate_report.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get report type from URL or query params
+        report_type = self.request.GET.get("type", "student_performance")
+        context["report_type"] = report_type
+
+        # Get report configuration
+        context["report_config"] = self.get_report_config(report_type)
+
+        # Get filter options
+        from academics.models import AcademicYear, Term, Section, Grade
+
+        context["academic_years"] = AcademicYear.objects.all().order_by("-start_date")
+        context["terms"] = Term.objects.all().order_by("term_number")
+        context["sections"] = Section.objects.all().order_by("name")
+        context["grades"] = Grade.objects.all().order_by("order_sequence")
+
+        return context
+
+    def get_report_config(self, report_type):
+        """Get configuration for specific report type"""
+        configs = {
+            "student_performance": {
+                "name": "Student Performance Report",
+                "description": "Generate comprehensive student performance analysis",
+                "filters": ["academic_year", "term", "section", "grade", "date_range"],
+                "formats": ["pdf", "excel", "csv"],
+                "template": "reports/student_performance.html",
+            },
+            "class_performance": {
+                "name": "Class Performance Report",
+                "description": "Generate class-wise performance comparison",
+                "filters": ["academic_year", "term", "section", "grade"],
+                "formats": ["pdf", "excel"],
+                "template": "reports/class_performance.html",
+            },
+            "attendance_summary": {
+                "name": "Attendance Summary Report",
+                "description": "Generate attendance patterns and statistics",
+                "filters": ["academic_year", "term", "section", "grade", "date_range"],
+                "formats": ["pdf", "excel", "csv"],
+                "template": "reports/attendance_summary.html",
+            },
+            "financial_summary": {
+                "name": "Financial Summary Report",
+                "description": "Generate fee collection and financial overview",
+                "filters": [
+                    "academic_year",
+                    "term",
+                    "section",
+                    "grade",
+                    "fee_category",
+                ],
+                "formats": ["pdf", "excel"],
+                "template": "reports/financial_summary.html",
+            },
+            "teacher_performance": {
+                "name": "Teacher Performance Report",
+                "description": "Generate teacher effectiveness metrics",
+                "filters": ["academic_year", "term", "department"],
+                "formats": ["pdf", "excel"],
+                "template": "reports/teacher_performance.html",
+            },
+        }
+
+        return configs.get(report_type, configs["student_performance"])
+
+    def post(self, request, *args, **kwargs):
+        """Handle report generation request"""
+        report_type = request.POST.get("report_type")
+        format_type = request.POST.get("format", "pdf")
+
+        # Get filters from POST data
+        filters = {
+            "academic_year_id": request.POST.get("academic_year"),
+            "term_id": request.POST.get("term"),
+            "section_id": request.POST.get("section"),
+            "grade_id": request.POST.get("grade"),
+            "start_date": request.POST.get("start_date"),
+            "end_date": request.POST.get("end_date"),
+            "fee_category_id": request.POST.get("fee_category"),
+        }
+
+        # Remove empty filters
+        filters = {k: v for k, v in filters.items() if v}
+
+        try:
+            # Queue report generation task
+            from .tasks import generate_reports
+
+            task = generate_reports.delay(
+                report_type=report_type,
+                parameters={
+                    "format": format_type,
+                    "filters": filters,
+                    "generated_by": request.user.id,
+                },
+            )
+
+            messages.success(
+                request,
+                f"Report generation has been queued. You will be notified when it's ready. Task ID: {task.id}",
+            )
+
+            # Log the report generation request
+            AuditService.log_action(
+                user=request.user,
+                action="create",
+                description=f"Requested {report_type} report generation",
+                data_after={
+                    "report_type": report_type,
+                    "format": format_type,
+                    "filters": filters,
+                    "task_id": task.id,
+                },
+                ip_address=request.META.get("REMOTE_ADDR"),
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                module_name="core",
+            )
+
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "message": "Report generation queued successfully",
+                    "task_id": task.id,
+                }
+            )
+
+        except Exception as e:
+            messages.error(request, f"Error generating report: {str(e)}")
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)

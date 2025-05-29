@@ -25,8 +25,11 @@ from django.views.generic import (
     View,
 )
 
-from assignments.services.analytics_service import AssignmentAnalyticsService
-from core.mixins import ParentRequiredMixin, StudentRequiredMixin, TeacherRequiredMixin
+from src.assignments.services.analytics_service import AssignmentAnalyticsService
+from src.core.mixins import (
+    StudentMixin,
+    TeacherMixin,
+)
 
 from .filters import AssignmentFilter, AssignmentSubmissionFilter
 from .forms import (
@@ -192,7 +195,7 @@ class AssignmentDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class AssignmentCreateView(TeacherRequiredMixin, CreateView):
+class AssignmentCreateView(TeacherMixin, CreateView):
     """
     Create new assignment
     """
@@ -234,7 +237,7 @@ class AssignmentCreateView(TeacherRequiredMixin, CreateView):
         return context
 
 
-class AssignmentUpdateView(TeacherRequiredMixin, UpdateView):
+class AssignmentUpdateView(TeacherMixin, UpdateView):
     """
     Update existing assignment
     """
@@ -274,7 +277,7 @@ class AssignmentUpdateView(TeacherRequiredMixin, UpdateView):
         return context
 
 
-class AssignmentDeleteView(TeacherRequiredMixin, DeleteView):
+class AssignmentDeleteView(TeacherMixin, DeleteView):
     """
     Delete assignment with confirmation
     """
@@ -301,7 +304,7 @@ class AssignmentDeleteView(TeacherRequiredMixin, DeleteView):
         return super().delete(request, *args, **kwargs)
 
 
-class AssignmentPublishView(TeacherRequiredMixin, View):
+class AssignmentPublishView(TeacherMixin, View):
     """
     Publish an assignment
     """
@@ -320,7 +323,7 @@ class AssignmentPublishView(TeacherRequiredMixin, View):
         return redirect("assignments:assignment_detail", pk=assignment.pk)
 
 
-class SubmissionCreateView(StudentRequiredMixin, CreateView):
+class SubmissionCreateView(StudentMixin, CreateView):
     """
     Student submission creation
     """
@@ -429,7 +432,7 @@ class SubmissionDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class SubmissionGradeView(TeacherRequiredMixin, UpdateView):
+class SubmissionGradeView(TeacherMixin, UpdateView):
     """
     Grade a student submission
     """
@@ -625,7 +628,7 @@ class AnalyticsDashboardView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class PlagiarismCheckView(TeacherRequiredMixin, View):
+class PlagiarismCheckView(TeacherMixin, View):
     """
     Run plagiarism check on a submission
     """
@@ -654,7 +657,7 @@ class PlagiarismCheckView(TeacherRequiredMixin, View):
         return redirect("assignments:submission_detail", pk=submission.pk)
 
 
-class BulkGradeView(TeacherRequiredMixin, FormView):
+class BulkGradeView(TeacherMixin, FormView):
     """
     Bulk grade submissions from CSV
     """
@@ -856,7 +859,7 @@ class SubmissionStatusAjaxView(LoginRequiredMixin, View):
 # - Success/error messaging
 
 
-class StudentAssignmentListView(StudentRequiredMixin, ListView):
+class StudentAssignmentListView(StudentMixin, ListView):
     """
     List view for student's assignments
     """
@@ -876,7 +879,7 @@ class StudentAssignmentListView(StudentRequiredMixin, ListView):
         )
 
 
-class GradingDashboardView(TeacherRequiredMixin, TemplateView):
+class GradingDashboardView(TeacherMixin, TemplateView):
     """
     Dashboard for teacher grading activities
     """
@@ -920,3 +923,908 @@ class OverdueAssignmentsView(LoginRequiredMixin, TemplateView):
             context["overdue_data"] = {}
 
         return context
+
+
+class TeacherRequiredMixin(PermissionRequiredMixin):
+    """Mixin to ensure only teachers can access the view."""
+
+    permission_required = "assignments.teacher_access"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not hasattr(request.user, "teacher"):
+            raise PermissionDenied("Only teachers can access this page.")
+        return super().dispatch(request, *args, **kwargs)
+
+
+class StudentRequiredMixin(PermissionRequiredMixin):
+    """Mixin to ensure only students can access the view."""
+
+    permission_required = "assignments.student_access"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not hasattr(request.user, "student"):
+            raise PermissionDenied("Only students can access this page.")
+        return super().dispatch(request, *args, **kwargs)
+
+
+class ParentRequiredMixin(PermissionRequiredMixin):
+    """Mixin to ensure only parents can access the view."""
+
+    permission_required = "assignments.parent_access"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not hasattr(request.user, "parent"):
+            raise PermissionDenied("Only parents can access this page.")
+        return super().dispatch(request, *args, **kwargs)
+
+
+class AssignmentOwnerMixin:
+    """Mixin to ensure user can only access their own assignments."""
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if hasattr(self.request.user, "teacher"):
+            return queryset.filter(teacher=self.request.user.teacher)
+        return queryset.none()
+
+
+# ================== CORE ASSIGNMENT MANAGEMENT VIEWS ==================
+
+
+class AssignmentListView(LoginRequiredMixin, ListView):
+    """List all assignments with filtering and pagination."""
+
+    model = Assignment
+    template_name = "assignments/assignment_list.html"
+    context_object_name = "assignments"
+    paginate_by = 20
+
+    def get_queryset(self):
+        queryset = Assignment.objects.all()
+
+        if hasattr(self.request.user, "teacher"):
+            queryset = queryset.filter(teacher=self.request.user.teacher)
+        elif hasattr(self.request.user, "student"):
+            queryset = queryset.filter(
+                class_id=self.request.user.student.current_class_id
+            )
+        elif hasattr(self.request.user, "parent"):
+            # Show assignments for parent's children
+            student_classes = self.request.user.parent.students.values_list(
+                "current_class_id", flat=True
+            )
+            queryset = queryset.filter(class_id__in=student_classes)
+
+        # Apply filters
+        status = self.request.GET.get("status")
+        if status:
+            queryset = queryset.filter(status=status)
+
+        subject_id = self.request.GET.get("subject")
+        if subject_id:
+            queryset = queryset.filter(subject_id=subject_id)
+
+        class_id = self.request.GET.get("class")
+        if class_id:
+            queryset = queryset.filter(class_id=class_id)
+
+        return queryset.select_related("teacher", "subject", "class_id").order_by(
+            "-assigned_date"
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["subjects"] = Subject.objects.all()
+        context["classes"] = Class.objects.all()
+        context["status_choices"] = Assignment.STATUS_CHOICES
+        return context
+
+
+class AssignmentCreateView(LoginRequiredMixin, TeacherRequiredMixin, CreateView):
+    """Create new assignment."""
+
+    model = Assignment
+    form_class = AssignmentForm
+    template_name = "assignments/assignment_create.html"
+    success_url = reverse_lazy("assignments:assignment_list")
+
+    def form_valid(self, form):
+        form.instance.teacher = self.request.user.teacher
+        messages.success(self.request, "Assignment created successfully!")
+        return super().form_valid(form)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["teacher"] = self.request.user.teacher
+        return kwargs
+
+
+class AssignmentDetailView(LoginRequiredMixin, DetailView):
+    """Display assignment details."""
+
+    model = Assignment
+    template_name = "assignments/assignment_detail.html"
+    context_object_name = "assignment"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        assignment = self.object
+
+        # Add submission statistics
+        submissions = AssignmentSubmission.objects.filter(assignment=assignment)
+        context["total_submissions"] = submissions.count()
+        context["graded_submissions"] = submissions.filter(status="graded").count()
+        context["pending_submissions"] = submissions.filter(status="submitted").count()
+
+        # Add user-specific context
+        if hasattr(self.request.user, "student"):
+            try:
+                context["user_submission"] = submissions.get(
+                    student=self.request.user.student
+                )
+            except AssignmentSubmission.DoesNotExist:
+                context["user_submission"] = None
+
+        context["can_submit"] = (
+            hasattr(self.request.user, "student")
+            and assignment.status == "published"
+            and assignment.due_date > timezone.now()
+        )
+
+        return context
+
+
+class AssignmentUpdateView(
+    LoginRequiredMixin, TeacherRequiredMixin, AssignmentOwnerMixin, UpdateView
+):
+    """Update assignment."""
+
+    model = Assignment
+    form_class = AssignmentForm
+    template_name = "assignments/assignment_edit.html"
+
+    def get_success_url(self):
+        return reverse("assignments:assignment_detail", kwargs={"pk": self.object.pk})
+
+    def form_valid(self, form):
+        messages.success(self.request, "Assignment updated successfully!")
+        return super().form_valid(form)
+
+
+class AssignmentDeleteView(
+    LoginRequiredMixin, TeacherRequiredMixin, AssignmentOwnerMixin, DeleteView
+):
+    """Delete assignment."""
+
+    model = Assignment
+    template_name = "assignments/assignment_delete.html"
+    success_url = reverse_lazy("assignments:assignment_list")
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, "Assignment deleted successfully!")
+        return super().delete(request, *args, **kwargs)
+
+
+class AssignmentPublishView(LoginRequiredMixin, TeacherRequiredMixin, View):
+    """Publish assignment."""
+
+    def post(self, request, pk):
+        assignment = get_object_or_404(Assignment, pk=pk, teacher=request.user.teacher)
+        assignment.status = "published"
+        assignment.save()
+
+        # Send notifications to students
+        NotificationService.send_assignment_notification(assignment)
+
+        messages.success(
+            request, f'Assignment "{assignment.title}" has been published!'
+        )
+        return redirect("assignments:assignment_detail", pk=pk)
+
+
+class AssignmentCloseView(LoginRequiredMixin, TeacherRequiredMixin, View):
+    """Close assignment."""
+
+    def post(self, request, pk):
+        assignment = get_object_or_404(Assignment, pk=pk, teacher=request.user.teacher)
+        assignment.status = "closed"
+        assignment.save()
+
+        messages.success(request, f'Assignment "{assignment.title}" has been closed!')
+        return redirect("assignments:assignment_detail", pk=pk)
+
+
+class AssignmentDuplicateView(LoginRequiredMixin, TeacherRequiredMixin, View):
+    """Duplicate assignment."""
+
+    def post(self, request, pk):
+        original = get_object_or_404(Assignment, pk=pk, teacher=request.user.teacher)
+
+        # Create duplicate
+        duplicate = Assignment.objects.create(
+            title=f"{original.title} (Copy)",
+            description=original.description,
+            teacher=original.teacher,
+            subject=original.subject,
+            class_id=original.class_id,
+            term=original.term,
+            total_marks=original.total_marks,
+            submission_type=original.submission_type,
+            status="draft",
+        )
+
+        messages.success(request, f"Assignment duplicated successfully!")
+        return redirect("assignments:assignment_edit", pk=duplicate.pk)
+
+
+# ================== ASSIGNMENT ANALYTICS VIEWS ==================
+
+
+class AssignmentAnalyticsView(LoginRequiredMixin, TeacherRequiredMixin, DetailView):
+    """Display assignment analytics."""
+
+    model = Assignment
+    template_name = "assignments/assignment_analytics.html"
+    context_object_name = "assignment"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        assignment = self.object
+
+        analytics_data = AnalyticsService.get_assignment_analytics(assignment)
+        context.update(analytics_data)
+
+        return context
+
+
+class AssignmentAnalyticsExportView(LoginRequiredMixin, TeacherRequiredMixin, View):
+    """Export assignment analytics to CSV."""
+
+    def get(self, request, pk):
+        assignment = get_object_or_404(Assignment, pk=pk, teacher=request.user.teacher)
+
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = (
+            f'attachment; filename="{assignment.title}_analytics.csv"'
+        )
+
+        writer = csv.writer(response)
+        writer.writerow(["Student", "Submission Date", "Status", "Marks", "Grade"])
+
+        submissions = AssignmentSubmission.objects.filter(
+            assignment=assignment
+        ).select_related("student__user")
+        for submission in submissions:
+            writer.writerow(
+                [
+                    submission.student.user.get_full_name(),
+                    submission.submission_date,
+                    submission.status,
+                    submission.marks_obtained or "Not graded",
+                    submission.grade or "Not graded",
+                ]
+            )
+
+        return response
+
+
+# ================== SUBMISSION MANAGEMENT VIEWS ==================
+
+
+class SubmissionListView(LoginRequiredMixin, TeacherRequiredMixin, ListView):
+    """List submissions for an assignment."""
+
+    model = AssignmentSubmission
+    template_name = "assignments/submission_list.html"
+    context_object_name = "submissions"
+    paginate_by = 30
+
+    def get_queryset(self):
+        assignment_id = self.kwargs["assignment_id"]
+        self.assignment = get_object_or_404(
+            Assignment, pk=assignment_id, teacher=self.request.user.teacher
+        )
+        return AssignmentSubmission.objects.filter(
+            assignment=self.assignment
+        ).select_related("student__user")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["assignment"] = self.assignment
+        return context
+
+
+class SubmissionCreateView(LoginRequiredMixin, StudentRequiredMixin, CreateView):
+    """Student submission creation."""
+
+    model = AssignmentSubmission
+    form_class = AssignmentSubmissionForm
+    template_name = "assignments/submission_create.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.assignment = get_object_or_404(Assignment, pk=kwargs["assignment_id"])
+
+        # Check if assignment is open for submission
+        if self.assignment.status != "published":
+            messages.error(request, "This assignment is not available for submission.")
+            return redirect("assignments:assignment_detail", pk=self.assignment.pk)
+
+        if self.assignment.due_date < timezone.now():
+            messages.error(request, "Submission deadline has passed.")
+            return redirect("assignments:assignment_detail", pk=self.assignment.pk)
+
+        # Check if student already submitted
+        if AssignmentSubmission.objects.filter(
+            assignment=self.assignment, student=request.user.student
+        ).exists():
+            messages.error(request, "You have already submitted this assignment.")
+            return redirect("assignments:assignment_detail", pk=self.assignment.pk)
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.assignment = self.assignment
+        form.instance.student = self.request.user.student
+        form.instance.submission_date = timezone.now()
+        form.instance.status = "submitted"
+
+        messages.success(self.request, "Assignment submitted successfully!")
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse(
+            "assignments:assignment_detail", kwargs={"pk": self.assignment.pk}
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["assignment"] = self.assignment
+        return context
+
+
+class SubmissionDetailView(LoginRequiredMixin, DetailView):
+    """Display submission details."""
+
+    model = AssignmentSubmission
+    template_name = "assignments/submission_detail.html"
+    context_object_name = "submission"
+
+    def dispatch(self, request, *args, **kwargs):
+        submission = self.get_object()
+
+        # Check permissions
+        if hasattr(request.user, "teacher"):
+            if submission.assignment.teacher != request.user.teacher:
+                raise PermissionDenied()
+        elif hasattr(request.user, "student"):
+            if submission.student != request.user.student:
+                raise PermissionDenied()
+        elif hasattr(request.user, "parent"):
+            if submission.student not in request.user.parent.students.all():
+                raise PermissionDenied()
+        else:
+            raise PermissionDenied()
+
+        return super().dispatch(request, *args, **kwargs)
+
+
+class SubmissionUpdateView(LoginRequiredMixin, StudentRequiredMixin, UpdateView):
+    """Update submission (before deadline)."""
+
+    model = AssignmentSubmission
+    form_class = AssignmentSubmissionForm
+    template_name = "assignments/submission_edit.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        submission = self.get_object()
+
+        # Check if user owns this submission
+        if submission.student != request.user.student:
+            raise PermissionDenied()
+
+        # Check if assignment is still open
+        if submission.assignment.due_date < timezone.now():
+            messages.error(request, "Cannot edit submission after deadline.")
+            return redirect("assignments:submission_detail", pk=submission.pk)
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse("assignments:submission_detail", kwargs={"pk": self.object.pk})
+
+
+class SubmissionDeleteView(LoginRequiredMixin, StudentRequiredMixin, DeleteView):
+    """Delete submission (student can delete their own submission)."""
+
+    model = AssignmentSubmission
+    template_name = "assignments/submission_delete.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        submission = self.get_object()
+
+        if submission.student != request.user.student:
+            raise PermissionDenied()
+
+        if submission.assignment.due_date < timezone.now():
+            messages.error(request, "Cannot delete submission after deadline.")
+            return redirect("assignments:submission_detail", pk=submission.pk)
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse(
+            "assignments:assignment_detail", kwargs={"pk": self.object.assignment.pk}
+        )
+
+
+class SubmissionDownloadView(LoginRequiredMixin, View):
+    """Download submission file."""
+
+    def get(self, request, pk):
+        submission = get_object_or_404(AssignmentSubmission, pk=pk)
+
+        # Check permissions
+        if hasattr(request.user, "teacher"):
+            if submission.assignment.teacher != request.user.teacher:
+                raise PermissionDenied()
+        elif hasattr(request.user, "student"):
+            if submission.student != request.user.student:
+                raise PermissionDenied()
+        elif hasattr(request.user, "parent"):
+            if submission.student not in request.user.parent.students.all():
+                raise PermissionDenied()
+        else:
+            raise PermissionDenied()
+
+        if submission.content and hasattr(submission.content, "path"):
+            return FileResponse(open(submission.content.path, "rb"), as_attachment=True)
+        else:
+            raise Http404("File not found")
+
+
+# ================== GRADING VIEWS ==================
+
+
+class SubmissionGradeView(LoginRequiredMixin, TeacherRequiredMixin, UpdateView):
+    """Grade individual submission."""
+
+    model = AssignmentSubmission
+    fields = ["marks_obtained", "remarks"]
+    template_name = "assignments/submission_grade.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        submission = self.get_object()
+        if submission.assignment.teacher != request.user.teacher:
+            raise PermissionDenied()
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        submission = form.instance
+        submission.status = "graded"
+        submission.graded_by = self.request.user.teacher
+        submission.graded_at = timezone.now()
+
+        # Calculate grade based on marks
+        if submission.marks_obtained is not None:
+            submission.grade = GradingService.calculate_grade(
+                submission.marks_obtained, submission.assignment.total_marks
+            )
+
+        messages.success(self.request, "Submission graded successfully!")
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse(
+            "assignments:submission_list",
+            kwargs={"assignment_id": self.object.assignment.pk},
+        )
+
+
+class BulkGradeView(LoginRequiredMixin, TeacherRequiredMixin, FormView):
+    """Bulk grade submissions."""
+
+    form_class = BulkGradeForm
+    template_name = "assignments/bulk_grade.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        assignment_id = kwargs["assignment_id"]
+        self.assignment = get_object_or_404(
+            Assignment, pk=assignment_id, teacher=request.user.teacher
+        )
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["assignment"] = self.assignment
+        context["submissions"] = AssignmentSubmission.objects.filter(
+            assignment=self.assignment
+        ).select_related("student__user")
+        return context
+
+    def form_valid(self, form):
+        GradingService.bulk_grade_submissions(self.assignment, form.cleaned_data)
+        messages.success(self.request, "Bulk grading completed successfully!")
+        return redirect("assignments:submission_list", assignment_id=self.assignment.pk)
+
+
+class GradingDashboardView(LoginRequiredMixin, TeacherRequiredMixin, TemplateView):
+    """Teacher grading dashboard."""
+
+    template_name = "assignments/grading_dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        teacher = self.request.user.teacher
+
+        # Get grading statistics
+        ungraded_submissions = AssignmentSubmission.objects.filter(
+            assignment__teacher=teacher, status="submitted"
+        ).count()
+
+        context["ungraded_count"] = ungraded_submissions
+        context["recent_submissions"] = (
+            AssignmentSubmission.objects.filter(
+                assignment__teacher=teacher, status="submitted"
+            )
+            .select_related("assignment", "student__user")
+            .order_by("-submission_date")[:10]
+        )
+
+        return context
+
+
+class GradingQueueView(LoginRequiredMixin, TeacherRequiredMixin, ListView):
+    """Queue of submissions waiting for grading."""
+
+    model = AssignmentSubmission
+    template_name = "assignments/grading_queue.html"
+    context_object_name = "submissions"
+    paginate_by = 20
+
+    def get_queryset(self):
+        return (
+            AssignmentSubmission.objects.filter(
+                assignment__teacher=self.request.user.teacher, status="submitted"
+            )
+            .select_related("assignment", "student__user")
+            .order_by("submission_date")
+        )
+
+
+# ================== PLACEHOLDER VIEWS FOR REMAINING FUNCTIONALITY ==================
+# Note: The following views are basic implementations that would need to be expanded
+# based on your specific requirements
+
+
+class RubricManageView(LoginRequiredMixin, TeacherRequiredMixin, TemplateView):
+    template_name = "assignments/rubric_manage.html"
+
+
+class RubricCreateView(LoginRequiredMixin, TeacherRequiredMixin, CreateView):
+    template_name = "assignments/rubric_create.html"
+    fields = "__all__"
+
+
+class RubricUpdateView(LoginRequiredMixin, TeacherRequiredMixin, UpdateView):
+    template_name = "assignments/rubric_edit.html"
+    fields = "__all__"
+
+
+class RubricDeleteView(LoginRequiredMixin, TeacherRequiredMixin, DeleteView):
+    template_name = "assignments/rubric_delete.html"
+
+
+class PlagiarismCheckView(LoginRequiredMixin, TeacherRequiredMixin, TemplateView):
+    template_name = "assignments/plagiarism_check.html"
+
+
+class BatchPlagiarismCheckView(LoginRequiredMixin, TeacherRequiredMixin, TemplateView):
+    template_name = "assignments/batch_plagiarism.html"
+
+
+class PlagiarismReportsView(LoginRequiredMixin, TeacherRequiredMixin, TemplateView):
+    template_name = "assignments/plagiarism_reports.html"
+
+
+class AssignmentCommentsView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/assignment_comments.html"
+
+
+class CommentReplyView(LoginRequiredMixin, CreateView):
+    template_name = "assignments/comment_reply.html"
+    fields = "__all__"
+
+
+class CommentEditView(LoginRequiredMixin, UpdateView):
+    template_name = "assignments/comment_edit.html"
+    fields = "__all__"
+
+
+class CommentDeleteView(LoginRequiredMixin, DeleteView):
+    template_name = "assignments/comment_delete.html"
+
+
+class AssignmentDashboardView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/dashboard.html"
+
+
+class AnalyticsDashboardView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/analytics_dashboard.html"
+
+
+class TeacherAnalyticsView(LoginRequiredMixin, TeacherRequiredMixin, TemplateView):
+    template_name = "assignments/teacher_analytics.html"
+
+
+class StudentAnalyticsView(LoginRequiredMixin, StudentRequiredMixin, TemplateView):
+    template_name = "assignments/student_analytics.html"
+
+
+class ClassAnalyticsView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/class_analytics.html"
+
+
+class SystemAnalyticsView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/system_analytics.html"
+
+
+class ReportsView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/reports.html"
+
+
+class StudentReportView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/student_report.html"
+
+
+class TeacherReportView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/teacher_report.html"
+
+
+class ClassReportView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/class_report.html"
+
+
+class ReportExportView(LoginRequiredMixin, View):
+    def get(self, request):
+        # Implement report export logic
+        return HttpResponse("Report exported")
+
+
+class DeadlineManagementView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/deadline_management.html"
+
+
+class UpcomingDeadlinesView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/upcoming_deadlines.html"
+
+
+class OverdueAssignmentsView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/overdue_assignments.html"
+
+
+class DeadlineRemindersView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/deadline_reminders.html"
+
+
+class AssignmentExportView(LoginRequiredMixin, View):
+    def get(self, request):
+        # Implement assignment export logic
+        return HttpResponse("Assignments exported")
+
+
+class SubmissionExportView(LoginRequiredMixin, View):
+    def get(self, request, assignment_id):
+        # Implement submission export logic
+        return HttpResponse("Submissions exported")
+
+
+class AssignmentImportView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/assignment_import.html"
+
+
+class SubmissionImportView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/submission_import.html"
+
+
+class AssignmentCalendarView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/assignment_calendar.html"
+
+
+class AssignmentCalendarFeedView(LoginRequiredMixin, View):
+    def get(self, request):
+        # Return calendar feed
+        return HttpResponse("Calendar feed")
+
+
+class AssignmentSearchView(LoginRequiredMixin, ListView):
+    model = Assignment
+    template_name = "assignments/assignment_search.html"
+
+
+class AdvancedSearchView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/advanced_search.html"
+
+
+class BulkPublishView(LoginRequiredMixin, TeacherRequiredMixin, View):
+    def post(self, request):
+        # Implement bulk publish logic
+        return redirect("assignments:assignment_list")
+
+
+class BulkCloseView(LoginRequiredMixin, TeacherRequiredMixin, View):
+    def post(self, request):
+        # Implement bulk close logic
+        return redirect("assignments:assignment_list")
+
+
+class BulkDeleteView(LoginRequiredMixin, TeacherRequiredMixin, View):
+    def post(self, request):
+        # Implement bulk delete logic
+        return redirect("assignments:assignment_list")
+
+
+class BulkExtendDeadlineView(LoginRequiredMixin, TeacherRequiredMixin, View):
+    def post(self, request):
+        # Implement bulk deadline extension logic
+        return redirect("assignments:assignment_list")
+
+
+class AssignmentTemplatesView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/assignment_templates.html"
+
+
+class SaveAsTemplateView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        # Implement save as template logic
+        return redirect("assignments:assignment_detail", pk=pk)
+
+
+class UseTemplateView(LoginRequiredMixin, View):
+    def get(self, request, template_id):
+        # Implement use template logic
+        return redirect("assignments:assignment_create")
+
+
+class ShareAssignmentView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/share_assignment.html"
+
+
+class StudentAssignmentListView(LoginRequiredMixin, StudentRequiredMixin, ListView):
+    model = Assignment
+    template_name = "assignments/student_assignments.html"
+
+    def get_queryset(self):
+        return Assignment.objects.filter(
+            class_id=self.request.user.student.current_class_id, status="published"
+        )
+
+
+class StudentSubmissionListView(LoginRequiredMixin, StudentRequiredMixin, ListView):
+    model = AssignmentSubmission
+    template_name = "assignments/student_submissions.html"
+
+    def get_queryset(self):
+        return AssignmentSubmission.objects.filter(student=self.request.user.student)
+
+
+class StudentGradesView(LoginRequiredMixin, StudentRequiredMixin, TemplateView):
+    template_name = "assignments/student_grades.html"
+
+
+class StudentPerformanceView(LoginRequiredMixin, StudentRequiredMixin, TemplateView):
+    template_name = "assignments/student_performance.html"
+
+
+class ParentOverviewView(LoginRequiredMixin, ParentRequiredMixin, TemplateView):
+    template_name = "assignments/parent_overview.html"
+
+
+class ParentChildAssignmentsView(LoginRequiredMixin, ParentRequiredMixin, ListView):
+    model = Assignment
+    template_name = "assignments/parent_child_assignments.html"
+
+
+class AssignmentNotificationsView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/notifications.html"
+
+
+class NotificationSettingsView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/notification_settings.html"
+
+
+class AssignmentSettingsView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/assignment_settings.html"
+
+
+class FileTypeSettingsView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/file_type_settings.html"
+
+
+class GradingSettingsView(LoginRequiredMixin, TemplateView):
+    template_name = "assignments/grading_settings.html"
+
+
+# ================== AJAX VIEWS ==================
+
+
+class AssignmentInfoAjaxView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        assignment = get_object_or_404(Assignment, pk=pk)
+        data = {
+            "title": assignment.title,
+            "description": assignment.description,
+            "due_date": (
+                assignment.due_date.isoformat() if assignment.due_date else None
+            ),
+            "total_marks": assignment.total_marks,
+            "status": assignment.status,
+        }
+        return JsonResponse(data)
+
+
+class SubmissionStatusAjaxView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        submission = get_object_or_404(AssignmentSubmission, pk=pk)
+        data = {
+            "status": submission.status,
+            "marks_obtained": submission.marks_obtained,
+            "grade": submission.grade,
+            "submission_date": (
+                submission.submission_date.isoformat()
+                if submission.submission_date
+                else None
+            ),
+        }
+        return JsonResponse(data)
+
+
+class ClassStudentsAjaxView(LoginRequiredMixin, View):
+    def get(self, request, class_id):
+        students = Student.objects.filter(current_class_id=class_id).select_related(
+            "user"
+        )
+        data = {
+            "students": [
+                {
+                    "id": student.id,
+                    "name": student.user.get_full_name(),
+                    "roll_number": student.roll_number,
+                }
+                for student in students
+            ]
+        }
+        return JsonResponse(data)
+
+
+class SubjectAssignmentsAjaxView(LoginRequiredMixin, View):
+    def get(self, request, subject_id):
+        assignments = Assignment.objects.filter(subject_id=subject_id)
+        data = {
+            "assignments": [
+                {
+                    "id": assignment.id,
+                    "title": assignment.title,
+                    "due_date": (
+                        assignment.due_date.isoformat() if assignment.due_date else None
+                    ),
+                    "status": assignment.status,
+                }
+                for assignment in assignments
+            ]
+        }
+        return JsonResponse(data)
+
+
+class AnalyticsChartDataAjaxView(LoginRequiredMixin, View):
+    def get(self, request):
+        # Return chart data for analytics
+        data = {
+            "labels": ["Jan", "Feb", "Mar", "Apr", "May"],
+            "datasets": [
+                {
+                    "label": "Assignments",
+                    "data": [10, 15, 12, 18, 20],
+                }
+            ],
+        }
+        return JsonResponse(data)

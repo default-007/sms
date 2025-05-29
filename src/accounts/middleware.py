@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.deprecation import MiddlewareMixin
 
-from ..models import UserAuditLog, UserSession
+from .models import UserAuditLog, UserSession
 
 logger = logging.getLogger(__name__)
 User = get_user_model()

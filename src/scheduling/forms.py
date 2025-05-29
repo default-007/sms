@@ -5,9 +5,9 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 
-from academics.models import Class, Grade, Term
-from subjects.models import Subject
-from teachers.models import Teacher
+from src.academics.models import Class, Grade, Term
+from src.subjects.models import Subject
+from src.teachers.models import Teacher
 
 from .models import (
     Room,

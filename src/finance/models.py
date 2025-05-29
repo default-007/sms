@@ -1,9 +1,19 @@
+# finance/models.py
+import uuid
+from decimal import Decimal
+
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.validators import MaxValueValidator, MinValueValidator
+
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from src.academics.models import AcademicYear, Grade
+
+
+User = get_user_model()
 
 
 class FeeCategory(models.Model):
@@ -579,7 +589,9 @@ class Scholarship(models.Model):
         "academics.AcademicYear", on_delete=models.CASCADE
     )
     applicable_terms = models.JSONField(default=list)  # List of term IDs
-    applicable_categories = models.ManyToManyField(FeeCategory, blank=True)
+    applicable_categories = models.ManyToManyField(
+        "FeeCategory", through="ScholarshipFeeCategory", blank=True
+    )
 
     max_recipients = models.PositiveIntegerField(null=True, blank=True)
     current_recipients = models.PositiveIntegerField(default=0)
@@ -603,6 +615,14 @@ class Scholarship(models.Model):
         if self.max_recipients is None:
             return True
         return self.current_recipients < self.max_recipients
+
+
+class ScholarshipFeeCategory(models.Model):
+    scholarship = models.ForeignKey(Scholarship, on_delete=models.CASCADE)
+    fee_category = models.ForeignKey("FeeCategory", on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ("scholarship", "fee_category")
 
 
 class StudentScholarship(models.Model):
@@ -832,16 +852,30 @@ class FinancialAnalytics(models.Model):
     """Financial analytics for different levels."""
 
     academic_year = models.ForeignKey(
-        "academics.AcademicYear", on_delete=models.CASCADE
+        "academics.AcademicYear",
+        on_delete=models.CASCADE,
+        related_name="finance_analytics",
     )
     term = models.ForeignKey(
-        "academics.Term", on_delete=models.CASCADE, null=True, blank=True
+        "academics.Term",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="finance_analytics",
     )
     section = models.ForeignKey(
-        "academics.Section", on_delete=models.CASCADE, null=True, blank=True
+        "academics.Section",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="finance_analytics",
     )
     grade = models.ForeignKey(
-        "academics.Grade", on_delete=models.CASCADE, null=True, blank=True
+        "academics.Grade",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="finance_analytics",
     )
     fee_category = models.ForeignKey(
         FeeCategory, on_delete=models.CASCADE, null=True, blank=True

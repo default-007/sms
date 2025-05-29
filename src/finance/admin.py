@@ -1,3 +1,4 @@
+# finance/admin.py
 from decimal import Decimal
 
 from django.contrib import admin
@@ -174,14 +175,14 @@ class ScholarshipAdmin(admin.ModelAdmin):
     search_fields = ["name", "description"]
     ordering = ["-created_at"]
     readonly_fields = ["created_at", "created_by", "current_recipients"]
-    filter_horizontal = ["applicable_categories"]
+    # filter_horizontal = ["applicable_categories"]
 
     fieldsets = (
         ("Basic Information", {"fields": ("name", "description", "criteria")}),
         ("Discount Details", {"fields": ("discount_type", "discount_value")}),
         (
             "Scope",
-            {"fields": ("academic_year", "applicable_terms", "applicable_categories")},
+            {"fields": ("academic_year", "applicable_terms")},
         ),
         ("Limits", {"fields": ("max_recipients", "current_recipients")}),
         ("Status", {"fields": ("is_active",)}),

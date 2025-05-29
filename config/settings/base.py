@@ -81,13 +81,13 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "assignments.middleware.AssignmentDeadlineNotificationMiddleware",
-    "accounts.middleware.SecurityMiddleware",
-    "accounts.middleware.RateLimitMiddleware",
-    "accounts.middleware.AuditMiddleware",
-    "accounts.middleware.SessionSecurityMiddleware",
-    "assignments.middleware.AssignmentAccessControlMiddleware",
-    "assignments.middleware.AssignmentActivityTrackingMiddleware",
+    "src.assignments.middleware.AssignmentDeadlineNotificationMiddleware",
+    "src.accounts.middleware.SecurityMiddleware",
+    "src.accounts.middleware.RateLimitMiddleware",
+    "src.accounts.middleware.AuditMiddleware",
+    "src.accounts.middleware.SessionSecurityMiddleware",
+    "src.assignments.middleware.AssignmentAccessControlMiddleware",
+    "src.assignments.middleware.AssignmentActivityTrackingMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"

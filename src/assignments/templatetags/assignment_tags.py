@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.utils.html import format_html, mark_safe
 
 from ..models import Assignment, AssignmentSubmission
-from ..services import AssignmentService, DeadlineService
+from src.assignments.services.deadline_service import DeadlineService
 
 register = template.Library()
 

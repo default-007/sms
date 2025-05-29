@@ -6,7 +6,8 @@ Handles announcements, notifications, messaging, and communication analytics.
 import uuid
 
 from django.contrib.auth import get_user_model
-from django.contrib.postgres.fields import JSONField
+
+# from django.contrib.postgres.fields import models.JSONField
 from django.core.validators import EmailValidator, RegexValidator
 from django.db import models
 from django.utils import timezone
@@ -74,9 +75,13 @@ class Announcement(models.Model):
     target_audience = models.CharField(
         max_length=20, choices=TargetAudience.choices, default=TargetAudience.ALL
     )
-    target_grades = JSONField(default=list, blank=True, help_text="List of grade IDs")
-    target_classes = JSONField(default=list, blank=True, help_text="List of class IDs")
-    target_sections = JSONField(
+    target_grades = models.JSONField(
+        default=list, blank=True, help_text="List of grade IDs"
+    )
+    target_classes = models.JSONField(
+        default=list, blank=True, help_text="List of class IDs"
+    )
+    target_sections = models.JSONField(
         default=list, blank=True, help_text="List of section IDs"
     )
     target_users = models.ManyToManyField(
@@ -95,7 +100,9 @@ class Announcement(models.Model):
     priority = models.CharField(
         max_length=10, choices=Priority.choices, default=Priority.MEDIUM
     )
-    channels = JSONField(default=list, help_text="List of communication channels")
+    channels = models.JSONField(
+        default=list, help_text="List of communication channels"
+    )
 
     # Analytics
     total_recipients = models.PositiveIntegerField(default=0)
@@ -165,8 +172,8 @@ class Notification(models.Model):
     )
 
     # Delivery tracking
-    channels_used = JSONField(default=list)
-    delivery_status = JSONField(default=dict)
+    channels_used = models.JSONField(default=list)
+    delivery_status = models.JSONField(default=dict)
 
     # Related announcement
     announcement = models.ForeignKey(
@@ -210,10 +217,10 @@ class MessageTemplate(models.Model):
     content_template = models.TextField()
 
     # Supported channels
-    supported_channels = JSONField(default=list)
+    supported_channels = models.JSONField(default=list)
 
     # Variables and placeholders
-    variables = JSONField(default=dict, help_text="Available template variables")
+    variables = models.JSONField(default=dict, help_text="Available template variables")
 
     # Metadata
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -270,7 +277,9 @@ class BulkMessage(models.Model):
 
     # Targeting
     target_audience = models.CharField(max_length=20, choices=TargetAudience.choices)
-    target_filters = JSONField(default=dict, help_text="Advanced filtering criteria")
+    target_filters = models.JSONField(
+        default=dict, help_text="Advanced filtering criteria"
+    )
     recipient_count = models.PositiveIntegerField(default=0)
 
     # Scheduling
@@ -283,7 +292,7 @@ class BulkMessage(models.Model):
     status = models.CharField(
         max_length=20, choices=MessageStatus.choices, default=MessageStatus.DRAFT
     )
-    channels = JSONField(default=list)
+    channels = models.JSONField(default=list)
     priority = models.CharField(
         max_length=10, choices=Priority.choices, default=Priority.MEDIUM
     )
@@ -565,7 +574,7 @@ class CommunicationLog(models.Model):
     content_id = models.CharField(max_length=100)
 
     # Metadata
-    metadata = JSONField(default=dict)
+    metadata = models.JSONField(default=dict)
     error_details = models.TextField(blank=True)
 
     # Timing

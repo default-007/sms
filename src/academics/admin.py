@@ -1,3 +1,4 @@
+# core/admin.py
 """
 Django Admin Configuration for Academics Module
 

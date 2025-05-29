@@ -8,10 +8,10 @@ from django.forms import inlineformset_factory
 from django.forms.widgets import DateTimeInput
 from django.utils import timezone
 
-from academics.models import Class, Term
-from students.models import Student
-from subjects.models import Subject
-from teachers.models import Teacher
+from src.academics.models import Class, Term
+from src.students.models import Student
+from src.subjects.models import Subject
+from src.teachers.models import Teacher
 
 from .models import (
     Assignment,

@@ -6,7 +6,7 @@ app_name = "scheduling"
 
 urlpatterns = [
     # API URLs - delegated to api/urls.py
-    path("api/", include("scheduling.api.urls")),
+    path("api/", include("src.scheduling.api.urls")),
     # Dashboard and main views
     path("", views.SchedulingDashboardView.as_view(), name="dashboard"),
     # Timetable management
@@ -36,7 +36,7 @@ urlpatterns = [
         views.BulkTimetableCreateView.as_view(),
         name="bulk_timetable_create",
     ),
-    path("timetables/copy/", views.CopyTimetableView.as_view(), name="copy_timetable"),
+    # path("timetables/copy/", views.CopyTimetableView.as_view(), name="copy_timetable"),
     # Class and teacher timetable views
     path(
         "timetables/class/<uuid:class_id>/",

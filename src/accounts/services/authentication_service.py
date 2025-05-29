@@ -2,11 +2,17 @@
 
 import hashlib
 import logging
+import re
 import secrets
+import string
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -14,7 +20,7 @@ from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from ..models import UserAuditLog, UserSession
-from ..utils import get_client_info, send_notification_email
+from ..utils import get_client_info, send_notification_email, generate_otp
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -24,32 +30,24 @@ class AuthenticationService:
     """Enhanced service for handling authentication-related operations."""
 
     @staticmethod
-    def generate_tokens_for_user(user):
-        """Generate JWT tokens for a user."""
-        refresh = RefreshToken.for_user(user)
-        return {
-            "refresh": str(refresh),
-            "access": str(refresh.access_token),
-            "expires_in": settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
-        }
-
-    @staticmethod
-    def update_last_login(user):
-        """Update the last login timestamp for a user."""
-        user.last_login = timezone.now()
-        user.save(update_fields=["last_login"])
-
-    @staticmethod
-    def authenticate_user(username, password, request=None):
+    def authenticate_user(
+        identifier: str, password: str, request=None
+    ) -> Tuple[Optional[User], str]:
         """
-        Authenticate a user with username and password.
+        Authenticate a user with email, phone, or username and password.
         Returns: (user_object, authentication_result)
         """
         client_info = get_client_info(request) if request else {}
 
         try:
-            # Try to find user by username or email
-            user = User.objects.get(Q(username=username) | Q(email=username))
+            # Determine identifier type and find user
+            user = AuthenticationService._find_user_by_identifier(identifier)
+
+            if not user:
+                AuthenticationService._log_failed_attempt(
+                    None, f"User not found for identifier: {identifier}", client_info
+                )
+                return None, "user_not_found"
 
             # Check if account is locked
             if user.is_account_locked():
@@ -58,33 +56,34 @@ class AuthenticationService:
                 )
                 return None, "account_locked"
 
+            # Check if account is active
+            if not user.is_active:
+                AuthenticationService._log_failed_attempt(
+                    user, "Account inactive", client_info
+                )
+                return None, "account_inactive"
+
             # Check password
             if user.check_password(password):
-                if user.is_active:
-                    # Successful authentication
-                    user.reset_failed_login_attempts()
-                    AuthenticationService.update_last_login(user)
+                # Successful authentication
+                user.reset_failed_login_attempts()
+                AuthenticationService.update_last_login(user)
 
-                    # Create audit log
-                    UserAuditLog.objects.create(
-                        user=user,
-                        action="login",
-                        description="Successful authentication",
-                        ip_address=client_info.get("ip_address"),
-                        user_agent=client_info.get("user_agent"),
-                        extra_data=client_info,
-                    )
+                # Create audit log
+                UserAuditLog.objects.create(
+                    user=user,
+                    action="login",
+                    description="Successful authentication",
+                    ip_address=client_info.get("ip_address"),
+                    user_agent=client_info.get("user_agent"),
+                    extra_data=client_info,
+                )
 
-                    # Create or update session record
-                    if request and hasattr(request, "session"):
-                        AuthenticationService._create_session_record(user, request)
+                # Create or update session record
+                if request and hasattr(request, "session"):
+                    AuthenticationService._create_session_record(user, request)
 
-                    return user, "success"
-                else:
-                    AuthenticationService._log_failed_attempt(
-                        user, "Account inactive", client_info
-                    )
-                    return None, "account_inactive"
+                return user, "success"
             else:
                 # Invalid password
                 user.increment_failed_login_attempts()
@@ -95,20 +94,55 @@ class AuthenticationService:
                 )
                 return None, "invalid_credentials"
 
-        except User.DoesNotExist:
-            # Log failed attempt for non-existent user
-            UserAuditLog.objects.create(
-                user=None,
-                action="login",
-                description=f"Failed login attempt for non-existent user: {username}",
-                ip_address=client_info.get("ip_address"),
-                user_agent=client_info.get("user_agent"),
-                extra_data=client_info,
-            )
-            return None, "user_not_found"
+        except Exception as e:
+            logger.error(f"Authentication error: {str(e)}")
+            return None, "authentication_error"
 
     @staticmethod
-    def _log_failed_attempt(user, reason, client_info):
+    def _find_user_by_identifier(identifier: str) -> Optional[User]:
+        """
+        Find user by email, phone number, or username.
+        """
+        identifier = identifier.strip()
+
+        # Check if it's an email
+        try:
+            validate_email(identifier)
+            return User.objects.filter(email=identifier).first()
+        except ValidationError:
+            pass
+
+        # Check if it's a phone number (basic validation)
+        phone_pattern = re.compile(r"^\+?[\d\s\-\(\)]{10,15}$")
+        if phone_pattern.match(identifier):
+            # Clean phone number
+            clean_phone = re.sub(r"[\s\-\(\)]", "", identifier)
+            return User.objects.filter(phone_number__icontains=clean_phone).first()
+
+        # Assume it's a username
+        return User.objects.filter(username=identifier).first()
+
+    @staticmethod
+    def generate_tokens_for_user(user: User) -> Dict[str, Any]:
+        """Generate JWT tokens for a user."""
+        refresh = RefreshToken.for_user(user)
+        return {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+            "expires_in": settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
+            "token_type": "Bearer",
+        }
+
+    @staticmethod
+    def update_last_login(user: User) -> None:
+        """Update the last login timestamp for a user."""
+        user.last_login = timezone.now()
+        user.save(update_fields=["last_login"])
+
+    @staticmethod
+    def _log_failed_attempt(
+        user: Optional[User], reason: str, client_info: Dict
+    ) -> None:
         """Log failed authentication attempt."""
         UserAuditLog.objects.create(
             user=user,
@@ -120,7 +154,7 @@ class AuthenticationService:
         )
 
     @staticmethod
-    def _create_session_record(user, request):
+    def _create_session_record(user: User, request) -> None:
         """Create or update session record."""
         if not request.session.session_key:
             request.session.create()
@@ -145,14 +179,27 @@ class AuthenticationService:
 
     @staticmethod
     @transaction.atomic
-    def register_user(user_data, role_names=None, created_by=None, send_email=True):
+    def register_user(
+        user_data: Dict[str, Any],
+        role_names: Optional[List[str]] = None,
+        created_by: Optional[User] = None,
+        send_email: bool = True,
+    ) -> User:
         """Register a new user with optional roles and email notification."""
         from .role_service import RoleService
+
+        # Generate username if not provided
+        if not user_data.get("username"):
+            user_data["username"] = AuthenticationService._generate_username(
+                user_data.get("first_name", ""),
+                user_data.get("last_name", ""),
+                user_data.get("email", ""),
+            )
 
         # Create the user
         password = user_data.pop("password", None)
         if not password:
-            password = secrets.token_urlsafe(12)  # Generate secure password
+            password = AuthenticationService._generate_secure_password()
 
         user = User.objects.create(**user_data)
         user.set_password(password)
@@ -196,7 +243,37 @@ class AuthenticationService:
         return user
 
     @staticmethod
-    def logout_user(user, request=None):
+    def _generate_username(first_name: str, last_name: str, email: str) -> str:
+        """Generate a unique username."""
+        base_username = ""
+
+        if first_name and last_name:
+            base_username = f"{first_name.lower()}.{last_name.lower()}"
+        elif email:
+            base_username = email.split("@")[0].lower()
+        else:
+            base_username = "user"
+
+        # Clean username
+        base_username = re.sub(r"[^a-zA-Z0-9_]", "", base_username)
+
+        # Ensure uniqueness
+        username = base_username
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{base_username}{counter}"
+            counter += 1
+
+        return username
+
+    @staticmethod
+    def _generate_secure_password(length: int = 12) -> str:
+        """Generate a secure password."""
+        chars = string.ascii_letters + string.digits + "!@#$%^&*"
+        return "".join(secrets.choice(chars) for _ in range(length))
+
+    @staticmethod
+    def logout_user(user: User, request=None) -> None:
         """Log out a user and clean up session data."""
         # Create audit log
         client_info = get_client_info(request) if request else {}
@@ -218,7 +295,9 @@ class AuthenticationService:
             request.session.flush()
 
     @staticmethod
-    def change_password(user, old_password, new_password, request=None):
+    def change_password(
+        user: User, old_password: str, new_password: str, request=None
+    ) -> Tuple[bool, str]:
         """Change user password with validation and logging."""
         # Verify old password
         if not user.check_password(old_password):
@@ -261,10 +340,15 @@ class AuthenticationService:
         return True, "Password changed successfully"
 
     @staticmethod
-    def reset_password(user, new_password=None, request=None, reset_by=None):
+    def reset_password(
+        user: User,
+        new_password: Optional[str] = None,
+        request=None,
+        reset_by: Optional[User] = None,
+    ) -> str:
         """Reset user password (admin action)."""
         if not new_password:
-            new_password = secrets.token_urlsafe(12)
+            new_password = AuthenticationService._generate_secure_password()
 
         user.set_password(new_password)
         user.requires_password_change = True
@@ -312,7 +396,40 @@ class AuthenticationService:
         return new_password
 
     @staticmethod
-    def invalidate_user_tokens(user):
+    def send_otp(user: User, purpose: str = "verification") -> str:
+        """Send OTP to user for verification."""
+        otp = generate_otp()
+        cache_key = f"otp_{user.id}_{purpose}"
+
+        # Store OTP in cache for 10 minutes
+        cache.set(cache_key, otp, 600)
+
+        # Send OTP via email and SMS
+        try:
+            send_notification_email(
+                user,
+                f"Your OTP: {otp}",
+                "accounts/emails/otp_notification.html",
+                {"otp": otp, "purpose": purpose},
+            )
+        except Exception as e:
+            logger.error(f"Failed to send OTP email: {e}")
+
+        return otp
+
+    @staticmethod
+    def verify_otp(user: User, otp: str, purpose: str = "verification") -> bool:
+        """Verify OTP for user."""
+        cache_key = f"otp_{user.id}_{purpose}"
+        cached_otp = cache.get(cache_key)
+
+        if cached_otp and cached_otp == otp:
+            cache.delete(cache_key)
+            return True
+        return False
+
+    @staticmethod
+    def invalidate_user_tokens(user: User) -> None:
         """Invalidate all JWT tokens for a user."""
         try:
             from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
@@ -327,7 +444,7 @@ class AuthenticationService:
             logger.warning("Token blacklist not available")
 
     @staticmethod
-    def unlock_account(user, unlocked_by=None):
+    def unlock_account(user: User, unlocked_by: Optional[User] = None) -> None:
         """Unlock a locked user account."""
         user.failed_login_attempts = 0
         user.last_failed_login = None
@@ -350,10 +467,8 @@ class AuthenticationService:
             logger.error(f"Failed to send unlock notification: {e}")
 
     @staticmethod
-    def get_login_statistics(user, days=30):
+    def get_login_statistics(user: User, days: int = 30) -> Dict[str, Any]:
         """Get login statistics for a user."""
-        from datetime import timedelta
-
         from django.db.models import Count
 
         start_date = timezone.now() - timedelta(days=days)
@@ -397,10 +512,10 @@ class AuthenticationService:
         }
 
     @staticmethod
-    def check_suspicious_activity(user, threshold_hours=24):
+    def check_suspicious_activity(
+        user: User, threshold_hours: int = 24
+    ) -> Dict[str, Any]:
         """Check for suspicious login activity."""
-        from datetime import timedelta
-
         from django.db.models import Count
 
         since = timezone.now() - timedelta(hours=threshold_hours)

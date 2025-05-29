@@ -1,14 +1,21 @@
+# src/accounts/utils.py
+
 import hashlib
+import re
 import secrets
 import string
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
+import phonenumbers
+from phonenumbers import NumberParseException
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
+from django.core.validators import validate_email
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.text import slugify
@@ -17,7 +24,10 @@ User = get_user_model()
 
 
 def generate_secure_password(
-    length: int = 12, include_symbols: bool = True, ensure_complexity: bool = True
+    length: int = 12,
+    include_symbols: bool = True,
+    ensure_complexity: bool = True,
+    exclude_ambiguous: bool = True,
 ) -> str:
     """
     Generate a secure password with specified criteria.
@@ -26,6 +36,7 @@ def generate_secure_password(
         length: Password length (minimum 8)
         include_symbols: Whether to include special characters
         ensure_complexity: Ensure password meets complexity requirements
+        exclude_ambiguous: Exclude ambiguous characters (0, O, l, 1, etc.)
 
     Returns:
         Generated password string
@@ -38,6 +49,13 @@ def generate_secure_password(
     uppercase = string.ascii_uppercase
     digits = string.digits
     symbols = "!@#$%^&*()_+-=[]{}|;:,.<>?" if include_symbols else ""
+
+    # Remove ambiguous characters if requested
+    if exclude_ambiguous:
+        lowercase = lowercase.replace("l", "").replace("o", "")
+        uppercase = uppercase.replace("I", "").replace("O", "")
+        digits = digits.replace("0", "").replace("1", "")
+        symbols = symbols.replace("|", "").replace("l", "")
 
     # Ensure at least one character from each required set
     password = []
@@ -61,58 +79,6 @@ def generate_secure_password(
     return "".join(password)
 
 
-def generate_username(first_name: str, last_name: str, email: str = None) -> str:
-    """
-    Generate a unique username based on name or email.
-
-    Args:
-        first_name: User's first name
-        last_name: User's last name
-        email: User's email (optional)
-
-    Returns:
-        Generated username
-    """
-    # Try different username formats
-    base_usernames = []
-
-    if first_name and last_name:
-        base_usernames.extend(
-            [
-                f"{first_name.lower()}.{last_name.lower()}",
-                f"{first_name.lower()}{last_name.lower()}",
-                f"{first_name[0].lower()}{last_name.lower()}",
-                f"{first_name.lower()}{last_name[0].lower()}",
-            ]
-        )
-
-    if email:
-        email_base = email.split("@")[0]
-        base_usernames.append(email_base.lower())
-
-    # Clean usernames (remove special characters)
-    clean_usernames = []
-    for username in base_usernames:
-        clean = slugify(username).replace("-", "")
-        if clean and len(clean) >= 3:
-            clean_usernames.append(clean)
-
-    # Find available username
-    for base in clean_usernames:
-        if not User.objects.filter(username=base).exists():
-            return base
-
-        # Try with numbers
-        for i in range(1, 100):
-            candidate = f"{base}{i}"
-            if not User.objects.filter(username=candidate).exists():
-                return candidate
-
-    # Fallback: generate random username
-    random_suffix = "".join(secrets.choice(string.digits) for _ in range(6))
-    return f"user{random_suffix}"
-
-
 def validate_password_strength(password: str) -> Dict[str, Any]:
     """
     Validate password strength and return detailed feedback.
@@ -133,7 +99,10 @@ def validate_password_strength(password: str) -> Dict[str, Any]:
             "lowercase": False,
             "digits": False,
             "symbols": False,
+            "no_common": False,
+            "no_personal": False,
         },
+        "strength_level": "weak",
     }
 
     # Check length
@@ -147,7 +116,7 @@ def validate_password_strength(password: str) -> Dict[str, Any]:
     # Check for uppercase letters
     if any(c.isupper() for c in password):
         result["requirements"]["uppercase"] = True
-        result["score"] += 20
+        result["score"] += 15
     else:
         result["feedback"].append(
             "Password should contain at least one uppercase letter"
@@ -156,7 +125,7 @@ def validate_password_strength(password: str) -> Dict[str, Any]:
     # Check for lowercase letters
     if any(c.islower() for c in password):
         result["requirements"]["lowercase"] = True
-        result["score"] += 20
+        result["score"] += 15
     else:
         result["feedback"].append(
             "Password should contain at least one lowercase letter"
@@ -165,30 +134,67 @@ def validate_password_strength(password: str) -> Dict[str, Any]:
     # Check for digits
     if any(c.isdigit() for c in password):
         result["requirements"]["digits"] = True
-        result["score"] += 20
+        result["score"] += 15
     else:
         result["feedback"].append("Password should contain at least one digit")
 
     # Check for symbols
     if any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in password):
         result["requirements"]["symbols"] = True
-        result["score"] += 20
+        result["score"] += 15
     else:
         result["feedback"].append(
             "Password should contain at least one special character"
         )
 
-    # Additional strength checks
+    # Bonus points for length
     if len(password) >= 12:
         result["score"] += 10
     if len(password) >= 16:
         result["score"] += 10
 
-    # Check for common patterns
-    if password.lower() in ["password", "123456", "qwerty", "abc123"]:
+    # Check for common passwords
+    common_passwords = [
+        "password",
+        "123456",
+        "123456789",
+        "qwerty",
+        "abc123",
+        "password123",
+        "admin",
+        "letmein",
+        "welcome",
+        "monkey",
+    ]
+
+    if password.lower() not in common_passwords:
+        result["requirements"]["no_common"] = True
+        result["score"] += 10
+    else:
         result["is_valid"] = False
         result["score"] = 0
         result["feedback"] = ["Password is too common"]
+
+    # Check for sequential patterns
+    sequential_patterns = ["123456", "abcdef", "qwerty", "asdfgh", "zxcvbn"]
+
+    if not any(pattern in password.lower() for pattern in sequential_patterns):
+        result["requirements"]["no_personal"] = True
+        result["score"] += 10
+    else:
+        result["feedback"].append("Avoid sequential patterns")
+
+    # Determine strength level
+    if result["score"] >= 90:
+        result["strength_level"] = "very_strong"
+    elif result["score"] >= 75:
+        result["strength_level"] = "strong"
+    elif result["score"] >= 60:
+        result["strength_level"] = "medium"
+    elif result["score"] >= 40:
+        result["strength_level"] = "weak"
+    else:
+        result["strength_level"] = "very_weak"
 
     # Set minimum score for validity
     if result["score"] < 60:
@@ -197,41 +203,112 @@ def validate_password_strength(password: str) -> Dict[str, Any]:
     return result
 
 
+def validate_phone_number(
+    phone_number: str, country_code: str = None
+) -> Dict[str, Any]:
+    """
+    Validate and format phone number using phonenumbers library.
+
+    Args:
+        phone_number: Phone number to validate
+        country_code: ISO country code (e.g., 'US', 'GB')
+
+    Returns:
+        Dictionary with validation results
+    """
+    result = {
+        "is_valid": False,
+        "formatted": "",
+        "international": "",
+        "national": "",
+        "country_code": "",
+        "error": "",
+    }
+
+    try:
+        # Parse phone number
+        parsed = phonenumbers.parse(phone_number, country_code)
+
+        # Validate
+        if phonenumbers.is_valid_number(parsed):
+            result["is_valid"] = True
+            result["formatted"] = phonenumbers.format_number(
+                parsed, phonenumbers.PhoneNumberFormat.E164
+            )
+            result["international"] = phonenumbers.format_number(
+                parsed, phonenumbers.PhoneNumberFormat.INTERNATIONAL
+            )
+            result["national"] = phonenumbers.format_number(
+                parsed, phonenumbers.PhoneNumberFormat.NATIONAL
+            )
+            result["country_code"] = phonenumbers.region_code_for_number(parsed)
+        else:
+            result["error"] = "Invalid phone number"
+
+    except NumberParseException as e:
+        result["error"] = f"Phone number parsing error: {e}"
+    except Exception as e:
+        result["error"] = f"Unexpected error: {e}"
+
+    return result
+
+
 def send_notification_email(
-    user: User, subject: str, template_name: str, context: Dict[str, Any] = None
+    user: User,
+    subject: str,
+    template_name: str,
+    context: Dict[str, Any] = None,
+    from_email: str = None,
 ) -> bool:
     """
-    Send notification email to user.
+    Send notification email to user with enhanced features.
 
     Args:
         user: User to send email to
         subject: Email subject
         template_name: Email template name
         context: Template context
+        from_email: Custom from email address
 
     Returns:
         True if sent successfully, False otherwise
     """
     try:
+        if not user.email_notifications:
+            return False
+
         context = context or {}
         context.update(
             {
                 "user": user,
                 "site_name": getattr(settings, "SITE_NAME", "School Management System"),
+                "site_url": getattr(settings, "SITE_URL", "http://localhost:8000"),
+                "support_email": getattr(
+                    settings, "SUPPORT_EMAIL", settings.DEFAULT_FROM_EMAIL
+                ),
             }
         )
 
         html_message = render_to_string(template_name, context)
 
+        # Try to render plain text version
+        plain_text_template = template_name.replace(".html", ".txt")
+        try:
+            plain_message = render_to_string(plain_text_template, context)
+        except:
+            # Fallback to basic plain text
+            plain_message = f"Hello {user.get_full_name()},\n\nPlease view this email in HTML format.\n\nBest regards,\nSchool Management System"
+
         send_mail(
             subject=subject,
-            message="",  # Plain text version
-            from_email=settings.DEFAULT_FROM_EMAIL,
+            message=plain_message,
+            from_email=from_email or settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
             html_message=html_message,
             fail_silently=False,
         )
         return True
+
     except Exception as e:
         import logging
 
@@ -251,6 +328,16 @@ def generate_otp(length: int = 6) -> str:
         Generated OTP
     """
     return "".join(secrets.choice(string.digits) for _ in range(length))
+
+
+def generate_verification_token() -> str:
+    """
+    Generate a secure verification token.
+
+    Returns:
+        Generated token
+    """
+    return secrets.token_urlsafe(32)
 
 
 def hash_token(token: str) -> str:
@@ -394,7 +481,7 @@ def sanitize_filename(filename: str) -> str:
 
 def get_client_info(request) -> Dict[str, str]:
     """
-    Extract client information from request.
+    Extract comprehensive client information from request.
 
     Args:
         request: Django request object
@@ -415,55 +502,131 @@ def get_client_info(request) -> Dict[str, str]:
     # Parse user agent for browser and OS info
     browser_info = parse_user_agent(user_agent)
 
+    # Get geographic info (would need a service like GeoIP)
+    geo_info = get_geographic_info(ip_address)
+
     return {
         "ip_address": ip_address,
         "user_agent": user_agent,
         "browser": browser_info.get("browser", "Unknown"),
+        "browser_version": browser_info.get("browser_version", ""),
         "os": browser_info.get("os", "Unknown"),
+        "os_version": browser_info.get("os_version", ""),
+        "device_type": browser_info.get("device_type", "unknown"),
+        "country": geo_info.get("country", ""),
+        "city": geo_info.get("city", ""),
+        "timezone": geo_info.get("timezone", ""),
     }
 
 
 def parse_user_agent(user_agent: str) -> Dict[str, str]:
     """
-    Parse user agent string to extract browser and OS information.
+    Parse user agent string to extract browser, OS, and device information.
 
     Args:
         user_agent: User agent string
 
     Returns:
-        Dictionary with browser and OS info
+        Dictionary with parsed info
     """
     user_agent = user_agent.lower()
 
     # Detect browser
     browser = "Unknown"
-    if "chrome" in user_agent and "edg" not in user_agent:
+    browser_version = ""
+
+    if "edg" in user_agent:
+        browser = "Edge"
+        match = re.search(r"edg/([\d.]+)", user_agent)
+        browser_version = match.group(1) if match else ""
+    elif "chrome" in user_agent:
         browser = "Chrome"
+        match = re.search(r"chrome/([\d.]+)", user_agent)
+        browser_version = match.group(1) if match else ""
     elif "firefox" in user_agent:
         browser = "Firefox"
+        match = re.search(r"firefox/([\d.]+)", user_agent)
+        browser_version = match.group(1) if match else ""
     elif "safari" in user_agent and "chrome" not in user_agent:
         browser = "Safari"
-    elif "edg" in user_agent:
-        browser = "Edge"
+        match = re.search(r"version/([\d.]+)", user_agent)
+        browser_version = match.group(1) if match else ""
     elif "opera" in user_agent:
         browser = "Opera"
+        match = re.search(r"opera/([\d.]+)", user_agent)
+        browser_version = match.group(1) if match else ""
 
     # Detect OS
     os_name = "Unknown"
-    if "windows" in user_agent:
+    os_version = ""
+
+    if "windows nt" in user_agent:
         os_name = "Windows"
+        match = re.search(r"windows nt ([\d.]+)", user_agent)
+        if match:
+            version_map = {
+                "10.0": "10",
+                "6.3": "8.1",
+                "6.2": "8",
+                "6.1": "7",
+                "6.0": "Vista",
+                "5.1": "XP",
+            }
+            os_version = version_map.get(match.group(1), match.group(1))
     elif "macintosh" in user_agent or "mac os" in user_agent:
         os_name = "macOS"
+        match = re.search(r"mac os x ([\d_]+)", user_agent)
+        os_version = match.group(1).replace("_", ".") if match else ""
     elif "linux" in user_agent:
         os_name = "Linux"
     elif "android" in user_agent:
         os_name = "Android"
+        match = re.search(r"android ([\d.]+)", user_agent)
+        os_version = match.group(1) if match else ""
     elif "iphone" in user_agent or "ipad" in user_agent:
         os_name = "iOS"
+        match = re.search(r"os ([\d_]+)", user_agent)
+        os_version = match.group(1).replace("_", ".") if match else ""
+
+    # Detect device type
+    device_type = "desktop"
+    if any(mobile in user_agent for mobile in ["mobile", "android", "iphone"]):
+        device_type = "mobile"
+    elif "ipad" in user_agent or "tablet" in user_agent:
+        device_type = "tablet"
 
     return {
         "browser": browser,
+        "browser_version": browser_version,
         "os": os_name,
+        "os_version": os_version,
+        "device_type": device_type,
+    }
+
+
+def get_geographic_info(ip_address: str) -> Dict[str, str]:
+    """
+    Get geographic information from IP address.
+    This is a placeholder - you would integrate with a service like GeoIP2.
+
+    Args:
+        ip_address: IP address to lookup
+
+    Returns:
+        Dictionary with geographic info
+    """
+    # Placeholder implementation
+    # In a real implementation, you would use a service like:
+    # - MaxMind GeoIP2
+    # - ipapi.co
+    # - ipgeolocation.io
+
+    return {
+        "country": "",
+        "city": "",
+        "timezone": "",
+        "latitude": "",
+        "longitude": "",
     }
 
 
@@ -492,15 +655,19 @@ def format_file_size(size_bytes: int) -> str:
 
 
 def validate_file_upload(
-    file, max_size_mb: int = 10, allowed_types: List[str] = None
+    file,
+    max_size_mb: int = 10,
+    allowed_types: List[str] = None,
+    allowed_extensions: List[str] = None,
 ) -> Dict[str, Any]:
     """
-    Validate uploaded file.
+    Validate uploaded file with comprehensive checks.
 
     Args:
         file: Uploaded file object
         max_size_mb: Maximum file size in MB
-        allowed_types: List of allowed file types
+        allowed_types: List of allowed MIME types
+        allowed_extensions: List of allowed file extensions
 
     Returns:
         Validation result dictionary
@@ -508,12 +675,19 @@ def validate_file_upload(
     result = {
         "is_valid": True,
         "errors": [],
+        "warnings": [],
         "file_info": {
             "name": file.name,
             "size": file.size,
             "content_type": getattr(file, "content_type", "unknown"),
+            "extension": "",
         },
     }
+
+    # Get file extension
+    if "." in file.name:
+        extension = file.name.split(".")[-1].lower()
+        result["file_info"]["extension"] = extension
 
     # Check file size
     max_size_bytes = max_size_mb * 1024 * 1024
@@ -523,14 +697,35 @@ def validate_file_upload(
             f"File size ({format_file_size(file.size)}) exceeds maximum allowed size ({max_size_mb} MB)"
         )
 
-    # Check file type
+    # Check MIME type
     if allowed_types:
-        file_extension = file.name.split(".")[-1].lower() if "." in file.name else ""
-        if file_extension not in allowed_types:
+        content_type = getattr(file, "content_type", "")
+        if content_type not in allowed_types:
             result["is_valid"] = False
             result["errors"].append(
-                f'File type ".{file_extension}" is not allowed. Allowed types: {", ".join(allowed_types)}'
+                f'File type "{content_type}" is not allowed. Allowed types: {", ".join(allowed_types)}'
             )
+
+    # Check file extension
+    if allowed_extensions:
+        file_extension = result["file_info"]["extension"]
+        if file_extension not in allowed_extensions:
+            result["is_valid"] = False
+            result["errors"].append(
+                f'File extension ".{file_extension}" is not allowed. Allowed extensions: {", ".join(allowed_extensions)}'
+            )
+
+    # Additional security checks
+    if file.name:
+        # Check for potentially dangerous file names
+        dangerous_patterns = [r"\.\.", r'[<>:"/\\|?*]', r"^\.|^CON$|^PRN$|^AUX$|^NUL$"]
+
+        for pattern in dangerous_patterns:
+            if re.search(pattern, file.name, re.IGNORECASE):
+                result["warnings"].append(
+                    "File name contains potentially unsafe characters"
+                )
+                break
 
     return result
 
@@ -565,7 +760,13 @@ def time_since(dt: datetime) -> str:
     now = timezone.now()
     diff = now - dt
 
-    if diff.days > 0:
+    if diff.days > 365:
+        years = diff.days // 365
+        return f"{years} year{'s' if years != 1 else ''} ago"
+    elif diff.days > 30:
+        months = diff.days // 30
+        return f"{months} month{'s' if months != 1 else ''} ago"
+    elif diff.days > 0:
         return f"{diff.days} day{'s' if diff.days != 1 else ''} ago"
     elif diff.seconds > 3600:
         hours = diff.seconds // 3600
@@ -575,3 +776,153 @@ def time_since(dt: datetime) -> str:
         return f"{minutes} minute{'s' if minutes != 1 else ''} ago"
     else:
         return "Just now"
+
+
+def cache_key_user_permissions(user_id: int) -> str:
+    """Generate cache key for user permissions."""
+    return f"user_permissions_{user_id}"
+
+
+def cache_key_user_roles(user_id: int) -> str:
+    """Generate cache key for user roles."""
+    return f"user_roles_{user_id}"
+
+
+def cache_key_otp(user_id: int, purpose: str) -> str:
+    """Generate cache key for OTP."""
+    return f"otp_{user_id}_{purpose}"
+
+
+def generate_username_suggestions(
+    email: str, first_name: str = "", last_name: str = ""
+) -> List[str]:
+    """
+    Generate username suggestions based on email and name.
+
+    Args:
+        email: User's email address
+        first_name: User's first name
+        last_name: User's last name
+
+    Returns:
+        List of username suggestions
+    """
+    suggestions = []
+
+    # Base from email
+    if email:
+        email_base = email.split("@")[0]
+        suggestions.append(email_base)
+
+    # Base from names
+    if first_name and last_name:
+        suggestions.extend(
+            [
+                f"{first_name.lower()}.{last_name.lower()}",
+                f"{first_name.lower()}{last_name.lower()}",
+                f"{first_name[0].lower()}{last_name.lower()}",
+                f"{first_name.lower()}{last_name[0].lower()}",
+            ]
+        )
+    elif first_name:
+        suggestions.append(first_name.lower())
+    elif last_name:
+        suggestions.append(last_name.lower())
+
+    # Clean and filter suggestions
+    clean_suggestions = []
+    for suggestion in suggestions:
+        # Remove special characters
+        clean = re.sub(r"[^a-zA-Z0-9_]", "", suggestion)
+        if len(clean) >= 3 and clean not in clean_suggestions:
+            clean_suggestions.append(clean)
+
+    # Add numbered variations if original suggestions are taken
+    final_suggestions = []
+    for suggestion in clean_suggestions[:3]:  # Limit to top 3 base suggestions
+        if not User.objects.filter(username=suggestion).exists():
+            final_suggestions.append(suggestion)
+        else:
+            # Try numbered variations
+            for i in range(1, 100):
+                numbered = f"{suggestion}{i}"
+                if not User.objects.filter(username=numbered).exists():
+                    final_suggestions.append(numbered)
+                    break
+
+        if len(final_suggestions) >= 5:  # Limit total suggestions
+            break
+
+    return final_suggestions
+
+
+def check_password_breach(password: str) -> bool:
+    """
+    Check if password has been found in data breaches.
+    This is a placeholder - you would integrate with a service like HaveIBeenPwned.
+
+    Args:
+        password: Password to check
+
+    Returns:
+        True if password is breached, False otherwise
+    """
+    # Placeholder implementation
+    # In a real implementation, you would use HaveIBeenPwned API:
+    # https://haveibeenpwned.com/API/v3#PwnedPasswords
+
+    # Hash the password with SHA-1
+    sha1_hash = hashlib.sha1(password.encode()).hexdigest().upper()
+
+    # In practice, you would send first 5 characters to the API
+    # and check if the remaining hash is in the response
+
+    return False  # Placeholder return
+
+
+def generate_backup_codes(count: int = 10) -> List[str]:
+    """
+    Generate backup codes for two-factor authentication.
+
+    Args:
+        count: Number of backup codes to generate
+
+    Returns:
+        List of backup codes
+    """
+    codes = []
+    for _ in range(count):
+        # Generate 8-character alphanumeric codes
+        code = "".join(
+            secrets.choice(string.ascii_uppercase + string.digits) for _ in range(8)
+        )
+        # Format as XXXX-XXXX for readability
+        formatted_code = f"{code[:4]}-{code[4:]}"
+        codes.append(formatted_code)
+
+    return codes
+
+
+def validate_backup_code(code: str, stored_codes: List[str]) -> Tuple[bool, List[str]]:
+    """
+    Validate backup code and remove it from the list.
+
+    Args:
+        code: Code to validate
+        stored_codes: List of stored backup codes
+
+    Returns:
+        Tuple of (is_valid, remaining_codes)
+    """
+    # Normalize the code
+    normalized_code = code.upper().replace("-", "").replace(" ", "")
+
+    for i, stored_code in enumerate(stored_codes):
+        normalized_stored = stored_code.upper().replace("-", "").replace(" ", "")
+        if normalized_code == normalized_stored:
+            # Remove the used code
+            remaining_codes = stored_codes.copy()
+            remaining_codes.pop(i)
+            return True, remaining_codes
+
+    return False, stored_codes

@@ -1,10 +1,14 @@
+# src/accounts/views.py
+
 import csv
 import json
+import logging
+from datetime import timedelta
 from io import StringIO
+from typing import Any, Dict
 
-from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import (
@@ -14,16 +18,18 @@ from django.contrib.auth.views import (
     PasswordResetConfirmView,
     PasswordResetView,
 )
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Count, Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -34,161 +40,104 @@ from django.views.generic import (
 
 from .decorators import admin_required, permission_required
 from .forms import (
+    BulkUserImportForm,
     CustomAuthenticationForm,
     CustomPasswordChangeForm,
     CustomPasswordResetForm,
     CustomSetPasswordForm,
-    CustomUserCreationForm,
-    UserProfileForm,
+    EnhancedUserCreationForm,
+    ProfileForm,
+    UserFilterForm,
     UserRoleForm,
+    UserUpdateForm,
 )
-from .models import User, UserAuditLog, UserProfile, UserRole, UserRoleAssignment
+from .models import UserAuditLog, UserRole, UserRoleAssignment, UserSession
 from .services import AuthenticationService, RoleService
-from .utils import (
-    format_file_size,
-    generate_secure_password,
-    get_client_info,
-    send_notification_email,
-)
+from .services.analytics_service import UserAnalyticsService
+from .tasks import bulk_user_import
+from .utils import get_client_info
+
+logger = logging.getLogger(__name__)
+User = get_user_model()
 
 
+# Authentication Views
 class CustomLoginView(LoginView):
-    """Enhanced login view with security features."""
+    """Enhanced login view with email/phone support and analytics."""
 
-    template_name = "accounts/login.html"
     form_class = CustomAuthenticationForm
-    redirect_authenticated_user = True
+    template_name = "accounts/login.html"
 
-    def dispatch(self, request, *args, **kwargs):
-        # Handle locked account message
-        if request.GET.get("locked"):
-            messages.error(
-                request,
-                "Your account has been locked due to multiple failed login attempts.",
-            )
-
-        # Handle expired session message
-        if request.GET.get("expired"):
-            messages.warning(request, "Your session has expired. Please log in again.")
-
-        # Handle security violation message
-        if request.GET.get("security"):
-            messages.error(request, "Security violation detected. Please log in again.")
-
-        return super().dispatch(request, *args, **kwargs)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(
+            {
+                "page_title": "Login",
+                "show_remember_me": True,
+                "allow_registration": True,
+                "allow_password_reset": True,
+            }
+        )
+        return context
 
     def form_valid(self, form):
-        """Enhanced form validation with security checks."""
+        """Handle successful login with enhanced logging."""
         user = form.get_user()
-
-        # Check if account is locked
-        if user.is_account_locked():
-            messages.error(
-                self.request, "Account is locked due to multiple failed login attempts."
-            )
-            return self.form_invalid(form)
-
-        # Reset failed login attempts on successful login
-        if user.failed_login_attempts > 0:
-            user.reset_failed_login_attempts()
-
-        # Create audit log for successful login
         client_info = get_client_info(self.request)
+
+        # Log successful login
         UserAuditLog.objects.create(
             user=user,
             action="login",
-            description="Successful login",
-            ip_address=client_info["ip_address"],
-            user_agent=client_info["user_agent"],
+            description="Successful web login",
+            ip_address=client_info.get("ip_address"),
+            user_agent=client_info.get("user_agent"),
             extra_data=client_info,
         )
 
-        # Update last login time
-        AuthenticationService.update_last_login(user)
+        # Handle remember me
+        if form.cleaned_data.get("remember_me"):
+            self.request.session.set_expiry(1209600)  # 2 weeks
+        else:
+            self.request.session.set_expiry(0)  # Browser close
 
+        # Call parent form_valid
         response = super().form_valid(form)
 
-        # Send login notification if enabled
-        if (
-            hasattr(settings, "SEND_LOGIN_NOTIFICATIONS")
-            and settings.SEND_LOGIN_NOTIFICATIONS
-        ):
-            send_notification_email(
-                user,
-                "New Login Detected",
-                "accounts/emails/login_notification.html",
-                {"client_info": client_info},
-            )
-
+        messages.success(self.request, f"Welcome back, {user.get_display_name()}!")
         return response
 
     def form_invalid(self, form):
-        """Handle invalid login attempts."""
-        username = form.cleaned_data.get("username")
+        """Handle failed login attempts."""
+        identifier = form.cleaned_data.get("identifier", "")
+        client_info = get_client_info(self.request)
 
-        if username:
-            try:
-                user = User.objects.get(Q(username=username) | Q(email=username))
-                user.increment_failed_login_attempts()
+        # Log failed attempt
+        UserAuditLog.objects.create(
+            action="login",
+            description=f"Failed login attempt for identifier: {identifier}",
+            ip_address=client_info.get("ip_address"),
+            user_agent=client_info.get("user_agent"),
+            extra_data=client_info,
+            severity="medium",
+        )
 
-                # Create audit log for failed login
-                client_info = get_client_info(self.request)
-                UserAuditLog.objects.create(
-                    user=user,
-                    action="login",
-                    description=f"Failed login attempt (attempt #{user.failed_login_attempts})",
-                    ip_address=client_info["ip_address"],
-                    user_agent=client_info["user_agent"],
-                    extra_data=client_info,
-                )
-
-                # Check if account should be locked
-                if user.failed_login_attempts >= 5:
-                    messages.error(
-                        self.request,
-                        "Account has been locked due to too many failed login attempts. "
-                        "Please try again later or contact support.",
-                    )
-                else:
-                    remaining = 5 - user.failed_login_attempts
-                    messages.warning(
-                        self.request,
-                        f"Invalid credentials. {remaining} attempt(s) remaining before account lockout.",
-                    )
-            except User.DoesNotExist:
-                pass
-
+        messages.error(self.request, "Invalid login credentials. Please try again.")
         return super().form_invalid(form)
 
 
 class CustomLogoutView(LogoutView):
-    """Enhanced logout view with audit logging."""
+    """Enhanced logout view with logging."""
+
+    template_name = "accounts/logout.html"
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
-            # Create audit log
-            client_info = get_client_info(request)
-            UserAuditLog.objects.create(
-                user=request.user,
-                action="logout",
-                description="User logged out",
-                ip_address=client_info["ip_address"],
-                user_agent=client_info["user_agent"],
-            )
-
-            # Deactivate user session
-            if hasattr(request, "session") and request.session.session_key:
-                from .models import UserSession
-
-                UserSession.objects.filter(
-                    session_key=request.session.session_key
-                ).update(is_active=False)
+            # Log logout
+            AuthenticationService.logout_user(request.user, request)
+            messages.success(request, "You have been logged out successfully.")
 
         return super().dispatch(request, *args, **kwargs)
-
-    def get_next_page(self):
-        messages.success(self.request, "You have been successfully logged out.")
-        return super().get_next_page()
 
 
 class CustomPasswordChangeView(PasswordChangeView):
@@ -199,62 +148,18 @@ class CustomPasswordChangeView(PasswordChangeView):
     success_url = reverse_lazy("accounts:profile")
 
     def form_valid(self, form):
-        """Handle successful password change."""
-        # Update password changed timestamp
-        self.request.user.password_changed_at = timezone.now()
-        self.request.user.requires_password_change = False
-        self.request.user.save(
-            update_fields=["password_changed_at", "requires_password_change"]
-        )
-
-        # Create audit log
-        client_info = get_client_info(self.request)
-        UserAuditLog.objects.create(
-            user=self.request.user,
-            action="password_change",
-            description="Password changed successfully",
-            ip_address=client_info["ip_address"],
-            user_agent=client_info["user_agent"],
-        )
-
-        # Send notification email
-        send_notification_email(
-            self.request.user,
-            "Password Changed Successfully",
-            "accounts/emails/password_changed.html",
-            {"client_info": client_info},
-        )
-
         messages.success(self.request, "Your password has been changed successfully!")
         return super().form_valid(form)
 
 
 class CustomPasswordResetView(PasswordResetView):
-    """Enhanced password reset view."""
+    """Enhanced password reset view with email/username support."""
 
     form_class = CustomPasswordResetForm
     template_name = "accounts/password_reset.html"
-    email_template_name = "accounts/password_reset_email.html"
     success_url = reverse_lazy("accounts:password_reset_done")
-
-    def form_valid(self, form):
-        """Handle password reset request."""
-        # Create audit log for password reset request
-        email = form.cleaned_data["email"]
-        try:
-            user = User.objects.get(email=email)
-            client_info = get_client_info(self.request)
-            UserAuditLog.objects.create(
-                user=user,
-                action="password_reset",
-                description="Password reset requested",
-                ip_address=client_info["ip_address"],
-                user_agent=client_info["user_agent"],
-            )
-        except User.DoesNotExist:
-            pass
-
-        return super().form_valid(form)
+    email_template_name = "accounts/emails/password_reset.html"
+    subject_template_name = "accounts/emails/password_reset_subject.txt"
 
 
 class CustomPasswordResetConfirmView(PasswordResetConfirmView):
@@ -264,722 +169,785 @@ class CustomPasswordResetConfirmView(PasswordResetConfirmView):
     template_name = "accounts/password_reset_confirm.html"
     success_url = reverse_lazy("accounts:password_reset_complete")
 
-    def form_valid(self, form):
-        """Handle password reset completion."""
-        user = form.user
 
-        # Update password changed timestamp
-        user.password_changed_at = timezone.now()
-        user.requires_password_change = False
-        user.failed_login_attempts = 0
-        user.last_failed_login = None
-        user.save(
-            update_fields=[
-                "password_changed_at",
-                "requires_password_change",
-                "failed_login_attempts",
-                "last_failed_login",
-            ]
-        )
-
-        # Create audit log
-        client_info = get_client_info(self.request)
-        UserAuditLog.objects.create(
-            user=user,
-            action="password_change",
-            description="Password reset via email verification",
-            ip_address=client_info["ip_address"],
-            user_agent=client_info["user_agent"],
-        )
-
-        return super().form_valid(form)
-
-
-@method_decorator(login_required, name="dispatch")
-class UserListView(ListView):
-    """Enhanced view for listing users with advanced filtering."""
+# User Management Views
+class UserListView(LoginRequiredMixin, ListView):
+    """Enhanced user list view with filtering and analytics."""
 
     model = User
     template_name = "accounts/user_list.html"
     context_object_name = "users"
     paginate_by = 25
 
+    @method_decorator(permission_required("users", "view"))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
     def get_queryset(self):
-        """Enhanced queryset with optimizations and filtering."""
         queryset = (
             User.objects.select_related("profile")
-            .prefetch_related(
-                Prefetch(
-                    "role_assignments",
-                    queryset=UserRoleAssignment.objects.select_related("role").filter(
-                        is_active=True
-                    ),
-                    to_attr="active_roles",
+            .prefetch_related("role_assignments__role")
+            .annotate(
+                role_count=Count(
+                    "role_assignments", filter=Q(role_assignments__is_active=True)
                 )
             )
-            .order_by("-date_joined")
         )
 
-        # Search functionality
-        search_query = self.request.GET.get("search", "").strip()
-        if search_query:
-            queryset = queryset.filter(
-                Q(username__icontains=search_query)
-                | Q(email__icontains=search_query)
-                | Q(first_name__icontains=search_query)
-                | Q(last_name__icontains=search_query)
-            )
+        # Apply filters
+        form = UserFilterForm(self.request.GET)
+        if form.is_valid():
+            if form.cleaned_data.get("search"):
+                queryset = queryset.search(form.cleaned_data["search"])
 
-        # Role filtering
-        role_filter = self.request.GET.get("role", "").strip()
-        if role_filter:
-            queryset = queryset.filter(
-                role_assignments__role__name=role_filter,
-                role_assignments__is_active=True,
-            ).distinct()
+            if form.cleaned_data.get("role"):
+                queryset = queryset.filter(
+                    role_assignments__role=form.cleaned_data["role"],
+                    role_assignments__is_active=True,
+                )
 
-        # Status filtering
-        status_filter = self.request.GET.get("status", "").strip()
-        if status_filter == "active":
-            queryset = queryset.filter(is_active=True)
-        elif status_filter == "inactive":
-            queryset = queryset.filter(is_active=False)
-        elif status_filter == "locked":
-            queryset = queryset.filter(failed_login_attempts__gte=5)
-        elif status_filter == "password_change":
-            queryset = queryset.filter(requires_password_change=True)
+            if form.cleaned_data.get("status"):
+                status = form.cleaned_data["status"]
+                if status == "active":
+                    queryset = queryset.filter(is_active=True)
+                elif status == "inactive":
+                    queryset = queryset.filter(is_active=False)
+                elif status == "locked":
+                    queryset = queryset.filter(failed_login_attempts__gte=5)
+                elif status == "password_change":
+                    queryset = queryset.filter(requires_password_change=True)
+                elif status == "email_unverified":
+                    queryset = queryset.filter(email_verified=False)
+                elif status == "phone_unverified":
+                    queryset = queryset.filter(phone_verified=False)
 
-        return queryset
+            if form.cleaned_data.get("date_joined_from"):
+                queryset = queryset.filter(
+                    date_joined__gte=form.cleaned_data["date_joined_from"]
+                )
+
+            if form.cleaned_data.get("date_joined_to"):
+                queryset = queryset.filter(
+                    date_joined__lte=form.cleaned_data["date_joined_to"]
+                )
+
+        return queryset.order_by("-date_joined")
 
     def get_context_data(self, **kwargs):
-        """Add additional context data."""
         context = super().get_context_data(**kwargs)
 
-        # Get all roles for filter dropdown
-        context["roles"] = UserRole.objects.all().order_by("name")
+        # Add filter form
+        context["filter_form"] = UserFilterForm(self.request.GET)
 
-        # Search and filter parameters
-        context["search_query"] = self.request.GET.get("search", "")
-        context["selected_role"] = self.request.GET.get("role", "")
-        context["selected_status"] = self.request.GET.get("status", "")
+        # Add analytics
+        context["user_stats"] = User.objects.get_statistics()
+        context["activity_stats"] = User.objects.get_activity_statistics()
 
-        # User statistics
-        context["active_users_count"] = User.objects.filter(is_active=True).count()
-        context["inactive_users_count"] = User.objects.filter(is_active=False).count()
-        context["new_users_count"] = User.objects.filter(
-            date_joined__gte=timezone.now() - timezone.timedelta(days=30)
-        ).count()
+        # Add roles for filtering
+        context["roles"] = UserRole.objects.filter(is_active=True)
+
+        # Add bulk action capabilities
+        context["can_bulk_actions"] = self.request.user.has_permission(
+            "users", "change"
+        )
 
         return context
 
 
-@method_decorator(login_required, name="dispatch")
-class UserDetailView(DetailView):
-    """Enhanced view for displaying user details."""
+class UserDetailView(LoginRequiredMixin, DetailView):
+    """Enhanced user detail view with comprehensive information."""
 
     model = User
     template_name = "accounts/user_detail.html"
     context_object_name = "user_obj"
 
-    def get_queryset(self):
-        """Optimize queryset with prefetch."""
-        return User.objects.select_related("profile").prefetch_related(
-            "role_assignments__role", "audit_logs"
-        )
+    @method_decorator(permission_required("users", "view"))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        """Add additional context data."""
         context = super().get_context_data(**kwargs)
-        user = self.object
+        user_obj = self.get_object()
 
-        # User roles
-        context["user_roles"] = user.role_assignments.filter(
-            is_active=True
-        ).select_related("role")
+        # User analytics
+        context["user_performance"] = UserAnalyticsService.get_user_performance_metrics(
+            user_obj, days=30
+        )
+
+        # Role assignments
+        context["role_assignments"] = user_obj.role_assignments.select_related(
+            "role"
+        ).filter(is_active=True)
 
         # Recent activity
-        context["recent_activity"] = user.audit_logs.order_by("-timestamp")[:10]
-
-        # User statistics
-        context["user_stats"] = {
-            "total_logins": user.audit_logs.filter(action="login").count(),
-            "last_login": user.last_login,
-            "failed_attempts": user.failed_login_attempts,
-            "is_locked": user.is_account_locked(),
-            "requires_password_change": user.requires_password_change,
-        }
+        context["recent_activity"] = UserAuditLog.objects.filter(
+            user=user_obj
+        ).order_by("-timestamp")[:10]
 
         # Active sessions
-        context["active_sessions"] = user.sessions.filter(is_active=True)
+        context["active_sessions"] = UserSession.objects.filter(
+            user=user_obj, is_active=True
+        ).order_by("-last_activity")
+
+        # Login statistics
+        context["login_stats"] = AuthenticationService.get_login_statistics(
+            user_obj, days=30
+        )
+
+        # Security information
+        context["security_info"] = {
+            "is_locked": user_obj.is_account_locked(),
+            "failed_attempts": user_obj.failed_login_attempts,
+            "requires_password_change": user_obj.requires_password_change,
+            "email_verified": user_obj.email_verified,
+            "phone_verified": user_obj.phone_verified,
+            "two_factor_enabled": user_obj.two_factor_enabled,
+            "security_score": user_obj.get_security_score(),
+        }
+
+        # Permissions
+        context["can_edit"] = (
+            self.request.user.has_permission("users", "change")
+            or self.request.user == user_obj
+        )
+        context["can_delete"] = self.request.user.has_permission("users", "delete")
+        context["can_reset_password"] = self.request.user.has_permission(
+            "users", "change"
+        )
 
         return context
 
 
-@method_decorator(admin_required, name="dispatch")
-class UserCreateView(CreateView):
-    """Enhanced view for creating new users."""
+class UserCreateView(LoginRequiredMixin, CreateView):
+    """Enhanced user creation view."""
 
     model = User
-    form_class = CustomUserCreationForm
+    form_class = EnhancedUserCreationForm
     template_name = "accounts/user_form.html"
     success_url = reverse_lazy("accounts:user_list")
 
-    def get_context_data(self, **kwargs):
-        """Add roles to context."""
-        context = super().get_context_data(**kwargs)
-        context["roles"] = UserRole.objects.all().order_by("name")
-        context["is_create"] = True
-        return context
+    @method_decorator(permission_required("users", "add"))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
 
-    @transaction.atomic
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["created_by"] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
-        """Process form and assign roles."""
-        # Create user
-        user = form.save()
+        response = super().form_valid(form)
 
-        # Generate secure password if not provided
-        if not form.cleaned_data.get("password1"):
-            password = generate_secure_password()
-            user.set_password(password)
-            user.requires_password_change = True
-            user.save()
-
-            # Send password to user via email
-            send_notification_email(
-                user,
-                "Account Created - Temporary Password",
-                "accounts/emails/account_created.html",
-                {"temporary_password": password},
-            )
-
-        # Assign roles
-        roles = form.cleaned_data.get("roles", [])
-        for role in roles:
-            RoleService.assign_role_to_user(
-                user, role.name, assigned_by=self.request.user
-            )
-
-        # Create audit log
-        client_info = get_client_info(self.request)
+        # Log user creation
         UserAuditLog.objects.create(
-            user=user,
+            user=self.object,
             action="create",
-            description=f"User account created by {self.request.user.username}",
+            description=f"User created by {self.request.user.username}",
             performed_by=self.request.user,
-            ip_address=client_info["ip_address"],
-            user_agent=client_info["user_agent"],
-            extra_data={"roles": [role.name for role in roles]},
         )
 
         messages.success(
-            self.request, f'User "{user.username}" has been created successfully!'
+            self.request, f"User {self.object.username} created successfully!"
         )
-        return super().form_valid(form)
-
-
-@method_decorator(login_required, name="dispatch")
-class UserUpdateView(UpdateView):
-    """Enhanced view for updating users."""
-
-    model = User
-    form_class = UserProfileForm
-    template_name = "accounts/user_form.html"
-    success_url = reverse_lazy("accounts:user_list")
-
-    def get_queryset(self):
-        """Optimize queryset."""
-        return User.objects.select_related("profile").prefetch_related(
-            "role_assignments__role"
-        )
-
-    def dispatch(self, request, *args, **kwargs):
-        """Check permissions."""
-        user = self.get_object()
-
-        # Allow users to edit their own profile
-        if user == request.user:
-            return super().dispatch(request, *args, **kwargs)
-
-        # Check if current user has permission to edit other users
-        if not RoleService.check_permission(request.user, "users", "change"):
-            messages.error(request, "You do not have permission to edit this user.")
-            return redirect("accounts:user_list")
-
-        return super().dispatch(request, *args, **kwargs)
+        return response
 
     def get_context_data(self, **kwargs):
-        """Add additional context."""
         context = super().get_context_data(**kwargs)
-        context["roles"] = UserRole.objects.all().order_by("name")
-        context["user_roles"] = self.object.role_assignments.filter(
-            is_active=True
-        ).values_list("role__id", flat=True)
-        context["is_create"] = False
-        context["can_change_roles"] = RoleService.check_permission(
-            self.request.user, "roles", "change"
-        )
+        context["page_title"] = "Create User"
+        context["form_action"] = "Create"
         return context
 
-    @transaction.atomic
+
+class UserUpdateView(LoginRequiredMixin, UpdateView):
+    """Enhanced user update view."""
+
+    model = User
+    form_class = UserUpdateForm
+    template_name = "accounts/user_form.html"
+
+    @method_decorator(permission_required("users", "change"))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def get_success_url(self):
+        return reverse("accounts:user_detail", kwargs={"pk": self.object.pk})
+
     def form_valid(self, form):
-        """Process form and update roles if provided."""
-        user = form.save()
+        response = super().form_valid(form)
 
-        # Update roles if user has permission and roles are provided
-        if (
-            RoleService.check_permission(self.request.user, "roles", "change")
-            and "roles" in self.request.POST
-        ):
-
-            role_ids = self.request.POST.getlist("roles")
-            # Deactivate current role assignments
-            user.role_assignments.update(is_active=False)
-
-            # Assign new roles
-            for role_id in role_ids:
-                try:
-                    role = UserRole.objects.get(id=role_id)
-                    RoleService.assign_role_to_user(
-                        user, role.name, assigned_by=self.request.user
-                    )
-                except UserRole.DoesNotExist:
-                    pass
-
-        # Create audit log
-        client_info = get_client_info(self.request)
+        # Log user update
         UserAuditLog.objects.create(
-            user=user,
+            user=self.object,
             action="update",
-            description=f"User profile updated by {self.request.user.username}",
+            description=f"User updated by {self.request.user.username}",
             performed_by=self.request.user,
-            ip_address=client_info["ip_address"],
-            user_agent=client_info["user_agent"],
         )
 
-        messages.success(
-            self.request, f'User "{user.username}" has been updated successfully!'
-        )
-        return super().form_valid(form)
+        messages.success(self.request, "User updated successfully!")
+        return response
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["page_title"] = f"Edit {self.object.username}"
+        context["form_action"] = "Update"
+        return context
 
 
-@method_decorator(admin_required, name="dispatch")
-class UserDeleteView(DeleteView):
-    """Enhanced view for deleting users (soft delete)."""
+class UserDeleteView(LoginRequiredMixin, DeleteView):
+    """Enhanced user deletion view."""
 
     model = User
     template_name = "accounts/user_confirm_delete.html"
     success_url = reverse_lazy("accounts:user_list")
-    context_object_name = "user_obj"
+
+    @method_decorator(permission_required("users", "delete"))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
-        """Perform soft delete instead of hard delete."""
-        user = self.get_object()
+        user_obj = self.get_object()
 
-        # Soft delete - deactivate user
-        user.is_active = False
-        user.save()
+        # Don't allow deletion of superusers or self
+        if user_obj.is_superuser or user_obj == request.user:
+            messages.error(request, "Cannot delete this user.")
+            return redirect("accounts:user_detail", pk=user_obj.pk)
 
-        # Deactivate all role assignments
-        user.role_assignments.update(is_active=False)
-
-        # Deactivate all sessions
-        user.sessions.update(is_active=False)
-
-        # Create audit log
-        client_info = get_client_info(request)
+        # Log deletion
         UserAuditLog.objects.create(
-            user=user,
+            user=user_obj,
             action="delete",
-            description=f"User deactivated by {request.user.username}",
+            description=f"User deleted by {request.user.username}",
             performed_by=request.user,
-            ip_address=client_info["ip_address"],
-            user_agent=client_info["user_agent"],
         )
 
-        messages.success(
-            request, f'User "{user.username}" has been deactivated successfully!'
-        )
-
-        return redirect(self.success_url)
-
-
-# AJAX Views
-@login_required
-@require_http_methods(["POST"])
-def toggle_user_status(request, user_id):
-    """Toggle user active status via AJAX."""
-    try:
-        user = get_object_or_404(User, id=user_id)
-
-        # Check permissions
-        if not RoleService.check_permission(request.user, "users", "change"):
-            return JsonResponse({"success": False, "message": "Permission denied"})
-
-        # Parse request data
-        data = json.loads(request.body)
-        activate = data.get("activate", False)
-
-        user.is_active = activate
-        user.save()
-
-        # Create audit log
-        action = "account_unlock" if activate else "account_lock"
-        description = f'User {"activated" if activate else "deactivated"} by {request.user.username}'
-
-        client_info = get_client_info(request)
-        UserAuditLog.objects.create(
-            user=user,
-            action=action,
-            description=description,
-            performed_by=request.user,
-            ip_address=client_info["ip_address"],
-            user_agent=client_info["user_agent"],
-        )
-
-        return JsonResponse(
-            {
-                "success": True,
-                "message": f'User {"activated" if activate else "deactivated"} successfully',
-            }
-        )
-
-    except Exception as e:
-        return JsonResponse({"success": False, "message": str(e)})
-
-
-@login_required
-@require_http_methods(["POST"])
-def reset_user_password(request, user_id):
-    """Reset user password via AJAX."""
-    try:
-        user = get_object_or_404(User, id=user_id)
-
-        # Check permissions
-        if not RoleService.check_permission(request.user, "users", "change"):
-            return JsonResponse({"success": False, "message": "Permission denied"})
-
-        # Generate new password
-        new_password = generate_secure_password()
-        user.set_password(new_password)
-        user.requires_password_change = True
-        user.password_changed_at = timezone.now()
-        user.failed_login_attempts = 0
-        user.last_failed_login = None
-        user.save()
-
-        # Send password via email
-        send_notification_email(
-            user,
-            "Password Reset - New Temporary Password",
-            "accounts/emails/password_reset_by_admin.html",
-            {
-                "temporary_password": new_password,
-                "reset_by": request.user.get_full_name(),
-            },
-        )
-
-        # Create audit log
-        client_info = get_client_info(request)
-        UserAuditLog.objects.create(
-            user=user,
-            action="password_change",
-            description=f"Password reset by admin {request.user.username}",
-            performed_by=request.user,
-            ip_address=client_info["ip_address"],
-            user_agent=client_info["user_agent"],
-        )
-
-        return JsonResponse(
-            {
-                "success": True,
-                "message": "Password reset successfully. Email sent to user.",
-            }
-        )
-
-    except Exception as e:
-        return JsonResponse({"success": False, "message": str(e)})
-
-
-@login_required
-@require_http_methods(["POST"])
-def bulk_user_action(request):
-    """Handle bulk actions on users."""
-    try:
-        # Check permissions
-        if not RoleService.check_permission(request.user, "users", "change"):
-            return JsonResponse({"success": False, "message": "Permission denied"})
-
-        data = json.loads(request.body)
-        user_ids = data.get("user_ids", [])
-        action = data.get("action")
-        roles = data.get("roles", [])
-
-        if not user_ids or not action:
-            return JsonResponse({"success": False, "message": "Invalid data"})
-
-        users = User.objects.filter(id__in=user_ids)
-        affected_count = 0
-
-        with transaction.atomic():
-            if action == "activate":
-                affected_count = users.update(is_active=True)
-            elif action == "deactivate":
-                affected_count = users.update(is_active=False)
-            elif action == "require_password_change":
-                affected_count = users.update(requires_password_change=True)
-            elif action == "assign_roles":
-                for user in users:
-                    for role_name in roles:
-                        try:
-                            RoleService.assign_role_to_user(
-                                user, role_name, assigned_by=request.user
-                            )
-                        except ValueError:
-                            pass
-                affected_count = users.count()
-            elif action == "remove_roles":
-                for user in users:
-                    for role_name in roles:
-                        RoleService.remove_role_from_user(
-                            user, role_name, removed_by=request.user
-                        )
-                affected_count = users.count()
-
-            # Create audit logs
-            client_info = get_client_info(request)
-            for user in users:
-                UserAuditLog.objects.create(
-                    user=user,
-                    action=action,
-                    description=f"Bulk action: {action} by {request.user.username}",
-                    performed_by=request.user,
-                    ip_address=client_info["ip_address"],
-                    user_agent=client_info["user_agent"],
-                    extra_data={"action": action, "roles": roles},
-                )
-
-        return JsonResponse(
-            {
-                "success": True,
-                "message": f'{action.replace("_", " ").title()} applied to {affected_count} users',
-            }
-        )
-
-    except Exception as e:
-        return JsonResponse({"success": False, "message": str(e)})
-
-
-@login_required
-def export_users(request):
-    """Export users to CSV or Excel."""
-    # Check permissions
-    if not RoleService.check_permission(request.user, "users", "view"):
-        messages.error(request, "Permission denied")
-        return redirect("accounts:user_list")
-
-    export_format = request.GET.get("format", "csv")
-
-    # Get filtered queryset
-    users = User.objects.select_related("profile").prefetch_related(
-        "role_assignments__role"
-    )
-
-    # Apply same filters as list view
-    search_query = request.GET.get("search", "")
-    if search_query:
-        users = users.filter(
-            Q(username__icontains=search_query)
-            | Q(email__icontains=search_query)
-            | Q(first_name__icontains=search_query)
-            | Q(last_name__icontains=search_query)
-        )
-
-    role_filter = request.GET.get("role", "")
-    if role_filter:
-        users = users.filter(
-            role_assignments__role__name=role_filter, role_assignments__is_active=True
-        ).distinct()
-
-    if export_format == "csv":
-        response = HttpResponse(content_type="text/csv")
-        response["Content-Disposition"] = (
-            f'attachment; filename="users_{timezone.now().date()}.csv"'
-        )
-
-        writer = csv.writer(response)
-        writer.writerow(
-            [
-                "Username",
-                "Email",
-                "First Name",
-                "Last Name",
-                "Phone",
-                "Status",
-                "Roles",
-                "Date Joined",
-                "Last Login",
-            ]
-        )
-
-        for user in users:
-            roles = ", ".join(
-                [ra.role.name for ra in user.role_assignments.filter(is_active=True)]
-            )
-            writer.writerow(
-                [
-                    user.username,
-                    user.email,
-                    user.first_name,
-                    user.last_name,
-                    user.phone_number,
-                    "Active" if user.is_active else "Inactive",
-                    roles,
-                    user.date_joined.strftime("%Y-%m-%d"),
-                    (
-                        user.last_login.strftime("%Y-%m-%d %H:%M")
-                        if user.last_login
-                        else "Never"
-                    ),
-                ]
-            )
-
-        return response
-
-    # If not CSV, could add Excel export here
-    messages.error(request, "Export format not supported")
-    return redirect("accounts:user_list")
-
-
-# Profile Views
-@login_required
-def profile_view(request):
-    """Enhanced view for user profile management."""
-    if request.method == "POST":
-        form = UserProfileForm(request.POST, request.FILES, instance=request.user)
-        if form.is_valid():
-            form.save()
-
-            # Create audit log
-            client_info = get_client_info(request)
-            UserAuditLog.objects.create(
-                user=request.user,
-                action="update",
-                description="Profile updated",
-                performed_by=request.user,
-                ip_address=client_info["ip_address"],
-                user_agent=client_info["user_agent"],
-            )
-
-            messages.success(request, "Your profile has been updated successfully!")
-            return redirect("accounts:profile")
-    else:
-        form = UserProfileForm(instance=request.user)
-
-    # Additional context
-    context = {
-        "form": form,
-        "user_roles": request.user.role_assignments.filter(is_active=True),
-        "active_sessions": request.user.sessions.filter(is_active=True),
-        "recent_activity": request.user.audit_logs.order_by("-timestamp")[:5],
-    }
-
-    return render(request, "accounts/profile.html", context)
+        messages.success(request, f"User {user_obj.username} deleted successfully.")
+        return super().delete(request, *args, **kwargs)
 
 
 # Role Management Views
-@method_decorator(admin_required, name="dispatch")
-class RoleListView(ListView):
-    """View for listing user roles."""
+class RoleListView(LoginRequiredMixin, ListView):
+    """Role list view with statistics."""
 
     model = UserRole
     template_name = "accounts/role_list.html"
     context_object_name = "roles"
-    paginate_by = 12
+
+    @method_decorator(permission_required("roles", "view"))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
 
     def get_queryset(self):
-        return UserRole.objects.annotate(
-            user_count=Count(
-                "user_assignments", filter=Q(user_assignments__is_active=True)
-            )
-        ).order_by("name")
+        return UserRole.objects.with_user_counts().order_by("name")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["role_stats"] = RoleService.get_role_statistics()
+        context["role_distribution"] = (
+            UserAnalyticsService.get_role_distribution_analytics()
+        )
+        return context
 
 
-@method_decorator(admin_required, name="dispatch")
-class RoleDetailView(DetailView):
-    """View for displaying role details."""
+class RoleDetailView(LoginRequiredMixin, DetailView):
+    """Role detail view with user assignments."""
 
     model = UserRole
     template_name = "accounts/role_detail.html"
     context_object_name = "role"
 
+    @method_decorator(permission_required("roles", "view"))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["role_users"] = self.object.user_assignments.filter(
-            is_active=True
-        ).select_related("user")
-        context["permissions"] = self.object.permissions
+        role = self.get_object()
+
+        # Users with this role
+        context["users_with_role"] = User.objects.filter(
+            role_assignments__role=role, role_assignments__is_active=True
+        ).select_related("profile")
+
+        # Role assignments
+        context["role_assignments"] = (
+            UserRoleAssignment.objects.filter(role=role, is_active=True)
+            .select_related("user", "assigned_by")
+            .order_by("-assigned_date")
+        )
+
+        # Permission details
+        context["permission_details"] = role.get_all_permissions()
+        context["inherited_permissions"] = role.get_inherited_permissions()
+
         return context
 
 
-@method_decorator(admin_required, name="dispatch")
-class RoleCreateView(CreateView):
-    """View for creating new roles."""
+class RoleCreateView(LoginRequiredMixin, CreateView):
+    """Role creation view."""
 
     model = UserRole
+    form_class = UserRoleForm
     template_name = "accounts/role_form.html"
-    fields = ["name", "description", "permissions"]
     success_url = reverse_lazy("accounts:role_list")
+
+    @method_decorator(permission_required("roles", "add"))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
 
     def form_valid(self, form):
         form.instance.created_by = self.request.user
-        messages.success(
-            self.request, f'Role "{form.instance.name}" created successfully!'
-        )
-        return super().form_valid(form)
+        response = super().form_valid(form)
+
+        messages.success(self.request, f"Role {self.object.name} created successfully!")
+        return response
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["page_title"] = "Create Role"
+        context["form_action"] = "Create"
+        return context
 
 
-@method_decorator(admin_required, name="dispatch")
-class RoleUpdateView(UpdateView):
-    """View for updating roles."""
+class RoleUpdateView(LoginRequiredMixin, UpdateView):
+    """Role update view."""
 
     model = UserRole
+    form_class = UserRoleForm
     template_name = "accounts/role_form.html"
-    fields = ["name", "description", "permissions"]
-    success_url = reverse_lazy("accounts:role_list")
 
-    def dispatch(self, request, *args, **kwargs):
-        role = self.get_object()
-        if role.is_system_role:
-            messages.error(request, "System roles cannot be modified.")
-            return redirect("accounts:role_list")
-        return super().dispatch(request, *args, **kwargs)
+    @method_decorator(permission_required("roles", "change"))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def get_success_url(self):
+        return reverse("accounts:role_detail", kwargs={"pk": self.object.pk})
 
     def form_valid(self, form):
-        messages.success(
-            self.request, f'Role "{form.instance.name}" updated successfully!'
-        )
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        messages.success(self.request, "Role updated successfully!")
+        return response
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["page_title"] = f"Edit {self.object.name}"
+        context["form_action"] = "Update"
+        return context
 
 
-@method_decorator(admin_required, name="dispatch")
-class RoleDeleteView(DeleteView):
-    """View for deleting roles."""
+class RoleDeleteView(LoginRequiredMixin, DeleteView):
+    """Role deletion view."""
 
     model = UserRole
     template_name = "accounts/role_confirm_delete.html"
     success_url = reverse_lazy("accounts:role_list")
-    context_object_name = "role"
 
-    def dispatch(self, request, *args, **kwargs):
-        role = self.get_object()
-        if role.is_system_role:
-            messages.error(request, "System roles cannot be deleted.")
-            return redirect("accounts:role_list")
-        return super().dispatch(request, *args, **kwargs)
+    @method_decorator(permission_required("roles", "delete"))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
         role = self.get_object()
-        role_name = role.name
-        response = super().delete(request, *args, **kwargs)
-        messages.success(request, f'Role "{role_name}" deleted successfully!')
-        return response
+
+        # Don't allow deletion of system roles
+        if role.is_system_role:
+            messages.error(request, "Cannot delete system roles.")
+            return redirect("accounts:role_detail", pk=role.pk)
+
+        messages.success(request, f"Role {role.name} deleted successfully.")
+        return super().delete(request, *args, **kwargs)
+
+
+# Function-based Views
+@login_required
+def profile_view(request):
+    """User profile view and edit."""
+    user = request.user
+
+    if request.method == "POST":
+        form = ProfileForm(request.POST, request.FILES, instance=user)
+        if form.is_valid():
+            form.save()
+
+            # Log profile update
+            UserAuditLog.objects.create(
+                user=user,
+                action="profile_update",
+                description="Profile updated by user",
+                ip_address=get_client_info(request).get("ip_address"),
+            )
+
+            messages.success(request, "Profile updated successfully!")
+            return redirect("accounts:profile")
+    else:
+        form = ProfileForm(instance=user)
+
+    # Get user analytics
+    user_performance = UserAnalyticsService.get_user_performance_metrics(user, days=30)
+
+    # Get recent activity
+    recent_activity = UserAuditLog.objects.filter(user=user).order_by("-timestamp")[:5]
+
+    # Get active sessions
+    active_sessions = UserSession.objects.filter(user=user, is_active=True)
+
+    context = {
+        "form": form,
+        "user_performance": user_performance,
+        "recent_activity": recent_activity,
+        "active_sessions": active_sessions,
+        "security_score": user.get_security_score(),
+        "profile_completion": user.get_profile_completion_percentage(),
+    }
+
+    return render(request, "accounts/profile.html", context)
+
+
+@require_POST
+@permission_required("users", "change")
+def toggle_user_status(request, user_id):
+    """Toggle user active status."""
+    user_obj = get_object_or_404(User, id=user_id)
+
+    if user_obj == request.user:
+        return JsonResponse({"error": "Cannot change your own status"}, status=400)
+
+    user_obj.is_active = not user_obj.is_active
+    user_obj.save()
+
+    # Log status change
+    UserAuditLog.objects.create(
+        user=user_obj,
+        action="status_change",
+        description=f'User {"activated" if user_obj.is_active else "deactivated"} by {request.user.username}',
+        performed_by=request.user,
+    )
+
+    return JsonResponse(
+        {
+            "success": True,
+            "is_active": user_obj.is_active,
+            "message": f'User {"activated" if user_obj.is_active else "deactivated"} successfully',
+        }
+    )
+
+
+@require_POST
+@permission_required("users", "change")
+def reset_user_password(request, user_id):
+    """Reset user password (admin action)."""
+    user_obj = get_object_or_404(User, id=user_id)
+
+    new_password = AuthenticationService.reset_password(
+        user_obj, reset_by=request.user, request=request
+    )
+
+    return JsonResponse(
+        {
+            "success": True,
+            "message": "Password reset successfully",
+            "temporary_password": new_password,
+        }
+    )
+
+
+@require_POST
+@permission_required("users", "change")
+def bulk_user_action(request):
+    """Handle bulk actions on users."""
+    action = request.POST.get("action")
+    user_ids = request.POST.getlist("user_ids")
+
+    if not user_ids:
+        return JsonResponse({"error": "No users selected"}, status=400)
+
+    users = User.objects.filter(id__in=user_ids)
+    count = users.count()
+
+    if action == "activate":
+        users.update(is_active=True)
+        message = f"{count} users activated successfully"
+
+    elif action == "deactivate":
+        # Don't deactivate current user
+        users.exclude(id=request.user.id).update(is_active=False)
+        message = f"{count} users deactivated successfully"
+
+    elif action == "require_password_change":
+        users.update(requires_password_change=True)
+        message = f"{count} users will be required to change password"
+
+    elif action == "unlock_accounts":
+        users.update(failed_login_attempts=0, last_failed_login=None)
+        message = f"{count} user accounts unlocked"
+
+    else:
+        return JsonResponse({"error": "Invalid action"}, status=400)
+
+    # Log bulk action
+    UserAuditLog.objects.create(
+        action="bulk_action",
+        description=f'Bulk action "{action}" performed on {count} users by {request.user.username}',
+        performed_by=request.user,
+        extra_data={"action": action, "user_count": count, "user_ids": user_ids},
+    )
+
+    return JsonResponse({"success": True, "message": message})
+
+
+@permission_required("users", "view")
+def export_users(request):
+    """Export users to CSV."""
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = 'attachment; filename="users_export.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(
+        [
+            "Username",
+            "Email",
+            "First Name",
+            "Last Name",
+            "Phone",
+            "Date Joined",
+            "Last Login",
+            "Is Active",
+            "Roles",
+        ]
+    )
+
+    users = User.objects.select_related("profile").prefetch_related(
+        "role_assignments__role"
+    )
+
+    for user in users:
+        roles = ", ".join(
+            [
+                assignment.role.name
+                for assignment in user.role_assignments.filter(is_active=True)
+            ]
+        )
+
+        writer.writerow(
+            [
+                user.username,
+                user.email,
+                user.first_name,
+                user.last_name,
+                user.phone_number,
+                user.date_joined.strftime("%Y-%m-%d") if user.date_joined else "",
+                user.last_login.strftime("%Y-%m-%d %H:%M") if user.last_login else "",
+                "Yes" if user.is_active else "No",
+                roles,
+            ]
+        )
+
+    # Log export
+    UserAuditLog.objects.create(
+        action="export",
+        description=f"User data exported by {request.user.username}",
+        performed_by=request.user,
+    )
+
+    return response
+
+
+# Analytics Views
+@login_required
+@method_decorator(cache_page(60 * 15), name="dispatch")  # Cache for 15 minutes
+def analytics_dashboard(request):
+    """Analytics dashboard view."""
+    if not request.user.has_permission("reports", "view"):
+        raise PermissionDenied
+
+    days = int(request.GET.get("days", 30))
+
+    # Get comprehensive analytics
+    analytics_data = UserAnalyticsService.generate_comprehensive_report(days)
+
+    context = {
+        "analytics_data": analytics_data,
+        "days": days,
+        "page_title": "User Analytics Dashboard",
+    }
+
+    return render(request, "accounts/analytics_dashboard.html", context)
+
+
+@login_required
+def security_dashboard(request):
+    """Security analytics dashboard."""
+    if not request.user.has_permission("reports", "view"):
+        raise PermissionDenied
+
+    days = int(request.GET.get("days", 30))
+
+    # Get security analytics
+    security_data = UserAnalyticsService.get_security_analytics(days)
+
+    # Get recent security events
+    security_events = UserAuditLog.objects.filter(
+        timestamp__gte=timezone.now() - timedelta(days=days),
+        severity__in=["high", "critical"],
+    ).order_by("-timestamp")[:20]
+
+    context = {
+        "security_data": security_data,
+        "security_events": security_events,
+        "days": days,
+        "page_title": "Security Dashboard",
+    }
+
+    return render(request, "accounts/security_dashboard.html", context)
+
+
+# Bulk Import Views
+@login_required
+@permission_required("users", "add")
+def bulk_import_users(request):
+    """Bulk import users from CSV."""
+    if request.method == "POST":
+        form = BulkUserImportForm(request.POST, request.FILES)
+        if form.is_valid():
+            csv_file = form.cleaned_data["csv_file"]
+
+            # Read CSV content
+            csv_content = csv_file.read().decode("utf-8")
+
+            # Start async import task
+            task = bulk_user_import.delay(
+                csv_data=csv_content,
+                default_password=form.cleaned_data["default_password"],
+                default_roles=[
+                    role.name for role in form.cleaned_data["default_roles"]
+                ],
+                created_by_id=request.user.id,
+                send_emails=form.cleaned_data["send_welcome_emails"],
+                update_existing=form.cleaned_data["update_existing"],
+            )
+
+            messages.success(
+                request,
+                "Bulk import started. You will receive an email when it completes.",
+            )
+
+            return redirect("accounts:user_list")
+    else:
+        form = BulkUserImportForm()
+
+    context = {"form": form, "page_title": "Bulk Import Users"}
+
+    return render(request, "accounts/bulk_import.html", context)
+
+
+# API-like views for AJAX requests
+@require_http_methods(["GET"])
+@login_required
+def user_search_api(request):
+    """Search users via AJAX."""
+    query = request.GET.get("q", "")
+    limit = int(request.GET.get("limit", 10))
+
+    if len(query) < 2:
+        return JsonResponse({"results": []})
+
+    users = User.objects.search(query).values(
+        "id", "username", "email", "first_name", "last_name"
+    )[:limit]
+
+    results = []
+    for user in users:
+        results.append(
+            {
+                "id": user["id"],
+                "text": f"{user['first_name']} {user['last_name']} ({user['username']})",
+                "email": user["email"],
+            }
+        )
+
+    return JsonResponse({"results": results})
+
+
+@require_http_methods(["GET"])
+@login_required
+def role_assignments_api(request, user_id):
+    """Get role assignments for a user via AJAX."""
+    user = get_object_or_404(User, id=user_id)
+
+    assignments = user.role_assignments.filter(is_active=True).select_related("role")
+
+    data = []
+    for assignment in assignments:
+        data.append(
+            {
+                "id": assignment.id,
+                "role_name": assignment.role.name,
+                "role_description": assignment.role.description,
+                "assigned_date": assignment.assigned_date.isoformat(),
+                "expires_at": (
+                    assignment.expires_at.isoformat() if assignment.expires_at else None
+                ),
+                "is_expired": assignment.is_expired(),
+            }
+        )
+
+    return JsonResponse({"assignments": data})
+
+
+@require_POST
+@permission_required("roles", "change")
+@csrf_exempt
+def assign_role_api(request):
+    """Assign role to user via AJAX."""
+    try:
+        data = json.loads(request.body)
+        user_id = data.get("user_id")
+        role_name = data.get("role_name")
+
+        user = get_object_or_404(User, id=user_id)
+
+        assignment, created = RoleService.assign_role_to_user(
+            user, role_name, assigned_by=request.user
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "created": created,
+                "message": f'Role {role_name} {"assigned" if created else "already assigned"} to user',
+            }
+        )
+
+    except ValueError as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+    except Exception as e:
+        logger.error(f"Error assigning role: {e}")
+        return JsonResponse({"success": False, "error": "Internal error"}, status=500)
+
+
+@require_POST
+@permission_required("roles", "change")
+@csrf_exempt
+def remove_role_api(request):
+    """Remove role from user via AJAX."""
+    try:
+        data = json.loads(request.body)
+        user_id = data.get("user_id")
+        role_name = data.get("role_name")
+
+        user = get_object_or_404(User, id=user_id)
+
+        removed = RoleService.remove_role_from_user(
+            user, role_name, removed_by=request.user
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "removed": removed,
+                "message": f'Role {role_name} {"removed" if removed else "was not assigned"} from user',
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Error removing role: {e}")
+        return JsonResponse({"success": False, "error": "Internal error"}, status=500)

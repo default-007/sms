@@ -58,5 +58,5 @@ urlpatterns = [
         name="exam_statistics",
     ),
     # API Routes
-    path("api/", include("exams.api.urls")),
+    path("api/", include("src.exams.api.urls")),
 ]

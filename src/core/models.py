@@ -383,8 +383,8 @@ class AttendanceAnalytics(models.Model):
         return f"{self.entity_name} ({self.entity_type}) - {period}: {self.attendance_percentage}%"
 
 
+""" 
 class FinancialAnalytics(models.Model):
-    """Financial analytics and insights"""
 
     academic_year = models.ForeignKey(
         "academics.AcademicYear", on_delete=models.CASCADE
@@ -398,9 +398,7 @@ class FinancialAnalytics(models.Model):
     grade = models.ForeignKey(
         "academics.Grade", on_delete=models.CASCADE, null=True, blank=True
     )
-    fee_category = models.ForeignKey(
-        "finance.FeeCategory", on_delete=models.CASCADE, null=True, blank=True
-    )
+    # fee_category = models.ForeignKey("finance.FeeCategory", on_delete=models.CASCADE, null=True, blank=True)
 
     # Revenue metrics
     total_expected_revenue = models.DecimalField(
@@ -496,7 +494,7 @@ class FinancialAnalytics(models.Model):
             filters.append(str(self.fee_category))
         filter_str = " - " + " | ".join(filters) if filters else ""
 
-        return f"Financial Analytics {self.academic_year} {self.term}{filter_str}"
+        return f"Financial Analytics {self.academic_year} {self.term}{filter_str}" """
 
 
 class TeacherPerformanceAnalytics(models.Model):

@@ -11,6 +11,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
 # from src.api.filters import AssignmentFilter, SubmissionFilter
+from src.assignments.services.deadline_service import DeadlineService
 from src.api.permissions import IsTeacherOrReadOnly
 from src.assignments.filters import AssignmentFilter
 from src.subjects.api.views import StandardResultsSetPagination
@@ -27,7 +28,7 @@ from ..models import (
 )
 from ..services import (
     AssignmentService,
-    DeadlineService,
+    # DeadlineService,
     GradingService,
     PlagiarismService,
     RubricService,
@@ -278,7 +279,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def upcoming_deadlines(self, request):
-        """Get upcoming assignment deadlines"""
+        # Get upcoming assignment deadlines
         try:
             days_ahead = int(request.query_params.get("days", 7))
 
@@ -301,7 +302,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def overdue(self, request):
-        """Get overdue assignments summary"""
+        # Get overdue assignments summary
         try:
             # Only allow administrators and principals
             if not request.user.has_perm("assignments.view_assignment"):
@@ -330,7 +331,7 @@ class AssignmentSubmissionViewSet(viewsets.ModelViewSet):
 
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
-    filterset_class = SubmissionFilter
+    # filterset_class = SubmissionFilter
     pagination_class = StandardResultsSetPagination
     parser_classes = [MultiPartParser, FormParser]
 

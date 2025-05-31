@@ -8,9 +8,9 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from api.filters import BaseFilterBackend
-from api.paginations import StandardResultsSetPagination
-from api.permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
+from src.api.filters import BaseFilter
+from src.api.paginations import StandardPagination
+from src.api.permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
 
 from ..models import (
     FeeCategory,

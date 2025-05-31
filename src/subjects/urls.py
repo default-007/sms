@@ -6,7 +6,7 @@ app_name = "subjects"
 
 urlpatterns = [
     # API endpoints
-    path("api/", include("subjects.api.urls")),
+    path("api/", include("src.subjects.api.urls")),
     # Web interface URLs (can be implemented later)
     path("", views.SubjectListView.as_view(), name="subject-list"),
     path("create/", views.SubjectCreateView.as_view(), name="subject-create"),

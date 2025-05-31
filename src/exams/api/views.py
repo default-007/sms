@@ -11,9 +11,13 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from api.paginations import StandardResultsSetPagination
-from api.permissions import IsAdminOrTeacher, IsAdminOrTeacherOrParent
-from exams.services.exam_service import ExamService
+from src.api.paginations import StandardPagination
+from src.api.permissions import IsTeacherOrReadOnly
+from src.exams.services.exam_service import (
+    ExamService,
+    OnlineExamService,
+    ResultService,
+)
 
 from ..models import (
     Exam,
@@ -52,8 +56,8 @@ class ExamTypeViewSet(viewsets.ModelViewSet):
 
     queryset = ExamType.objects.all()
     serializer_class = ExamTypeSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrTeacher]
-    pagination_class = StandardResultsSetPagination
+    permission_classes = [IsAuthenticated, IsTeacherOrReadOnly]
+    pagination_class = StandardPagination
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -68,8 +72,8 @@ class ExamTypeViewSet(viewsets.ModelViewSet):
 class ExamViewSet(viewsets.ModelViewSet):
     """ViewSet for managing exams"""
 
-    permission_classes = [IsAuthenticated, IsAdminOrTeacher]
-    pagination_class = StandardResultsSetPagination
+    permission_classes = [IsAuthenticated, IsTeacherOrReadOnly]
+    pagination_class = StandardPagination
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -145,8 +149,8 @@ class ExamViewSet(viewsets.ModelViewSet):
 class ExamScheduleViewSet(viewsets.ModelViewSet):
     """ViewSet for managing exam schedules"""
 
-    permission_classes = [IsAuthenticated, IsAdminOrTeacher]
-    pagination_class = StandardResultsSetPagination
+    permission_classes = [IsAuthenticated, IsTeacherOrReadOnly]
+    pagination_class = StandardPagination
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -244,8 +248,8 @@ class StudentExamResultViewSet(viewsets.ModelViewSet):
         "student__user", "exam_schedule__subject", "entered_by"
     )
     serializer_class = StudentExamResultSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrTeacher]
-    pagination_class = StandardResultsSetPagination
+    permission_classes = [IsAuthenticated, IsTeacherOrReadOnly]
+    pagination_class = StandardPagination
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -302,8 +306,8 @@ class ReportCardViewSet(viewsets.ModelViewSet):
         "student__user", "class_obj", "academic_year", "term"
     )
     serializer_class = ReportCardSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrTeacherOrParent]
-    pagination_class = StandardResultsSetPagination
+    permission_classes = [IsAuthenticated, IsTeacherOrReadOnly]
+    pagination_class = StandardPagination
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -369,8 +373,8 @@ class GradingSystemViewSet(viewsets.ModelViewSet):
 
     queryset = GradingSystem.objects.prefetch_related("grade_scales")
     serializer_class = GradingSystemSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrTeacher]
-    pagination_class = StandardResultsSetPagination
+    permission_classes = [IsAuthenticated, IsTeacherOrReadOnly]
+    pagination_class = StandardPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ["name", "description"]
     filterset_fields = ["academic_year", "is_default", "is_active"]
@@ -381,8 +385,8 @@ class ExamQuestionViewSet(viewsets.ModelViewSet):
 
     queryset = ExamQuestion.objects.select_related("subject", "grade", "created_by")
     serializer_class = ExamQuestionSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrTeacher]
-    pagination_class = StandardResultsSetPagination
+    permission_classes = [IsAuthenticated, IsTeacherOrReadOnly]
+    pagination_class = StandardPagination
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -471,8 +475,8 @@ class OnlineExamViewSet(viewsets.ModelViewSet):
 
     queryset = OnlineExam.objects.select_related("exam_schedule")
     serializer_class = OnlineExamSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrTeacher]
-    pagination_class = StandardResultsSetPagination
+    permission_classes = [IsAuthenticated, IsTeacherOrReadOnly]
+    pagination_class = StandardPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ["exam_schedule__exam__name", "exam_schedule__subject__name"]
     filterset_fields = [
@@ -530,7 +534,7 @@ class StudentOnlineExamAttemptViewSet(viewsets.ModelViewSet):
     )
     serializer_class = StudentOnlineExamAttemptSerializer
     permission_classes = [IsAuthenticated]
-    pagination_class = StandardResultsSetPagination
+    pagination_class = StandardPagination
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = [
         "student",

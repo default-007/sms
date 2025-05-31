@@ -6,7 +6,7 @@ from django.db import transaction
 from django.db.models import Count, F, Q, Sum
 from django.utils import timezone
 
-from students.models import Student, StudentParentRelation
+from src.students.models import Student, StudentParentRelation
 
 from ..models import FeeCategory, Scholarship, StudentScholarship
 

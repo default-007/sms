@@ -10,9 +10,9 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from academics.models import AcademicYear, Class, Term
-from subjects.models import Subject
-from teachers.models import Teacher
+from src.academics.models import AcademicYear, Class, Term
+from src.subjects.models import Subject
+from src.teachers.models import Teacher
 
 from .models import (
     Exam,

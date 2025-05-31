@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.deprecation import MiddlewareMixin
 
-from ..models import UserAuditLog, UserSession
+from .models import UserAuditLog, UserSession
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -21,10 +21,8 @@ class SecurityMiddleware(MiddlewareMixin):
     def __init__(self, get_response):
         self.get_response = get_response
         self.max_failed_attempts = getattr(settings, "MAX_FAILED_LOGIN_ATTEMPTS", 5)
-        self.lockout_duration = getattr(
-            settings, "ACCOUNT_LOCKOUT_DURATION", 30
-        )  # minutes
-        self.session_timeout = getattr(settings, "SESSION_TIMEOUT", 30)  # minutes
+        self.lockout_duration = getattr(settings, "ACCOUNT_LOCKOUT_DURATION", 30)
+        self.session_timeout = getattr(settings, "SESSION_TIMEOUT", 30)
         self.max_concurrent_sessions = getattr(settings, "MAX_CONCURRENT_SESSIONS", 5)
         super().__init__(get_response)
 
@@ -66,15 +64,15 @@ class SecurityMiddleware(MiddlewareMixin):
 
     def process_response(self, request, response):
         """Process response for additional security measures."""
-        # Add security headers
+        # Add security headers (but NOT CSP - that's handled by django-csp)
         response["X-Content-Type-Options"] = "nosniff"
         response["X-Frame-Options"] = "DENY"
         response["X-XSS-Protection"] = "1; mode=block"
         response["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
-        # Add CSP header for non-API responses
-        if not request.path.startswith("/api/"):
-            response["Content-Security-Policy"] = self._get_csp_header()
+        # REMOVE/COMMENT OUT this line - CSP is now handled by django-csp
+        # if not request.path.startswith("/api/"):
+        #     response["Content-Security-Policy"] = self._get_csp_header()
 
         return response
 
@@ -126,8 +124,8 @@ class SecurityMiddleware(MiddlewareMixin):
             ip = request.META.get("REMOTE_ADDR")
         return ip
 
-    def _get_csp_header(self):
-        """Generate Content Security Policy header."""
+    """ def _get_csp_header(self):
+        # Generate Content Security Policy header.
         return (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.jsdelivr.net; "
@@ -139,7 +137,7 @@ class SecurityMiddleware(MiddlewareMixin):
             "object-src 'none'; "
             "base-uri 'self'; "
             "form-action 'self'"
-        )
+        ) """
 
 
 class RateLimitMiddleware(MiddlewareMixin):
@@ -408,7 +406,7 @@ class SessionSecurityMiddleware(MiddlewareMixin):
             return
 
         # Count active sessions for the user
-        active_sessions = UserSession.objects.get_concurrent_sessions(request.user)
+        active_sessions = UserSession.objects.concurrent_sessions(request.user)
 
         if active_sessions >= self.max_concurrent_sessions:
             # Terminate oldest sessions

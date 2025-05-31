@@ -97,3 +97,78 @@ class UserSearchForm(forms.Form):
         required=False,
         widget=forms.Select(attrs={"class": "form-select"}),
     )
+
+
+class ReportGenerationForm(forms.Form):
+    """Form for report generation parameters"""
+
+    REPORT_TYPES = [
+        ("student_performance", "Student Performance Report"),
+        ("class_performance", "Class Performance Report"),
+        ("attendance_summary", "Attendance Summary Report"),
+        ("financial_summary", "Financial Summary Report"),
+        ("teacher_performance", "Teacher Performance Report"),
+    ]
+
+    FORMAT_CHOICES = [
+        ("pdf", "PDF"),
+        ("excel", "Excel"),
+        ("csv", "CSV"),
+    ]
+
+    report_type = forms.ChoiceField(
+        choices=REPORT_TYPES, widget=forms.Select(attrs={"class": "form-select"})
+    )
+
+    format = forms.ChoiceField(
+        choices=FORMAT_CHOICES,
+        widget=forms.Select(attrs={"class": "form-select"}),
+        initial="pdf",
+    )
+
+    academic_year = forms.ModelChoiceField(
+        queryset=None,  # Will be set in __init__
+        required=False,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    term = forms.ModelChoiceField(
+        queryset=None,  # Will be set in __init__
+        required=False,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    section = forms.ModelChoiceField(
+        queryset=None,  # Will be set in __init__
+        required=False,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    grade = forms.ModelChoiceField(
+        queryset=None,  # Will be set in __init__
+        required=False,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    start_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+    )
+
+    end_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Set querysets for model choice fields
+        from academics.models import AcademicYear, Term, Section, Grade
+
+        self.fields["academic_year"].queryset = AcademicYear.objects.all().order_by(
+            "-start_date"
+        )
+        self.fields["term"].queryset = Term.objects.all().order_by("term_number")
+        self.fields["section"].queryset = Section.objects.all().order_by("name")
+        self.fields["grade"].queryset = Grade.objects.all().order_by("order_sequence")

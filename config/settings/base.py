@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "qrcode",
     "faker",
     "xhtml2pdf",
+    "csp",
     # Local apps
     "src.accounts",
     "src.api",
@@ -67,6 +68,8 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
+from csp.constants import SELF, UNSAFE_INLINE
+
 # ==============================================================================
 # MIDDLEWARE SETTINGS
 # ==============================================================================
@@ -78,16 +81,17 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
+    "csp.middleware.CSPMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "assignments.middleware.AssignmentDeadlineNotificationMiddleware",
-    "accounts.middleware.SecurityMiddleware",
-    "accounts.middleware.RateLimitMiddleware",
-    "accounts.middleware.AuditMiddleware",
-    "accounts.middleware.SessionSecurityMiddleware",
-    "assignments.middleware.AssignmentAccessControlMiddleware",
-    "assignments.middleware.AssignmentActivityTrackingMiddleware",
+    "src.assignments.middleware.AssignmentDeadlineNotificationMiddleware",
+    "src.accounts.middleware.SecurityMiddleware",
+    "src.accounts.middleware.RateLimitMiddleware",
+    "src.accounts.middleware.AuditMiddleware",
+    "src.accounts.middleware.SessionSecurityMiddleware",
+    "src.assignments.middleware.AssignmentAccessControlMiddleware",
+    "src.assignments.middleware.AssignmentActivityTrackingMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -110,6 +114,84 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "config.wsgi.application"
+
+CONTENT_SECURITY_POLICY = {
+    "DIRECTIVES": {
+        "default-src": ("'self'",),
+        "script-src": (
+            "'self'",
+            "'unsafe-inline'",  # Needed for some Django admin and inline scripts
+            "'unsafe-eval'",  # Needed for some JavaScript libraries
+            "cdn.jsdelivr.net",
+            "cdnjs.cloudflare.com",
+            "unpkg.com",
+            "code.jquery.com",  # If using jQuery
+            "stackpath.bootstrapcdn.com",  # If using Bootstrap from here
+        ),
+        "style-src": (
+            "'self'",
+            "'unsafe-inline'",  # Needed for Django admin and inline styles
+            "cdn.jsdelivr.net",
+            "cdnjs.cloudflare.com",
+            "fonts.googleapis.com",  # Google Fonts CSS
+            "unpkg.com",
+            "stackpath.bootstrapcdn.com",  # Bootstrap CSS
+        ),
+        "font-src": (
+            "'self'",
+            "cdn.jsdelivr.net",
+            "cdnjs.cloudflare.com",
+            "fonts.googleapis.com",  # Google Fonts
+            "fonts.gstatic.com",  # Google Fonts assets
+        ),
+        "img-src": (
+            "'self'",
+            "data:",  # Base64 images
+            "blob:",  # Blob URLs
+            "cdn.jsdelivr.net",
+            "cdnjs.cloudflare.com",
+            # Add your media/image CDN domains here
+        ),
+        "connect-src": (
+            "'self'",
+            "api.iconify.design",
+            "api.simplesvg.com",  # Add this line
+            "api.unisvg.com",
+            # Add API domains here if needed
+        ),
+        "media-src": ("'self'",),
+        "object-src": ("'none'",),
+        "base-uri": ("'self'",),
+        "form-action": ("'self'",),
+        # Optional: Force HTTPS in production
+        # 'upgrade-insecure-requests': True,
+    }
+}
+
+if DEBUG:
+    CONTENT_SECURITY_POLICY["DIRECTIVES"].update(
+        {
+            "script-src": CONTENT_SECURITY_POLICY["DIRECTIVES"]["script-src"]
+            + ("'unsafe-eval'",),  # Allow eval() for development tools
+            "style-src": CONTENT_SECURITY_POLICY["DIRECTIVES"]["style-src"]
+            + ("'unsafe-inline'",),  # Allow inline styles for development
+        }
+    )
+
+    # Enable report-only mode for development testing
+    # CONTENT_SECURITY_POLICY_REPORT_ONLY = True
+
+# For production - more restrictive
+else:
+    # Remove unsafe-eval from production
+    script_src = list(CONTENT_SECURITY_POLICY["DIRECTIVES"]["script-src"])
+    if "'unsafe-eval'" in script_src:
+        script_src.remove("'unsafe-eval'")
+
+    CONTENT_SECURITY_POLICY["DIRECTIVES"]["script-src"] = tuple(script_src)
+
+    # Force HTTPS in production
+    CONTENT_SECURITY_POLICY["DIRECTIVES"]["upgrade-insecure-requests"] = True
 
 # ==============================================================================
 # PERFORMANCE SETTINGS
@@ -151,6 +233,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
 ]
+
 
 # ==============================================================================
 # INTERNATIONALIZATION SETTINGS
@@ -403,6 +486,16 @@ LOGGING = {
         "accounts.tasks": {
             "handlers": ["console", "file"],
             "level": "INFO",
+            "propagate": True,
+        },
+        "csp": {
+            "handlers": ["console", "file"],
+            "level": "WARNING",
+            "propagate": True,
+        },
+        "django.security": {
+            "handlers": ["console", "file"],
+            "level": "WARNING",
             "propagate": True,
         },
     },

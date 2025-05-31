@@ -7,6 +7,7 @@ from django.db import transaction
 from django.db.models import Avg, Count, Max, Min, Q
 from django.utils import timezone
 
+from src.communications.services import NotificationService
 from src.academics.models import Class, Term
 from src.students.models import Student
 from src.subjects.models import Subject
@@ -14,9 +15,9 @@ from src.teachers.models import Teacher
 
 from ..models import (
     Assignment,
-    AssignmentAnalytics,
+    # AssignmentAnalytics,
     AssignmentSubmission,
-    StudentAssignmentProgress,
+    # StudentAssignmentProgress,
 )
 
 User = get_user_model()
@@ -44,15 +45,10 @@ class AssignmentService:
             )
 
             # Create analytics record
-            AssignmentAnalytics.objects.create(assignment=assignment)
+            # AssignmentAnalytics.objects.create(assignment=assignment)
 
             # Initialize progress tracking for all students in the class
             students = Student.objects.filter(current_class=assignment.class_field)
-            progress_records = [
-                StudentAssignmentProgress(student=student, assignment=assignment)
-                for student in students
-            ]
-            StudentAssignmentProgress.objects.bulk_create(progress_records)
 
             return assignment
 
@@ -212,9 +208,9 @@ class AssignmentService:
             .order_by("submission_date")
         )
 
-    @staticmethod
+    """ @staticmethod
     def calculate_analytics(assignment: Assignment) -> AssignmentAnalytics:
-        """Calculate analytics for an assignment"""
+        #Calculate analytics for an assignment
         analytics, created = AssignmentAnalytics.objects.get_or_create(
             assignment=assignment
         )
@@ -275,6 +271,7 @@ class AssignmentService:
 
         analytics.save()
         return analytics
+ """
 
     @staticmethod
     def get_assignment_progress_summary(assignment: Assignment) -> Dict:

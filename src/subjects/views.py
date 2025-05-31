@@ -15,7 +15,7 @@ from django.views.generic import (
     UpdateView,
 )
 
-from academics.models import AcademicYear, Grade, Term
+from src.academics.models import AcademicYear, Grade, Term
 
 from .models import Subject, SubjectAssignment, Syllabus, TopicProgress
 from .services import CurriculumService, SubjectAnalyticsService, SyllabusService

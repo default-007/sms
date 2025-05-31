@@ -445,7 +445,7 @@ def handle_student_status_change(sender, instance, **kwargs):
 
 
 # Signal for clearing cache when class is updated
-@receiver(post_save, sender="courses.Class")
+@receiver(post_save, sender="academics.Class")
 def clear_student_cache_on_class_update(sender, instance, **kwargs):
     """Clear student cache when class information is updated"""
     try:

@@ -42,31 +42,21 @@ urlpatterns = [
     # Web app URLs
     # Core app URLs (dashboard and common functionality)
     path("", include("src.core.urls")),
-    # Authentication and user management
     path("accounts/", include("src.accounts.urls")),
-    # Student management
-    path("students/", include("src.students.urls", namespace="students")),
-    # Teacher management
-    path("teachers/", include("src.teachers.urls", namespace="teachers")),
-    # Course & Class management
-    path("courses/", include("src.courses.urls", namespace="courses")),
-    # Exams & Assessments
-    path("exams/", include("src.exams.urls", namespace="exams")),
-    # Attendance tracking
-    path("attendance/", include("src.attendance.urls", namespace="attendance")),
-    # Finance management
-    path("finance/", include("src.finance.urls", namespace="finance")),
-    # Library management
-    # path("library/", include("src.library.urls", namespace="library")),
-    # Transport management
-    # path("transport/", include("src.transport.urls", namespace="transport")),
-    # Communications
-    path(
-        "communications/",
-        include("src.communications.urls", namespace="communications"),
-    ),
-    # Reports and analytics
-    # path("reports/", include("src.reports.urls", namespace="reports")),
+    path("students/", include("src.students.urls")),
+    path("teachers/", include("src.teachers.urls")),
+    path("academics/", include("src.academics.urls")),
+    path("subjects/", include("src.subjects.urls")),
+    path("scheduling/", include("src.scheduling.urls")),
+    path("assignments/", include("src.assignments.urls")),
+    path("exams/", include("src.exams.urls")),
+    path("attendance/", include("src.attendance.urls")),
+    path("finance/", include("src.finance.urls")),
+    # path("library/", include("src.library.urls")),
+    # path("transport/", include("src.transport.urls")),
+    path("communications/", include("src.communications.urls")),
+    # path("analytics/", include("src.analytics.urls")),
+    # path("reports/", include("src.reports.urls")),
     # Redirect root URL to dashboard or login
     # path("", include("src.accounts.urls")),
     path("", RedirectView.as_view(pattern_name="accounts:login"), name="root"),

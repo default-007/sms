@@ -17,8 +17,8 @@ from django.views.generic import (
     UpdateView,
 )
 
-from src.core.decorators import audit_log
-from src.courses.models import Class
+from src.academics.models import Class
+from src.core.decorators import audit_action
 from src.students.models import Student
 
 from .forms import AttendanceFilterForm, AttendanceRecordForm, StudentAttendanceFormSet
@@ -237,7 +237,7 @@ def attendance_dashboard_view(request):
 
 @login_required
 @permission_required("attendance.add_attendancerecord")
-@audit_log("create", "attendance_record")
+@audit_action("create", "attendance_record")
 def mark_attendance_view(request, class_id=None):
     """View for marking attendance for a class"""
 

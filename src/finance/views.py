@@ -18,8 +18,8 @@ from django.views.generic import (
     View,
 )
 
-from academics.models import AcademicYear, Class, Grade, Section, Term
-from students.models import Student
+from src.academics.models import AcademicYear, Class, Grade, Section, Term
+from src.students.models import Student
 
 from .forms import (
     BulkInvoiceGenerationForm,

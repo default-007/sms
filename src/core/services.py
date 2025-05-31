@@ -11,6 +11,7 @@ import logging
 from typing import Dict, Any, Optional, List, Union
 from datetime import datetime, timedelta
 
+from src.finance.models import FinancialAnalytics
 from src.students.models import Student
 
 from .models import (
@@ -19,7 +20,7 @@ from .models import (
     StudentPerformanceAnalytics,
     ClassPerformanceAnalytics,
     AttendanceAnalytics,
-    FinancialAnalytics,
+    # FinancialAnalytics,
     TeacherPerformanceAnalytics,
     SystemHealthMetrics,
 )

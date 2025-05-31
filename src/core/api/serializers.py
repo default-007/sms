@@ -3,13 +3,15 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 
+from src.finance.models import FinancialAnalytics
+
 from ..models import (
     SystemSetting,
     AuditLog,
     StudentPerformanceAnalytics,
     ClassPerformanceAnalytics,
     AttendanceAnalytics,
-    FinancialAnalytics,
+    # FinancialAnalytics,
     TeacherPerformanceAnalytics,
     SystemHealthMetrics,
 )

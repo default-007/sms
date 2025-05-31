@@ -4,8 +4,8 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
-from academics.models import AcademicYear, Class, Grade, Section, Term
-from students.models import Student
+from src.academics.models import AcademicYear, Class, Grade, Section, Term
+from src.students.models import Student
 
 from ..models import (
     FeeCategory,

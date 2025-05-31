@@ -16,8 +16,8 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from academics.models import AcademicYear, Class, Term
-from students.models import Student
+from src.academics.models import AcademicYear, Class, Term
+from src.students.models import Student
 
 from .forms import (
     ExamForm,

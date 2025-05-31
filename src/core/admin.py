@@ -1,4 +1,4 @@
-# admin.py
+# core/admin.py
 from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
@@ -12,7 +12,7 @@ from .models import (
     StudentPerformanceAnalytics,
     ClassPerformanceAnalytics,
     AttendanceAnalytics,
-    FinancialAnalytics,
+    # FinancialAnalytics,
     TeacherPerformanceAnalytics,
     SystemHealthMetrics,
 )
@@ -372,6 +372,7 @@ class AttendanceAnalyticsAdmin(AnalyticsAdminMixin, admin.ModelAdmin):
     term_name.short_description = "Period"
 
 
+""" 
 @admin.register(FinancialAnalytics)
 class FinancialAnalyticsAdmin(AnalyticsAdminMixin, admin.ModelAdmin):
     list_display = [
@@ -441,6 +442,7 @@ class FinancialAnalyticsAdmin(AnalyticsAdminMixin, admin.ModelAdmin):
         return obj.grade.name if obj.grade else "All Grades"
 
     grade_name.short_description = "Grade"
+ """
 
 
 @admin.register(TeacherPerformanceAnalytics)

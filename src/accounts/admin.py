@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
 
-from .forms import CustomUserCreationForm
+from .forms import EnhancedUserCreationForm
 from .models import User, UserRole, UserRoleAssignment
 
 
@@ -19,7 +19,7 @@ class UserRoleAssignmentInline(admin.TabularInline):
 class UserAdmin(BaseUserAdmin):
     """Admin configuration for User model."""
 
-    add_form = CustomUserCreationForm
+    add_form = EnhancedUserCreationForm
     list_display = (
         "username",
         "email",

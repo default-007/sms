@@ -7,7 +7,8 @@ from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
-from core.models import AuditLog
+from src.assignments.models import SubmissionGrade
+from src.core.models import AuditLog
 
 # from .models import Assignment, AssignmentSubmission, SubmissionGrade
 

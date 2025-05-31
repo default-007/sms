@@ -1,4 +1,5 @@
 import csv
+from datetime import timezone
 import io
 
 from django import forms
@@ -7,7 +8,8 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
-from src.courses.models import AcademicYear, Class
+from src.academics.models import AcademicYear, Class
+
 
 from .models import Parent, Student, StudentParentRelation
 

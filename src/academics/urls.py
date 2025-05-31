@@ -13,7 +13,7 @@ app_name = "academics"
 
 urlpatterns = [
     # API endpoints
-    path("api/", include("academics.api.urls")),
+    path("api/", include("src.academics.api.urls")),
     # Web views (if needed for dashboard/admin interface)
     path("", views.AcademicsHomeView.as_view(), name="home"),
     # Department URLs

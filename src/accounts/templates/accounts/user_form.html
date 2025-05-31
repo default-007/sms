@@ -1,601 +1,1034 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load accounts_tags %}
 
-{% block title %}
-{% if is_create %}Add New User{% else %}Edit User - {{ object.get_full_name }}{% endif %} | School Management System
+{% block title %}{{ form_action }} User{% endblock %}
+
+{% block page_title %}{{ form_action }} User{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">People</li>
+<li class="breadcrumb-item"><a href="{% url 'accounts:user_list' %}">Users</a></li>
+<li class="breadcrumb-item active">{{ form_action }}</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .form-wizard {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+  }
+
+  .wizard-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .wizard-steps {
+    display: flex;
+    justify-content: center;
+    padding: 1.5rem 2rem 0;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .step {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    margin: 0 0.5rem;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    flex: 1;
+    max-width: 200px;
+    text-align: center;
+  }
+
+  .step.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+  }
+
+  .step.completed {
+    background: #28a745;
+    color: white;
+  }
+
+  .step-number {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.75rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .step.active .step-number,
+  .step.completed .step-number {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .step-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .wizard-content {
+    padding: 2rem;
+    min-height: 500px;
+  }
+
+  .step-content {
+    display: none;
+  }
+
+  .step-content.active {
+    display: block;
+    animation: fadeInUp 0.5s ease;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+  }
+
+  .form-label .required {
+    color: #dc3545;
+    margin-left: 0.25rem;
+  }
+
+  .form-label i {
+    margin-right: 0.5rem;
+    color: #667eea;
+    width: 16px;
+  }
+
+  .form-control,
+  .form-select {
+    border: 2px solid #e1e5e9;
+    border-radius: 10px;
+    padding: 0.75rem;
+    transition: all 0.3s ease;
+    font-size: 0.95rem;
+  }
+
+  .form-control:focus,
+  .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+  }
+
+  .form-text {
+    color: #6c757d;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+  }
+
+  .invalid-feedback {
+    display: block;
+    color: #dc3545;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+  }
+
+  .profile-picture-upload {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .avatar-preview {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 4px solid #e9ecef;
+    margin: 0 auto 1rem;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .avatar-preview:hover {
+    border-color: #667eea;
+    transform: scale(1.05);
+  }
+
+  .avatar-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2rem;
+  }
+
+  .upload-text {
+    color: #667eea;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .upload-text:hover {
+    text-decoration: underline;
+  }
+
+  .role-selection {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .role-card {
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 1.25rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .role-card:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .role-card.selected {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.05);
+  }
+
+  .role-card input[type="checkbox"] {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+  }
+
+  .role-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
+  }
+
+  .role-description {
+    color: #666;
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+
+  .wizard-navigation {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    background: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+  }
+
+  .btn-wizard {
+    padding: 0.75rem 2rem;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+
+  .btn-wizard:hover {
+    transform: translateY(-2px);
+  }
+
+  .password-strength {
+    margin-top: 0.5rem;
+  }
+
+  .strength-meter {
+    height: 6px;
+    background: #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+
+  .strength-fill {
+    height: 100%;
+    width: 0%;
+    transition: all 0.3s ease;
+    border-radius: 3px;
+  }
+
+  .strength-weak {
+    background: #dc3545;
+    width: 25%;
+  }
+
+  .strength-fair {
+    background: #fd7e14;
+    width: 50%;
+  }
+
+  .strength-good {
+    background: #ffc107;
+    width: 75%;
+  }
+
+  .strength-strong {
+    background: #28a745;
+    width: 100%;
+  }
+
+  .strength-text {
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+
+  .preview-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+  }
+
+  .preview-item {
+    display: flex;
+    justify-content: between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .preview-item:last-child {
+    border-bottom: none;
+  }
+
+  .preview-label {
+    font-weight: 600;
+    color: #666;
+  }
+
+  .preview-value {
+    color: #333;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .form-row .form-group {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 768px) {
+    .wizard-steps {
+      flex-direction: column;
+      padding: 1rem;
+    }
+
+    .step {
+      margin-bottom: 0.5rem;
+    }
+
+    .form-row {
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .form-row .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .role-selection {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="body-wrapper">
-  <div class="container-fluid">
-    <!-- Breadcrumb -->
-    <div class="card card-body">
-      <div class="row align-items-center">
-        <div class="col-12">
-          <div class="d-sm-flex align-items-center justify-space-between">
-            <h4 class="fw-semibold fs-4 mb-4 mb-md-0 card-title">
-              {% if is_create %}Add New User{% else %}Edit User{% endif %}
-            </h4>
-            <nav aria-label="breadcrumb" class="ms-auto">
-              <ol class="breadcrumb">
-                <li class="breadcrumb-item">
-                  <a class="text-muted text-decoration-none" href="{% url 'core:dashboard' %}">
-                    <iconify-icon icon="solar:home-2-line-duotone" class="fs-6"></iconify-icon>
-                  </a>
-                </li>
-                <li class="breadcrumb-item">
-                  <a href="{% url 'accounts:user_list' %}">Users</a>
-                </li>
-                <li class="breadcrumb-item" aria-current="page">
-                  <span class="badge fw-medium fs-2 bg-primary-subtle text-primary">
-                    {% if is_create %}Add New{% else %}Edit{% endif %}
-                  </span>
-                </li>
-              </ol>
-            </nav>
+<div class="form-wizard animate__animated animate__fadeInUp">
+  <!-- Wizard Header -->
+  <div class="wizard-header">
+    <h3><i class="fas fa-user-plus me-2"></i>{{ form_action }} User Account</h3>
+    <p class="mb-0">
+      {{ form_action == 'Create' and 'Add a new user to the system' or 'Update user information and settings' }}
+    </p>
+  </div>
+
+  <!-- Wizard Steps -->
+  <div class="wizard-steps">
+    <div class="step active" data-step="1">
+      <div class="step-number">1</div>
+      <div class="step-title">Basic Information</div>
+    </div>
+    <div class="step" data-step="2">
+      <div class="step-number">2</div>
+      <div class="step-title">Contact & Personal</div>
+    </div>
+    <div class="step" data-step="3">
+      <div class="step-number">3</div>
+      <div class="step-title">Security & Access</div>
+    </div>
+    <div class="step" data-step="4">
+      <div class="step-number">4</div>
+      <div class="step-title">Roles & Permissions</div>
+    </div>
+    <div class="step" data-step="5">
+      <div class="step-number">5</div>
+      <div class="step-title">Review & Confirm</div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <form method="post" enctype="multipart/form-data" id="userForm" novalidate>
+    {% csrf_token %}
+
+    <!-- Wizard Content -->
+    <div class="wizard-content">
+      <!-- Step 1: Basic Information -->
+      <div class="step-content active" data-step="1">
+        <h4 class="mb-4"><i class="fas fa-user me-2"></i>Basic Information</h4>
+
+        <!-- Profile Picture Upload -->
+        <div class="profile-picture-upload">
+          <div class="avatar-preview" onclick="document.getElementById('id_profile_picture').click()">
+            <div class="avatar-placeholder" id="avatarPreview">
+              <i class="fas fa-camera"></i>
+            </div>
+          </div>
+          <div class="upload-text" onclick="document.getElementById('id_profile_picture').click()">
+            <i class="fas fa-upload me-2"></i>Upload Profile Picture
+          </div>
+          <input type="file" id="id_profile_picture" name="profile_picture" accept="image/*" style="display: none;"
+            onchange="previewImage(this)">
+          <div class="form-text">Max 2MB, JPEG/PNG only</div>
+          {% if form.profile_picture.errors %}
+          <div class="invalid-feedback">{{ form.profile_picture.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="id_first_name" class="form-label">
+              <i class="fas fa-user"></i>First Name<span class="required">*</span>
+            </label>
+            <input type="text" class="form-control {% if form.first_name.errors %}is-invalid{% endif %}"
+              id="id_first_name" name="first_name" value="{{ form.first_name.value|default:'' }}" required>
+            {% if form.first_name.errors %}
+            <div class="invalid-feedback">{{ form.first_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="id_last_name" class="form-label">
+              <i class="fas fa-user"></i>Last Name<span class="required">*</span>
+            </label>
+            <input type="text" class="form-control {% if form.last_name.errors %}is-invalid{% endif %}"
+              id="id_last_name" name="last_name" value="{{ form.last_name.value|default:'' }}" required>
+            {% if form.last_name.errors %}
+            <div class="invalid-feedback">{{ form.last_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="id_username" class="form-label">
+            <i class="fas fa-at"></i>Username
+          </label>
+          <input type="text" class="form-control {% if form.username.errors %}is-invalid{% endif %}" id="id_username"
+            name="username" value="{{ form.username.value|default:'' }}">
+          <div class="form-text">Leave blank to auto-generate from name and email</div>
+          {% if form.username.errors %}
+          <div class="invalid-feedback">{{ form.username.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_email" class="form-label">
+            <i class="fas fa-envelope"></i>Email Address<span class="required">*</span>
+          </label>
+          <input type="email" class="form-control {% if form.email.errors %}is-invalid{% endif %}" id="id_email"
+            name="email" value="{{ form.email.value|default:'' }}" required>
+          {% if form.email.errors %}
+          <div class="invalid-feedback">{{ form.email.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Step 2: Contact & Personal -->
+      <div class="step-content" data-step="2">
+        <h4 class="mb-4"><i class="fas fa-address-card me-2"></i>Contact & Personal Information</h4>
+
+        <div class="form-group">
+          <label for="id_phone_number" class="form-label">
+            <i class="fas fa-phone"></i>Phone Number
+          </label>
+          <input type="tel" class="form-control {% if form.phone_number.errors %}is-invalid{% endif %}"
+            id="id_phone_number" name="phone_number" value="{{ form.phone_number.value|default:'' }}"
+            placeholder="+1234567890">
+          <div class="form-text">Include country code for international numbers</div>
+          {% if form.phone_number.errors %}
+          <div class="invalid-feedback">{{ form.phone_number.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="id_date_of_birth" class="form-label">
+              <i class="fas fa-calendar"></i>Date of Birth
+            </label>
+            <input type="date" class="form-control {% if form.date_of_birth.errors %}is-invalid{% endif %}"
+              id="id_date_of_birth" name="date_of_birth" value="{{ form.date_of_birth.value|default:'' }}">
+            {% if form.date_of_birth.errors %}
+            <div class="invalid-feedback">{{ form.date_of_birth.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="id_gender" class="form-label">
+              <i class="fas fa-venus-mars"></i>Gender
+            </label>
+            <select class="form-select {% if form.gender.errors %}is-invalid{% endif %}" id="id_gender" name="gender">
+              <option value="">-- Select Gender --</option>
+              <option value="M" {% if form.gender.value == 'M' %}selected{% endif %}>Male</option>
+              <option value="F" {% if form.gender.value == 'F' %}selected{% endif %}>Female</option>
+              <option value="O" {% if form.gender.value == 'O' %}selected{% endif %}>Other</option>
+              <option value="P" {% if form.gender.value == 'P' %}selected{% endif %}>Prefer not to say</option>
+            </select>
+            {% if form.gender.errors %}
+            <div class="invalid-feedback">{{ form.gender.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="id_address" class="form-label">
+            <i class="fas fa-map-marker-alt"></i>Address
+          </label>
+          <textarea class="form-control {% if form.address.errors %}is-invalid{% endif %}" id="id_address"
+            name="address" rows="3">{{ form.address.value|default:'' }}</textarea>
+          {% if form.address.errors %}
+          <div class="invalid-feedback">{{ form.address.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Step 3: Security & Access -->
+      <div class="step-content" data-step="3">
+        <h4 class="mb-4"><i class="fas fa-shield-alt me-2"></i>Security & Access Settings</h4>
+
+        {% if form_action == 'Create' %}
+        <div class="form-row">
+          <div class="form-group">
+            <label for="id_password1" class="form-label">
+              <i class="fas fa-key"></i>Password<span class="required">*</span>
+            </label>
+            <input type="password" class="form-control {% if form.password1.errors %}is-invalid{% endif %}"
+              id="id_password1" name="password1" required>
+            <div class="password-strength" id="passwordStrength">
+              <div class="strength-meter">
+                <div class="strength-fill" id="strengthFill"></div>
+              </div>
+              <div class="strength-text" id="strengthText">Enter a password</div>
+            </div>
+            {% if form.password1.errors %}
+            <div class="invalid-feedback">{{ form.password1.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="id_password2" class="form-label">
+              <i class="fas fa-key"></i>Confirm Password<span class="required">*</span>
+            </label>
+            <input type="password" class="form-control {% if form.password2.errors %}is-invalid{% endif %}"
+              id="id_password2" name="password2" required>
+            <div id="passwordMatch" class="form-text"></div>
+            {% if form.password2.errors %}
+            <div class="invalid-feedback">{{ form.password2.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="id_requires_password_change"
+              name="requires_password_change" {% if form.requires_password_change.value %}checked{% endif %}>
+            <label class="form-check-label" for="id_requires_password_change">
+              Require password change on first login
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="id_is_active" name="is_active"
+              {% if form.is_active.value %}checked{% endif %}>
+            <label class="form-check-label" for="id_is_active">
+              Account is active
+            </label>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="id_email_notifications" name="email_notifications"
+                {% if form.email_notifications.value %}checked{% endif %}>
+              <label class="form-check-label" for="id_email_notifications">
+                Enable email notifications
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="id_sms_notifications" name="sms_notifications"
+                {% if form.sms_notifications.value %}checked{% endif %}>
+              <label class="form-check-label" for="id_sms_notifications">
+                Enable SMS notifications
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {% if form_action == 'Create' %}
+        <div class="form-group">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="id_send_welcome_email" name="send_welcome_email"
+              {% if form.send_welcome_email.value %}checked{% endif %}>
+            <label class="form-check-label" for="id_send_welcome_email">
+              Send welcome email with login credentials
+            </label>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Step 4: Roles & Permissions -->
+      <div class="step-content" data-step="4">
+        <h4 class="mb-4"><i class="fas fa-user-tag me-2"></i>Roles & Permissions</h4>
+
+        <p class="text-muted mb-4">Select the roles to assign to this user. Each role comes with specific permissions
+          and access levels.</p>
+
+        <div class="role-selection">
+          {% for role in form.roles.queryset %}
+          <div class="role-card" onclick="toggleRole(this, '{{ role.id }}')">
+            <input type="checkbox" name="roles" value="{{ role.id }}" id="role_{{ role.id }}"
+              {% if role.id in form.roles.value %}checked{% endif %}>
+            <div class="role-name">{{ role.name }}</div>
+            <div class="role-description">{{ role.description|default:"No description available" }}</div>
+          </div>
+          {% endfor %}
+        </div>
+
+        {% if form.roles.errors %}
+        <div class="invalid-feedback d-block mt-3">{{ form.roles.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <!-- Step 5: Review & Confirm -->
+      <div class="step-content" data-step="5">
+        <h4 class="mb-4"><i class="fas fa-check-circle me-2"></i>Review & Confirm</h4>
+
+        <p class="text-muted mb-4">Please review the information below before
+          {{ form_action == 'Create' and 'creating' or 'updating' }} the user account.
+        </p>
+
+        <div class="preview-section">
+          <h5 class="mb-3">User Information</h5>
+          <div class="preview-item">
+            <span class="preview-label">Full Name:</span>
+            <span class="preview-value" id="preview-name">-</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-label">Username:</span>
+            <span class="preview-value" id="preview-username">-</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-label">Email:</span>
+            <span class="preview-value" id="preview-email">-</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-label">Phone:</span>
+            <span class="preview-value" id="preview-phone">-</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-label">Date of Birth:</span>
+            <span class="preview-value" id="preview-dob">-</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-label">Gender:</span>
+            <span class="preview-value" id="preview-gender">-</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-label">Active:</span>
+            <span class="preview-value" id="preview-active">-</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-label">Roles:</span>
+            <span class="preview-value" id="preview-roles">-</span>
           </div>
         </div>
       </div>
     </div>
 
-    <form method="post" enctype="multipart/form-data" id="user-form" x-data="userForm()">
-      {% csrf_token %}
+    <!-- Wizard Navigation -->
+    <div class="wizard-navigation">
+      <button type="button" class="btn btn-outline-secondary btn-wizard" id="prevBtn" onclick="changeStep(-1)">
+        <i class="fas fa-chevron-left me-2"></i>Previous
+      </button>
 
-      <div class="row">
-        <!-- Main Form -->
-        <div class="col-lg-8">
-          <div class="card">
-            <div class="card-header">
-              <h5 class="card-title mb-0">
-                <iconify-icon icon="solar:user-plus-bold-duotone" class="me-2"></iconify-icon>
-                Personal Information
-              </h5>
-            </div>
-            <div class="card-body">
-              <!-- Username and Email -->
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label for="{{ form.username.id_for_label }}" class="form-label">
-                    {{ form.username.label }} <span class="text-danger">*</span>
-                  </label>
-                  {% if is_create %}
-                  <div class="input-group">
-                    {{ form.username }}
-                    <button class="btn btn-outline-secondary" type="button" @click="generateUsername()"
-                      title="Generate Username">
-                      <iconify-icon icon="solar:magic-stick-3-bold-duotone"></iconify-icon>
-                    </button>
-                  </div>
-                  {% else %}
-                  {{ form.username }}
-                  {% endif %}
-                  {% if form.username.errors %}
-                  <div class="text-danger mt-1">
-                    {% for error in form.username.errors %}
-                    <small>{{ error }}</small>
-                    {% endfor %}
-                  </div>
-                  {% endif %}
-                  {% if is_create %}
-                  <small class="text-muted">Letters, numbers, and underscores only</small>
-                  {% endif %}
-                </div>
-
-                <div class="col-md-6 mb-3">
-                  <label for="{{ form.email.id_for_label }}" class="form-label">
-                    {{ form.email.label }} <span class="text-danger">*</span>
-                  </label>
-                  {{ form.email }}
-                  {% if form.email.errors %}
-                  <div class="text-danger mt-1">
-                    {% for error in form.email.errors %}
-                    <small>{{ error }}</small>
-                    {% endfor %}
-                  </div>
-                  {% endif %}
-                </div>
-              </div>
-
-              <!-- First Name and Last Name -->
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label for="{{ form.first_name.id_for_label }}" class="form-label">
-                    {{ form.first_name.label }} <span class="text-danger">*</span>
-                  </label>
-                  {{ form.first_name }}
-                  {% if form.first_name.errors %}
-                  <div class="text-danger mt-1">
-                    {% for error in form.first_name.errors %}
-                    <small>{{ error }}</small>
-                    {% endfor %}
-                  </div>
-                  {% endif %}
-                </div>
-
-                <div class="col-md-6 mb-3">
-                  <label for="{{ form.last_name.id_for_label }}" class="form-label">
-                    {{ form.last_name.label }} <span class="text-danger">*</span>
-                  </label>
-                  {{ form.last_name }}
-                  {% if form.last_name.errors %}
-                  <div class="text-danger mt-1">
-                    {% for error in form.last_name.errors %}
-                    <small>{{ error }}</small>
-                    {% endfor %}
-                  </div>
-                  {% endif %}
-                </div>
-              </div>
-
-              <!-- Phone and Gender -->
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label for="{{ form.phone_number.id_for_label }}" class="form-label">
-                    {{ form.phone_number.label }}
-                  </label>
-                  {{ form.phone_number }}
-                  {% if form.phone_number.errors %}
-                  <div class="text-danger mt-1">
-                    {% for error in form.phone_number.errors %}
-                    <small>{{ error }}</small>
-                    {% endfor %}
-                  </div>
-                  {% endif %}
-                </div>
-
-                <div class="col-md-6 mb-3">
-                  <label for="{{ form.gender.id_for_label }}" class="form-label">
-                    {{ form.gender.label }}
-                  </label>
-                  {{ form.gender }}
-                  {% if form.gender.errors %}
-                  <div class="text-danger mt-1">
-                    {% for error in form.gender.errors %}
-                    <small>{{ error }}</small>
-                    {% endfor %}
-                  </div>
-                  {% endif %}
-                </div>
-              </div>
-
-              <!-- Date of Birth -->
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label for="{{ form.date_of_birth.id_for_label }}" class="form-label">
-                    {{ form.date_of_birth.label }}
-                  </label>
-                  {{ form.date_of_birth }}
-                  {% if form.date_of_birth.errors %}
-                  <div class="text-danger mt-1">
-                    {% for error in form.date_of_birth.errors %}
-                    <small>{{ error }}</small>
-                    {% endfor %}
-                  </div>
-                  {% endif %}
-                </div>
-              </div>
-
-              <!-- Address -->
-              <div class="mb-3">
-                <label for="{{ form.address.id_for_label }}" class="form-label">
-                  {{ form.address.label }}
-                </label>
-                {{ form.address }}
-                {% if form.address.errors %}
-                <div class="text-danger mt-1">
-                  {% for error in form.address.errors %}
-                  <small>{{ error }}</small>
-                  {% endfor %}
-                </div>
-                {% endif %}
-              </div>
-
-              <!-- Profile Picture -->
-              <div class="mb-3">
-                <label for="{{ form.profile_picture.id_for_label }}" class="form-label">
-                  {{ form.profile_picture.label }}
-                </label>
-                <div class="d-flex align-items-center gap-3">
-                  {% if not is_create and object.profile_picture %}
-                  <img src="{{ object.profile_picture.url }}" alt="Current" class="rounded-circle" width="60"
-                    height="60">
-                  {% endif %}
-                  <div class="flex-grow-1">
-                    {{ form.profile_picture }}
-                    {% if form.profile_picture.errors %}
-                    <div class="text-danger mt-1">
-                      {% for error in form.profile_picture.errors %}
-                      <small>{{ error }}</small>
-                      {% endfor %}
-                    </div>
-                    {% endif %}
-                    <small class="text-muted d-block">Maximum file size: 2MB. Supported formats: JPG, PNG</small>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Password Fields (for creation only) -->
-              {% if is_create and 'password1' in form.fields %}
-              <hr class="my-4">
-              <h6 class="mb-3">Password Settings</h6>
-
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label for="{{ form.password1.id_for_label }}" class="form-label">
-                    {{ form.password1.label }} <span class="text-danger">*</span>
-                  </label>
-                  <div class="input-group">
-                    {{ form.password1 }}
-                    <button class="btn btn-outline-secondary" type="button" @click="generatePassword()"
-                      title="Generate Password">
-                      <iconify-icon icon="solar:key-bold-duotone"></iconify-icon>
-                    </button>
-                    <button class="btn btn-outline-secondary" type="button" @click="togglePassword('password1')"
-                      title="Show/Hide Password">
-                      <iconify-icon
-                        x-bind:icon="showPassword1 ? 'solar:eye-closed-line-duotone' : 'solar:eye-line-duotone'"></iconify-icon>
-                    </button>
-                  </div>
-                  {% if form.password1.errors %}
-                  <div class="text-danger mt-1">
-                    {% for error in form.password1.errors %}
-                    <small>{{ error }}</small>
-                    {% endfor %}
-                  </div>
-                  {% else %}
-                  <div class="form-text">
-                    <ul class="mb-0 ps-3 small">
-                      <li>Your password must contain at least 8 characters.</li>
-                      <li>Your password can't be a commonly used password.</li>
-                      <li>Your password can't be entirely numeric.</li>
-                    </ul>
-                  </div>
-                  {% endif %}
-                </div>
-
-                <div class="col-md-6 mb-3">
-                  <label for="{{ form.password2.id_for_label }}" class="form-label">
-                    {{ form.password2.label }} <span class="text-danger">*</span>
-                  </label>
-                  <div class="input-group">
-                    {{ form.password2 }}
-                    <button class="btn btn-outline-secondary" type="button" @click="togglePassword('password2')"
-                      title="Show/Hide Password">
-                      <iconify-icon
-                        x-bind:icon="showPassword2 ? 'solar:eye-closed-line-duotone' : 'solar:eye-line-duotone'"></iconify-icon>
-                    </button>
-                  </div>
-                  {% if form.password2.errors %}
-                  <div class="text-danger mt-1">
-                    {% for error in form.password2.errors %}
-                    <small>{{ error }}</small>
-                    {% endfor %}
-                  </div>
-                  {% endif %}
-                  <!-- Password match indicator -->
-                  <small x-show="password2 && password1"
-                    x-bind:class="password1 === password2 ? 'text-success' : 'text-danger'"
-                    x-text="password1 === password2 ? '✓ Passwords match' : '✗ Passwords do not match'">
-                  </small>
-                </div>
-              </div>
-
-              <!-- Password strength indicator -->
-              <div class="mb-3" x-show="password1">
-                <label class="form-label">Password Strength</label>
-                <div class="progress" style="height: 6px;">
-                  <div class="progress-bar" x-bind:class="getPasswordStrengthClass()"
-                    x-bind:style="`width: ${passwordStrength}%`"></div>
-                </div>
-                <small x-text="getPasswordStrengthText()"
-                  x-bind:class="getPasswordStrengthClass().replace('bg-', 'text-')"></small>
-              </div>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-
-        <!-- Sidebar -->
-        <div class="col-lg-4">
-          <!-- Role Assignment -->
-          {% if can_change_roles|default:True %}
-          <div class="card mb-4">
-            <div class="card-header">
-              <h5 class="card-title mb-0">
-                <iconify-icon icon="solar:user-id-bold-duotone" class="me-2"></iconify-icon>
-                Role Assignment
-              </h5>
-            </div>
-            <div class="card-body">
-              {% if roles %}
-              <div class="form-check-list">
-                {% for role in roles %}
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="roles" value="{{ role.id }}"
-                    id="role-{{ role.id }}" {% if role.id in user_roles %}checked{% endif %}>
-                  <label class="form-check-label" for="role-{{ role.id }}">
-                    <div>
-                      <strong>{{ role.name }}</strong>
-                      <br><small class="text-muted">{{ role.description|truncatechars:60 }}</small>
-                    </div>
-                  </label>
-                </div>
-                {% endfor %}
-              </div>
-              {% else %}
-              <p class="text-muted">No roles available.</p>
-              {% endif %}
-            </div>
-          </div>
-          {% endif %}
-
-          <!-- Account Settings -->
-          <div class="card mb-4">
-            <div class="card-header">
-              <h5 class="card-title mb-0">
-                <iconify-icon icon="solar:settings-bold-duotone" class="me-2"></iconify-icon>
-                Account Settings
-              </h5>
-            </div>
-            <div class="card-body">
-              {% if not is_create %}
-              <div class="form-check form-switch mb-3">
-                <input class="form-check-input" type="checkbox" id="is-active" name="is_active"
-                  {% if object.is_active %}checked{% endif %}>
-                <label class="form-check-label" for="is-active">
-                  Account Active
-                </label>
-              </div>
-
-              <div class="form-check form-switch mb-3">
-                <input class="form-check-input" type="checkbox" id="require-password-change"
-                  name="requires_password_change" {% if object.requires_password_change %}checked{% endif %}>
-                <label class="form-check-label" for="require-password-change">
-                  Require Password Change
-                </label>
-              </div>
-              {% else %}
-              <div class="alert alert-info">
-                <iconify-icon icon="solar:info-circle-bold-duotone" class="me-2"></iconify-icon>
-                <strong>New User Settings:</strong>
-                <ul class="mb-0 mt-2">
-                  <li>Account will be active by default</li>
-                  <li>User will be required to change password on first login</li>
-                  <li>Welcome email will be sent with login instructions</li>
-                </ul>
-              </div>
-              {% endif %}
-            </div>
-          </div>
-
-          <!-- Form Actions -->
-          <div class="card">
-            <div class="card-body">
-              <div class="d-grid gap-2">
-                <button type="submit" class="btn btn-primary" x-bind:disabled="!isFormValid()" x-ref="submitBtn">
-                  <iconify-icon icon="solar:check-circle-bold-duotone" class="me-2"></iconify-icon>
-                  {% if is_create %}Create User{% else %}Update User{% endif %}
-                </button>
-
-                <a href="{% url 'accounts:user_list' %}" class="btn btn-outline-secondary">
-                  <iconify-icon icon="solar:arrow-left-line-duotone" class="me-2"></iconify-icon>
-                  Cancel
-                </a>
-
-                {% if not is_create %}
-                <div class="dropdown">
-                  <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button"
-                    data-bs-toggle="dropdown" aria-expanded="false">
-                    More Actions
-                  </button>
-                  <ul class="dropdown-menu w-100">
-                    <li>
-                      <a class="dropdown-item" href="{% url 'accounts:user_detail' object.pk %}">
-                        <iconify-icon icon="solar:eye-line-duotone" class="me-2"></iconify-icon>
-                        View Profile
-                      </a>
-                    </li>
-                    <li>
-                      <a class="dropdown-item" href="{% url 'accounts:password_change' %}">
-                        <iconify-icon icon="solar:key-line-duotone" class="me-2"></iconify-icon>
-                        Change Password
-                      </a>
-                    </li>
-                    <li>
-                      <hr class="dropdown-divider">
-                    </li>
-                    <li>
-                      <a class="dropdown-item text-danger" href="{% url 'accounts:user_delete' object.pk %}">
-                        <iconify-icon icon="solar:trash-bin-line-duotone" class="me-2"></iconify-icon>
-                        Delete User
-                      </a>
-                    </li>
-                  </ul>
-                </div>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-        </div>
+      <div class="step-indicator">
+        Step <span id="currentStep">1</span> of 5
       </div>
-    </form>
-  </div>
+
+      <button type="button" class="btn btn-primary btn-wizard" id="nextBtn" onclick="changeStep(1)">
+        Next<i class="fas fa-chevron-right ms-2"></i>
+      </button>
+    </div>
+  </form>
 </div>
+{% endblock %}
 
-<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+{% block extra_js %}
 <script>
-  function userForm() {
-    return {
-      password1: '',
-      password2: '',
-      showPassword1: false,
-      showPassword2: false,
-      passwordStrength: 0,
+  let currentStepIndex = 1;
+  const totalSteps = 5;
 
-      init() {
-        this.updatePasswordStrength();
-      },
+  $(document).ready(function () {
+    updateStepButtons();
+    updatePreview();
 
-      generateUsername() {
-        const firstName = document.getElementById('{{ form.first_name.id_for_label }}').value;
-        const lastName = document.getElementById('{{ form.last_name.id_for_label }}').value;
-        const email = document.getElementById('{{ form.email.id_for_label }}').value;
+    // Auto-generate username when name or email changes
+    $('#id_first_name, #id_last_name, #id_email').on('input', function () {
+      autoGenerateUsername();
+    });
 
-        if (firstName || lastName || email) {
-          fetch('/api/accounts/generate-username/', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-            },
-            body: JSON.stringify({
-              first_name: firstName,
-              last_name: lastName,
-              email: email
-            })
-          })
-            .then(response => response.json())
-            .then(data => {
-              if (data.username) {
-                document.getElementById('{{ form.username.id_for_label }}').value = data.username;
-              }
-            });
-        }
-      },
+    // Password strength checker
+    $('#id_password1').on('input', function () {
+      checkPasswordStrength(this.value);
+    });
 
-      generatePassword() {
-        fetch('/api/accounts/generate-password/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-          },
-          body: JSON.stringify({
-            length: 12,
-            include_symbols: true
-          })
-        })
-          .then(response => response.json())
-          .then(data => {
-            if (data.password) {
-              this.password1 = data.password;
-              this.password2 = data.password;
-              document.getElementById('{{ form.password1.id_for_label }}').value = data.password;
-              document.getElementById('{{ form.password2.id_for_label }}').value = data.password;
-              this.updatePasswordStrength();
-            }
-          });
-      },
+    // Password confirmation checker
+    $('#id_password2').on('input', function () {
+      checkPasswordMatch();
+    });
 
-      togglePassword(field) {
-        if (field === 'password1') {
-          this.showPassword1 = !this.showPassword1;
-          const input = document.getElementById('{{ form.password1.id_for_label }}');
-          input.type = this.showPassword1 ? 'text' : 'password';
-        } else {
-          this.showPassword2 = !this.showPassword2;
-          const input = document.getElementById('{{ form.password2.id_for_label }}');
-          input.type = this.showPassword2 ? 'text' : 'password';
-        }
-      },
+    // Real-time preview updates
+    $('input, select, textarea').on('input change', function () {
+      updatePreview();
+    });
+  });
 
-      updatePasswordStrength() {
-        if (!this.password1) {
-          this.passwordStrength = 0;
-          return;
-        }
+  function changeStep(direction) {
+    const newStep = currentStepIndex + direction;
 
-        let score = 0;
+    if (newStep < 1 || newStep > totalSteps) return;
 
-        // Length check
-        if (this.password1.length >= 8) score += 25;
-        if (this.password1.length >= 12) score += 10;
-
-        // Character type checks
-        if (/[a-z]/.test(this.password1)) score += 15;
-        if (/[A-Z]/.test(this.password1)) score += 15;
-        if (/[0-9]/.test(this.password1)) score += 15;
-        if (/[^A-Za-z0-9]/.test(this.password1)) score += 20;
-
-        this.passwordStrength = Math.min(score, 100);
-      },
-
-      getPasswordStrengthClass() {
-        if (this.passwordStrength <= 30) return 'bg-danger';
-        if (this.passwordStrength <= 60) return 'bg-warning';
-        if (this.passwordStrength <= 80) return 'bg-info';
-        return 'bg-success';
-      },
-
-      getPasswordStrengthText() {
-        if (this.passwordStrength <= 30) return 'Weak';
-        if (this.passwordStrength <= 60) return 'Fair';
-        if (this.passwordStrength <= 80) return 'Good';
-        return 'Strong';
-      },
-
-      isFormValid() {
-        {% if is_create %}
-        return this.password1 && this.password2 && this.password1 === this.password2;
-        {% else %}
-    return true;
-    {% endif %}
-  }
+    if (direction === 1 && !validateCurrentStep()) {
+      return;
     }
-}
 
-  // Form submission handling
-  document.getElementById('user-form').addEventListener('submit', function (e) {
-    const submitBtn = document.querySelector('[x-ref="submitBtn"]');
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
-  });
+    // Hide current step
+    $(`.step-content[data-step="${currentStepIndex}"]`).removeClass('active');
+    $(`.step[data-step="${currentStepIndex}"]`).removeClass('active').addClass('completed');
 
-  // Watch for password changes
-  {% if is_create %}
-  document.getElementById('{{ form.password1.id_for_label }}').addEventListener('input', function (e) {
-    Alpine.store('form').password1 = e.target.value;
-    Alpine.store('form').updatePasswordStrength();
-  });
+    // Show new step
+    currentStepIndex = newStep;
+    $(`.step-content[data-step="${currentStepIndex}"]`).addClass('active');
+    $(`.step[data-step="${currentStepIndex}"]`).addClass('active');
 
-  document.getElementById('{{ form.password2.id_for_label }}').addEventListener('input', function (e) {
-    Alpine.store('form').password2 = e.target.value;
+    updateStepButtons();
+    updatePreview();
+  }
+
+  function updateStepButtons() {
+    $('#currentStep').text(currentStepIndex);
+
+    // Previous button
+    if (currentStepIndex === 1) {
+      $('#prevBtn').hide();
+    } else {
+      $('#prevBtn').show();
+    }
+
+    // Next/Submit button
+    if (currentStepIndex === totalSteps) {
+      $('#nextBtn').html('<i class="fas fa-save me-2"></i>{{ form_action }} User').attr('onclick', 'submitForm()');
+    } else {
+      $('#nextBtn').html('Next<i class="fas fa-chevron-right ms-2"></i>').attr('onclick', 'changeStep(1)');
+    }
+  }
+
+  function validateCurrentStep() {
+    let isValid = true;
+    const currentStepContent = $(`.step-content[data-step="${currentStepIndex}"]`);
+
+    // Clear previous errors
+    currentStepContent.find('.is-invalid').removeClass('is-invalid');
+
+    // Validate required fields in current step
+    currentStepContent.find('input[required], select[required], textarea[required]').each(function () {
+      if (!this.value.trim()) {
+        $(this).addClass('is-invalid');
+        isValid = false;
+      }
+    });
+
+    // Step-specific validations
+    if (currentStepIndex === 1) {
+      // Email validation
+      const email = $('#id_email').val();
+      if (email && !isValidEmail(email)) {
+        $('#id_email').addClass('is-invalid');
+        isValid = false;
+      }
+    }
+
+    if (currentStepIndex === 3 && '{{ form_action }}' === 'Create') {
+      // Password validation
+      const password1 = $('#id_password1').val();
+      const password2 = $('#id_password2').val();
+
+      if (password1 !== password2) {
+        $('#id_password2').addClass('is-invalid');
+        isValid = false;
+      }
+    }
+
+    if (!isValid) {
+      showToast('Please fill in all required fields correctly', 'error');
+    }
+
+    return isValid;
+  }
+
+  function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  function autoGenerateUsername() {
+    const firstName = $('#id_first_name').val().trim();
+    const lastName = $('#id_last_name').val().trim();
+    const email = $('#id_email').val().trim();
+    const currentUsername = $('#id_username').val().trim();
+
+    // Only auto-generate if username field is empty
+    if (currentUsername) return;
+
+    let username = '';
+
+    if (firstName && lastName) {
+      username = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`;
+    } else if (email) {
+      username = email.split('@')[0].toLowerCase();
+    }
+
+    // Clean username
+    username = username.replace(/[^a-zA-Z0-9_]/g, '');
+
+    $('#id_username').val(username);
+  }
+
+  function checkPasswordStrength(password) {
+    const strengthMeter = $('#strengthFill');
+    const strengthText = $('#strengthText');
+
+    if (!password) {
+      strengthMeter.removeClass().addClass('strength-fill');
+      strengthText.text('Enter a password');
+      return;
+    }
+
+    let score = 0;
+    let feedback = [];
+
+    // Length check
+    if (password.length >= 8) score += 25;
+    else feedback.push('At least 8 characters');
+
+    // Uppercase check
+    if (/[A-Z]/.test(password)) score += 25;
+    else feedback.push('Include uppercase letters');
+
+    // Lowercase check
+    if (/[a-z]/.test(password)) score += 25;
+    else feedback.push('Include lowercase letters');
+
+    // Number check
+    if (/\d/.test(password)) score += 15;
+    else feedback.push('Include numbers');
+
+    // Special character check
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score += 10;
+    else feedback.push('Include special characters');
+
+    // Update strength meter
+    strengthMeter.removeClass().addClass('strength-fill');
+
+    if (score < 50) {
+      strengthMeter.addClass('strength-weak');
+      strengthText.html('<span class="text-danger">Weak</span>: ' + feedback.join(', '));
+    } else if (score < 75) {
+      strengthMeter.addClass('strength-fair');
+      strengthText.html('<span class="text-warning">Fair</span>: ' + feedback.join(', '));
+    } else if (score < 90) {
+      strengthMeter.addClass('strength-good');
+      strengthText.html('<span class="text-info">Good</span>: ' + feedback.join(', '));
+    } else {
+      strengthMeter.addClass('strength-strong');
+      strengthText.html('<span class="text-success">Strong</span>: Password meets all requirements');
+    }
+  }
+
+  function checkPasswordMatch() {
+    const password1 = $('#id_password1').val();
+    const password2 = $('#id_password2').val();
+    const matchIndicator = $('#passwordMatch');
+
+    if (!password2) {
+      matchIndicator.text('');
+      return;
+    }
+
+    if (password1 === password2) {
+      matchIndicator.html('<span class="text-success"><i class="fas fa-check me-1"></i>Passwords match</span>');
+      $('#id_password2').removeClass('is-invalid');
+    } else {
+      matchIndicator.html('<span class="text-danger"><i class="fas fa-times me-1"></i>Passwords do not match</span>');
+      $('#id_password2').addClass('is-invalid');
+    }
+  }
+
+  function toggleRole(card, roleId) {
+    const checkbox = $(card).find('input[type="checkbox"]');
+    const isChecked = !checkbox.prop('checked');
+
+    checkbox.prop('checked', isChecked);
+
+    if (isChecked) {
+      $(card).addClass('selected');
+    } else {
+      $(card).removeClass('selected');
+    }
+
+    updatePreview();
+  }
+
+  function previewImage(input) {
+    const file = input.files[0];
+    const preview = $('#avatarPreview');
+
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        preview.html(`<img src="${e.target.result}" alt="Preview">`);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function updatePreview() {
+    const firstName = $('#id_first_name').val() || '';
+    const lastName = $('#id_last_name').val() || '';
+    const fullName = `${firstName} ${lastName}`.trim() || 'Not provided';
+
+    $('#preview-name').text(fullName);
+    $('#preview-username').text($('#id_username').val() || 'Auto-generated');
+    $('#preview-email').text($('#id_email').val() || 'Not provided');
+    $('#preview-phone').text($('#id_phone_number').val() || 'Not provided');
+    $('#preview-dob').text($('#id_date_of_birth').val() || 'Not provided');
+
+    const gender = $('#id_gender option:selected').text() || 'Not specified';
+    $('#preview-gender').text(gender);
+
+    const isActive = $('#id_is_active').is(':checked') ? 'Yes' : 'No';
+    $('#preview-active').text(isActive);
+
+    // Update roles preview
+    const selectedRoles = [];
+    $('input[name="roles"]:checked').each(function () {
+      const roleCard = $(this).closest('.role-card');
+      const roleName = roleCard.find('.role-name').text();
+      selectedRoles.push(roleName);
+    });
+    $('#preview-roles').text(selectedRoles.length > 0 ? selectedRoles.join(', ') : 'None selected');
+  }
+
+  function submitForm() {
+    if (!validateCurrentStep()) {
+      return;
+    }
+
+    // Show loading
+    showLoading();
+    $('#nextBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Saving...');
+
+    // Submit the form
+    document.getElementById('userForm').submit();
+  }
+
+  // Keyboard navigation
+  $(document).on('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey) {
+      switch (e.key) {
+        case 'ArrowLeft':
+          e.preventDefault();
+          if (currentStepIndex > 1) changeStep(-1);
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          if (currentStepIndex < totalSteps) changeStep(1);
+          break;
+        case 'Enter':
+          if (currentStepIndex === totalSteps) {
+            e.preventDefault();
+            submitForm();
+          }
+          break;
+      }
+    }
   });
-  {% endif %}
 </script>
-
-<style>
-  .form-check-list .form-check {
-    padding: 0.75rem;
-    border: 1px solid #e9ecef;
-    border-radius: 0.375rem;
-    margin-bottom: 0.5rem;
-    transition: all 0.15s ease-in-out;
-  }
-
-  .form-check-list .form-check:hover {
-    background-color: #f8f9fa;
-    border-color: #dee2e6;
-  }
-
-  .form-check-list .form-check-input:checked+.form-check-label {
-    color: #0d6efd;
-  }
-
-  .progress {
-    background-color: #e9ecef;
-  }
-
-  .password-strength-indicator {
-    height: 4px;
-    background-color: #e9ecef;
-    border-radius: 2px;
-    overflow: hidden;
-  }
-
-  .password-strength-bar {
-    height: 100%;
-    transition: width 0.3s ease, background-color 0.3s ease;
-  }
-</style>
-{% endblock content %}
+{% endblock %}

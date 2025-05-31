@@ -56,5 +56,5 @@ urlpatterns = [
         name="user_activity",
     ),
     # API URLs
-    path("api/", include("core.api.urls")),
+    path("api/", include("src.core.api.urls")),
 ]

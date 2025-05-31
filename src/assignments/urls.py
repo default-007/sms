@@ -356,7 +356,7 @@ urlpatterns = [
         name="help_grading",
     ),
     # API URLs (namespace for API endpoints)
-    path("api/", include("assignments.api.urls", namespace="api")),
+    path("api/", include("src.assignments.api.urls", namespace="api")),
 ]
 
 """

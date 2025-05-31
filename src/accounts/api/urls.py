@@ -1,87 +1,46 @@
 # src/accounts/api/urls.py
 
-from django.urls import path
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
-    BulkUserActionView,
+    AuditLogListView,
+    BulkUserImportView,
     CustomTokenObtainPairView,
-    PasswordChangeView,
-    PasswordResetView,
-    UserAuditLogView,
-    UserDetailView,
-    UserListCreateView,
-    UserProfileView,
-    UserRoleAssignmentView,
-    UserRoleDetailView,
-    UserRoleListCreateView,
-    UserStatisticsView,
-    UserToggleStatusView,
-    login_statistics_view,
-    logout_view,
-    suspicious_activity_view,
-    unlock_account_view,
-    user_permissions_view,
+    ProfileView,
+    SendOTPView,
+    SystemHealthView,
+    UserRoleViewSet,
+    UserStatsView,
+    UserViewSet,
+    VerifyOTPView,
 )
+
+# Create router and register viewsets
+router = DefaultRouter()
+router.register(r"users", UserViewSet, basename="user")
+router.register(r"roles", UserRoleViewSet, basename="role")
 
 app_name = "accounts_api"
 
 urlpatterns = [
-    # Authentication
+    # Authentication endpoints
     path("auth/login/", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
-    path("auth/logout/", logout_view, name="logout"),
-    # Users
-    path("users/", UserListCreateView.as_view(), name="user_list_create"),
-    path("users/<int:pk>/", UserDetailView.as_view(), name="user_detail"),
-    path("users/profile/", UserProfileView.as_view(), name="user_profile"),
-    path(
-        "users/<int:user_id>/toggle-status/",
-        UserToggleStatusView.as_view(),
-        name="user_toggle_status",
-    ),
-    path(
-        "users/<int:user_id>/reset-password/",
-        PasswordResetView.as_view(),
-        name="user_reset_password",
-    ),
-    path("users/<int:user_id>/unlock/", unlock_account_view, name="user_unlock"),
-    path("users/bulk-action/", BulkUserActionView.as_view(), name="bulk_user_action"),
-    path("users/statistics/", UserStatisticsView.as_view(), name="user_statistics"),
-    # Password management
-    path("password/change/", PasswordChangeView.as_view(), name="password_change"),
-    # Roles
-    path("roles/", UserRoleListCreateView.as_view(), name="role_list_create"),
-    path("roles/<int:pk>/", UserRoleDetailView.as_view(), name="role_detail"),
-    # Role assignments
-    path(
-        "users/<int:user_id>/roles/",
-        UserRoleAssignmentView.as_view(),
-        name="user_role_assign",
-    ),
-    path(
-        "users/<int:user_id>/roles/<int:role_id>/",
-        UserRoleAssignmentView.as_view(),
-        name="user_role_remove",
-    ),
+    # Profile endpoints
+    path("profile/", ProfileView.as_view(), name="profile"),
+    # OTP endpoints
+    path("otp/send/", SendOTPView.as_view(), name="send_otp"),
+    path("otp/verify/", VerifyOTPView.as_view(), name="verify_otp"),
+    # Statistics endpoints
+    path("stats/", UserStatsView.as_view(), name="user_stats"),
+    # Bulk operations
+    path("bulk-import/", BulkUserImportView.as_view(), name="bulk_import"),
     # Audit logs
-    path("audit-logs/", UserAuditLogView.as_view(), name="audit_logs"),
-    path(
-        "users/<int:user_id>/audit-logs/",
-        UserAuditLogView.as_view(),
-        name="user_audit_logs",
-    ),
-    # Permissions
-    path("permissions/", user_permissions_view, name="user_permissions"),
-    # Analytics
-    path(
-        "users/<int:user_id>/login-statistics/",
-        login_statistics_view,
-        name="login_statistics",
-    ),
-    path(
-        "users/<int:user_id>/suspicious-activity/",
-        suspicious_activity_view,
-        name="suspicious_activity",
-    ),
+    path("audit-logs/", AuditLogListView.as_view(), name="audit_logs"),
+    # System health
+    path("health/", SystemHealthView.as_view(), name="system_health"),
+    # Include router URLs
+    path("", include(router.urls)),
 ]

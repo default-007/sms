@@ -4,8 +4,8 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from academics.models import AcademicYear, Class, Grade, Section, Term
-from students.models import Student
+from src.academics.models import AcademicYear, Class, Grade, Section, Term
+from src.students.models import Student
 
 from .models import (
     FeeCategory,

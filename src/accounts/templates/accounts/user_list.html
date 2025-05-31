@@ -1,194 +1,745 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load accounts_tags %}
 
 {% block title %}User Management{% endblock %}
 
+{% block page_title %}User Management{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">People</li>
+<li class="breadcrumb-item active">Users</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .user-avatar-sm {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .user-info {
+    display: flex;
+    align-items: center;
+  }
+
+  .user-details {
+    margin-left: 12px;
+  }
+
+  .user-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 2px;
+  }
+
+  .user-email {
+    font-size: 0.85rem;
+    color: #666;
+  }
+
+  .role-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .status-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .quick-actions {
+    display: flex;
+    gap: 4px;
+  }
+
+  .quick-actions .btn {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+  }
+
+  .filter-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stats-row {
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    height: 100%;
+  }
+
+  .stat-icon {
+    font-size: 2.5rem;
+    opacity: 0.8;
+    margin-bottom: 1rem;
+  }
+
+  .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    margin-bottom: 0;
+  }
+
+  .bulk-actions {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    display: none;
+  }
+
+  .bulk-actions.show {
+    display: block;
+  }
+
+  .table-container {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .advanced-search {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #e9ecef;
+  }
+
+  .search-toggle {
+    cursor: pointer;
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .search-toggle:hover {
+    color: #5a6fd8;
+  }
+
+  .status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+  }
+
+  .status-indicator.online {
+    background-color: #28a745;
+  }
+
+  .status-indicator.recent {
+    background-color: #ffc107;
+  }
+
+  .status-indicator.away {
+    background-color: #fd7e14;
+  }
+
+  .status-indicator.offline {
+    background-color: #6c757d;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-12">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>User Management</h2>
-        <a href="{% url 'accounts:user_create' %}" class="btn btn-primary">
-          <i class="fas fa-plus"></i> Add User
-        </a>
+<!-- Statistics Row -->
+<div class="row stats-row">
+  <div class="col-xl-3 col-md-6 mb-4">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-users"></i>
       </div>
+      <div class="stat-number">{{ user_stats.total }}</div>
+      <div class="stat-label">Total Users</div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6 mb-4">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-user-check"></i>
+      </div>
+      <div class="stat-number">{{ user_stats.active }}</div>
+      <div class="stat-label">Active Users</div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6 mb-4">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-user-plus"></i>
+      </div>
+      <div class="stat-number">{{ user_stats.recent_registrations }}</div>
+      <div class="stat-label">Recent Registrations</div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6 mb-4">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-shield-alt"></i>
+      </div>
+      <div class="stat-number">{{ user_stats.verified }}</div>
+      <div class="stat-label">Verified Users</div>
+    </div>
+  </div>
+</div>
 
-      <!-- Filters -->
-      <div class="card mb-4">
-        <div class="card-body">
-          <form method="get" class="row g-3">
-            <div class="col-md-3">
-              <input type="text" name="search" class="form-control" placeholder="Search users..."
-                value="{{ search_query }}">
-            </div>
-            <div class="col-md-2">
-              <select name="role" class="form-select">
-                <option value="">All Roles</option>
-                {% for role in roles %}
-                <option value="{{ role.name }}" {% if selected_role == role.name %}selected{% endif %}>
-                  {{ role.name }}
-                </option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-md-2">
-              <select name="status" class="form-select">
-                <option value="">All Status</option>
-                <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
-                <option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>Inactive</option>
-                <option value="locked" {% if selected_status == 'locked' %}selected{% endif %}>Locked</option>
-              </select>
-            </div>
-            <div class="col-md-2">
-              <button type="submit" class="btn btn-outline-primary">Filter</button>
-              <a href="{% url 'accounts:user_list' %}" class="btn btn-outline-secondary">Clear</a>
-            </div>
-          </form>
+<!-- Advanced Search -->
+<div class="advanced-search">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0"><i class="fas fa-search me-2"></i>Advanced Search & Filters</h5>
+    <a href="#" class="search-toggle" data-bs-toggle="collapse" data-bs-target="#searchForm">
+      <i class="fas fa-chevron-down"></i>
+    </a>
+  </div>
+
+  <div class="collapse" id="searchForm">
+    <form method="get" id="filterForm">
+      <div class="row">
+        <div class="col-md-3 mb-3">
+          <label for="search" class="form-label">Search</label>
+          <input type="text" class="form-control" id="search" name="search" placeholder="Name, email, username..."
+            value="{{ request.GET.search }}">
+        </div>
+        <div class="col-md-3 mb-3">
+          <label for="role" class="form-label">Role</label>
+          <select class="form-select" id="role" name="role">
+            <option value="">All Roles</option>
+            {% for role in roles %}
+            <option value="{{ role.id }}" {% if request.GET.role == role.id|stringformat:"s" %}selected{% endif %}>
+              {{ role.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label for="status" class="form-label">Status</label>
+          <select class="form-select" id="status" name="status">
+            <option value="">All Status</option>
+            <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+            <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
+            <option value="locked" {% if request.GET.status == 'locked' %}selected{% endif %}>Locked</option>
+            <option value="password_change" {% if request.GET.status == 'password_change' %}selected{% endif %}>Requires
+              Password Change</option>
+            <option value="email_unverified" {% if request.GET.status == 'email_unverified' %}selected{% endif %}>Email
+              Unverified</option>
+            <option value="phone_unverified" {% if request.GET.status == 'phone_unverified' %}selected{% endif %}>Phone
+              Unverified</option>
+          </select>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label for="date_joined_from" class="form-label">Joined From</label>
+          <input type="date" class="form-control" id="date_joined_from" name="date_joined_from"
+            value="{{ request.GET.date_joined_from }}">
         </div>
       </div>
-
-      <!-- Statistics -->
-      <div class="row mb-4">
-        <div class="col-md-3">
-          <div class="card text-white bg-primary">
-            <div class="card-body">
-              <h5>{{ active_users_count }}</h5>
-              <p class="mb-0">Active Users</p>
-            </div>
-          </div>
+      <div class="row">
+        <div class="col-md-3 mb-3">
+          <label for="date_joined_to" class="form-label">Joined To</label>
+          <input type="date" class="form-control" id="date_joined_to" name="date_joined_to"
+            value="{{ request.GET.date_joined_to }}">
         </div>
-        <div class="col-md-3">
-          <div class="card text-white bg-secondary">
-            <div class="card-body">
-              <h5>{{ inactive_users_count }}</h5>
-              <p class="mb-0">Inactive Users</p>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="card text-white bg-success">
-            <div class="card-body">
-              <h5>{{ new_users_count }}</h5>
-              <p class="mb-0">New This Month</p>
-            </div>
-          </div>
+        <div class="col-md-9 mb-3 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary me-2">
+            <i class="fas fa-search me-2"></i>Apply Filters
+          </button>
+          <a href="{% url 'accounts:user_list' %}" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-times me-2"></i>Clear
+          </a>
+          <button type="button" class="btn btn-success" onclick="exportUsers()">
+            <i class="fas fa-download me-2"></i>Export
+          </button>
         </div>
       </div>
+    </form>
+  </div>
+</div>
 
-      <!-- Users Table -->
-      <div class="card">
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-striped">
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Email</th>
-                  <th>Roles</th>
-                  <th>Status</th>
-                  <th>Last Login</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for user in users %}
-                <tr>
-                  <td>
-                    <div class="d-flex align-items-center">
-                      {% if user.profile_picture %}
-                      <img src="{{ user.profile_picture.url }}" class="rounded-circle me-2" width="32" height="32">
-                      {% else %}
-                      <div
-                        class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2"
-                        style="width: 32px; height: 32px; font-size: 14px;">
-                        {{ user.get_initials }}
-                      </div>
-                      {% endif %}
-                      <div>
-                        <strong>{{ user.get_full_name }}</strong><br>
-                        <small class="text-muted">{{ user.username }}</small>
-                      </div>
-                    </div>
-                  </td>
-                  <td>{{ user.email }}</td>
-                  <td>
-                    {% for role in user.active_roles %}
-                    <span class="badge bg-secondary me-1">{{ role.role.name }}</span>
-                    {% endfor %}
-                  </td>
-                  <td>
-                    {% if user.is_active %}
-                    <span class="badge bg-success">Active</span>
-                    {% else %}
-                    <span class="badge bg-danger">Inactive</span>
-                    {% endif %}
-                    {% if user.is_account_locked %}
-                    <span class="badge bg-warning">Locked</span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {% if user.last_login %}
-                    {{ user.last_login|date:"M j, Y H:i" }}
-                    {% else %}
-                    <em>Never</em>
-                    {% endif %}
-                  </td>
-                  <td>
-                    <div class="btn-group btn-group-sm">
-                      <a href="{% url 'accounts:user_detail' user.pk %}" class="btn btn-outline-primary">View</a>
-                      <a href="{% url 'accounts:user_update' user.pk %}" class="btn btn-outline-secondary">Edit</a>
-                    </div>
-                  </td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="6" class="text-center py-4">
-                    <em>No users found.</em>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
+<!-- Bulk Actions -->
+<div class="bulk-actions" id="bulkActions">
+  <div class="d-flex justify-content-between align-items-center">
+    <div>
+      <span id="selectedCount">0</span> users selected
+    </div>
+    <div class="btn-group">
+      <button type="button" class="btn btn-sm btn-success" onclick="bulkAction('activate')">
+        <i class="fas fa-check me-1"></i>Activate
+      </button>
+      <button type="button" class="btn btn-sm btn-warning" onclick="bulkAction('deactivate')">
+        <i class="fas fa-times me-1"></i>Deactivate
+      </button>
+      <button type="button" class="btn btn-sm btn-info" onclick="bulkAction('require_password_change')">
+        <i class="fas fa-key me-1"></i>Require Password Change
+      </button>
+      <button type="button" class="btn btn-sm btn-secondary" onclick="bulkAction('unlock_accounts')">
+        <i class="fas fa-unlock me-1"></i>Unlock Accounts
+      </button>
+    </div>
+  </div>
+</div>
 
-          <!-- Pagination -->
-          {% if is_paginated %}
-          <nav aria-label="User pagination">
-            <ul class="pagination justify-content-center">
-              {% if page_obj.has_previous %}
-              <li class="page-item">
-                <a class="page-link"
-                  href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">First</a>
-              </li>
-              <li class="page-item">
-                <a class="page-link"
-                  href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Previous</a>
-              </li>
+<!-- Users Table -->
+<div class="table-container">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0"><i class="fas fa-users me-2"></i>Users Directory</h5>
+    {% user_has_permission user 'users' 'add' as can_add_user %}
+    {% if can_add_user %}
+    <a href="{% url 'accounts:user_create' %}" class="btn btn-primary">
+      <i class="fas fa-plus me-2"></i>Add User
+    </a>
+    {% endif %}
+  </div>
+
+  <div class="table-responsive">
+    <table id="usersTable" class="table table-hover">
+      <thead>
+        <tr>
+          <th width="30">
+            <input type="checkbox" id="selectAll" class="form-check-input">
+          </th>
+          <th>User</th>
+          <th>Roles</th>
+          <th>Status</th>
+          <th>Last Login</th>
+          <th>Verification</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user_obj in users %}
+        <tr>
+          <td>
+            <input type="checkbox" class="form-check-input user-checkbox" value="{{ user_obj.id }}">
+          </td>
+          <td>
+            <div class="user-info">
+              {% if user_obj.profile_picture %}
+              <img src="{{ user_obj.profile_picture.url }}" alt="Avatar" class="user-avatar-sm">
+              {% else %}
+              <div class="user-avatar-sm bg-primary d-flex align-items-center justify-content-center text-white">
+                {{ user_obj|user_initials }}
+              </div>
               {% endif %}
-
-              <li class="page-item active">
-                <span class="page-link">
-                  Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                </span>
-              </li>
-
-              {% if page_obj.has_next %}
-              <li class="page-item">
-                <a class="page-link"
-                  href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Next</a>
-              </li>
-              <li class="page-item">
-                <a class="page-link"
-                  href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Last</a>
-              </li>
+              <div class="user-details">
+                <div class="user-name">{{ user_obj.get_display_name }}</div>
+                <div class="user-email">{{ user_obj.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="role-badges">
+              {% user_roles_badges user_obj %}
+            </div>
+          </td>
+          <td>
+            <div class="status-cell">
+              {% user_activity_indicator user_obj %}
+              {% account_status_badge user_obj %}
+            </div>
+          </td>
+          <td>
+            {% if user_obj.last_login %}
+            <span data-bs-toggle="tooltip" title="{{ user_obj.last_login|date:'Y-m-d H:i' }}">
+              {{ user_obj.last_login|time_since_filter }}
+            </span>
+            {% else %}
+            <span class="text-muted">Never</span>
+            {% endif %}
+          </td>
+          <td>
+            {% verification_status_badges user_obj %}
+          </td>
+          <td>
+            <div class="quick-actions">
+              <a href="{% url 'accounts:user_detail' user_obj.pk %}" class="btn btn-sm btn-outline-primary"
+                data-bs-toggle="tooltip" title="View Details">
+                <i class="fas fa-eye"></i>
+              </a>
+              {% user_has_permission user 'users' 'change' as can_change_user %}
+              {% if can_change_user %}
+              <a href="{% url 'accounts:user_update' user_obj.pk %}" class="btn btn-sm btn-outline-warning"
+                data-bs-toggle="tooltip" title="Edit User">
+                <i class="fas fa-edit"></i>
+              </a>
+              <button type="button" class="btn btn-sm btn-outline-info" onclick="toggleUserStatus({{ user_obj.pk }})"
+                data-bs-toggle="tooltip" title="Toggle Status">
+                <i class="fas fa-{{ user_obj.is_active|yesno:'pause,play' }}"></i>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetPassword({{ user_obj.pk }})"
+                data-bs-toggle="tooltip" title="Reset Password">
+                <i class="fas fa-key"></i>
+              </button>
               {% endif %}
-            </ul>
-          </nav>
-          {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center py-4">
+            <div class="text-muted">
+              <i class="fas fa-users fa-3x mb-3"></i>
+              <p>No users found matching your criteria.</p>
+              {% user_has_permission user 'users' 'add' as can_add_user %}
+              {% if can_add_user %}
+              <a href="{% url 'accounts:user_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Add First User
+              </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if is_paginated %}
+  <nav aria-label="Users pagination">
+    <ul class="pagination justify-content-center">
+      {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?{% query_transform page=1 %}">First</a>
+      </li>
+      <li class="page-item">
+        <a class="page-link" href="?{% query_transform page=page_obj.previous_page_number %}">Previous</a>
+      </li>
+      {% endif %}
+
+      {% for num in page_obj.paginator.page_range %}
+      {% if page_obj.number == num %}
+      <li class="page-item active">
+        <span class="page-link">{{ num }}</span>
+      </li>
+      {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+      <li class="page-item">
+        <a class="page-link" href="?{% query_transform page=num %}">{{ num }}</a>
+      </li>
+      {% endif %}
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?{% query_transform page=page_obj.next_page_number %}">Next</a>
+      </li>
+      <li class="page-item">
+        <a class="page-link" href="?{% query_transform page=page_obj.paginator.num_pages %}">Last</a>
+      </li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+</div>
+
+<!-- Modals -->
+<!-- Password Reset Modal -->
+<div class="modal fade" id="passwordResetModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Reset User Password</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to reset the password for this user?</p>
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle me-2"></i>
+          A temporary password will be generated and the user will be required to change it on next login.
         </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning" id="confirmPasswordReset">
+          <i class="fas fa-key me-2"></i>Reset Password
+        </button>
       </div>
     </div>
   </div>
 </div>
+
+<!-- Status Toggle Modal -->
+<div class="modal fade" id="statusToggleModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Toggle User Status</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to <span id="actionText"></span> this user account?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmStatusToggle">
+          Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    const table = $('#usersTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[1, 'asc']],
+      columnDefs: [
+        { orderable: false, targets: [0, 6] },
+        { searchable: false, targets: [0, 6] }
+      ],
+      dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip',
+      language: {
+        search: "Search users:",
+        lengthMenu: "Show _MENU_ users per page",
+        info: "Showing _START_ to _END_ of _TOTAL_ users",
+        emptyTable: "No users found",
+        zeroRecords: "No matching users found"
+      },
+      initComplete: function () {
+        // Move search to our custom form
+        const search = $('.dataTables_filter input').val();
+        if (search) {
+          $('#search').val(search);
+        }
+        $('.dataTables_filter').hide();
+      }
+    });
+
+    // Custom search integration
+    $('#search').on('keyup', function () {
+      table.search(this.value).draw();
+    });
+
+    // Select All functionality
+    $('#selectAll').on('change', function () {
+      const isChecked = $(this).is(':checked');
+      $('.user-checkbox').prop('checked', isChecked);
+      updateBulkActions();
+    });
+
+    // Individual checkbox handling
+    $('.user-checkbox').on('change', function () {
+      const totalCheckboxes = $('.user-checkbox').length;
+      const checkedCheckboxes = $('.user-checkbox:checked').length;
+
+      $('#selectAll').prop('checked', totalCheckboxes === checkedCheckboxes);
+      updateBulkActions();
+    });
+
+    function updateBulkActions() {
+      const selectedCount = $('.user-checkbox:checked').length;
+      $('#selectedCount').text(selectedCount);
+
+      if (selectedCount > 0) {
+        $('#bulkActions').addClass('show');
+      } else {
+        $('#bulkActions').removeClass('show');
+      }
+    }
+
+    // Initialize tooltips
+    $('[data-bs-toggle="tooltip"]').tooltip();
+  });
+
+  // Utility functions for notifications
+  function showToast(message, type = 'info') {
+    // You would implement your toast notification system here
+    console.log(`${type.toUpperCase()}: ${message}`);
+    alert(message); // Simple fallback
+  }
+
+  function showLoading() {
+    // Show loading spinner
+    console.log('Loading...');
+  }
+
+  function hideLoading() {
+    // Hide loading spinner
+    console.log('Loading complete');
+  }
+
+  // Bulk Actions
+  function bulkAction(action) {
+    const selectedUsers = $('.user-checkbox:checked').map(function () {
+      return this.value;
+    }).get();
+
+    if (selectedUsers.length === 0) {
+      showToast('Please select users first', 'warning');
+      return;
+    }
+
+    if (confirm(`Are you sure you want to ${action.replace('_', ' ')} ${selectedUsers.length} users?`)) {
+      showLoading();
+
+      $.post('{% url "accounts:bulk_action" %}', {
+        action: action,
+        user_ids: selectedUsers,
+        csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val()
+      })
+        .done(function (response) {
+          hideLoading();
+          if (response.success) {
+            showToast(response.message, 'success');
+            location.reload();
+          } else {
+            showToast(response.error, 'error');
+          }
+        })
+        .fail(function () {
+          hideLoading();
+          showToast('An error occurred', 'error');
+        });
+    }
+  }
+
+  // Toggle User Status
+  let currentUserId = null;
+
+  function toggleUserStatus(userId) {
+    currentUserId = userId;
+    const modal = new bootstrap.Modal(document.getElementById('statusToggleModal'));
+    modal.show();
+  }
+
+  document.getElementById('confirmStatusToggle').addEventListener('click', function () {
+    if (currentUserId) {
+      showLoading();
+
+      $.post('{% url "accounts:toggle_user_status" 0 %}'.replace('0', currentUserId))
+        .done(function (response) {
+          hideLoading();
+          if (response.success) {
+            showToast(response.message, 'success');
+            location.reload();
+          } else {
+            showToast(response.error, 'error');
+          }
+        })
+        .fail(function () {
+          hideLoading();
+          showToast('An error occurred', 'error');
+        });
+
+      bootstrap.Modal.getInstance(document.getElementById('statusToggleModal')).hide();
+    }
+  });
+
+  // Reset Password
+  let resetUserId = null;
+
+  function resetPassword(userId) {
+    resetUserId = userId;
+    const modal = new bootstrap.Modal(document.getElementById('passwordResetModal'));
+    modal.show();
+  }
+
+  document.getElementById('confirmPasswordReset').addEventListener('click', function () {
+    if (resetUserId) {
+      showLoading();
+
+      $.post('{% url "accounts:reset_user_password" 0 %}'.replace('0', resetUserId))
+        .done(function (response) {
+          hideLoading();
+          if (response.success) {
+            showToast(`Password reset successfully. Temporary password: ${response.temporary_password}`, 'success');
+          } else {
+            showToast(response.error, 'error');
+          }
+        })
+        .fail(function () {
+          hideLoading();
+          showToast('An error occurred', 'error');
+        });
+
+      bootstrap.Modal.getInstance(document.getElementById('passwordResetModal')).hide();
+    }
+  });
+
+  // Export Users
+  function exportUsers() {
+    const form = document.createElement('form');
+    form.method = 'GET';
+    form.action = '{% url "accounts:export_users" %}';
+
+    // Add current filter parameters
+    const formData = new FormData(document.getElementById('filterForm'));
+    for (let [key, value] of formData.entries()) {
+      if (value) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+      }
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+
+    showToast('Export started. Download will begin shortly.', 'info');
+  }
+
+  // Auto-refresh functionality
+  let autoRefreshInterval;
+  const AUTO_REFRESH_SECONDS = 60; // Refresh every minute
+
+  function startAutoRefresh() {
+    autoRefreshInterval = setInterval(function () {
+      // Only refresh if no modals are open
+      if (!document.querySelector('.modal.show')) {
+        const table = $('#usersTable').DataTable();
+        table.ajax.reload(null, false); // false means keep current page
+      }
+    }, AUTO_REFRESH_SECONDS * 1000);
+  }
+
+  function stopAutoRefresh() {
+    if (autoRefreshInterval) {
+      clearInterval(autoRefreshInterval);
+    }
+  }
+
+  // Start auto-refresh when page loads
+  $(document).ready(function () {
+    // Uncomment to enable auto-refresh
+    // startAutoRefresh();
+  });
+
+  // Stop auto-refresh when page is hidden
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+      stopAutoRefresh();
+    } else {
+      // Restart when page becomes visible again
+      // startAutoRefresh();
+    }
+  });
+</script>
 {% endblock %}

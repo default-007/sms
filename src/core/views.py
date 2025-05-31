@@ -68,13 +68,13 @@ class SchoolAdminMixin(UserPassesTestMixin):
 class DashboardView(LoginRequiredMixin, TemplateView):
     """Main dashboard view"""
 
-    template_name = "core/dashboard.html"
+    template_name = "dashboard.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
         # Get current academic year and term
-        from academics.models import AcademicYear, Term
+        from src.academics.models import AcademicYear, Term
 
         current_year = AcademicYear.objects.filter(is_current=True).first()
         current_term = (
@@ -82,9 +82,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         )
 
         # Basic statistics
-        from students.models import Student
-        from teachers.models import Teacher
-        from academics.models import Class
+        from src.students.models import Student
+        from src.teachers.models import Teacher
+        from src.academics.models import Class
 
         context.update(
             {
@@ -240,7 +240,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         )
 
         # Get recent assignments
-        from assignments.models import AssignmentSubmission
+        from src.assignments.models import AssignmentSubmission
 
         recent_assignments = (
             AssignmentSubmission.objects.filter(student=student)

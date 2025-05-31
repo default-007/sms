@@ -43,7 +43,7 @@ def permission_required(resource, action):
         def wrapper(request, *args, **kwargs):
             if not request.user.is_authenticated:
                 messages.error(request, _("You need to login to access this page."))
-                return redirect("login")
+                return redirect("accounts:login")
 
             if not RoleService.check_permission(request.user, resource, action):
                 messages.error(

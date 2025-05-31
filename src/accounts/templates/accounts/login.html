@@ -12,8 +12,268 @@
     <!-- Favicon icon-->
     <link rel="shortcut icon" type="image/png" href="{% static 'assets/images/logos/favicon.png' %}" />
 
+
+    <style>
+      .login-container {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        width: 100%;
+        max-width: 1000px;
+        min-height: 600px;
+        display: flex;
+      }
+
+      .login-left {
+        flex: 1;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 3rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        text-align: center;
+      }
+
+      .login-right {
+        flex: 1;
+        padding: 3rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .logo {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+      }
+
+      .welcome-text h2 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+      }
+
+      .welcome-text p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        line-height: 1.6;
+      }
+
+      .login-form {
+        width: 100%;
+      }
+
+      .form-title {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .form-title h3 {
+        color: #333;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+      }
+
+      .form-title p {
+        color: #666;
+        margin-bottom: 0;
+      }
+
+      .form-floating {
+        margin-bottom: 1.5rem;
+      }
+
+      .form-floating input {
+        border: 2px solid #e1e5e9;
+        border-radius: 10px;
+        padding: 1rem 0.75rem;
+        height: auto;
+        transition: all 0.3s ease;
+      }
+
+      .form-floating input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+      }
+
+      .form-floating label {
+        color: #666;
+        padding: 1rem 0.75rem;
+      }
+
+      .btn-login {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 10px;
+        padding: 0.8rem 2rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: all 0.3s ease;
+        width: 100%;
+        margin-bottom: 1rem;
+      }
+
+      .btn-login:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+      }
+
+      .forgot-password {
+        text-align: center;
+        margin-top: 1rem;
+      }
+
+      .forgot-password a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      .forgot-password a:hover {
+        text-decoration: underline;
+      }
+
+      .form-check {
+        margin-bottom: 1rem;
+      }
+
+      .form-check-input:checked {
+        background-color: #667eea;
+        border-color: #667eea;
+      }
+
+      .alert {
+        border-radius: 10px;
+        border: none;
+        margin-bottom: 1.5rem;
+      }
+
+      .login-features {
+        margin-top: 2rem;
+      }
+
+      .feature-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        font-size: 0.95rem;
+      }
+
+      .feature-item i {
+        margin-right: 1rem;
+        width: 20px;
+        text-align: center;
+      }
+
+      .security-info {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-top: 2rem;
+      }
+
+      .security-info h5 {
+        margin-bottom: 1rem;
+        font-weight: 600;
+      }
+
+      .security-info ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .security-info li {
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+      }
+
+      .security-info li i {
+        margin-right: 0.5rem;
+        color: #4CAF50;
+      }
+
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.9);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      }
+
+      .login-stats {
+        position: absolute;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        text-align: center;
+        font-size: 0.85rem;
+        opacity: 0.8;
+      }
+
+      @media (max-width: 768px) {
+        .login-container {
+          flex-direction: column;
+          max-width: 400px;
+        }
+
+        .login-left {
+          padding: 2rem;
+          min-height: 200px;
+        }
+
+        .login-right {
+          padding: 2rem;
+        }
+
+        .welcome-text h2 {
+          font-size: 2rem;
+        }
+
+        .logo {
+          font-size: 2rem;
+        }
+      }
+
+      .input-group-text {
+        background: transparent;
+        border: 2px solid #e1e5e9;
+        border-right: none;
+        border-radius: 10px 0 0 10px;
+      }
+
+      .input-group input {
+        border-left: none;
+        border-radius: 0 10px 10px 0;
+      }
+
+      .password-toggle {
+        cursor: pointer;
+        transition: color 0.3s ease;
+      }
+
+      .password-toggle:hover {
+        color: #667eea;
+      }
+    </style>
+
     <!-- Core Css -->
     <link rel="stylesheet" href="{% static 'assets/css/styles.css' %}" />
+
+    <!-- CSS Libraries -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+
     <title>Mentura Admin</title>
   </head>
 
@@ -35,15 +295,49 @@
                 <div class="row justify-content-center w-100">
                   <div class="col-lg-7">
                     <h2 class="text-white fs-10 mb-3">
-                      Welcome to
+                      Welcome Back to
                       <br />
                       Mentura
                     </h2>
-                    <span class="opacity-75 fs-4 text-white d-block mb-3">Mentura helps developers to build organized
-                      and well
-                      coded dashboards full of beautiful and rich modules.
+                    <span class="opacity-75 fs-4 text-white d-block mb-3">Access your School Management System account
+                      to continue managing your educational institution efficiently.
                     </span>
                     <a href="../landingpage/index.html" class="btn btn-primary">Learn More</a>
+                    <div class="welcome-content text-white d-block">
+
+                      <div class="login-features">
+                        <div class="feature-item">
+                          <i class="fas fa-users"></i>
+                          <span>Comprehensive User Management</span>
+                        </div>
+                        <div class="feature-item">
+                          <i class="fas fa-chart-line"></i>
+                          <span>Advanced Analytics & Reporting</span>
+                        </div>
+                        <div class="feature-item">
+                          <i class="fas fa-shield-alt"></i>
+                          <span>Enterprise-Grade Security</span>
+                        </div>
+                        <div class="feature-item">
+                          <i class="fas fa-mobile-alt"></i>
+                          <span>Mobile-Responsive Design</span>
+                        </div>
+                      </div>
+
+                      <div class="security-info">
+                        <h5><i class="fas fa-lock me-2"></i>Security Features</h5>
+                        <ul>
+                          <li><i class="fas fa-check"></i>Two-Factor Authentication</li>
+                          <li><i class="fas fa-check"></i>Session Management</li>
+                          <li><i class="fas fa-check"></i>Audit Logging</li>
+                          <li><i class="fas fa-check"></i>IP Monitoring</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <!-- <div class="login-stats">
+                      <small>Trusted by 500+ Educational Institutions</small>
+                    </div> -->
                   </div>
                 </div>
               </div>
@@ -56,101 +350,93 @@
                     <img src="{% static 'assets/images/logos/logo-icon.svg' %}" class="dark-logo" alt="Logo-Dark" />
                   </a>
                   <h2 class="mb-2 mt-4 fs-7 fw-bolder">Login</h2>
-                  <!-- <p class="mb-9">Your Admin Dashboard</p>
+                  <p class="mb-9">Enter your credentials to access your account</p>
+                  <!--
                   <div class="position-relative text-center my-4">
                     <p class="mb-0 fs-4 px-3 d-inline-block bg-body text-dark z-index-5 position-relative">
                       or sign in with
                     </p>
                     <span class="border-top w-100 position-absolute top-50 start-50 translate-middle"></span>
                   </div> -->
+                  <!-- Messages -->
                   {% if messages %}
                   {% for message in messages %}
-                  <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                  <div class="alert alert-{{ message.tags }} animate__animated animate__shakeX" role="alert">
+
                     {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                   </div>
                   {% endfor %}
                   {% endif %}
 
-                  <form id="login-form" method="post" action="{% url 'accounts:login' %}" @submit.prevent="submitForm">
+                  <!-- Login Form -->
+                  <form method="post" id="loginForm">
                     {% csrf_token %}
 
-                    {% if form.non_field_errors %}
-                    <div class="alert alert-danger">
-                      {% for error in form.non_field_errors %}
-                      {{ error }}
-                      {% endfor %}
-                    </div>
-                    {% endif %}
-
-                    <div class="mb-3">
-                      <label for="id_username" class="form-label">Phone or Email</label>
-                      <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-user"></i></span>
-                        <input type="text" name="username" id="id_username"
-                          class="form-control {% if form.email.errors %}is-invalid{% endif %}"
-                          placeholder="Enter your username or email" required x-model="username">
-                      </div>
-                      {% if form.email.errors %}
-                      <div class="invalid-feedback">
-                        {% for error in form.email.errors %}
-                        {{ error }}
-                        {% endfor %}
+                    <!-- Identifier Field -->
+                    <div class="form-floating mb-3">
+                      <input type="text" class="form-control" id="id_identifier" name="identifier"
+                        placeholder="Email, Phone, or Username" required value="{{ form.identifier.value|default:'' }}">
+                      <label for="id_identifier">
+                        <i class="fas fa-user me-2"></i>Email, Phone, or Username
+                      </label>
+                      {% if form.identifier.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.identifier.errors.0 }}
                       </div>
                       {% endif %}
                     </div>
 
-                    <div class="mb-3">
-                      <label for="id_password" class="form-label">Password</label>
-                      <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                        <input type="password" name="password" id="id_password"
-                          class="form-control {% if form.password.errors %}is-invalid{% endif %}"
-                          placeholder="Enter your password" required x-model="password">
-                        <button class="btn btn-outline-secondary" type="button" @click="togglePassword">
-                          <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
-                        </button>
-                      </div>
+                    <!-- Password Field -->
+                    <div class="form-floating mb-3">
+                      <input type="password" class="form-control" id="id_password" name="password"
+                        placeholder="Password" required>
+                      <label for="id_password">
+                        <i class="fas fa-lock me-2"></i>Password
+                      </label>
+                      <span class="position-absolute top-50 end-0 translate-middle-y me-3 password-toggle"
+                        onclick="togglePassword('id_password', this)">
+                        <i class="fas fa-eye"></i>
+                      </span>
                       {% if form.password.errors %}
-                      <div class="invalid-feedback">
-                        {% for error in form.password.errors %}
-                        {{ error }}
-                        {% endfor %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.password.errors.0 }}
                       </div>
                       {% endif %}
                     </div>
 
-                    <div class="mb-3 d-flex justify-content-between align-items-center">
-                      <div class="form-check">
-                        <input type="checkbox" name="remember" id="id_remember" class="form-check-input"
-                          x-model="remember">
-                        <label class="form-check-label" for="id_remember">Remember me</label>
-                      </div>
-                      <a href="{% url 'accounts:password_reset' %}" class="text-primary small">Forgot Password?</a>
+                    <!-- Remember Me -->
+                    <div class="form-check mb-3">
+                      <input class="form-check-input" type="checkbox" id="id_remember_me" name="remember_me">
+                      <label class="form-check-label" for="id_remember_me">
+                        Remember me for 2 weeks
+                      </label>
                     </div>
 
-                    <div class="mb-3">
-                      <button type="submit" class="btn btn-primary w-100" :disabled="isSubmitting">
-                        <template x-if="isSubmitting">
-                          <span>
-                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                            Logging in...
-                          </span>
-                        </template>
-                        <template x-if="!isSubmitting">
-                          <span>
-                            <i class="fas fa-sign-in-alt me-2"></i> Login
-                          </span>
-                        </template>
-                      </button>
-                    </div>
-
-                    <div class="d-flex align-items-center justify-content-center">
-                      <p class="fs-4 mb-0 fw-medium">New to MaterialM?</p>
-                      <a class="text-primary fw-medium ms-2" href="">Create an
-                        account</a>
-                    </div>
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary btn-login">
+                      <span class="btn-text">Sign In</span>
+                      <span class="btn-loading d-none">
+                        <i class="fas fa-spinner fa-spin me-2"></i>Signing In...
+                      </span>
+                    </button>
                   </form>
+
+                  <!-- Additional Links -->
+                  <div class="forgot-password">
+                    <a href="{% url 'accounts:password_reset' %}">
+                      <i class="fas fa-key me-1"></i>Forgot your password?
+                    </a>
+                  </div>
+
+                  <!-- Help Information -->
+                  <div class="mt-4 p-3 bg-light rounded">
+                    <h6 class="mb-2"><i class="fas fa-info-circle me-2 text-info"></i>Need Help?</h6>
+                    <small class="text-muted">
+                      Contact your system administrator or IT support for login assistance.
+                      <br>
+                      <strong>Support:</strong> support@mentura.edu | <strong>Phone:</strong> (254) 708-681091
+                    </small>
+                  </div>
                 </div>
               </div>
             </div>
@@ -166,8 +452,118 @@
     <script src="{% static 'assets/js/theme/theme.js' %}"></script>
     <script src="{% static 'assets/js/theme/app.min.js' %}"></script>
 
-    <!-- solar icons -->
-    <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Form submission handling
+      document.getElementById('loginForm').addEventListener('submit', function (e) {
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const btnText = submitBtn.querySelector('.btn-text');
+        const btnLoading = submitBtn.querySelector('.btn-loading');
+
+        // Show loading state
+        btnText.classList.add('d-none');
+        btnLoading.classList.remove('d-none');
+        submitBtn.disabled = true;
+
+        // Show loading overlay
+        document.getElementById('loadingOverlay').style.display = 'flex';
+      });
+
+      // Password toggle function
+      function togglePassword(inputId, toggleElement) {
+        const passwordInput = document.getElementById(inputId);
+        const icon = toggleElement.querySelector('i');
+
+        if (passwordInput.type === 'password') {
+          passwordInput.type = 'text';
+          icon.classList.remove('fa-eye');
+          icon.classList.add('fa-eye-slash');
+        } else {
+          passwordInput.type = 'password';
+          icon.classList.remove('fa-eye-slash');
+          icon.classList.add('fa-eye');
+        }
+      }
+
+      // Auto-focus on identifier field
+      document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('id_identifier').focus();
+      });
+
+      // Handle form errors
+      const errorAlerts = document.querySelectorAll('.alert-danger');
+      if (errorAlerts.length > 0) {
+        // If there are errors, reset the form button state
+        const submitBtn = document.querySelector('button[type="submit"]');
+        const btnText = submitBtn.querySelector('.btn-text');
+        const btnLoading = submitBtn.querySelector('.btn-loading');
+
+        btnText.classList.remove('d-none');
+        btnLoading.classList.add('d-none');
+        submitBtn.disabled = false;
+
+        // Hide loading overlay
+        document.getElementById('loadingOverlay').style.display = 'none';
+      }
+
+      // Check for URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('locked') === '1') {
+        showAlert('Your account has been locked due to multiple failed login attempts. Please contact support.', 'warning');
+      } else if (urlParams.get('expired') === '1') {
+        showAlert('Your session has expired. Please log in again.', 'info');
+      } else if (urlParams.get('security') === '1') {
+        showAlert('Session security violation detected. Please log in again.', 'warning');
+      }
+
+      function showAlert(message, type) {
+        const alertContainer = document.querySelector('.login-form');
+        const alertHTML = `
+                    <div class="alert alert-${type} animate__animated animate__fadeInDown" role="alert">
+                        <i class="fas fa-${type === 'warning' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                        ${message}
+                    </div>
+                `;
+        alertContainer.insertAdjacentHTML('afterbegin', alertHTML);
+      }
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', function (e) {
+        // Alt + L to focus login field
+        if (e.altKey && e.key === 'l') {
+          e.preventDefault();
+          document.getElementById('id_identifier').focus();
+        }
+      });
+
+      // Enhanced security indicator
+      function checkCapsLock(event) {
+        if (event.getModifierState && event.getModifierState('CapsLock')) {
+          showCapsLockWarning(true);
+        } else {
+          showCapsLockWarning(false);
+        }
+      }
+
+      function showCapsLockWarning(show) {
+        let warning = document.getElementById('capsLockWarning');
+        if (show && !warning) {
+          const passwordField = document.getElementById('id_password');
+          warning = document.createElement('div');
+          warning.id = 'capsLockWarning';
+          warning.className = 'alert alert-warning mt-2 py-2';
+          warning.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Caps Lock is on';
+          passwordField.parentNode.insertBefore(warning, passwordField.nextSibling);
+        } else if (!show && warning) {
+          warning.remove();
+        }
+      }
+
+      // Add caps lock detection to password field
+      document.getElementById('id_password').addEventListener('keydown', checkCapsLock);
+      document.getElementById('id_password').addEventListener('keyup', checkCapsLock);
+    </script>
   </body>
 
 </html>

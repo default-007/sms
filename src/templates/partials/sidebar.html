@@ -200,9 +200,9 @@
             <!-- ---------------------------------- -->
             <!-- Dashboard -->
             <!-- ---------------------------------- -->
-            <li class="sidebar-item {% if request.path == '/' %}mm-active{% endif %}">
-              <a class="sidebar-link {% if request.path == '/' %}active{% endif %}" href="{% url 'core:dashboard' %}"
-                aria-expanded="false">
+            <li class="sidebar-item">
+              <a class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
+                href="{% url 'core:dashboard' %}" aria-expanded="false">
                 <i class="fas fa-tachometer-alt" style="color: #3B82F6;"></i>
                 <span class="hide-menu">Dashboard</span>
               </a>
@@ -351,7 +351,7 @@
               </a>
               <ul aria-expanded="false" class="collapse first-level">
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'accounts:role_list' %}">
+                  <a class="sidebar-link" href="{% url 'accounts:user_list' %}">
                     <i class="fas fa-shield-alt" style="color: #34D399;"></i>
                     User Management
                   </a>

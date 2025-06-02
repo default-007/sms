@@ -17,6 +17,7 @@ from .views import (
     UserDetailView,
     UserListView,
     UserUpdateView,
+    bulk_import_users,
     bulk_user_action,
     export_users,
     profile_view,
@@ -78,5 +79,6 @@ urlpatterns = [
         name="reset_user_password",
     ),
     path("bulk-action/", bulk_user_action, name="bulk_action"),
+    path("bulk-import/", bulk_import_users, name="bulk_import_users"),
     path("export/", export_users, name="export_users"),
 ]

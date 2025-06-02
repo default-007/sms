@@ -1,1060 +1,674 @@
 {% extends 'base.html' %}
-{% load accounts_tags %}
+{% load static %}
 
-{% block title %}User Analytics Dashboard{% endblock %}
-
-{% block page_title %}User Analytics Dashboard{% endblock %}
-
-{% block breadcrumb_items %}
-<li class="breadcrumb-item">Reports</li>
-<li class="breadcrumb-item active">User Analytics</li>
-{% endblock %}
+{% block title %}User Analytics Dashboard - {{ block.super }}{% endblock %}
 
 {% block extra_css %}
 <style>
-  .analytics-card {
-    background: white;
-    border-radius: 15px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    border: none;
-    transition: all 0.3s ease;
-  }
-
-  .analytics-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  }
-
-  .analytics-card h5 {
-    color: #333;
-    margin-bottom: 1.5rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-  }
-
-  .analytics-card h5 i {
-    margin-right: 0.75rem;
-    color: #667eea;
-    font-size: 1.1rem;
-  }
-
   .metric-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 15px;
-    padding: 1.5rem;
-    text-align: center;
-    height: 100%;
-    position: relative;
-    overflow: hidden;
+    transition: transform 0.2s;
   }
 
-  .metric-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 100px;
-    height: 100px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    transform: translate(30px, -30px);
-  }
-
-  .metric-icon {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    opacity: 0.9;
-    position: relative;
-    z-index: 1;
-  }
-
-  .metric-number {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-    position: relative;
-    z-index: 1;
-  }
-
-  .metric-label {
-    font-size: 1rem;
-    opacity: 0.9;
-    margin-bottom: 0.5rem;
-    position: relative;
-    z-index: 1;
-  }
-
-  .metric-change {
-    font-size: 0.85rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.25rem;
-    position: relative;
-    z-index: 1;
-  }
-
-  .metric-change.positive {
-    color: #d4edda;
-  }
-
-  .metric-change.negative {
-    color: #f8d7da;
+  .metric-card:hover {
+    transform: translateY(-2px);
   }
 
   .chart-container {
-    height: 350px;
-    margin: 1rem 0;
-  }
-
-  .chart-container.large {
-    height: 450px;
-  }
-
-  .filter-controls {
-    background: #f8f9fa;
-    border-radius: 10px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-  }
-
-  .filter-controls .form-control,
-  .filter-controls .form-select {
-    border: 2px solid #e1e5e9;
+    background: white;
     border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
-  .filter-controls .form-control:focus,
-  .filter-controls .form-select:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-  }
-
-  .insights-panel {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 15px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .insights-panel h5 {
-    color: white;
-    margin-bottom: 1rem;
-  }
-
-  .insight-item {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 0.75rem;
-    backdrop-filter: blur(10px);
-  }
-
-  .insight-item:last-child {
-    margin-bottom: 0;
-  }
-
-  .insight-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
+  .loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-right: 1rem;
-    flex-shrink: 0;
-  }
-
-  .data-table-card {
-    background: white;
-    border-radius: 15px;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  }
-
-  .data-table-card .card-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 1.25rem 1.5rem;
-    border-radius: 0;
-    margin-bottom: 0;
-  }
-
-  .data-table-card .card-body {
-    padding: 0;
-  }
-
-  .table th {
-    background: #f8f9fa;
-    border-top: none;
-    font-weight: 600;
-    color: #333;
-    padding: 1rem;
-  }
-
-  .table td {
-    padding: 1rem;
-    vertical-align: middle;
-  }
-
-  .trend-indicator {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    font-weight: 600;
-    font-size: 0.85rem;
-  }
-
-  .trend-up {
-    color: #28a745;
-  }
-
-  .trend-down {
-    color: #dc3545;
-  }
-
-  .trend-stable {
-    color: #6c757d;
-  }
-
-  .loading-skeleton {
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-    background-size: 200% 100%;
-    animation: loading 1.5s infinite;
-    border-radius: 4px;
-    height: 20px;
-    margin-bottom: 10px;
-  }
-
-  @keyframes loading {
-    0% {
-      background-position: 200% 0;
-    }
-
-    100% {
-      background-position: -200% 0;
-    }
-  }
-
-  .export-dropdown {
-    position: relative;
-  }
-
-  .real-time-indicator {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: #28a745;
-    font-size: 0.85rem;
-    font-weight: 500;
-  }
-
-  .real-time-dot {
-    width: 8px;
-    height: 8px;
-    background: #28a745;
-    border-radius: 50%;
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse {
-    0% {
-      box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
-    }
-
-    70% {
-      box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
-    }
-
-    100% {
-      box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
-    }
-  }
-
-  .period-selector {
-    display: flex;
-    background: white;
-    border-radius: 10px;
-    padding: 0.25rem;
-    border: 1px solid #e9ecef;
-    margin-bottom: 1.5rem;
-  }
-
-  .period-btn {
-    flex: 1;
-    padding: 0.5rem 1rem;
-    border: none;
-    background: transparent;
-    border-radius: 8px;
-    font-weight: 500;
-    color: #666;
-    transition: all 0.3s ease;
-    cursor: pointer;
-  }
-
-  .period-btn.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-  }
-
-  .comparison-card {
-    background: white;
-    border-radius: 10px;
-    padding: 1rem;
-    border-left: 4px solid #667eea;
-    margin-bottom: 1rem;
-  }
-
-  .comparison-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #333;
-  }
-
-  .comparison-label {
-    color: #666;
-    font-size: 0.9rem;
-  }
-
-  .heatmap-container {
-    background: white;
-    border-radius: 15px;
-    padding: 1.5rem;
-    height: 400px;
+    z-index: 10;
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Filter Controls -->
-<div class="filter-controls animate__animated animate__fadeInUp">
-  <div class="row align-items-center">
-    <div class="col-md-3">
-      <label for="dateRange" class="form-label fw-semibold">
-        <i class="fas fa-calendar-alt me-2"></i>Date Range
-      </label>
-      <select class="form-select" id="dateRange" onchange="updateAnalytics()">
-        <option value="7" {% if days == 7 %}selected{% endif %}>Last 7 days</option>
-        <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 days</option>
-        <option value="90" {% if days == 90 %}selected{% endif %}>Last 90 days</option>
-        <option value="365" {% if days == 365 %}selected{% endif %}>Last 12 months</option>
-      </select>
-    </div>
-    <div class="col-md-3">
-      <label for="roleFilter" class="form-label fw-semibold">
-        <i class="fas fa-user-tag me-2"></i>Filter by Role
-      </label>
-      <select class="form-select" id="roleFilter" onchange="updateAnalytics()">
-        <option value="">All Roles</option>
-        <option value="admin">Admin</option>
-        <option value="teacher">Teacher</option>
-        <option value="student">Student</option>
-        <option value="parent">Parent</option>
-      </select>
-    </div>
-    <div class="col-md-3">
-      <label for="statusFilter" class="form-label fw-semibold">
-        <i class="fas fa-toggle-on me-2"></i>Filter by Status
-      </label>
-      <select class="form-select" id="statusFilter" onchange="updateAnalytics()">
-        <option value="">All Status</option>
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
-        <option value="locked">Locked</option>
-      </select>
-    </div>
-    <div class="col-md-3 d-flex align-items-end">
-      <div class="dropdown export-dropdown w-100">
-        <button class="btn btn-outline-primary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
-          <i class="fas fa-download me-2"></i>Export
-        </button>
-        <ul class="dropdown-menu">
-          <li><a class="dropdown-item" href="#" onclick="exportData('pdf')">
-              <i class="fas fa-file-pdf me-2"></i>PDF Report
-            </a></li>
-          <li><a class="dropdown-item" href="#" onclick="exportData('excel')">
-              <i class="fas fa-file-excel me-2"></i>Excel Report
-            </a></li>
-          <li><a class="dropdown-item" href="#" onclick="exportData('csv')">
-              <i class="fas fa-file-csv me-2"></i>CSV Data
-            </a></li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Quick Period Selector -->
-<div class="period-selector animate__animated animate__fadeInUp">
-  <button class="period-btn" onclick="setPeriod(7)">7D</button>
-  <button class="period-btn active" onclick="setPeriod(30)">30D</button>
-  <button class="period-btn" onclick="setPeriod(90)">90D</button>
-  <button class="period-btn" onclick="setPeriod(365)">1Y</button>
-</div>
-
-<!-- Real-time Indicator -->
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h4 class="mb-0">Analytics Overview</h4>
-  <div class="real-time-indicator">
-    <div class="real-time-dot"></div>
-    <span>Real-time data</span>
-    <small class="text-muted ms-2">Last updated: <span
-        id="lastUpdate">{{ analytics_data.generated_at|date:"H:i" }}</span></small>
-  </div>
-</div>
-
-<!-- Key Metrics Row -->
-<div class="row mb-4">
-  <div class="col-xl-3 col-md-6 mb-4">
-    <div class="metric-card animate__animated animate__fadeInUp">
-      <div class="metric-icon">
-        <i class="fas fa-users"></i>
-      </div>
-      <div class="metric-number" id="totalUsers">{{ analytics_data.lifecycle_analytics.total_users }}</div>
-      <div class="metric-label">Total Users</div>
-      <div class="metric-change positive">
-        <i class="fas fa-arrow-up"></i>
-        <span>+{{ analytics_data.registration_trends.growth_rate|floatformat:1 }}%</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-xl-3 col-md-6 mb-4">
-    <div class="metric-card animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
-      <div class="metric-icon">
-        <i class="fas fa-user-check"></i>
-      </div>
-      <div class="metric-number" id="activeUsers">{{ analytics_data.lifecycle_analytics.active_users }}</div>
-      <div class="metric-label">Active Users</div>
-      <div class="metric-change positive">
-        <i class="fas fa-arrow-up"></i>
-        <span>+12.5%</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-xl-3 col-md-6 mb-4">
-    <div class="metric-card animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
-      <div class="metric-icon">
-        <i class="fas fa-user-plus"></i>
-      </div>
-      <div class="metric-number" id="newUsers">{{ analytics_data.registration_trends.total_registrations }}</div>
-      <div class="metric-label">New Registrations</div>
-      <div class="metric-change positive">
-        <i class="fas fa-arrow-up"></i>
-        <span>+8.3%</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-xl-3 col-md-6 mb-4">
-    <div class="metric-card animate__animated animate__fadeInUp" style="animation-delay: 0.3s;">
-      <div class="metric-icon">
-        <i class="fas fa-sign-in-alt"></i>
-      </div>
-      <div class="metric-number" id="loginRate">{{ analytics_data.activity_analytics.success_rate|floatformat:1 }}%
-      </div>
-      <div class="metric-label">Login Success Rate</div>
-      <div class="metric-change positive">
-        <i class="fas fa-arrow-up"></i>
-        <span>+2.1%</span>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Main Charts Row -->
-<div class="row">
-  <!-- Registration Trends -->
-  <div class="col-lg-8 mb-4">
-    <div class="analytics-card animate__animated animate__fadeInUp">
-      <h5><i class="fas fa-chart-line"></i>User Registration Trends</h5>
-      <div class="chart-container large" id="registrationChart"></div>
-    </div>
-  </div>
-
-  <!-- Insights Panel -->
-  <div class="col-lg-4 mb-4">
-    <div class="insights-panel animate__animated animate__fadeInUp">
-      <h5><i class="fas fa-lightbulb me-2"></i>Key Insights</h5>
-
-      <div class="insight-item d-flex align-items-center">
-        <div class="insight-icon">
-          <i class="fas fa-trending-up"></i>
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-1">
+            <i class="bi bi-graph-up me-2"></i>
+            User Analytics Dashboard
+          </h1>
+          <p class="text-muted mb-0">Comprehensive insights into user activity and system performance</p>
         </div>
         <div>
-          <div class="fw-semibold">Registration Growth</div>
-          <small>{{ analytics_data.registration_trends.growth_rate|floatformat:1 }}% increase this period</small>
+          <div class="btn-group" role="group">
+            <input type="radio" class="btn-check" name="period" id="period7" value="7"
+              {% if days == 7 %}checked{% endif %}>
+            <label class="btn btn-outline-primary" for="period7">7 Days</label>
+
+            <input type="radio" class="btn-check" name="period" id="period30" value="30"
+              {% if days == 30 %}checked{% endif %}>
+            <label class="btn btn-outline-primary" for="period30">30 Days</label>
+
+            <input type="radio" class="btn-check" name="period" id="period90" value="90"
+              {% if days == 90 %}checked{% endif %}>
+            <label class="btn btn-outline-primary" for="period90">90 Days</label>
+          </div>
+          <button type="button" class="btn btn-success ms-2" onclick="exportDashboard()">
+            <i class="bi bi-download me-2"></i>Export Report
+          </button>
         </div>
       </div>
+    </div>
+  </div>
 
-      <div class="insight-item d-flex align-items-center">
-        <div class="insight-icon">
-          <i class="fas fa-clock"></i>
-        </div>
-        <div>
-          <div class="fw-semibold">Peak Activity</div>
-          <small>Most logins occur between 8-10 AM</small>
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card metric-card bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="mb-0">{{ analytics_data.lifecycle_analytics.total_users }}</h3>
+              <small>Total Users</small>
+              {% with growth=analytics_data.registration_trends.growth_rate %}
+              <div class="d-flex align-items-center mt-1">
+                <i class="bi bi-{% if growth >= 0 %}arrow-up{% else %}arrow-down{% endif %} me-1"></i>
+                <small>{{ growth|floatformat:1 }}% vs last period</small>
+              </div>
+              {% endwith %}
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-people fs-1 opacity-75"></i>
+            </div>
+          </div>
         </div>
       </div>
+    </div>
 
-      <div class="insight-item d-flex align-items-center">
-        <div class="insight-icon">
-          <i class="fas fa-shield-alt"></i>
-        </div>
-        <div>
-          <div class="fw-semibold">Security Status</div>
-          <small>{{ analytics_data.security_analytics.locked_accounts }} accounts currently locked</small>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card metric-card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="mb-0">{{ analytics_data.lifecycle_analytics.active_users }}</h3>
+              <small>Active Users</small>
+              <div class="d-flex align-items-center mt-1">
+                <div class="progress bg-white bg-opacity-25" style="height: 4px; width: 80px;">
+                  <div class="progress-bar bg-white"
+                    style="width: {{ analytics_data.lifecycle_analytics.active_percentage }}%"></div>
+                </div>
+                <small class="ms-2">{{ analytics_data.lifecycle_analytics.active_percentage|floatformat:1 }}%</small>
+              </div>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-person-check fs-1 opacity-75"></i>
+            </div>
+          </div>
         </div>
       </div>
+    </div>
 
-      <div class="insight-item d-flex align-items-center">
-        <div class="insight-icon">
-          <i class="fas fa-user-graduate"></i>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card metric-card bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="mb-0">{{ analytics_data.registration_trends.total_registrations }}</h3>
+              <small>New Registrations</small>
+              <div class="mt-1">
+                <small>{{ analytics_data.registration_trends.average_daily|floatformat:1 }} avg/day</small>
+              </div>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-person-plus fs-1 opacity-75"></i>
+            </div>
+          </div>
         </div>
-        <div>
-          <div class="fw-semibold">Top Role</div>
-          <small>{{ analytics_data.role_distribution.role_distribution.0.role_name }} users lead with
-            {{ analytics_data.role_distribution.role_distribution.0.percentage|floatformat:1 }}%</small>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card metric-card bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="mb-0">{{ analytics_data.activity_analytics.success_rate|floatformat:1 }}%</h3>
+              <small>Login Success Rate</small>
+              <div class="mt-1">
+                <small>{{ analytics_data.activity_analytics.failed_logins }} failed attempts</small>
+              </div>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-shield-check fs-1 opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 1 -->
+  <div class="row mb-4">
+    <!-- Registration Trends -->
+    <div class="col-lg-8 mb-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-graph-up me-2"></i>
+            User Registration Trends
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="registrationChart" style="height: 350px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Role Distribution -->
+    <div class="col-lg-4 mb-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-pie-chart me-2"></i>
+            Role Distribution
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="roleChart" style="height: 350px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 2 -->
+  <div class="row mb-4">
+    <!-- Login Activity -->
+    <div class="col-lg-6 mb-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-activity me-2"></i>
+            Login Activity
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="loginActivityChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Engagement -->
+    <div class="col-lg-6 mb-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-people me-2"></i>
+            User Engagement Levels
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="engagementChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Tables Row -->
+  <div class="row mb-4">
+    <!-- Top Active Users -->
+    <div class="col-lg-6 mb-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-star me-2"></i>
+            Top Active Users
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Login Count</th>
+                  <th>Last Login</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for user in analytics_data.activity_analytics.top_active_users %}
+                <tr>
+                  <td>
+                    <strong>{{ user.user__first_name }} {{ user.user__last_name }}</strong>
+                    <br><small class="text-muted">{{ user.user__username }}</small>
+                  </td>
+                  <td>
+                    <span class="badge bg-primary">{{ user.login_count }}</span>
+                  </td>
+                  <td>
+                    <small>Recently active</small>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="3" class="text-center text-muted">No data available</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security Alerts -->
+    <div class="col-lg-6 mb-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-shield-exclamation me-2"></i>
+            Security Alerts
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="list-group">
+            {% for ip in analytics_data.activity_analytics.top_failure_ips %}
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <strong>{{ ip.ip_address }}</strong>
+                <br><small class="text-muted">Suspicious activity detected</small>
+              </div>
+              <span class="badge bg-danger">{{ ip.failure_count }} attempts</span>
+            </div>
+            {% empty %}
+            <div class="list-group-item text-center text-muted">
+              <i class="bi bi-shield-check display-6 d-block mb-2"></i>
+              No security alerts
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Statistics -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-table me-2"></i>
+            Detailed Statistics
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3">
+              <h6 class="text-primary">User Lifecycle</h6>
+              <table class="table table-sm">
+                <tr>
+                  <td>Highly Active:</td>
+                  <td><strong>{{ analytics_data.lifecycle_analytics.engagement_levels.highly_active }}</strong></td>
+                </tr>
+                <tr>
+                  <td>Moderately Active:</td>
+                  <td><strong>{{ analytics_data.lifecycle_analytics.engagement_levels.moderately_active }}</strong></td>
+                </tr>
+                <tr>
+                  <td>Low Activity:</td>
+                  <td><strong>{{ analytics_data.lifecycle_analytics.engagement_levels.low_activity }}</strong></td>
+                </tr>
+                <tr>
+                  <td>Inactive:</td>
+                  <td><strong>{{ analytics_data.lifecycle_analytics.engagement_levels.inactive }}</strong></td>
+                </tr>
+              </table>
+            </div>
+            <div class="col-md-3">
+              <h6 class="text-primary">Role Statistics</h6>
+              <table class="table table-sm">
+                <tr>
+                  <td>Total Roles:</td>
+                  <td><strong>{{ analytics_data.role_distribution.total_roles }}</strong></td>
+                </tr>
+                <tr>
+                  <td>System Roles:</td>
+                  <td><strong>{{ analytics_data.role_distribution.system_roles_count }}</strong></td>
+                </tr>
+                <tr>
+                  <td>Custom Roles:</td>
+                  <td><strong>{{ analytics_data.role_distribution.custom_roles_count }}</strong></td>
+                </tr>
+                <tr>
+                  <td>Multiple Roles:</td>
+                  <td><strong>{{ analytics_data.role_distribution.users_with_multiple_roles }}</strong></td>
+                </tr>
+              </table>
+            </div>
+            <div class="col-md-3">
+              <h6 class="text-primary">Session Analytics</h6>
+              <table class="table table-sm">
+                <tr>
+                  <td>Active Sessions:</td>
+                  <td><strong>{{ analytics_data.session_analytics.active_sessions }}</strong></td>
+                </tr>
+                <tr>
+                  <td>Avg Sessions/User:</td>
+                  <td><strong>{{ analytics_data.session_analytics.average_sessions_per_user }}</strong></td>
+                </tr>
+                <tr>
+                  <td>Max Concurrent:</td>
+                  <td><strong>{{ analytics_data.session_analytics.max_concurrent_sessions }}</strong></td>
+                </tr>
+                <tr>
+                  <td>Unique IPs:</td>
+                  <td><strong>{{ analytics_data.session_analytics.top_ip_locations|length }}</strong></td>
+                </tr>
+              </table>
+            </div>
+            <div class="col-md-3">
+              <h6 class="text-primary">Registration Patterns</h6>
+              <table class="table table-sm">
+                <tr>
+                  <td>Last 7 days:</td>
+                  <td><strong>{{ analytics_data.lifecycle_analytics.registration_periods.last_7_days }}</strong></td>
+                </tr>
+                <tr>
+                  <td>Last 30 days:</td>
+                  <td><strong>{{ analytics_data.lifecycle_analytics.registration_periods.last_30_days }}</strong></td>
+                </tr>
+                <tr>
+                  <td>Last 90 days:</td>
+                  <td><strong>{{ analytics_data.lifecycle_analytics.registration_periods.last_90_days }}</strong></td>
+                </tr>
+                <tr>
+                  <td>Never logged in:</td>
+                  <td><strong>{{ analytics_data.lifecycle_analytics.never_logged_in }}</strong></td>
+                </tr>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Activity and Security Row -->
-<div class="row">
-  <!-- Login Activity Chart -->
-  <div class="col-lg-6 mb-4">
-    <div class="analytics-card animate__animated animate__fadeInUp">
-      <h5><i class="fas fa-chart-area"></i>Login Activity</h5>
-      <div class="chart-container" id="loginActivityChart"></div>
-    </div>
-  </div>
-
-  <!-- Security Metrics -->
-  <div class="col-lg-6 mb-4">
-    <div class="analytics-card animate__animated animate__fadeInUp">
-      <h5><i class="fas fa-shield-alt"></i>Security Metrics</h5>
-      <div class="chart-container" id="securityChart"></div>
-    </div>
-  </div>
-</div>
-
-<!-- Role Distribution and User Lifecycle -->
-<div class="row">
-  <!-- Role Distribution -->
-  <div class="col-lg-6 mb-4">
-    <div class="analytics-card animate__animated animate__fadeInUp">
-      <h5><i class="fas fa-users-cog"></i>Role Distribution</h5>
-      <div class="chart-container" id="roleDistributionChart"></div>
-    </div>
-  </div>
-
-  <!-- User Lifecycle -->
-  <div class="col-lg-6 mb-4">
-    <div class="analytics-card animate__animated animate__fadeInUp">
-      <h5><i class="fas fa-recycle"></i>User Lifecycle</h5>
-      <div class="chart-container" id="lifecycleChart"></div>
-    </div>
-  </div>
-</div>
-
-<!-- Activity Heatmap -->
-<div class="row">
-  <div class="col-12 mb-4">
-    <div class="analytics-card animate__animated animate__fadeInUp">
-      <h5><i class="fas fa-th"></i>User Activity Heatmap</h5>
-      <div class="chart-container large" id="activityHeatmap"></div>
-    </div>
-  </div>
-</div>
-
-<!-- Top Performing Users Table -->
-<div class="row">
-  <div class="col-12">
-    <div class="data-table-card animate__animated animate__fadeInUp">
-      <div class="card-header">
-        <h5 class="mb-0"><i class="fas fa-star me-2"></i>Top Active Users</h5>
-      </div>
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-hover mb-0" id="topUsersTable">
-            <thead>
-              <tr>
-                <th>User</th>
-                <th>Role</th>
-                <th>Login Count</th>
-                <th>Last Login</th>
-                <th>Activity Score</th>
-                <th>Trend</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for user in analytics_data.activity_analytics.top_active_users %}
-              <tr>
-                <td>
-                  <div class="d-flex align-items-center">
-                    <div
-                      class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center text-white me-3">
-                      {{ user.user__first_name|first }}{{ user.user__last_name|first }}
-                    </div>
-                    <div>
-                      <div class="fw-semibold">{{ user.user__first_name }} {{ user.user__last_name }}</div>
-                      <small class="text-muted">{{ user.user__username }}</small>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <span class="badge bg-primary">Teacher</span>
-                </td>
-                <td>
-                  <strong>{{ user.login_count }}</strong>
-                </td>
-                <td>
-                  <span class="text-muted">2 hours ago</span>
-                </td>
-                <td>
-                  <div class="d-flex align-items-center">
-                    <div class="progress me-2" style="width: 60px; height: 6px;">
-                      <div class="progress-bar bg-success" style="width: 85%"></div>
-                    </div>
-                    <small>85%</small>
-                  </div>
-                </td>
-                <td>
-                  <span class="trend-indicator trend-up">
-                    <i class="fas fa-arrow-up"></i>
-                    +15%
-                  </span>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay d-none">
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Loading...</span>
   </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
 <script>
-  // Global chart variables
-  let registrationChart, loginActivityChart, securityChart, roleDistributionChart, lifecycleChart, activityHeatmap;
-
   $(document).ready(function () {
+    // Initialize all charts
     initializeCharts();
-    startRealTimeUpdates();
 
-    // Initialize DataTable for top users
-    $('#topUsersTable').DataTable({
-      pageLength: 10,
-      order: [[2, 'desc']],
-      columnDefs: [
-        { orderable: false, targets: [0, 5] }
-      ]
+    // Handle period changes
+    $('input[name="period"]').on('change', function () {
+      const newPeriod = $(this).val();
+      showLoading();
+      window.location.href = `?days=${newPeriod}`;
     });
   });
 
   function initializeCharts() {
     // Registration Trends Chart
-    const registrationOptions = {
-      series: [{
-        name: 'Registrations',
-        data: {{ analytics_data.registration_trends.daily_data | safe }}
-  }],
-  chart: {
-    type: 'area',
-      height: 400,
-        toolbar: { show: false },
-    animations: { enabled: true }
-  },
-  colors: ['#667eea'],
-    dataLabels: { enabled: false },
-  stroke: {
-    curve: 'smooth',
-      width: 3
-  },
-  fill: {
-    type: 'gradient',
-      gradient: {
-      shadeIntensity: 1,
-        opacityFrom: 0.7,
-          opacityTo: 0.3,
-            stops: [0, 90, 100]
-    }
-  },
-  xaxis: {
-    type: 'datetime',
-      labels: {
-      format: 'MMM dd'
-    }
-  },
-  yaxis: {
-    title: { text: 'New Users' }
-  },
-  grid: {
-    borderColor: '#f1f3f4'
-  },
-  tooltip: {
-    x: { format: 'dd MMM yyyy' }
-  }
-    };
-
-  registrationChart = new ApexCharts(document.querySelector("#registrationChart"), registrationOptions);
-  registrationChart.render();
-
-  // Login Activity Chart
-  const loginActivityOptions = {
+    const registrationData = {{ analytics_data.registration_trends.daily_data| safe
+  }};
+  const registrationChart = new ApexCharts(document.querySelector("#registrationChart"), {
     series: [{
-      name: 'Successful Logins',
-      data: {{ analytics_data.activity_analytics.daily_activity | safe }}
-        }, {
-    name: 'Failed Logins',
-      data: [2, 4, 1, 8, 3, 6, 2] // Sample data
-  }],
-  chart: {
-    type: 'bar',
-      height: 350,
-        toolbar: { show: false }
-  },
-  colors: ['#28a745', '#dc3545'],
-    plotOptions: {
-    bar: {
-      horizontal: false,
-        columnWidth: '55%',
-          endingShape: 'rounded'
-    }
-  },
-  dataLabels: { enabled: false },
-  stroke: {
-    show: true,
-      width: 2,
-        colors: ['transparent']
-  },
-  xaxis: {
-    categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  },
-  yaxis: {
-    title: { text: 'Number of Logins' }
-  },
-  fill: { opacity: 1 },
-  tooltip: {
-    y: {
-      formatter: function (val) {
-        return val + " logins"
-      }
-    }
-  }
-    };
-
-  loginActivityChart = new ApexCharts(document.querySelector("#loginActivityChart"), loginActivityOptions);
-  loginActivityChart.render();
-
-  // Security Metrics Chart
-  const securityOptions = {
-    series: [
-      {{ analytics_data.security_analytics.failed_login_attempts }},
-    {{ analytics_data.security_analytics.locked_accounts }},
-  { { analytics_data.security_analytics.password_changes } }
-        ],
-  chart: {
-    type: 'donut',
-      height: 350
-  },
-  colors: ['#dc3545', '#ffc107', '#28a745'],
-    labels: ['Failed Logins', 'Locked Accounts', 'Password Changes'],
-      responsive: [{
-        breakpoint: 480,
-        options: {
-          chart: { width: 200 },
-          legend: { position: 'bottom' }
-        }
-      }],
-        legend: {
-    position: 'bottom'
-  },
-  plotOptions: {
-    pie: {
-      donut: {
-        size: '65%'
-      }
-    }
-  }
-    };
-
-  securityChart = new ApexCharts(document.querySelector("#securityChart"), securityOptions);
-  securityChart.render();
-
-  // Role Distribution Chart
-  const roleLabels = {{ analytics_data.role_distribution.role_distribution| safe }}.map(role => role.role_name);
-  const roleValues = {{ analytics_data.role_distribution.role_distribution| safe }}.map(role => role.active_users);
-
-  const roleDistributionOptions = {
-    series: roleValues,
-    chart: {
-      type: 'pie',
-      height: 350
-    },
-    colors: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe'],
-    labels: roleLabels,
-    responsive: [{
-      breakpoint: 480,
-      options: {
-        chart: { width: 200 },
-        legend: { position: 'bottom' }
-      }
+      name: 'New Registrations',
+      data: registrationData.map(item => ({
+        x: item.date,
+        y: item.count
+      }))
     }],
-    legend: {
-      position: 'bottom'
-    }
-  };
-
-  roleDistributionChart = new ApexCharts(document.querySelector("#roleDistributionChart"), roleDistributionOptions);
-  roleDistributionChart.render();
-
-  // User Lifecycle Chart
-  const lifecycleOptions = {
-    series: [{
-      name: 'Users',
-      data: [
-        {{ analytics_data.lifecycle_analytics.engagement_levels.highly_active }},
-    {{ analytics_data.lifecycle_analytics.engagement_levels.moderately_active }},
-    {{ analytics_data.lifecycle_analytics.engagement_levels.low_activity }},
-  { { analytics_data.lifecycle_analytics.engagement_levels.inactive } }
-            ]
-        }],
-  chart: {
-    type: 'bar',
-      height: 350,
-        toolbar: { show: false }
-  },
-  colors: ['#28a745', '#ffc107', '#fd7e14', '#dc3545'],
-    plotOptions: {
-    bar: {
-      distributed: true,
-        horizontal: true,
-          barHeight: '75%'
-    }
-  },
-  dataLabels: {
-    enabled: true,
-      textAnchor: 'start',
-        style: {
-      colors: ['#fff']
-    },
-    formatter: function (val, opt) {
-      return opt.w.globals.labels[opt.dataPointIndex] + ": " + val
-    },
-    offsetX: 0
-  },
-  xaxis: {
-    categories: ['Highly Active', 'Moderately Active', 'Low Activity', 'Inactive']
-  },
-  yaxis: {
-    labels: { show: false }
-  },
-  legend: { show: false }
-    };
-
-  lifecycleChart = new ApexCharts(document.querySelector("#lifecycleChart"), lifecycleOptions);
-  lifecycleChart.render();
-
-  // Activity Heatmap
-  const heatmapOptions = {
-    series: generateHeatmapData(),
     chart: {
-      height: 400,
-      type: 'heatmap',
-      toolbar: { show: false }
+      type: 'area',
+      height: 350,
+      toolbar: {
+        show: true,
+        tools: {
+          download: true,
+          selection: false,
+          zoom: false,
+          zoomin: false,
+          zoomout: false,
+          pan: false,
+          reset: false
+        }
+      }
     },
-    colors: ["#667eea"],
+    colors: ['#0d6efd'],
     dataLabels: {
       enabled: false
     },
+    stroke: {
+      curve: 'smooth',
+      width: 2
+    },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        shadeIntensity: 1,
+        opacityFrom: 0.7,
+        opacityTo: 0.3
+      }
+    },
     xaxis: {
-      categories: ['12am', '2am', '4am', '6am', '8am', '10am', '12pm', '2pm', '4pm', '6pm', '8pm', '10pm']
+      type: 'datetime',
+      title: {
+        text: 'Date'
+      }
     },
     yaxis: {
-      categories: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+      title: {
+        text: 'Number of Users'
+      }
     },
-    grid: {
-      padding: {
-        right: 20
+    tooltip: {
+      x: {
+        format: 'dd MMM yyyy'
       }
     }
-  };
+  });
+  registrationChart.render();
 
-  activityHeatmap = new ApexCharts(document.querySelector("#activityHeatmap"), heatmapOptions);
-  activityHeatmap.render();
+  // Role Distribution Chart
+  const roleData = {{ analytics_data.role_distribution.role_distribution| safe }};
+  const roleChart = new ApexCharts(document.querySelector("#roleChart"), {
+    series: roleData.map(role => role.active_users),
+    chart: {
+      type: 'donut',
+      height: 350
+    },
+    labels: roleData.map(role => role.role_name),
+    colors: ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6f42c1', '#fd7e14', '#20c997'],
+    legend: {
+      position: 'bottom'
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '60%',
+          labels: {
+            show: true,
+            total: {
+              show: true,
+              label: 'Total Users',
+              formatter: function (w) {
+                return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+              }
+            }
+          }
+        }
+      }
+    },
+    tooltip: {
+      y: {
+        formatter: function (val, opts) {
+          const total = opts.globals.seriesTotals.reduce((a, b) => a + b, 0);
+          const percent = ((val / total) * 100).toFixed(1);
+          return `${val} users (${percent}%)`;
+        }
+      }
+    }
+  });
+  roleChart.render();
+
+  // Login Activity Chart
+  const activityData = {{ analytics_data.activity_analytics.daily_activity| safe }};
+  const loginActivityChart = new ApexCharts(document.querySelector("#loginActivityChart"), {
+    series: [{
+      name: 'Total Logins',
+      data: activityData.map(item => ({
+        x: item.date,
+        y: item.login_count
+      }))
+    }, {
+      name: 'Unique Users',
+      data: activityData.map(item => ({
+        x: item.date,
+        y: item.unique_users
+      }))
+    }],
+    chart: {
+      type: 'line',
+      height: 300,
+      toolbar: {
+        show: false
+      }
+    },
+    colors: ['#0d6efd', '#198754'],
+    stroke: {
+      width: 3,
+      curve: 'smooth'
+    },
+    xaxis: {
+      type: 'datetime',
+      title: {
+        text: 'Date'
+      }
+    },
+    yaxis: {
+      title: {
+        text: 'Count'
+      }
+    },
+    tooltip: {
+      x: {
+        format: 'dd MMM yyyy'
+      }
+    },
+    legend: {
+      position: 'top'
+    }
+  });
+  loginActivityChart.render();
+
+  // User Engagement Chart
+  const engagementData = {{ analytics_data.lifecycle_analytics.engagement_levels| safe }};
+  const engagementChart = new ApexCharts(document.querySelector("#engagementChart"), {
+    series: [{
+      data: [
+        { x: 'Highly Active', y: engagementData.highly_active },
+        { x: 'Moderately Active', y: engagementData.moderately_active },
+        { x: 'Low Activity', y: engagementData.low_activity },
+        { x: 'Inactive', y: engagementData.inactive }
+      ]
+    }],
+    chart: {
+      type: 'bar',
+      height: 300,
+      toolbar: {
+        show: false
+      }
+    },
+    colors: ['#198754', '#ffc107', '#fd7e14', '#dc3545'],
+    plotOptions: {
+      bar: {
+        distributed: true,
+        horizontal: true,
+        barHeight: '70%'
+      }
+    },
+    xaxis: {
+      title: {
+        text: 'Number of Users'
+      }
+    },
+    legend: {
+      show: false
+    },
+    tooltip: {
+      y: {
+        formatter: function (val) {
+          return val + ' users';
+        }
+      }
+    }
+  });
+  engagementChart.render();
 }
 
-  function generateHeatmapData() {
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const hours = ['12am', '2am', '4am', '6am', '8am', '10am', '12pm', '2pm', '4pm', '6pm', '8pm', '10pm'];
-
-    return days.map(day => {
-      return {
-        name: day,
-        data: hours.map(hour => Math.floor(Math.random() * 100))
-      };
-    });
+  function showLoading() {
+    $('#loadingOverlay').removeClass('d-none');
   }
 
-  function setPeriod(days) {
-    // Update active button
-    document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
-
-    // Update dropdown
-    document.getElementById('dateRange').value = days;
-
-    // Update analytics
-    updateAnalytics();
+  function hideLoading() {
+    $('#loadingOverlay').addClass('d-none');
   }
 
-  function updateAnalytics() {
-    const days = document.getElementById('dateRange').value;
-    const role = document.getElementById('roleFilter').value;
-    const status = document.getElementById('statusFilter').value;
-
+  function exportDashboard() {
     showLoading();
-
-    // Construct URL with parameters
-    const params = new URLSearchParams({
-      days: days,
-      role: role,
-      status: status
-    });
-
-    // Update URL without reload
-    const newUrl = window.location.pathname + '?' + params.toString();
-    window.history.pushState({}, '', newUrl);
-
-    // Fetch updated data
-    fetch(newUrl, {
-      headers: {
-        'X-Requested-With': 'XMLHttpRequest'
-      }
-    })
-      .then(response => response.json())
-      .then(data => {
-        updateCharts(data);
-        updateMetrics(data);
-        hideLoading();
-      })
-      .catch(error => {
-        console.error('Error updating analytics:', error);
-        hideLoading();
-        showToast('Error updating analytics', 'error');
-      });
-  }
-
-  function updateCharts(data) {
-    // Update all charts with new data
-    if (registrationChart && data.registration_trends) {
-      registrationChart.updateSeries([{
-        name: 'Registrations',
-        data: data.registration_trends.daily_data
-      }]);
-    }
-
-    // Update other charts similarly...
-  }
-
-  function updateMetrics(data) {
-    // Update metric cards
-    if (data.lifecycle_analytics) {
-      document.getElementById('totalUsers').textContent = data.lifecycle_analytics.total_users;
-      document.getElementById('activeUsers').textContent = data.lifecycle_analytics.active_users;
-    }
-
-    if (data.registration_trends) {
-      document.getElementById('newUsers').textContent = data.registration_trends.total_registrations;
-    }
-
-    if (data.activity_analytics) {
-      document.getElementById('loginRate').textContent = data.activity_analytics.success_rate.toFixed(1) + '%';
-    }
-
-    // Update last update time
-    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
-  }
-
-  function exportData(format) {
-    const days = document.getElementById('dateRange').value;
-    const role = document.getElementById('roleFilter').value;
-    const status = document.getElementById('statusFilter').value;
-
-    const params = new URLSearchParams({
-      days: days,
-      role: role,
-      status: status,
-      format: format
-    });
-
-    showLoading();
-
-    // Create a temporary link to download the file
-    const link = document.createElement('a');
-    link.href = `/accounts/analytics/export/?${params.toString()}`;
-    link.download = `user_analytics_${format}_${new Date().toISOString().split('T')[0]}.${format}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    hideLoading();
-    showToast(`${format.toUpperCase()} export started`, 'success');
-  }
-
-  function startRealTimeUpdates() {
-    // Update metrics every 30 seconds
-    setInterval(() => {
-      updateAnalytics();
-    }, 30000);
-  }
-
-  // Keyboard shortcuts
-  document.addEventListener('keydown', function (e) {
-    if (e.ctrlKey || e.metaKey) {
-      switch (e.key) {
-        case 'r':
-          e.preventDefault();
-          updateAnalytics();
-          break;
-        case 'e':
-          e.preventDefault();
-          exportData('excel');
-          break;
-      }
-    }
-  });
-
-  // Print functionality
-  function printReport() {
-    window.print();
-  }
-
-  // Responsive chart handling
-  window.addEventListener('resize', function () {
+    // Simulate export process
     setTimeout(() => {
-      if (registrationChart) registrationChart.resize();
-      if (loginActivityChart) loginActivityChart.resize();
-      if (securityChart) securityChart.resize();
-      if (roleDistributionChart) roleDistributionChart.resize();
-      if (lifecycleChart) lifecycleChart.resize();
-      if (activityHeatmap) activityHeatmap.resize();
-    }, 100);
-  });
+      hideLoading();
+      // Create and download a simple report
+      const reportData = {
+        generated_at: new Date().toISOString(),
+        period_days: {{ days }
+    },
+      summary: {
+      total_users: {{ analytics_data.lifecycle_analytics.total_users }},
+  active_users: { { analytics_data.lifecycle_analytics.active_users } },
+  new_registrations: { { analytics_data.registration_trends.total_registrations } },
+  success_rate: { { analytics_data.activity_analytics.success_rate } }
+            }
+        };
+
+  const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `user-analytics-${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+    }, 1000);
+}
+
+  // Auto-refresh data every 5 minutes
+  setInterval(() => {
+    console.log('Auto-refreshing analytics data...');
+    // You could implement AJAX refresh here
+  }, 300000);
 </script>
 {% endblock %}

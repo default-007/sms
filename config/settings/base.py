@@ -125,8 +125,33 @@ CONTENT_SECURITY_POLICY = {
             "cdn.jsdelivr.net",
             "cdnjs.cloudflare.com",
             "unpkg.com",
-            "code.jquery.com",  # If using jQuery
-            "stackpath.bootstrapcdn.com",  # If using Bootstrap from here
+            "code.jquery.com",  # jQuery
+            "ajax.googleapis.com",  # Google Libraries
+            "stackpath.bootstrapcdn.com",  # Bootstrap
+            "maxcdn.bootstrapcdn.com",  # If using Bootstrap from here
+            # Google Services (common sources of violations)
+            "www.google-analytics.com",
+            "www.googletagmanager.com",
+            "www.google.com",  # reCAPTCHA
+            "www.gstatic.com",
+            "apis.google.com",
+            # Social Media Widgets
+            "connect.facebook.net",
+            "platform.twitter.com",
+            # Payment Processors
+            "js.stripe.com",
+            "checkout.stripe.com",
+            # Common Widget Providers
+            "widget.intercom.io",  # Intercom chat
+            "js.driftt.com",  # Drift chat
+            "static.hotjar.com",
+            # Additional domains you might need
+            "cdn.datatables.net",  # If using DataTables
+            "chartjs-cdn.org",  # If using Chart.js
+            "cdn.plot.ly",  # If using Plotly
+            "d3js.org",  # If using D3.js
+            "momentjs.com",  # If using Moment.js
+            "cdn.tiny.cloud",
         ),
         "style-src": (
             "'self'",
@@ -136,6 +161,7 @@ CONTENT_SECURITY_POLICY = {
             "fonts.googleapis.com",  # Google Fonts CSS
             "unpkg.com",
             "stackpath.bootstrapcdn.com",  # Bootstrap CSS
+            "maxcdn.bootstrapcdn.com",
         ),
         "font-src": (
             "'self'",
@@ -150,6 +176,8 @@ CONTENT_SECURITY_POLICY = {
             "blob:",  # Blob URLs
             "cdn.jsdelivr.net",
             "cdnjs.cloudflare.com",
+            "www.google-analytics.com",  # Google Analytics tracking pixels
+            "www.googletagmanager.com",
             # Add your media/image CDN domains here
         ),
         "connect-src": (

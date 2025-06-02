@@ -1,540 +1,958 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load static %}
+{% load accounts_tags %}
 
-{% block title %}{{ role.name }} - Role Details | School Management System{% endblock %}
+{% block title %}{{ role.name }} - Role Details - {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<style>
+  .role-hero {
+    background: linear-gradient(135deg, {
+        {
+        role.color_code|default:'#667eea'
+      }
+    }
+
+    0%,
+    {
+    % if role.color_code %
+  }
+
+    {
+      {
+      role.color_code
+    }
+  }
+
+  99 {
+    % else %
+  }
+
+  #764ba2 {
+    % endif %
+  }
+
+  100%);
+  color: white;
+  border-radius: 20px;
+  padding: 2.5rem;
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+  }
+
+  .role-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 200px;
+    height: 200px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    transform: translate(50%, -50%);
+  }
+
+  .role-icon-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+  }
+
+  .role-stats-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease;
+    border: 1px solid #f0f0f0;
+    text-align: center;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-5px);
+  }
+
+  .stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin: 0 auto 1rem;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #2c3e50;
+  }
+
+  .stat-label {
+    color: #6c757d;
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.875rem;
+  }
+
+  .section-card {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f0f0f0;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f0f0f0;
+  }
+
+  .section-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    font-size: 1.25rem;
+  }
+
+  .section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    color: #2c3e50;
+  }
+
+  .permission-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .permission-category {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 1px solid #e9ecef;
+  }
+
+  .permission-category-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  .permission-category-icon {
+    width: 35px;
+    height: 35px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.75rem;
+    font-size: 1rem;
+  }
+
+  .permission-category-title {
+    font-weight: 600;
+    color: #495057;
+    text-transform: capitalize;
+  }
+
+  .permission-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .permission-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.4rem 0.75rem;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #495057;
+    transition: all 0.2s ease;
+  }
+
+  .permission-badge:hover {
+    background: {
+        {
+        role.color_code|default: '#667eea'
+      }
+    }
+
+    ;
+    color: white;
+
+    border-color: {
+        {
+        role.color_code|default: '#667eea'
+      }
+    }
+
+    ;
+  }
+
+  .permission-badge i {
+    margin-right: 0.5rem;
+    font-size: 0.7rem;
+  }
+
+  .user-avatar-small {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .user-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    margin-bottom: 0.75rem;
+    transition: all 0.2s ease;
+    background: white;
+  }
+
+  .user-item:hover {
+    border-color: {
+        {
+        role.color_code|default: '#667eea'
+      }
+    }
+
+    ;
+    background: #f8f9ff;
+    transform: translateX(5px);
+  }
+
+  .user-info {
+    flex-grow: 1;
+    margin-left: 1rem;
+  }
+
+  .user-name {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.25rem;
+  }
+
+  .user-email {
+    color: #6c757d;
+    font-size: 0.875rem;
+  }
+
+  .assignment-meta {
+    text-align: right;
+    font-size: 0.875rem;
+    color: #6c757d;
+  }
+
+  .role-hierarchy-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border: 2px dashed #dee2e6;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+
+  .hierarchy-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    margin: 0.5rem 0;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+  }
+
+  .hierarchy-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.75rem;
+    font-size: 0.875rem;
+    background: #e9ecef;
+    color: #6c757d;
+  }
+
+  .activity-timeline {
+    position: relative;
+    padding-left: 2rem;
+  }
+
+  .activity-timeline::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e9ecef;
+  }
+
+  .activity-item {
+    position: relative;
+    padding: 1rem 0;
+    margin-bottom: 1rem;
+  }
+
+  .activity-item::before {
+    content: '';
+    position: absolute;
+    left: -25px;
+    top: 1.5rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+
+    background: {
+        {
+        role.color_code|default: '#667eea'
+      }
+    }
+
+    ;
+    border: 3px solid white;
+    box-shadow: 0 0 0 2px #e9ecef;
+  }
+
+  .activity-content {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+
+    border-left: 3px solid {
+        {
+        role.color_code|default: '#667eea'
+      }
+    }
+
+    ;
+  }
+
+  .activity-title {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.25rem;
+  }
+
+  .activity-description {
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .activity-time {
+    color: #6c757d;
+    font-size: 0.75rem;
+  }
+
+  .quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .quick-action-btn {
+    padding: 1rem;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.3s ease;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .quick-action-btn:hover {
+    border-color: {
+        {
+        role.color_code|default: '#667eea'
+      }
+    }
+
+    ;
+    background: #f8f9ff;
+    transform: translateY(-2px);
+    text-decoration: none;
+  }
+
+  .quick-action-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+
+    color: {
+        {
+        role.color_code|default: '#667eea'
+      }
+    }
+
+    ;
+  }
+
+  .chart-container {
+    height: 300px;
+    margin: 1rem 0;
+  }
+
+  .badge-system {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .badge-custom {
+    background: #e9ecef;
+    color: #495057;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="body-wrapper">
-  <div class="container-fluid">
-    <!-- Breadcrumb -->
-    <div class="card card-body">
-      <div class="row align-items-center">
-        <div class="col-12">
-          <div class="d-sm-flex align-items-center justify-space-between">
-            <h4 class="fw-semibold fs-4 mb-4 mb-md-0 card-title">Role Details</h4>
-            <nav aria-label="breadcrumb" class="ms-auto">
-              <ol class="breadcrumb">
-                <li class="breadcrumb-item">
-                  <a class="text-muted text-decoration-none" href="{% url 'core:dashboard' %}">
-                    <iconify-icon icon="solar:home-2-line-duotone" class="fs-6"></iconify-icon>
-                  </a>
-                </li>
-                <li class="breadcrumb-item">
-                  <a href="{% url 'accounts:role_list' %}">Roles</a>
-                </li>
-                <li class="breadcrumb-item" aria-current="page">
-                  <span class="badge fw-medium fs-2 bg-primary-subtle text-primary">
-                    {{ role.name }}
-                  </span>
-                </li>
-              </ol>
-            </nav>
-          </div>
+<div class="container-fluid">
+  <!-- Role Hero Section -->
+  <div class="role-hero">
+    <div class="row align-items-center">
+      <div class="col-auto">
+        <div class="role-icon-large">
+          <i
+            class="fas fa-{% if role.name == 'Admin' %}crown{% elif role.name == 'Teacher' %}chalkboard-teacher{% elif role.name == 'Student' %}graduation-cap{% elif role.name == 'Parent' %}users{% else %}user-cog{% endif %}"></i>
         </div>
       </div>
-    </div>
-
-    <!-- Role Header -->
-    <div class="card mb-4">
-      <div class="card-body">
-        <div class="row align-items-center">
-          <div class="col-md-8">
-            <div class="d-flex align-items-center">
-              <div class="flex-shrink-0">
-                <div class="round-80 d-flex align-items-center justify-content-center rounded-circle bg-primary-subtle">
-                  <iconify-icon icon="solar:user-id-bold-duotone" class="fs-5 text-primary"></iconify-icon>
-                </div>
-              </div>
-              <div class="flex-grow-1 ms-4">
-                <h3 class="mb-1">{{ role.name }}</h3>
-                <p class="text-muted mb-2">{{ role.description|default:"No description provided" }}</p>
-                <div class="d-flex gap-2">
-                  {% if role.is_system_role %}
-                  <span class="badge bg-warning-subtle text-warning">
-                    <iconify-icon icon="solar:shield-check-bold-duotone" class="me-1"></iconify-icon>
-                    System Role
-                  </span>
-                  {% else %}
-                  <span class="badge bg-info-subtle text-info">
-                    <iconify-icon icon="solar:user-bold-duotone" class="me-1"></iconify-icon>
-                    Custom Role
-                  </span>
-                  {% endif %}
-
-                  <span class="badge bg-primary-subtle text-primary">
-                    {{ role.get_permission_count }} Permissions
-                  </span>
-
-                  <span class="badge bg-success-subtle text-success">
-                    {{ role_users.count }} Users
-                  </span>
-                </div>
-              </div>
-            </div>
+      <div class="col">
+        <div class="d-flex align-items-center mb-2">
+          <h1 class="h2 mb-0 me-3">{{ role.name }}</h1>
+          {% if role.is_system_role %}
+          <div class="badge-system">
+            <i class="fas fa-shield-alt me-1"></i>System Role
           </div>
-          <div class="col-md-4">
-            <div class="d-flex gap-2 justify-content-md-end">
-              {% if perms.accounts.change_userrole %}
-              <a href="{% url 'accounts:role_update' role.pk %}" class="btn btn-primary">
-                <iconify-icon icon="solar:pen-line-duotone" class="me-2"></iconify-icon>
-                Edit Role
-              </a>
-              {% endif %}
-
-              <div class="dropdown">
-                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"
-                  aria-expanded="false">
-                  <iconify-icon icon="solar:menu-dots-bold-duotone" class="me-2"></iconify-icon>
-                  Actions
-                </button>
-                <ul class="dropdown-menu">
-                  <li>
-                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#assignRoleModal">
-                      <iconify-icon icon="solar:user-plus-line-duotone" class="me-2"></iconify-icon>
-                      Assign to Users
-                    </a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item" href="#" onclick="exportRoleData()">
-                      <iconify-icon icon="solar:download-line-duotone" class="me-2"></iconify-icon>
-                      Export Data
-                    </a>
-                  </li>
-                  {% if perms.accounts.delete_userrole and not role.is_system_role %}
-                  <li>
-                    <hr class="dropdown-divider">
-                  </li>
-                  <li>
-                    <a class="dropdown-item text-danger" href="{% url 'accounts:role_delete' role.pk %}">
-                      <iconify-icon icon="solar:trash-bin-line-duotone" class="me-2"></iconify-icon>
-                      Delete Role
-                    </a>
-                  </li>
-                  {% endif %}
-                </ul>
-              </div>
-            </div>
+          {% else %}
+          <div class="badge-custom">
+            <i class="fas fa-user-cog me-1"></i>Custom Role
           </div>
+          {% endif %}
+        </div>
+        <p class="mb-3 opacity-75">{{ role.description|default:"No description provided" }}</p>
+        <div class="d-flex align-items-center gap-3">
+          <span class="badge bg-light text-dark">
+            <i class="fas fa-users me-1"></i>
+            {{ users_with_role.count }} user{{ users_with_role.count|pluralize }}
+          </span>
+          <span class="badge bg-light text-dark">
+            <i class="fas fa-key me-1"></i>
+            {{ permission_details|length }} resource{{ permission_details|length|pluralize }}
+          </span>
+          <span class="badge bg-light text-dark">
+            <i class="fas fa-calendar me-1"></i>
+            Created {{ role.created_at|date:"M Y" }}
+          </span>
         </div>
       </div>
+      <div class="col-auto">
+        {% if user|can_do:"roles:change" %}
+        <a href="{% url 'accounts:role_update' role.pk %}" class="btn btn-light btn-lg me-2">
+          <i class="fas fa-edit me-2"></i>Edit Role
+        </a>
+        {% endif %}
+        <a href="{% url 'accounts:role_list' %}" class="btn btn-outline-light btn-lg">
+          <i class="fas fa-arrow-left me-2"></i>Back to Roles
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="role-stats-cards">
+    <div class="stat-card">
+      <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+        <i class="fas fa-users"></i>
+      </div>
+      <div class="stat-value">{{ users_with_role.count }}</div>
+      <div class="stat-label">Active Users</div>
     </div>
 
-    <div class="row">
+    <div class="stat-card">
+      <div class="stat-icon bg-success bg-opacity-10 text-success">
+        <i class="fas fa-key"></i>
+      </div>
+      <div class="stat-value">{{ permission_details|length }}</div>
+      <div class="stat-label">Resources</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon bg-info bg-opacity-10 text-info">
+        <i class="fas fa-shield-alt"></i>
+      </div>
+      <div class="stat-value">
+        {% for resource, actions in permission_details.items %}
+        {% for action in actions %}{% endfor %}
+        {% endfor %}
+        {{ permission_details.values|join:","| length }}
+      </div>
+      <div class="stat-label">Total Permissions</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+        <i class="fas fa-clock"></i>
+      </div>
+      <div class="stat-value">{{ role_assignments.count }}</div>
+      <div class="stat-label">Total Assignments</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
       <!-- Permissions -->
-      <div class="col-lg-8">
-        <div class="card h-100">
-          <div class="card-header">
-            <h5 class="card-title mb-0">
-              <iconify-icon icon="solar:shield-keyhole-bold-duotone" class="me-2"></iconify-icon>
-              Permissions
-            </h5>
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-icon bg-success bg-opacity-10 text-success">
+            <i class="fas fa-key"></i>
           </div>
-          <div class="card-body">
-            {% if permissions %}
-            <div class="accordion" id="permissionsAccordion">
-              {% for resource, actions in permissions.items %}
-              <div class="accordion-item">
-                <h2 class="accordion-header" id="heading{{ resource|title }}">
-                  <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button"
-                    data-bs-toggle="collapse" data-bs-target="#collapse{{ resource|title }}"
-                    aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
-                    aria-controls="collapse{{ resource|title }}">
-                    <strong>{{ resource|title }} ({{ actions|length }} permissions)</strong>
-                  </button>
-                </h2>
-                <div id="collapse{{ resource|title }}"
-                  class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
-                  aria-labelledby="heading{{ resource|title }}" data-bs-parent="#permissionsAccordion">
-                  <div class="accordion-body">
-                    <div class="row">
-                      {% for action in actions %}
-                      <div class="col-md-6 col-lg-4 mb-2">
-                        <span class="badge bg-success-subtle text-success">
-                          <iconify-icon icon="solar:check-circle-bold-duotone" class="me-1"></iconify-icon>
-                          {{ action|title }}
-                        </span>
-                      </div>
-                      {% endfor %}
-                    </div>
-                  </div>
-                </div>
+          <h3 class="section-title">Permissions</h3>
+        </div>
+
+        {% if permission_details %}
+        <div class="permission-grid">
+          {% for resource, actions in permission_details.items %}
+          <div class="permission-category">
+            <div class="permission-category-header">
+              <div class="permission-category-icon bg-primary bg-opacity-10 text-primary">
+                <i
+                  class="fas fa-{% if resource == 'users' %}users{% elif resource == 'students' %}graduation-cap{% elif resource == 'teachers' %}chalkboard-teacher{% elif resource == 'finance' %}dollar-sign{% elif resource == 'library' %}book{% elif resource == 'exams' %}clipboard-list{% elif resource == 'attendance' %}calendar-check{% else %}cog{% endif %}"></i>
+              </div>
+              <div class="permission-category-title">{{ resource|title }}</div>
+            </div>
+            <div class="permission-list">
+              {% for action in actions %}
+              <div class="permission-badge">
+                <i
+                  class="fas fa-{% if action == 'view' %}eye{% elif action == 'add' %}plus{% elif action == 'change' %}edit{% elif action == 'delete' %}trash{% else %}cog{% endif %}"></i>
+                {{ action|title }}
               </div>
               {% endfor %}
             </div>
-            {% else %}
-            <div class="text-center py-5">
-              <iconify-icon icon="solar:shield-warning-line-duotone" class="fs-1 text-muted"></iconify-icon>
-              <h4 class="mt-3 text-muted">No Permissions Assigned</h4>
-              <p class="text-muted">This role doesn't have any permissions assigned yet.</p>
-              {% if perms.accounts.change_userrole %}
-              <a href="{% url 'accounts:role_update' role.pk %}" class="btn btn-primary">
-                <iconify-icon icon="solar:settings-line-duotone" class="me-2"></iconify-icon>
-                Configure Permissions
-              </a>
-              {% endif %}
-            </div>
-            {% endif %}
           </div>
+          {% endfor %}
         </div>
+        {% else %}
+        <div class="text-center py-5">
+          <i class="fas fa-lock fa-3x text-muted mb-3"></i>
+          <h5 class="text-muted">No Permissions Assigned</h5>
+          <p class="text-muted">This role doesn't have any permissions assigned.</p>
+          {% if user|can_do:"roles:change" %}
+          <a href="{% url 'accounts:role_update' role.pk %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Add Permissions
+          </a>
+          {% endif %}
+        </div>
+        {% endif %}
       </div>
 
-      <!-- Role Statistics -->
-      <div class="col-lg-4">
-        <div class="card mb-4">
-          <div class="card-header">
-            <h5 class="card-title mb-0">
-              <iconify-icon icon="solar:chart-bold-duotone" class="me-2"></iconify-icon>
-              Role Statistics
-            </h5>
+      <!-- Inherited Permissions -->
+      {% if inherited_permissions %}
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-icon bg-info bg-opacity-10 text-info">
+            <i class="fas fa-level-up-alt"></i>
           </div>
-          <div class="card-body">
-            <div class="row text-center">
-              <div class="col-6 mb-3">
-                <div
-                  class="round-40 d-flex align-items-center justify-content-center rounded-circle bg-primary-subtle mx-auto mb-2">
-                  <iconify-icon icon="solar:users-group-rounded-bold-duotone" class="fs-5 text-primary"></iconify-icon>
-                </div>
-                <h4 class="mb-0">{{ role_users.count }}</h4>
-                <small class="text-muted">Total Users</small>
-              </div>
-              <div class="col-6 mb-3">
-                <div
-                  class="round-40 d-flex align-items-center justify-content-center rounded-circle bg-info-subtle mx-auto mb-2">
-                  <iconify-icon icon="solar:shield-keyhole-bold-duotone" class="fs-5 text-info"></iconify-icon>
-                </div>
-                <h4 class="mb-0">{{ role.get_permission_count }}</h4>
-                <small class="text-muted">Permissions</small>
-              </div>
-            </div>
-
-            <hr>
-
-            <div class="mb-3">
-              <div class="d-flex justify-content-between">
-                <span>Created</span>
-                <span class="fw-medium">{{ role.created_at|date:"M d, Y" }}</span>
-              </div>
-            </div>
-
-            <div class="mb-3">
-              <div class="d-flex justify-content-between">
-                <span>Last Updated</span>
-                <span class="fw-medium">{{ role.updated_at|date:"M d, Y" }}</span>
-              </div>
-            </div>
-
-            {% if role.created_by %}
-            <div class="mb-3">
-              <div class="d-flex justify-content-between">
-                <span>Created By</span>
-                <span class="fw-medium">{{ role.created_by.get_full_name }}</span>
-              </div>
-            </div>
-            {% endif %}
-          </div>
+          <h3 class="section-title">Inherited Permissions</h3>
         </div>
-
-        <!-- Quick Actions -->
-        <div class="card">
-          <div class="card-header">
-            <h5 class="card-title mb-0">
-              <iconify-icon icon="solar:bolt-bold-duotone" class="me-2"></iconify-icon>
-              Quick Actions
-            </h5>
-          </div>
-          <div class="card-body">
-            <div class="d-grid gap-2">
-              <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#assignRoleModal">
-                <iconify-icon icon="solar:user-plus-line-duotone" class="me-2"></iconify-icon>
-                Assign to Users
-              </button>
-
-              <button class="btn btn-outline-secondary" onclick="duplicateRole()">
-                <iconify-icon icon="solar:copy-line-duotone" class="me-2"></iconify-icon>
-                Duplicate Role
-              </button>
-
-              <button class="btn btn-outline-info" onclick="exportRoleData()">
-                <iconify-icon icon="solar:download-line-duotone" class="me-2"></iconify-icon>
-                Export Data
-              </button>
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle me-2"></i>
+          These permissions are inherited from the parent role: <strong>{{ role.parent_role.name }}</strong>
+        </div>
+        <div class="permission-grid">
+          {% for resource, actions in inherited_permissions.items %}
+          <div class="permission-category">
+            <div class="permission-category-header">
+              <div class="permission-category-icon bg-info bg-opacity-10 text-info">
+                <i
+                  class="fas fa-{% if resource == 'users' %}users{% elif resource == 'students' %}graduation-cap{% elif resource == 'teachers' %}chalkboard-teacher{% elif resource == 'finance' %}dollar-sign{% elif resource == 'library' %}book{% elif resource == 'exams' %}clipboard-list{% elif resource == 'attendance' %}calendar-check{% else %}cog{% endif %}"></i>
+              </div>
+              <div class="permission-category-title">{{ resource|title }}</div>
+            </div>
+            <div class="permission-list">
+              {% for action in actions %}
+              <div class="permission-badge" style="background: #e3f2fd; border-color: #90caf9;">
+                <i
+                  class="fas fa-{% if action == 'view' %}eye{% elif action == 'add' %}plus{% elif action == 'change' %}edit{% elif action == 'delete' %}trash{% else %}cog{% endif %}"></i>
+                {{ action|title }} (inherited)
+              </div>
+              {% endfor %}
             </div>
           </div>
+          {% endfor %}
         </div>
       </div>
-    </div>
+      {% endif %}
 
-    <!-- Assigned Users -->
-    {% if role_users %}
-    <div class="card mt-4">
-      <div class="card-header">
-        <div class="d-flex justify-content-between align-items-center">
-          <h5 class="card-title mb-0">
-            <iconify-icon icon="solar:users-group-rounded-bold-duotone" class="me-2"></iconify-icon>
-            Assigned Users ({{ role_users.count }})
-          </h5>
-          <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#assignRoleModal">
-            <iconify-icon icon="solar:user-plus-line-duotone" class="me-1"></iconify-icon>
-            Assign More
+      <!-- Assigned Users -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-icon bg-primary bg-opacity-10 text-primary">
+            <i class="fas fa-users"></i>
+          </div>
+          <h3 class="section-title">Assigned Users ({{ users_with_role.count }})</h3>
+        </div>
+
+        {% if users_with_role %}
+        <div class="row">
+          {% for user_obj in users_with_role %}
+          <div class="col-md-6 mb-3">
+            <div class="user-item">
+              <img src="{% user_avatar_url user_obj 40 %}" alt="{{ user_obj.get_display_name }}"
+                class="user-avatar-small">
+              <div class="user-info">
+                <div class="user-name">{{ user_obj.get_display_name }}</div>
+                <div class="user-email">{{ user_obj.email }}</div>
+              </div>
+              <div class="assignment-meta">
+                {% user_activity_indicator user_obj %}
+                <div>{{ user_obj.date_joined|date:"M d, Y" }}</div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        {% if users_with_role.count > 8 %}
+        <div class="text-center mt-3">
+          <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#allUsersModal">
+            <i class="fas fa-users me-2"></i>View All {{ users_with_role.count }} Users
           </button>
         </div>
+        {% endif %}
+        {% else %}
+        <div class="text-center py-5">
+          <i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
+          <h5 class="text-muted">No Users Assigned</h5>
+          <p class="text-muted">No users are currently assigned to this role.</p>
+          {% if user|can_do:"users:change" %}
+          <a href="{% url 'accounts:user_list' %}?role={{ role.name }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Assign Users
+          </a>
+          {% endif %}
+        </div>
+        {% endif %}
       </div>
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-hover">
-            <thead>
-              <tr>
-                <th>User</th>
-                <th>Assigned Date</th>
-                <th>Assigned By</th>
-                <th>Expires</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for assignment in role_users %}
-              <tr>
-                <td>
-                  <div class="d-flex align-items-center">
-                    <div class="flex-shrink-0">
-                      {% if assignment.user.profile_picture %}
-                      <img src="{{ assignment.user.profile_picture.url }}" alt="{{ assignment.user.get_full_name }}"
-                        class="rounded-circle" width="40" height="40">
-                      {% else %}
-                      <div
-                        class="round-40 d-flex align-items-center justify-content-center rounded-circle bg-primary-subtle">
-                        <span class="fw-bold text-primary">{{ assignment.user.get_initials }}</span>
-                      </div>
-                      {% endif %}
-                    </div>
-                    <div class="flex-grow-1 ms-3">
-                      <h6 class="mb-0">{{ assignment.user.get_full_name }}</h6>
-                      <small class="text-muted">{{ assignment.user.email }}</small>
-                    </div>
-                  </div>
-                </td>
-                <td>{{ assignment.assigned_date|date:"M d, Y" }}</td>
-                <td>
-                  {% if assignment.assigned_by %}
-                  {{ assignment.assigned_by.get_full_name }}
-                  {% else %}
-                  <span class="text-muted">System</span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if assignment.expires_at %}
-                  <span class="badge bg-warning-subtle text-warning">
-                    {{ assignment.expires_at|date:"M d, Y" }}
-                  </span>
-                  {% else %}
-                  <span class="badge bg-success-subtle text-success">Never</span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if assignment.is_active %}
-                  <span class="badge bg-success-subtle text-success">
-                    <iconify-icon icon="solar:check-circle-bold-duotone" class="me-1"></iconify-icon>
-                    Active
-                  </span>
-                  {% else %}
-                  <span class="badge bg-danger-subtle text-danger">
-                    <iconify-icon icon="solar:close-circle-bold-duotone" class="me-1"></iconify-icon>
-                    Inactive
-                  </span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if perms.accounts.change_userroleassignment %}
-                  <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
-                      data-bs-toggle="dropdown" aria-expanded="false">
-                      <iconify-icon icon="solar:menu-dots-bold-duotone"></iconify-icon>
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li>
-                        <a class="dropdown-item" href="{% url 'accounts:user_detail' assignment.user.pk %}">
-                          <iconify-icon icon="solar:eye-line-duotone" class="me-2"></iconify-icon>
-                          View User
-                        </a>
-                      </li>
-                      <li>
-                        <a class="dropdown-item" href="#"
-                          onclick="removeRoleFromUser({{ assignment.user.pk }}, '{{ role.name }}')">
-                          <iconify-icon icon="solar:user-cross-line-duotone" class="me-2"></iconify-icon>
-                          Remove Role
-                        </a>
-                      </li>
-                    </ul>
-                  </div>
-                  {% endif %}
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+      <!-- Role Hierarchy -->
+      {% if role.parent_role or role.child_roles.exists %}
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-icon bg-warning bg-opacity-10 text-warning">
+            <i class="fas fa-sitemap"></i>
+          </div>
+          <h3 class="section-title">Role Hierarchy</h3>
+        </div>
+
+        {% if role.parent_role %}
+        <div class="mb-3">
+          <h6 class="text-muted mb-2">Parent Role</h6>
+          <div class="hierarchy-item">
+            <div class="hierarchy-icon bg-info">
+              <i class="fas fa-level-up-alt"></i>
+            </div>
+            <div>
+              <div class="fw-bold">{{ role.parent_role.name }}</div>
+              <small class="text-muted">{{ role.parent_role.description|truncatechars:40 }}</small>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if role.child_roles.exists %}
+        <div>
+          <h6 class="text-muted mb-2">Child Roles</h6>
+          {% for child_role in role.child_roles.all %}
+          <div class="hierarchy-item">
+            <div class="hierarchy-icon bg-success">
+              <i class="fas fa-level-down-alt"></i>
+            </div>
+            <div>
+              <div class="fw-bold">{{ child_role.name }}</div>
+              <small class="text-muted">{{ child_role.description|truncatechars:40 }}</small>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if not role.parent_role and not role.child_roles.exists %}
+        <div class="role-hierarchy-card">
+          <i class="fas fa-sitemap fa-2x text-muted mb-2"></i>
+          <p class="text-muted mb-0">This role has no parent or child roles.</p>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Role Information -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-icon bg-info bg-opacity-10 text-info">
+            <i class="fas fa-info-circle"></i>
+          </div>
+          <h3 class="section-title">Role Information</h3>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-sm-4 fw-bold">Name:</div>
+          <div class="col-sm-8">{{ role.name }}</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-sm-4 fw-bold">Type:</div>
+          <div class="col-sm-8">
+            {% if role.is_system_role %}
+            <span class="badge bg-info">System Role</span>
+            {% else %}
+            <span class="badge bg-secondary">Custom Role</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-sm-4 fw-bold">Status:</div>
+          <div class="col-sm-8">
+            {% if role.is_active %}
+            <span class="badge bg-success">Active</span>
+            {% else %}
+            <span class="badge bg-danger">Inactive</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-sm-4 fw-bold">Created:</div>
+          <div class="col-sm-8">{{ role.created_at|date:"F d, Y g:i A" }}</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-sm-4 fw-bold">Created By:</div>
+          <div class="col-sm-8">
+            {% if role.created_by %}
+            {{ role.created_by.get_display_name }}
+            {% else %}
+            <span class="text-muted">System</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-sm-4 fw-bold">Last Updated:</div>
+          <div class="col-sm-8">{{ role.updated_at|date:"F d, Y g:i A" }}</div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-icon bg-secondary bg-opacity-10 text-secondary">
+            <i class="fas fa-bolt"></i>
+          </div>
+          <h3 class="section-title">Quick Actions</h3>
+        </div>
+
+        <div class="quick-actions">
+          {% if user|can_do:"roles:change" %}
+          <a href="{% url 'accounts:role_update' role.pk %}" class="quick-action-btn">
+            <i class="fas fa-edit quick-action-icon"></i>
+            <span>Edit Role</span>
+          </a>
+          {% endif %}
+
+          {% if user|can_do:"users:view" %}
+          <a href="{% url 'accounts:user_list' %}?role={{ role.name }}" class="quick-action-btn">
+            <i class="fas fa-users quick-action-icon"></i>
+            <span>View Users</span>
+          </a>
+          {% endif %}
+
+          {% if user|can_do:"roles:add" %}
+          <a href="{% url 'accounts:role_create' %}" class="quick-action-btn">
+            <i class="fas fa-plus quick-action-icon"></i>
+            <span>Create Role</span>
+          </a>
+          {% endif %}
+
+          {% if user|can_do:"roles:delete" and not role.is_system_role %}
+          <button type="button" class="quick-action-btn" onclick="deleteRole()">
+            <i class="fas fa-trash quick-action-icon text-danger"></i>
+            <span>Delete Role</span>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-icon bg-success bg-opacity-10 text-success">
+            <i class="fas fa-history"></i>
+          </div>
+          <h3 class="section-title">Recent Activity</h3>
+        </div>
+
+        <div class="activity-timeline">
+          {% for assignment in role_assignments|slice:":5" %}
+          <div class="activity-item">
+            <div class="activity-content">
+              <div class="activity-title">Role Assigned</div>
+              <div class="activity-description">
+                Assigned to {{ assignment.user.get_display_name }}
+                {% if assignment.assigned_by %}
+                by {{ assignment.assigned_by.get_display_name }}
+                {% endif %}
+              </div>
+              <div class="activity-time">{{ assignment.assigned_date|time_since_filter }} ago</div>
+            </div>
+          </div>
+          {% empty %}
+          <div class="text-center py-3">
+            <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+            <p class="text-muted mb-0">No recent activity</p>
+          </div>
+          {% endfor %}
         </div>
       </div>
     </div>
-    {% endif %}
   </div>
 </div>
 
-<!-- Assign Role Modal -->
-<div class="modal fade" id="assignRoleModal" tabindex="-1" aria-labelledby="assignRoleModalLabel" aria-hidden="true">
+<!-- All Users Modal -->
+<div class="modal fade" id="allUsersModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="assignRoleModalLabel">Assign Role to Users</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title">All Users with {{ role.name }} Role</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <form id="assign-role-form">
-          <div class="mb-3">
-            <label class="form-label">Select Users</label>
-            <select class="form-select" id="user-select" multiple size="10">
-              <!-- Users will be loaded via AJAX -->
-            </select>
-            <small class="text-muted">Hold Ctrl/Cmd to select multiple users</small>
-          </div>
-
-          <div class="row">
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="expires-at" class="form-label">Expiry Date (Optional)</label>
-                <input type="date" class="form-control" id="expires-at">
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="assignment-notes" class="form-label">Notes (Optional)</label>
-                <textarea class="form-control" id="assignment-notes" rows="3"></textarea>
-              </div>
-            </div>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" onclick="assignRoleToUsers()">Assign Role</button>
+        <table class="table table-hover" id="usersTable">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Assigned Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for assignment in role_assignments %}
+            <tr>
+              <td>
+                <div class="d-flex align-items-center">
+                  <img src="{% user_avatar_url assignment.user 32 %}" alt="{{ assignment.user.get_display_name }}"
+                    class="rounded-circle me-2" style="width: 32px; height: 32px;">
+                  <div>
+                    <div class="fw-bold">{{ assignment.user.get_display_name }}</div>
+                    <small class="text-muted">@{{ assignment.user.username }}</small>
+                  </div>
+                </div>
+              </td>
+              <td>{{ assignment.user.email }}</td>
+              <td>
+                {% if assignment.user.is_active %}
+                <span class="badge bg-success">Active</span>
+                {% else %}
+                <span class="badge bg-secondary">Inactive</span>
+                {% endif %}
+              </td>
+              <td>{{ assignment.assigned_date|date:"M d, Y" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
 
 <script>
-  // Load users for assignment
-  document.addEventListener('DOMContentLoaded', function () {
-    const modal = document.getElementById('assignRoleModal');
-    modal.addEventListener('show.bs.modal', function () {
-      loadAvailableUsers();
+  $(document).ready(function () {
+    // Initialize DataTable for modal
+    $('#usersTable').DataTable({
+      responsive: true,
+      pageLength: 10,
+      order: [[3, 'desc']] // Sort by assigned date
     });
   });
 
-  function loadAvailableUsers() {
-    fetch('/api/accounts/users/?exclude_role={{ role.name }}')
-      .then(response => response.json())
-      .then(data => {
-        const select = document.getElementById('user-select');
-        select.innerHTML = '';
-
-        data.results.forEach(user => {
-          const option = document.createElement('option');
-          option.value = user.id;
-          option.textContent = `${user.full_name} (${user.email})`;
-          select.appendChild(option);
-        });
-      })
-      .catch(error => {
-        console.error('Error loading users:', error);
-      });
-  }
-
-  function assignRoleToUsers() {
-    const userSelect = document.getElementById('user-select');
-    const selectedUsers = Array.from(userSelect.selectedOptions).map(option => option.value);
-    const expiresAt = document.getElementById('expires-at').value;
-    const notes = document.getElementById('assignment-notes').value;
-
-    if (selectedUsers.length === 0) {
-      alert('Please select at least one user.');
-      return;
-    }
-
-    // Show loading state
-    const button = event.target;
-    button.disabled = true;
-    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Assigning...';
-
-    Promise.all(selectedUsers.map(userId => {
-      return fetch('/api/accounts/role-assignments/assign/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+  function deleteRole() {
+    if (confirm('Are you sure you want to delete this role? This action cannot be undone and will remove the role from all assigned users.')) {
+      $.ajax({
+        url: '{% url "accounts:role_delete" role.pk %}',
+        type: 'POST',
+        data: {
+          'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
         },
-        body: JSON.stringify({
-          user_id: parseInt(userId),
-          role_name: '{{ role.name }}',
-          expires_at: expiresAt || null,
-          notes: notes
-        })
-      });
-    }))
-      .then(responses => {
-        const successful = responses.filter(r => r.ok).length;
-        alert(`Successfully assigned role to ${successful} user(s).`);
-        location.reload();
-      })
-      .catch(error => {
-        console.error('Error assigning roles:', error);
-        alert('Error assigning roles. Please try again.');
-      })
-      .finally(() => {
-        button.disabled = false;
-        button.innerHTML = 'Assign Role';
-      });
-  }
-
-  function removeRoleFromUser(userId, roleName) {
-    if (confirm('Are you sure you want to remove this role from the user?')) {
-      fetch('/api/accounts/role-assignments/remove/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        success: function (response) {
+          alert('Role deleted successfully.');
+          window.location.href = '{% url "accounts:role_list" %}';
         },
-        body: JSON.stringify({
-          user_id: userId,
-          role_name: roleName
-        })
-      })
-        .then(response => response.json())
-        .then(data => {
-          if (data.detail) {
-            location.reload();
-          } else {
-            alert('Error removing role. Please try again.');
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          alert('Error removing role. Please try again.');
-        });
+        error: function (xhr) {
+          const response = xhr.responseJSON;
+          alert(response?.error || 'Failed to delete role.');
+        }
+      });
     }
-  }
-
-  function duplicateRole() {
-    const roleName = prompt('Enter name for the new role:');
-    if (roleName) {
-      // Implementation would depend on your backend API
-      alert('Duplicate role functionality to be implemented');
-    }
-  }
-
-  function exportRoleData() {
-    // Implementation for exporting role data
-    alert('Export functionality to be implemented');
   }
 </script>
-{% endblock content %}
+{% endblock %}

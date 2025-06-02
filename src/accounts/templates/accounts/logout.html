@@ -1,0 +1,400 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Logged Out{% endblock %}
+
+{% block extra_css %}
+<style>
+  .logout-card {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border: none;
+  }
+
+  .logout-content {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+    border: none;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+  }
+
+  .logout-animation {
+    animation: fadeInUp 0.8s ease-out;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .feature-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  }
+
+  .session-info {
+    background: rgba(40, 167, 69, 0.1);
+    border-left: 4px solid #28a745;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-vh-100 d-flex align-items-center py-5"
+  style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-xl-6 col-lg-7 col-md-9">
+        <div class="logout-animation">
+          <!-- Main Logout Card -->
+          <div class="card logout-card border-0 shadow-lg mb-4">
+            <div class="card-body p-0">
+              <!-- Header -->
+              <div class="text-center py-5">
+                <div class="mb-4">
+                  <i class="fas fa-check-circle fa-4x text-white mb-3"></i>
+                  <h2 class="text-white mb-2">Successfully Logged Out</h2>
+                  <p class="text-white-50">Thank you for using our School Management System</p>
+                </div>
+              </div>
+
+              <!-- Content Section -->
+              <div class="px-5 pb-5">
+                <div class="card logout-content">
+                  <div class="card-body p-4 text-center">
+                    <h5 class="mb-3">Your session has been ended securely</h5>
+                    <p class="text-muted mb-4">
+                      For your security, all active sessions have been terminated and
+                      your data has been protected.
+                    </p>
+
+                    <!-- Action Buttons -->
+                    <div class="d-grid gap-2 col-8 mx-auto mb-4">
+                      <a href="{% url 'accounts:login' %}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-sign-in-alt me-2"></i>
+                        Login Again
+                      </a>
+                      <a href="/" class="btn btn-outline-secondary">
+                        <i class="fas fa-home me-2"></i>
+                        Go to Homepage
+                      </a>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="row text-center">
+                      <div class="col-4">
+                        <a href="{% url 'accounts:password_reset' %}" class="btn btn-link text-decoration-none">
+                          <i class="fas fa-lock text-muted"></i>
+                          <div class="small text-muted mt-1">Reset Password</div>
+                        </a>
+                      </div>
+                      <div class="col-4">
+                        <a href="#" class="btn btn-link text-decoration-none" data-bs-toggle="modal"
+                          data-bs-target="#supportModal">
+                          <i class="fas fa-question-circle text-muted"></i>
+                          <div class="small text-muted mt-1">Get Help</div>
+                        </a>
+                      </div>
+                      <div class="col-4">
+                        <a href="#" class="btn btn-link text-decoration-none" data-bs-toggle="modal"
+                          data-bs-target="#feedbackModal">
+                          <i class="fas fa-comment text-muted"></i>
+                          <div class="small text-muted mt-1">Feedback</div>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Session Information -->
+          <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body session-info">
+              <h6 class="mb-3">
+                <i class="fas fa-info-circle text-success me-2"></i>
+                Session Information
+              </h6>
+              <div class="row small">
+                <div class="col-md-6">
+                  <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                      <i class="fas fa-clock text-muted me-2"></i>
+                      <strong>Logout Time:</strong> <span id="logoutTime"></span>
+                    </li>
+                    <li class="mb-2">
+                      <i class="fas fa-shield-alt text-muted me-2"></i>
+                      <strong>Security:</strong> All sessions terminated
+                    </li>
+                  </ul>
+                </div>
+                <div class="col-md-6">
+                  <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                      <i class="fas fa-laptop text-muted me-2"></i>
+                      <strong>Device:</strong> <span id="deviceInfo"></span>
+                    </li>
+                    <li class="mb-2">
+                      <i class="fas fa-map-marker-alt text-muted me-2"></i>
+                      <strong>Location:</strong> <span id="locationInfo"></span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature Highlights -->
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <div class="card feature-card border-0 shadow-sm h-100">
+                <div class="card-body text-center p-4">
+                  <i class="fas fa-shield-alt fa-2x text-primary mb-3"></i>
+                  <h6>Secure Access</h6>
+                  <p class="small text-muted mb-0">Multi-factor authentication and encrypted sessions</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="card feature-card border-0 shadow-sm h-100">
+                <div class="card-body text-center p-4">
+                  <i class="fas fa-mobile-alt fa-2x text-success mb-3"></i>
+                  <h6>Mobile Ready</h6>
+                  <p class="small text-muted mb-0">Access from any device, anywhere, anytime</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="card feature-card border-0 shadow-sm h-100">
+                <div class="card-body text-center p-4">
+                  <i class="fas fa-clock fa-2x text-info mb-3"></i>
+                  <h6>24/7 Support</h6>
+                  <p class="small text-muted mb-0">Round-the-clock assistance when you need it</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Support Modal -->
+<div class="modal fade" id="supportModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-headset text-primary me-2"></i>
+          Support & Help
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6">
+            <h6>Contact Information</h6>
+            <ul class="list-unstyled">
+              <li class="mb-2">
+                <i class="fas fa-envelope text-primary me-2"></i>
+                <strong>Email:</strong><br>
+                <a href="mailto:support@schoolsms.com">support@schoolsms.com</a>
+              </li>
+              <li class="mb-2">
+                <i class="fas fa-phone text-success me-2"></i>
+                <strong>Phone:</strong><br>
+                +1 (555) 123-4567
+              </li>
+              <li class="mb-2">
+                <i class="fas fa-clock text-info me-2"></i>
+                <strong>Hours:</strong><br>
+                Monday-Friday, 8 AM - 6 PM
+              </li>
+            </ul>
+          </div>
+          <div class="col-md-6">
+            <h6>Quick Help</h6>
+            <ul class="list-unstyled">
+              <li class="mb-2">
+                <a href="#" class="text-decoration-none">
+                  <i class="fas fa-book text-primary me-2"></i>
+                  User Manual
+                </a>
+              </li>
+              <li class="mb-2">
+                <a href="#" class="text-decoration-none">
+                  <i class="fas fa-video text-success me-2"></i>
+                  Video Tutorials
+                </a>
+              </li>
+              <li class="mb-2">
+                <a href="#" class="text-decoration-none">
+                  <i class="fas fa-question-circle text-info me-2"></i>
+                  FAQ
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Feedback Modal -->
+<div class="modal fade" id="feedbackModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-comment text-primary me-2"></i>
+          Send Feedback
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="feedbackForm">
+          <div class="mb-3">
+            <label for="feedbackType" class="form-label">Feedback Type</label>
+            <select class="form-select" id="feedbackType" required>
+              <option value="">Select feedback type</option>
+              <option value="bug">Bug Report</option>
+              <option value="feature">Feature Request</option>
+              <option value="improvement">Improvement Suggestion</option>
+              <option value="general">General Feedback</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="feedbackRating" class="form-label">Overall Rating</label>
+            <div class="rating" id="feedbackRating">
+              <span class="star" data-rating="1">⭐</span>
+              <span class="star" data-rating="2">⭐</span>
+              <span class="star" data-rating="3">⭐</span>
+              <span class="star" data-rating="4">⭐</span>
+              <span class="star" data-rating="5">⭐</span>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="feedbackMessage" class="form-label">Your Feedback</label>
+            <textarea class="form-control" id="feedbackMessage" rows="4" placeholder="Tell us what you think..."
+              required></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="feedbackEmail" class="form-label">Email (optional)</label>
+            <input type="email" class="form-control" id="feedbackEmail" placeholder="your.email@example.com">
+            <div class="form-text">We'll only use this to follow up on your feedback</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="submitFeedback()">
+          <i class="fas fa-paper-plane me-2"></i>Send Feedback
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Set current time
+    document.getElementById('logoutTime').textContent = new Date().toLocaleString();
+
+    // Set device info
+    const deviceInfo = navigator.userAgent.includes('Mobile') ? 'Mobile Device' : 'Desktop Computer';
+    document.getElementById('deviceInfo').textContent = deviceInfo;
+
+    // Set location info (placeholder)
+    document.getElementById('locationInfo').textContent = 'Secure Connection';
+
+    // Auto-redirect to login after 5 minutes of inactivity
+    let inactivityTimer = setTimeout(() => {
+      if (confirm('You have been inactive for 5 minutes. Would you like to go to the login page?')) {
+        window.location.href = '{% url "accounts:login" %}';
+      }
+    }, 300000); // 5 minutes
+
+    // Reset timer on any user activity
+    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(event => {
+      document.addEventListener(event, () => {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(() => {
+          if (confirm('You have been inactive for 5 minutes. Would you like to go to the login page?')) {
+            window.location.href = '{% url "accounts:login" %}';
+          }
+        }, 300000);
+      }, true);
+    });
+
+    // Star rating functionality
+    const stars = document.querySelectorAll('.star');
+    let selectedRating = 0;
+
+    stars.forEach((star, index) => {
+      star.addEventListener('click', () => {
+        selectedRating = index + 1;
+        updateStarDisplay();
+      });
+
+      star.addEventListener('mouseover', () => {
+        highlightStars(index + 1);
+      });
+    });
+
+    document.getElementById('feedbackRating').addEventListener('mouseleave', () => {
+      updateStarDisplay();
+    });
+
+    function highlightStars(rating) {
+      stars.forEach((star, index) => {
+        star.style.opacity = index < rating ? '1' : '0.3';
+      });
+    }
+
+    function updateStarDisplay() {
+      highlightStars(selectedRating);
+    }
+  });
+
+  function submitFeedback() {
+    const form = document.getElementById('feedbackForm');
+    const formData = new FormData(form);
+
+    // Add rating to form data
+    const selectedRating = document.querySelectorAll('.star').length;
+    // This would normally submit to a feedback endpoint
+
+    // Simulate submission
+    const submitBtn = event.target;
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+
+    setTimeout(() => {
+      submitBtn.innerHTML = '<i class="fas fa-check me-2"></i>Sent!';
+      setTimeout(() => {
+        bootstrap.Modal.getInstance(document.getElementById('feedbackModal')).hide();
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        form.reset();
+      }, 1000);
+    }, 2000);
+  }
+</script>
+{% endblock %}

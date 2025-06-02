@@ -1,0 +1,710 @@
+{% extends "base.html" %}
+{% load static %}
+{% load accounts_tags %}
+
+{% block title %}Bulk Import Users{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<style>
+  .upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 0.375rem;
+    padding: 3rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .upload-area:hover {
+    border-color: #0d6efd;
+    background-color: #f8f9fa;
+  }
+
+  .upload-area.dragover {
+    border-color: #0d6efd;
+    background-color: #e7f3ff;
+  }
+
+  .file-preview {
+    display: none;
+  }
+
+  .error-row {
+    background-color: #f8d7da !important;
+  }
+
+  .warning-row {
+    background-color: #fff3cd !important;
+  }
+
+  .success-row {
+    background-color: #d1edff !important;
+  }
+
+  .validation-icon {
+    font-size: 0.8rem;
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-md-8">
+      <h1 class="h3 mb-0 text-gray-800">
+        <i class="fas fa-upload text-primary me-2"></i>Bulk Import Users
+      </h1>
+      <p class="text-muted">Import multiple users from CSV file with validation and preview</p>
+    </div>
+    <div class="col-md-4">
+      <div class="btn-group float-end" role="group">
+        <a href="#" class="btn btn-outline-primary" onclick="downloadTemplate()">
+          <i class="fas fa-download me-2"></i>Download Template
+        </a>
+        <a href="{% url 'accounts:user_list' %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-2"></i>Back to Users
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Progress -->
+  <div class="row mb-4" id="progressSection" style="display: none;">
+    <div class="col-12">
+      <div class="card border-left-info shadow">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Import Progress</div>
+              <div class="progress">
+                <div id="importProgress" class="progress-bar bg-info" role="progressbar" style="width: 0%"></div>
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-spinner fa-spin fa-2x text-gray-300"></i>
+            </div>
+          </div>
+          <div class="mt-2">
+            <small id="progressText" class="text-muted">Preparing import...</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Upload Form -->
+    <div class="col-xl-4 col-lg-5">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-file-csv me-2"></i>Upload CSV File
+          </h6>
+        </div>
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data" id="bulkImportForm">
+            {% csrf_token %}
+
+            <!-- File Upload Area -->
+            <div class="upload-area mb-3" id="uploadArea">
+              <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+              <h5>Drop CSV file here</h5>
+              <p class="text-muted">or click to browse</p>
+              <input type="file" class="d-none" id="csvFile" name="csv_file" accept=".csv" required>
+            </div>
+
+            <!-- File Info -->
+            <div class="file-preview" id="filePreview">
+              <div class="alert alert-info">
+                <strong id="fileName"></strong><br>
+                <small id="fileSize"></small> | <small id="fileRows"></small> rows detected
+              </div>
+            </div>
+
+            <!-- Form Fields -->
+            <div class="mb-3">
+              <label for="{{ form.default_password.id_for_label }}" class="form-label">
+                {{ form.default_password.label }}
+              </label>
+              {{ form.default_password }}
+              <div class="form-text">{{ form.default_password.help_text }}</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">{{ form.default_roles.label }}</label>
+              <div class="border rounded p-2" style="max-height: 120px; overflow-y: auto;">
+                {% for checkbox in form.default_roles %}
+                <div class="form-check">
+                  {{ checkbox.tag }}
+                  <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                    {{ checkbox.choice_label }}
+                  </label>
+                </div>
+                {% endfor %}
+              </div>
+              <div class="form-text">{{ form.default_roles.help_text }}</div>
+            </div>
+
+            <div class="mb-3">
+              <div class="form-check">
+                {{ form.send_welcome_emails }}
+                <label class="form-check-label" for="{{ form.send_welcome_emails.id_for_label }}">
+                  {{ form.send_welcome_emails.label }}
+                </label>
+              </div>
+              <div class="form-text">{{ form.send_welcome_emails.help_text }}</div>
+            </div>
+
+            <div class="mb-3">
+              <div class="form-check">
+                {{ form.update_existing }}
+                <label class="form-check-label" for="{{ form.update_existing.id_for_label }}">
+                  {{ form.update_existing.label }}
+                </label>
+              </div>
+              <div class="form-text">{{ form.update_existing.help_text }}</div>
+            </div>
+
+            <div class="mb-3">
+              <div class="form-check">
+                {{ form.dry_run }}
+                <label class="form-check-label" for="{{ form.dry_run.id_for_label }}">
+                  {{ form.dry_run.label }}
+                </label>
+              </div>
+              <div class="form-text">{{ form.dry_run.help_text }}</div>
+            </div>
+
+            <div class="d-grid gap-2">
+              <button type="button" class="btn btn-info" id="previewBtn" disabled onclick="previewData()">
+                <i class="fas fa-eye me-2"></i>Preview Data
+              </button>
+              <button type="submit" class="btn btn-primary" id="importBtn" disabled>
+                <i class="fas fa-upload me-2"></i>Start Import
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Import Guidelines -->
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-success">
+            <i class="fas fa-info-circle me-2"></i>Import Guidelines
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="small">
+            <strong>Required Columns:</strong>
+            <ul class="mb-2">
+              <li>email</li>
+              <li>first_name</li>
+              <li>last_name</li>
+            </ul>
+
+            <strong>Optional Columns:</strong>
+            <ul class="mb-2">
+              <li>username</li>
+              <li>phone_number</li>
+              <li>address</li>
+              <li>gender (M/F/O/P)</li>
+              <li>date_of_birth (YYYY-MM-DD)</li>
+            </ul>
+
+            <strong>Notes:</strong>
+            <ul class="mb-0">
+              <li>Maximum 1000 users per import</li>
+              <li>File size limit: 5MB</li>
+              <li>Duplicate emails will be skipped</li>
+              <li>Invalid data will be highlighted</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Preview -->
+    <div class="col-xl-8 col-lg-7">
+      <div class="card shadow mb-4" id="previewCard" style="display: none;">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-table me-2"></i>Data Preview & Validation
+          </h6>
+          <div class="btn-group" role="group">
+            <button type="button" class="btn btn-sm btn-outline-success" onclick="filterRows('valid')">
+              <i class="fas fa-check me-1"></i>Valid (<span id="validCount">0</span>)
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-warning" onclick="filterRows('warning')">
+              <i class="fas fa-exclamation-triangle me-1"></i>Warnings (<span id="warningCount">0</span>)
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="filterRows('error')">
+              <i class="fas fa-times me-1"></i>Errors (<span id="errorCount">0</span>)
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="filterRows('all')">
+              <i class="fas fa-list me-1"></i>All
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="previewTable" class="table table-bordered table-hover table-sm">
+              <thead class="table-dark">
+                <tr>
+                  <th>Status</th>
+                  <th>Row</th>
+                  <th>Email</th>
+                  <th>First Name</th>
+                  <th>Last Name</th>
+                  <th>Username</th>
+                  <th>Phone</th>
+                  <th>Issues</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Data populated by JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Validation Summary -->
+      <div class="card shadow" id="validationSummary" style="display: none;">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-info">
+            <i class="fas fa-chart-pie me-2"></i>Validation Summary
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-md-3">
+              <div class="border-end">
+                <h4 class="text-success" id="summaryValid">0</h4>
+                <p class="text-muted mb-0">Valid Records</p>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="border-end">
+                <h4 class="text-warning" id="summaryWarning">0</h4>
+                <p class="text-muted mb-0">Warnings</p>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="border-end">
+                <h4 class="text-danger" id="summaryError">0</h4>
+                <p class="text-muted mb-0">Errors</p>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <h4 class="text-info" id="summaryTotal">0</h4>
+              <p class="text-muted mb-0">Total Records</p>
+            </div>
+          </div>
+          <div class="mt-3" id="validationMessages"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Import Results Modal -->
+<div class="modal fade" id="importResultsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Import Results</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="importResultsContent">
+        <!-- Results loaded here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <a href="{% url 'accounts:user_list' %}" class="btn btn-primary">View Users</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let csvData = [];
+  let previewTable = null;
+  let validationResults = {
+    valid: 0,
+    warning: 0,
+    error: 0,
+    total: 0
+  };
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const uploadArea = document.getElementById('uploadArea');
+    const csvFile = document.getElementById('csvFile');
+    const filePreview = document.getElementById('filePreview');
+    const previewBtn = document.getElementById('previewBtn');
+    const importBtn = document.getElementById('importBtn');
+
+    // Upload area click handler
+    uploadArea.addEventListener('click', () => csvFile.click());
+
+    // Drag and drop handlers
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+
+      const files = e.dataTransfer.files;
+      if (files.length > 0 && files[0].type === 'text/csv') {
+        csvFile.files = files;
+        handleFileSelect(files[0]);
+      }
+    });
+
+    // File input change handler
+    csvFile.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        handleFileSelect(e.target.files[0]);
+      }
+    });
+
+    // Form submission handler
+    document.getElementById('bulkImportForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (validationResults.error > 0) {
+        alert('Please fix all errors before importing.');
+        return;
+      }
+      performImport();
+    });
+  });
+
+  function handleFileSelect(file) {
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileSize').textContent = formatFileSize(file.size);
+    document.getElementById('filePreview').style.display = 'block';
+
+    // Parse CSV
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: function (results) {
+        csvData = results.data;
+        document.getElementById('fileRows').textContent = csvData.length;
+        document.getElementById('previewBtn').disabled = false;
+
+        if (csvData.length > 1000) {
+          alert('Maximum 1000 users allowed per import. File will be truncated.');
+          csvData = csvData.slice(0, 1000);
+        }
+      },
+      error: function (error) {
+        alert('Error parsing CSV: ' + error.message);
+      }
+    });
+  }
+
+  function previewData() {
+    if (csvData.length === 0) return;
+
+    // Validate data
+    const validatedData = validateCsvData(csvData);
+
+    // Show preview card
+    document.getElementById('previewCard').style.display = 'block';
+    document.getElementById('validationSummary').style.display = 'block';
+
+    // Initialize DataTable if not exists
+    if (previewTable) {
+      previewTable.destroy();
+    }
+
+    // Populate table
+    const tbody = document.querySelector('#previewTable tbody');
+    tbody.innerHTML = '';
+
+    validatedData.forEach((row, index) => {
+      const tr = document.createElement('tr');
+      tr.className = row.status + '-row';
+      tr.dataset.status = row.status;
+
+      const statusIcon = row.status === 'success' ? 'fa-check text-success' :
+        row.status === 'warning' ? 'fa-exclamation-triangle text-warning' :
+          'fa-times text-danger';
+
+      tr.innerHTML = `
+            <td><i class="fas ${statusIcon} validation-icon"></i></td>
+            <td>${index + 1}</td>
+            <td>${row.email || ''}</td>
+            <td>${row.first_name || ''}</td>
+            <td>${row.last_name || ''}</td>
+            <td>${row.username || ''}</td>
+            <td>${row.phone_number || ''}</td>
+            <td>
+                ${row.issues.length > 0 ?
+          `<small class="text-muted">${row.issues.join(', ')}</small>` :
+          '<span class="text-success small">No issues</span>'
+        }
+            </td>
+        `;
+      tbody.appendChild(tr);
+    });
+
+    // Initialize DataTable
+    previewTable = $('#previewTable').DataTable({
+      pageLength: 25,
+      order: [[1, 'asc']],
+      columnDefs: [
+        { orderable: false, targets: [0, 7] }
+      ],
+      language: {
+        search: "Filter records:",
+        lengthMenu: "Show _MENU_ records per page"
+      }
+    });
+
+    // Update summary
+    updateValidationSummary();
+
+    // Enable import button if no errors
+    document.getElementById('importBtn').disabled = validationResults.error > 0;
+  }
+
+  function validateCsvData(data) {
+    const requiredFields = ['email', 'first_name', 'last_name'];
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^\+?[\d\s\-\(\)]{10,15}$/;
+
+    validationResults = { valid: 0, warning: 0, error: 0, total: data.length };
+
+    return data.map(row => {
+      const issues = [];
+      let status = 'success';
+
+      // Check required fields
+      requiredFields.forEach(field => {
+        if (!row[field] || row[field].trim() === '') {
+          issues.push(`Missing ${field}`);
+          status = 'error';
+        }
+      });
+
+      // Validate email format
+      if (row.email && !emailRegex.test(row.email)) {
+        issues.push('Invalid email format');
+        status = 'error';
+      }
+
+      // Validate phone if provided
+      if (row.phone_number && !phoneRegex.test(row.phone_number)) {
+        issues.push('Invalid phone format');
+        if (status !== 'error') status = 'warning';
+      }
+
+      // Check username length
+      if (row.username && row.username.length < 3) {
+        issues.push('Username too short');
+        if (status !== 'error') status = 'warning';
+      }
+
+      // Validate date of birth format
+      if (row.date_of_birth && !/^\d{4}-\d{2}-\d{2}$/.test(row.date_of_birth)) {
+        issues.push('Invalid date format (use YYYY-MM-DD)');
+        if (status !== 'error') status = 'warning';
+      }
+
+      // Validate gender
+      if (row.gender && !['M', 'F', 'O', 'P'].includes(row.gender.toUpperCase())) {
+        issues.push('Invalid gender (use M/F/O/P)');
+        if (status !== 'error') status = 'warning';
+      }
+
+      // Update counters
+      if (status === 'error') validationResults.error++;
+      else if (status === 'warning') validationResults.warning++;
+      else validationResults.valid++;
+
+      return { ...row, status, issues };
+    });
+  }
+
+  function updateValidationSummary() {
+    document.getElementById('validCount').textContent = validationResults.valid;
+    document.getElementById('warningCount').textContent = validationResults.warning;
+    document.getElementById('errorCount').textContent = validationResults.error;
+
+    document.getElementById('summaryValid').textContent = validationResults.valid;
+    document.getElementById('summaryWarning').textContent = validationResults.warning;
+    document.getElementById('summaryError').textContent = validationResults.error;
+    document.getElementById('summaryTotal').textContent = validationResults.total;
+
+    // Show validation messages
+    const messagesDiv = document.getElementById('validationMessages');
+    const messages = [];
+
+    if (validationResults.error > 0) {
+      messages.push(`<div class="alert alert-danger alert-sm mb-2">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            ${validationResults.error} records have errors and will be skipped.
+        </div>`);
+    }
+
+    if (validationResults.warning > 0) {
+      messages.push(`<div class="alert alert-warning alert-sm mb-2">
+            <i class="fas fa-info-circle me-2"></i>
+            ${validationResults.warning} records have warnings but can be imported.
+        </div>`);
+    }
+
+    if (validationResults.valid > 0) {
+      messages.push(`<div class="alert alert-success alert-sm mb-0">
+            <i class="fas fa-check me-2"></i>
+            ${validationResults.valid} records are ready for import.
+        </div>`);
+    }
+
+    messagesDiv.innerHTML = messages.join('');
+  }
+
+  function filterRows(type) {
+    if (!previewTable) return;
+
+    if (type === 'all') {
+      previewTable.columns(0).search('').draw();
+    } else {
+      const searchTerm = type === 'valid' ? 'fa-check' :
+        type === 'warning' ? 'fa-exclamation-triangle' :
+          'fa-times';
+      previewTable.columns(0).search(searchTerm).draw();
+    }
+  }
+
+  function performImport() {
+    const formData = new FormData(document.getElementById('bulkImportForm'));
+
+    // Show progress
+    document.getElementById('progressSection').style.display = 'block';
+    document.getElementById('importBtn').disabled = true;
+
+    let progress = 0;
+    const progressBar = document.getElementById('importProgress');
+    const progressText = document.getElementById('progressText');
+
+    // Simulate progress
+    const progressInterval = setInterval(() => {
+      progress += Math.random() * 15;
+      if (progress > 90) progress = 90;
+
+      progressBar.style.width = progress + '%';
+      progressText.textContent = `Processing... ${Math.round(progress)}%`;
+    }, 500);
+
+    // Submit form
+    fetch(window.location.href, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        clearInterval(progressInterval);
+        progressBar.style.width = '100%';
+        progressText.textContent = 'Import completed!';
+
+        setTimeout(() => {
+          document.getElementById('progressSection').style.display = 'none';
+          showImportResults(data);
+        }, 1000);
+      })
+      .catch(error => {
+        clearInterval(progressInterval);
+        console.error('Import error:', error);
+        alert('Import failed. Please try again.');
+        document.getElementById('progressSection').style.display = 'none';
+        document.getElementById('importBtn').disabled = false;
+      });
+  }
+
+  function showImportResults(results) {
+    const content = `
+        <div class="row text-center mb-3">
+            <div class="col-md-4">
+                <h4 class="text-success">${results.created || 0}</h4>
+                <p class="text-muted">Users Created</p>
+            </div>
+            <div class="col-md-4">
+                <h4 class="text-info">${results.updated || 0}</h4>
+                <p class="text-muted">Users Updated</p>
+            </div>
+            <div class="col-md-4">
+                <h4 class="text-warning">${results.skipped || 0}</h4>
+                <p class="text-muted">Records Skipped</p>
+            </div>
+        </div>
+        
+        ${results.errors && results.errors.length > 0 ? `
+        <div class="alert alert-warning">
+            <h6>Import Issues:</h6>
+            <ul class="mb-0">
+                ${results.errors.map(error => `<li>${error}</li>`).join('')}
+            </ul>
+        </div>
+        ` : ''}
+        
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>
+            Import completed successfully! ${results.created || 0} users have been added to the system.
+        </div>
+    `;
+
+    document.getElementById('importResultsContent').innerHTML = content;
+    new bootstrap.Modal(document.getElementById('importResultsModal')).show();
+  }
+
+  function downloadTemplate() {
+    const template = `email,first_name,last_name,username,phone_number,address,gender,date_of_birth
+john.doe@example.com,John,Doe,johndoe,+1234567890,"123 Main St, City",M,1990-01-15
+jane.smith@example.com,Jane,Smith,janesmith,+1234567891,"456 Oak Ave, Town",F,1992-03-22`;
+
+    const blob = new Blob([template], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = 'user_import_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+</script>
+{% endblock %}

@@ -208,7 +208,7 @@
           <div class="row">
             {% for term in summary.terms %}
             <div class="col-md-6 col-lg-4 mb-3">
-              <div class="card {% if term.is_current %}border-warning{% else %}border-light{% endif %} h-100">
+              <div class="card {% if term.is_current %}border-warning{% else %}border-primary{% endif %} h-100">
                 <div class="card-body">
                   <div class="d-flex justify-content-between align-items-start mb-2">
                     <h6 class="card-title mb-0">{{ term.name }}</h6>
@@ -281,7 +281,7 @@
         <div class="card-body">
           <div class="table-responsive">
             <table class="table table-bordered" id="classesTable" width="100%" cellspacing="0">
-              <thead class="table-light">
+              <thead class="table-condensed">
                 <tr>
                   <th>Class Name</th>
                   <th>Section</th>

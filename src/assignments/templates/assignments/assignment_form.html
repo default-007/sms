@@ -1,0 +1,682 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block title %}
+{% if object %}Edit Assignment: {{ object.title }}{% else %}Create New Assignment{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <!-- Form Header -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h4 class="mb-1">
+                {% if object %}
+                <i class="fas fa-edit me-2"></i>Edit Assignment
+                {% else %}
+                <i class="fas fa-plus me-2"></i>Create New Assignment
+                {% endif %}
+              </h4>
+              <p class="text-muted mb-0">
+                {% if object %}
+                Modify assignment details and settings
+                {% else %}
+                Create a new assignment for your students
+                {% endif %}
+              </p>
+            </div>
+            <div>
+              <a href="{% if object %}{% url 'assignments:assignment_detail' object.pk %}{% else %}{% url 'assignments:assignment_list' %}{% endif %}"
+                class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Cancel
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Assignment Form -->
+      <form method="post" enctype="multipart/form-data" id="assignmentForm">
+        {% csrf_token %}
+
+        <!-- Basic Information -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-info-circle me-2"></i>Basic Information
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-8">
+                <div class="mb-3">
+                  <label for="{{ form.title.id_for_label }}" class="form-label required">
+                    Assignment Title
+                  </label>
+                  {{ form.title|add_class:"form-control" }}
+                  {% if form.title.errors %}
+                  <div class="invalid-feedback d-block">{{ form.title.errors.0 }}</div>
+                  {% endif %}
+                  <div class="form-text">Enter a clear, descriptive title for the assignment</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label for="{{ form.difficulty_level.id_for_label }}" class="form-label">
+                    Difficulty Level
+                  </label>
+                  {{ form.difficulty_level|add_class:"form-select" }}
+                  {% if form.difficulty_level.errors %}
+                  <div class="invalid-feedback d-block">{{ form.difficulty_level.errors.0 }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="{{ form.description.id_for_label }}" class="form-label required">
+                Description
+              </label>
+              {{ form.description|add_class:"form-control" }}
+              {% if form.description.errors %}
+              <div class="invalid-feedback d-block">{{ form.description.errors.0 }}</div>
+              {% endif %}
+              <div class="form-text">Provide a brief overview of what students need to do</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="{{ form.instructions.id_for_label }}" class="form-label">
+                Detailed Instructions
+              </label>
+              {{ form.instructions|add_class:"form-control" }}
+              {% if form.instructions.errors %}
+              <div class="invalid-feedback d-block">{{ form.instructions.errors.0 }}</div>
+              {% endif %}
+              <div class="form-text">Provide step-by-step instructions for completing the assignment</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="{{ form.learning_objectives.id_for_label }}" class="form-label">
+                Learning Objectives
+              </label>
+              {{ form.learning_objectives|add_class:"form-control" }}
+              {% if form.learning_objectives.errors %}
+              <div class="invalid-feedback d-block">{{ form.learning_objectives.errors.0 }}</div>
+              {% endif %}
+              <div class="form-text">What should students learn from this assignment?</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Assignment Details -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-cog me-2"></i>Assignment Details
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.class_id.id_for_label }}" class="form-label required">
+                    Class
+                  </label>
+                  {{ form.class_id|add_class:"form-select" }}
+                  {% if form.class_id.errors %}
+                  <div class="invalid-feedback d-block">{{ form.class_id.errors.0 }}</div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.subject.id_for_label }}" class="form-label required">
+                    Subject
+                  </label>
+                  {{ form.subject|add_class:"form-select" }}
+                  {% if form.subject.errors %}
+                  <div class="invalid-feedback d-block">{{ form.subject.errors.0 }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.term.id_for_label }}" class="form-label required">
+                    Term
+                  </label>
+                  {{ form.term|add_class:"form-select" }}
+                  {% if form.term.errors %}
+                  <div class="invalid-feedback d-block">{{ form.term.errors.0 }}</div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.due_date.id_for_label }}" class="form-label required">
+                    Due Date
+                  </label>
+                  {{ form.due_date|add_class:"form-control" }}
+                  {% if form.due_date.errors %}
+                  <div class="invalid-feedback d-block">{{ form.due_date.errors.0 }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label for="{{ form.total_marks.id_for_label }}" class="form-label required">
+                    Total Marks
+                  </label>
+                  {{ form.total_marks|add_class:"form-control" }}
+                  {% if form.total_marks.errors %}
+                  <div class="invalid-feedback d-block">{{ form.total_marks.errors.0 }}</div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label for="{{ form.passing_marks.id_for_label }}" class="form-label">
+                    Passing Marks
+                  </label>
+                  {{ form.passing_marks|add_class:"form-control" }}
+                  {% if form.passing_marks.errors %}
+                  <div class="invalid-feedback d-block">{{ form.passing_marks.errors.0 }}</div>
+                  {% endif %}
+                  <div class="form-text">Minimum marks required to pass</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label for="{{ form.estimated_duration_hours.id_for_label }}" class="form-label">
+                    Estimated Duration (Hours)
+                  </label>
+                  {{ form.estimated_duration_hours|add_class:"form-control" }}
+                  {% if form.estimated_duration_hours.errors %}
+                  <div class="invalid-feedback d-block">{{ form.estimated_duration_hours.errors.0 }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submission Settings -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-upload me-2"></i>Submission Settings
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.submission_type.id_for_label }}" class="form-label">
+                    Submission Type
+                  </label>
+                  {{ form.submission_type|add_class:"form-select" }}
+                  {% if form.submission_type.errors %}
+                  <div class="invalid-feedback d-block">{{ form.submission_type.errors.0 }}</div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.max_file_size_mb.id_for_label }}" class="form-label">
+                    Max File Size (MB)
+                  </label>
+                  {{ form.max_file_size_mb|add_class:"form-control" }}
+                  {% if form.max_file_size_mb.errors %}
+                  <div class="invalid-feedback d-block">{{ form.max_file_size_mb.errors.0 }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="{{ form.allowed_file_types.id_for_label }}" class="form-label">
+                Allowed File Types
+              </label>
+              {{ form.allowed_file_types|add_class:"form-control" }}
+              {% if form.allowed_file_types.errors %}
+              <div class="invalid-feedback d-block">{{ form.allowed_file_types.errors.0 }}</div>
+              {% endif %}
+              <div class="form-text">Comma-separated list (e.g., pdf,doc,docx,txt)</div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-check mb-3">
+                  {{ form.allow_late_submission|add_class:"form-check-input" }}
+                  <label class="form-check-label" for="{{ form.allow_late_submission.id_for_label }}">
+                    Allow Late Submissions
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3" id="latePenaltyField">
+                  <label for="{{ form.late_penalty_percentage.id_for_label }}" class="form-label">
+                    Late Penalty (%)
+                  </label>
+                  {{ form.late_penalty_percentage|add_class:"form-control" }}
+                  {% if form.late_penalty_percentage.errors %}
+                  <div class="invalid-feedback d-block">{{ form.late_penalty_percentage.errors.0 }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-check mb-3">
+                  {{ form.auto_grade|add_class:"form-check-input" }}
+                  <label class="form-check-label" for="{{ form.auto_grade.id_for_label }}">
+                    Auto Grade (if rubric available)
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-check mb-3">
+                  {{ form.peer_review|add_class:"form-check-input" }}
+                  <label class="form-check-label" for="{{ form.peer_review.id_for_label }}">
+                    Enable Peer Review
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- File Attachment -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-paperclip me-2"></i>Assignment File
+            </h5>
+          </div>
+          <div class="card-body">
+            {% if object and object.attachment %}
+            <div class="alert alert-info">
+              <div class="d-flex align-items-center">
+                <i class="fas fa-file me-2"></i>
+                <div class="flex-grow-1">
+                  <strong>Current file:</strong> {{ object.attachment.name }}
+                  <small class="d-block">{{ object.attachment.size|filesizeformat }}</small>
+                </div>
+                <a href="{{ object.attachment.url }}" class="btn btn-sm btn-outline-primary" download>
+                  <i class="fas fa-download me-1"></i>Download
+                </a>
+              </div>
+            </div>
+            {% endif %}
+
+            <div class="mb-3">
+              <label for="{{ form.attachment.id_for_label }}" class="form-label">
+                Upload New File
+              </label>
+              {{ form.attachment|add_class:"form-control" }}
+              {% if form.attachment.errors %}
+              <div class="invalid-feedback d-block">{{ form.attachment.errors.0 }}</div>
+              {% endif %}
+              <div class="form-text">
+                Upload assignment questions, reference materials, or instructions.
+                {% if object %}Leave empty to keep the current file.{% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rubric Section -->
+        <div class="card mb-4">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+              <i class="fas fa-list-check me-2"></i>Grading Rubric
+            </h5>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addRubricCriterion()">
+              <i class="fas fa-plus me-1"></i>Add Criterion
+            </button>
+          </div>
+          <div class="card-body">
+            <div id="rubricContainer">
+              {% if rubric_formset %}
+              {{ rubric_formset.management_form }}
+              {% for form in rubric_formset %}
+              <div class="rubric-criterion border rounded p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h6 class="mb-0">Criterion {{ forloop.counter }}</h6>
+                  <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRubricCriterion(this)">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Criteria Name</label>
+                      {{ form.criteria_name|add_class:"form-control" }}
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="mb-3">
+                      <label class="form-label">Max Points</label>
+                      {{ form.max_points|add_class:"form-control" }}
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="mb-3">
+                      <label class="form-label">Weight (%)</label>
+                      {{ form.weight_percentage|add_class:"form-control" }}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Description</label>
+                  {{ form.description|add_class:"form-control" }}
+                </div>
+
+                <!-- Performance Level Descriptions -->
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Excellent (90-100%)</label>
+                      {{ form.excellent_description|add_class:"form-control" }}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Good (70-89%)</label>
+                      {{ form.good_description|add_class:"form-control" }}
+                    </div>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Satisfactory (50-69%)</label>
+                      {{ form.satisfactory_description|add_class:"form-control" }}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Needs Improvement (Below 50%)</label>
+                      {{ form.needs_improvement_description|add_class:"form-control" }}
+                    </div>
+                  </div>
+                </div>
+
+                {% for hidden in form.hidden_fields %}
+                {{ hidden }}
+                {% endfor %}
+              </div>
+              {% endfor %}
+              {% else %}
+              <div class="text-center text-muted py-4">
+                <i class="fas fa-list-check fa-3x mb-3"></i>
+                <h6>No Rubric Criteria Added</h6>
+                <p>Click "Add Criterion" to create grading criteria for this assignment.</p>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                {% if object %}
+                <small class="text-muted">
+                  Last updated: {{ object.updated_at|date:"F d, Y g:i A" }}
+                </small>
+                {% endif %}
+              </div>
+              <div class="btn-group">
+                <button type="submit" name="action" value="save_draft" class="btn btn-outline-secondary">
+                  <i class="fas fa-save me-1"></i>Save as Draft
+                </button>
+                <button type="submit" name="action" value="save" class="btn btn-primary">
+                  <i class="fas fa-check me-1"></i>
+                  {% if object %}Update Assignment{% else %}Create Assignment{% endif %}
+                </button>
+                {% if not object %}
+                <button type="submit" name="action" value="save_and_publish" class="btn btn-success">
+                  <i class="fas fa-paper-plane me-1"></i>Create & Publish
+                </button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Rubric Criterion Template (hidden) -->
+<div id="rubricTemplate" style="display: none;">
+  <div class="rubric-criterion border rounded p-3 mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="mb-0">New Criterion</h6>
+      <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRubricCriterion(this)">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <div class="mb-3">
+          <label class="form-label">Criteria Name</label>
+          <input type="text" name="rubric_criteria_name" class="form-control" placeholder="e.g., Content Quality">
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="mb-3">
+          <label class="form-label">Max Points</label>
+          <input type="number" name="rubric_max_points" class="form-control" value="10">
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="mb-3">
+          <label class="form-label">Weight (%)</label>
+          <input type="number" name="rubric_weight" class="form-control" value="25" min="1" max="100">
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Description</label>
+      <textarea name="rubric_description" class="form-control" rows="2"
+        placeholder="Describe what this criterion evaluates"></textarea>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <div class="mb-3">
+          <label class="form-label">Excellent (90-100%)</label>
+          <textarea name="rubric_excellent" class="form-control" rows="2"
+            placeholder="Describe excellent performance"></textarea>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="mb-3">
+          <label class="form-label">Good (70-89%)</label>
+          <textarea name="rubric_good" class="form-control" rows="2" placeholder="Describe good performance"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6">
+        <div class="mb-3">
+          <label class="form-label">Satisfactory (50-69%)</label>
+          <textarea name="rubric_satisfactory" class="form-control" rows="2"
+            placeholder="Describe satisfactory performance"></textarea>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="mb-3">
+          <label class="form-label">Needs Improvement (Below 50%)</label>
+          <textarea name="rubric_needs_improvement" class="form-control" rows="2"
+            placeholder="Describe what needs improvement"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Toggle late penalty field based on allow late submission checkbox
+    function toggleLatePenalty() {
+      const allowLate = $('#{{ form.allow_late_submission.id_for_label }}').is(':checked');
+      $('#latePenaltyField').toggle(allowLate);
+    }
+
+    $('#{{ form.allow_late_submission.id_for_label }}').change(toggleLatePenalty);
+    toggleLatePenalty(); // Initialize on page load
+
+    // Auto-calculate passing marks (50% of total marks)
+    $('#{{ form.total_marks.id_for_label }}').on('input', function () {
+      const totalMarks = parseInt($(this).val()) || 0;
+      const passingMarks = Math.ceil(totalMarks * 0.5);
+      $('#{{ form.passing_marks.id_for_label }}').attr('placeholder', `Suggested: ${passingMarks}`);
+    });
+
+    // Form validation
+    $('#assignmentForm').on('submit', function (e) {
+      let isValid = true;
+      const requiredFields = ['title', 'description', 'class_id', 'subject', 'term', 'due_date', 'total_marks'];
+
+      requiredFields.forEach(function (field) {
+        const input = $(`#id_${field}`);
+        if (!input.val()) {
+          input.addClass('is-invalid');
+          isValid = false;
+        } else {
+          input.removeClass('is-invalid');
+        }
+      });
+
+      // Validate due date is in future
+      const dueDate = new Date($('#{{ form.due_date.id_for_label }}').val());
+      const now = new Date();
+      if (dueDate <= now) {
+        $('#{{ form.due_date.id_for_label }}').addClass('is-invalid');
+        alert('Due date must be in the future');
+        isValid = false;
+      }
+
+      // Validate rubric weights total 100% if any rubrics exist
+      const weightInputs = $('[name*="weight_percentage"]');
+      if (weightInputs.length > 0) {
+        let totalWeight = 0;
+        weightInputs.each(function () {
+          totalWeight += parseInt($(this).val()) || 0;
+        });
+
+        if (totalWeight !== 100) {
+          alert(`Rubric weights must total 100%. Current total: ${totalWeight}%`);
+          isValid = false;
+        }
+      }
+
+      if (!isValid) {
+        e.preventDefault();
+        $('html, body').animate({
+          scrollTop: $('.is-invalid').first().offset().top - 100
+        }, 500);
+      }
+    });
+  });
+
+  // Rubric management functions
+  function addRubricCriterion() {
+    const template = document.getElementById('rubricTemplate').innerHTML;
+    const container = document.getElementById('rubricContainer');
+
+    // Remove the "no criteria" message if it exists
+    const emptyMessage = container.querySelector('.text-center');
+    if (emptyMessage) {
+      emptyMessage.remove();
+    }
+
+    container.insertAdjacentHTML('beforeend', template);
+
+    // Update criterion number
+    const criteria = container.querySelectorAll('.rubric-criterion');
+    criteria[criteria.length - 1].querySelector('h6').textContent = `Criterion ${criteria.length}`;
+  }
+
+  function removeRubricCriterion(button) {
+    const criterion = button.closest('.rubric-criterion');
+    criterion.remove();
+
+    // Update criterion numbers
+    const criteria = document.querySelectorAll('.rubric-criterion');
+    criteria.forEach((criterion, index) => {
+      criterion.querySelector('h6').textContent = `Criterion ${index + 1}`;
+    });
+
+    // Show empty message if no criteria left
+    if (criteria.length === 0) {
+      document.getElementById('rubricContainer').innerHTML = `
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-list-check fa-3x mb-3"></i>
+                <h6>No Rubric Criteria Added</h6>
+                <p>Click "Add Criterion" to create grading criteria for this assignment.</p>
+            </div>
+        `;
+    }
+  }
+
+  // Auto-save draft functionality (optional)
+  let autoSaveInterval;
+  function startAutoSave() {
+    autoSaveInterval = setInterval(function () {
+      // Auto-save logic here
+      console.log('Auto-saving draft...');
+    }, 60000); // Every minute
+  }
+
+  function stopAutoSave() {
+    if (autoSaveInterval) {
+      clearInterval(autoSaveInterval);
+    }
+  }
+
+  // Start auto-save when user starts typing
+  $('#assignmentForm input, #assignmentForm textarea, #assignmentForm select').one('input change', startAutoSave);
+
+  // Stop auto-save when form is submitted
+  $('#assignmentForm').on('submit', stopAutoSave);
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .required:after {
+    content: " *";
+    color: red;
+  }
+
+  .rubric-criterion {
+    background-color: #f8f9fa;
+  }
+
+  .form-control.is-invalid {
+    border-color: #dc3545;
+  }
+</style>
+{% endblock %}

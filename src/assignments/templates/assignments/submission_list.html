@@ -1,0 +1,685 @@
+{% extends "base.html" %}
+{% load assignment_tags %}
+
+{% block title %}Submissions - {{ assignment.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'assignments:assignment_list' %}">Assignments</a></li>
+              <li class="breadcrumb-item"><a
+                  href="{% url 'assignments:assignment_detail' assignment.pk %}">{{ assignment.title|truncatechars:30 }}</a>
+              </li>
+              <li class="breadcrumb-item active">Submissions</li>
+            </ol>
+          </nav>
+          <h2 class="mb-1">{{ assignment.title }} - Submissions</h2>
+          <p class="text-muted mb-0">{{ assignment.class_id }} • {{ assignment.subject.name }} • Due:
+            {{ assignment.due_date|date:"M d, Y g:i A" }}
+          </p>
+        </div>
+        <div>
+          <div class="btn-group">
+            <a href="{% url 'assignments:assignment_detail' assignment.pk %}" class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-1"></i>Back to Assignment
+            </a>
+            <div class="btn-group">
+              <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="fas fa-cog me-1"></i>Actions
+              </button>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{% url 'assignments:bulk_grade' assignment.pk %}">
+                    <i class="fas fa-clipboard-check me-2"></i>Bulk Grade
+                  </a></li>
+                <li><a class="dropdown-item" href="{% url 'assignments:submission_export' assignment.pk %}">
+                    <i class="fas fa-download me-2"></i>Export Submissions
+                  </a></li>
+                <li>
+                  <hr class="dropdown-divider">
+                </li>
+                <li><a class="dropdown-item" href="{% url 'assignments:batch_plagiarism' assignment.pk %}">
+                    <i class="fas fa-search me-2"></i>Check Plagiarism
+                  </a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="row mb-4">
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="mb-0">{{ assignment.class_id.students.count }}</h3>
+              <p class="mb-0">Total Students</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-users fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="mb-0">{{ submissions.count }}</h3>
+              <p class="mb-0">Submissions</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-upload fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="mb-0">{% pending_grading_count user.teacher %}</h3>
+              <p class="mb-0">Pending Grading</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-clock fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="mb-0">{{ assignment.completion_rate|floatformat:0 }}%</h3>
+              <p class="mb-0">Completion Rate</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-percentage fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Submissions Table -->
+    <div class="col-lg-9">
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+              <i class="fas fa-list me-2"></i>Student Submissions
+            </h5>
+            <div class="d-flex gap-2">
+              <!-- Filter Buttons -->
+              <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="statusFilter" id="filterAll" value="all" checked>
+                <label class="btn btn-outline-secondary" for="filterAll">All</label>
+
+                <input type="radio" class="btn-check" name="statusFilter" id="filterSubmitted" value="submitted">
+                <label class="btn btn-outline-info" for="filterSubmitted">Submitted</label>
+
+                <input type="radio" class="btn-check" name="statusFilter" id="filterGraded" value="graded">
+                <label class="btn btn-outline-success" for="filterGraded">Graded</label>
+
+                <input type="radio" class="btn-check" name="statusFilter" id="filterPending" value="pending">
+                <label class="btn btn-outline-warning" for="filterPending">Pending</label>
+
+                <input type="radio" class="btn-check" name="statusFilter" id="filterLate" value="late">
+                <label class="btn btn-outline-danger" for="filterLate">Late</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="submissionsTable" class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="selectAllSubmissions">
+                    </div>
+                  </th>
+                  <th>Student</th>
+                  <th>Submission Date</th>
+                  <th>Status</th>
+                  <th>Marks</th>
+                  <th>Grade</th>
+                  <th>Plagiarism</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Submissions from students who submitted -->
+                {% for submission in submissions %}
+                <tr data-status="{{ submission.status }}" data-late="{{ submission.is_late|yesno:'true,false' }}">
+                  <td>
+                    <div class="form-check">
+                      <input class="form-check-input submission-checkbox" type="checkbox" value="{{ submission.id }}">
+                    </div>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="avatar me-3">
+                        <div
+                          class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                          style="width: 36px; height: 36px;">
+                          {{ submission.student.user.get_full_name|slice:":1" }}
+                        </div>
+                      </div>
+                      <div>
+                        <h6 class="mb-1">{{ submission.student.user.get_full_name }}</h6>
+                        <small class="text-muted">{{ submission.student.admission_number }}</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div>
+                      {{ submission.submission_date|date:"M d, Y" }}
+                      <small class="d-block text-muted">{{ submission.submission_date|date:"g:i A" }}</small>
+                      {% if submission.is_late %}
+                      <span class="badge bg-warning mt-1">{{ submission.days_late }}
+                        day{{ submission.days_late|pluralize }} late</span>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td>{% submission_status_badge submission %}</td>
+                  <td>
+                    {% if submission.marks_obtained is not None %}
+                    <span class="fw-bold">{{ submission.marks_obtained }}/{{ assignment.total_marks }}</span>
+                    {% if submission.original_marks and submission.late_penalty_applied %}
+                    <small class="d-block text-muted">Original: {{ submission.original_marks }}</small>
+                    {% endif %}
+                    {% else %}
+                    <span class="text-muted">Not graded</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if submission.percentage %}
+                    {% grade_badge submission.percentage %}
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if submission.plagiarism_checked %}
+                    <span class="{% plagiarism_color submission.plagiarism_score %}">
+                      {{ submission.plagiarism_score|floatformat:1 }}%
+                    </span>
+                    {% else %}
+                    <button class="btn btn-sm btn-outline-secondary" onclick="checkPlagiarism({{ submission.id }})">
+                      <i class="fas fa-search"></i>
+                    </button>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <a href="{% url 'assignments:submission_detail' submission.pk %}" class="btn btn-outline-primary"
+                        title="View Details">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      {% if submission.attachment %}
+                      <a href="{% url 'assignments:submission_download' submission.pk %}" class="btn btn-outline-info"
+                        title="Download">
+                        <i class="fas fa-download"></i>
+                      </a>
+                      {% endif %}
+                      {% if submission.status != 'graded' %}
+                      <a href="{% url 'assignments:submission_grade' submission.pk %}" class="btn btn-success"
+                        title="Grade">
+                        <i class="fas fa-clipboard-check"></i>
+                      </a>
+                      {% else %}
+                      <a href="{% url 'assignments:submission_grade' submission.pk %}" class="btn btn-outline-secondary"
+                        title="Edit Grade">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+
+                <!-- Students who haven't submitted -->
+                {% for student in assignment.class_id.students.all %}
+                {% get_student_submission assignment student as student_submission %}
+                {% if not student_submission %}
+                <tr data-status="not_submitted" data-late="false" class="table-secondary">
+                  <td>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" disabled>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="avatar me-3">
+                        <div
+                          class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center"
+                          style="width: 36px; height: 36px;">
+                          {{ student.user.get_full_name|slice:":1" }}
+                        </div>
+                      </div>
+                      <div>
+                        <h6 class="mb-1">{{ student.user.get_full_name }}</h6>
+                        <small class="text-muted">{{ student.admission_number }}</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="text-muted">Not submitted</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-secondary">Not Submitted</span>
+                  </td>
+                  <td><span class="text-muted">-</span></td>
+                  <td><span class="text-muted">-</span></td>
+                  <td><span class="text-muted">-</span></td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-primary"
+                      onclick="sendReminder('{{ student.user.email }}', '{{ student.user.get_full_name }}')">
+                      <i class="fas fa-bell" title="Send Reminder"></i>
+                    </button>
+                  </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-3">
+      <!-- Quick Actions -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-bolt me-2"></i>Quick Actions
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bulkGradeModal">
+              <i class="fas fa-clipboard-check me-2"></i>Bulk Grade
+            </button>
+            <button class="btn btn-outline-info" onclick="exportSubmissions()">
+              <i class="fas fa-download me-2"></i>Export All
+            </button>
+            <button class="btn btn-outline-warning" onclick="sendRemindersToAll()">
+              <i class="fas fa-bell me-2"></i>Send Reminders
+            </button>
+            <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#deadlineExtendModal">
+              <i class="fas fa-calendar-plus me-2"></i>Extend Deadline
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grade Distribution Chart -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-chart-pie me-2"></i>Grade Distribution
+          </h6>
+        </div>
+        <div class="card-body">
+          <div id="gradeDistributionChart" style="height: 250px;"></div>
+        </div>
+      </div>
+
+      <!-- Submission Timeline -->
+      <div class="card">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-timeline me-2"></i>Submission Timeline
+          </h6>
+        </div>
+        <div class="card-body">
+          <div id="submissionTimelineChart" style="height: 200px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Grade Modal -->
+<div class="modal fade" id="bulkGradeModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Bulk Grade Submissions</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="bulkGradeForm">
+          <div class="mb-3">
+            <label class="form-label">Grading Method</label>
+            <select class="form-select" id="gradingMethod">
+              <option value="percentage">Percentage Based</option>
+              <option value="points">Points Based</option>
+              <option value="pass_fail">Pass/Fail</option>
+            </select>
+          </div>
+
+          <div class="mb-3" id="defaultMarksSection">
+            <label class="form-label">Default Marks</label>
+            <input type="number" class="form-control" id="defaultMarks" min="0" max="{{ assignment.total_marks }}">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Default Feedback</label>
+            <textarea class="form-control" id="defaultFeedback" rows="3"
+              placeholder="General feedback for all submissions..."></textarea>
+          </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="applyToSelected">
+            <label class="form-check-label" for="applyToSelected">
+              Apply only to selected submissions
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="executeBulkGrade()">Apply Grades</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Deadline Extension Modal -->
+<div class="modal fade" id="deadlineExtendModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Extend Assignment Deadline</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="extendDeadlineForm">
+          <div class="mb-3">
+            <label class="form-label">Current Deadline</label>
+            <input type="text" class="form-control" value="{{ assignment.due_date|date:'Y-m-d\TH:i' }}" readonly>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">New Deadline</label>
+            <input type="datetime-local" class="form-control" id="newDeadline" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Reason for Extension</label>
+            <textarea class="form-control" id="extensionReason" rows="3"
+              placeholder="Explain why the deadline is being extended..."></textarea>
+          </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="notifyStudents" checked>
+            <label class="form-check-label" for="notifyStudents">
+              Notify students about deadline change
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="extendDeadline()">Extend Deadline</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@latest"></script>
+
+<script>
+  let submissionsTable;
+
+  $(document).ready(function () {
+    // Initialize DataTable
+    submissionsTable = $('#submissionsTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[2, 'desc']], // Order by submission date
+      columnDefs: [
+        { orderable: false, targets: [0, -1] }, // Disable sorting for checkbox and actions
+      ],
+      dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip',
+      language: {
+        search: "Search submissions:",
+        lengthMenu: "Show _MENU_ submissions per page",
+        info: "Showing _START_ to _END_ of _TOTAL_ submissions",
+        emptyTable: "No submissions available"
+      }
+    });
+
+    // Status filter functionality
+    $('input[name="statusFilter"]').change(function () {
+      const status = $(this).val();
+
+      if (status === 'all') {
+        submissionsTable.column(3).search('').draw();
+      } else if (status === 'pending') {
+        submissionsTable.column(3).search('Not Submitted|Submitted').draw();
+      } else if (status === 'late') {
+        submissionsTable.rows().nodes().to$().hide();
+        submissionsTable.rows('[data-late="true"]').nodes().to$().show();
+      } else {
+        submissionsTable.column(3).search(status).draw();
+      }
+    });
+
+    // Select all functionality
+    $('#selectAllSubmissions').change(function () {
+      $('.submission-checkbox').prop('checked', this.checked);
+    });
+
+    // Grade Distribution Chart
+    const gradeData = getGradeDistributionData();
+    const gradeDistributionOptions = {
+      series: gradeData.values,
+      chart: {
+        type: 'donut',
+        height: 250
+      },
+      labels: gradeData.labels,
+      colors: ['#28a745', '#17a2b8', '#ffc107', '#fd7e14', '#dc3545'],
+      legend: {
+        position: 'bottom'
+      },
+      responsive: [{
+        breakpoint: 480,
+        options: {
+          chart: {
+            width: 200
+          }
+        }
+      }]
+    };
+
+    const gradeChart = new ApexCharts(document.querySelector("#gradeDistributionChart"), gradeDistributionOptions);
+    gradeChart.render();
+
+    // Submission Timeline Chart
+    const timelineData = getSubmissionTimelineData();
+    const timelineOptions = {
+      series: [{
+        name: 'Submissions',
+        data: timelineData
+      }],
+      chart: {
+        type: 'line',
+        height: 200,
+        sparkline: {
+          enabled: true
+        }
+      },
+      stroke: {
+        curve: 'smooth'
+      },
+      colors: ['#007bff']
+    };
+
+    const timelineChart = new ApexCharts(document.querySelector("#submissionTimelineChart"), timelineOptions);
+    timelineChart.render();
+  });
+
+  // Helper functions for chart data
+  function getGradeDistributionData() {
+    // This would typically come from the backend
+    return {
+      labels: ['A', 'B', 'C', 'D', 'F'],
+      values: [8, 12, 15, 5, 3] // Sample data
+    };
+  }
+
+  function getSubmissionTimelineData() {
+    // This would show submission counts over time
+    return [2, 5, 8, 12, 15, 18, 20]; // Sample data
+  }
+
+  // Action functions
+  function checkPlagiarism(submissionId) {
+    // Show loading state
+    const button = event.target.closest('button');
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    button.disabled = true;
+
+    // Make AJAX request to check plagiarism
+    fetch(`{% url 'assignments:plagiarism_check' 0 %}`.replace('0', submissionId), {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        // Update the cell with plagiarism score
+        const cell = button.closest('td');
+        const score = data.plagiarism_score;
+        let colorClass = 'text-success';
+        if (score > 50) colorClass = 'text-danger';
+        else if (score > 30) colorClass = 'text-warning';
+
+        cell.innerHTML = `<span class="${colorClass}">${score}%</span>`;
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        button.innerHTML = originalContent;
+        button.disabled = false;
+      });
+  }
+
+  function sendReminder(email, studentName) {
+    if (confirm(`Send reminder to ${studentName} (${email})?`)) {
+      // Implement reminder sending logic
+      alert('Reminder sent successfully!');
+    }
+  }
+
+  function sendRemindersToAll() {
+    const pendingCount = $('tr[data-status="not_submitted"]').length;
+    if (confirm(`Send reminders to all ${pendingCount} students who haven't submitted?`)) {
+      // Implement bulk reminder logic
+      alert('Reminders sent successfully!');
+    }
+  }
+
+  function exportSubmissions() {
+    window.location.href = '{% url "assignments:submission_export" assignment.pk %}';
+  }
+
+  function executeBulkGrade() {
+    const method = $('#gradingMethod').val();
+    const defaultMarks = $('#defaultMarks').val();
+    const feedback = $('#defaultFeedback').val();
+    const selectedOnly = $('#applyToSelected').is(':checked');
+
+    let submissionIds = [];
+    if (selectedOnly) {
+      submissionIds = $('.submission-checkbox:checked').map(function () {
+        return $(this).val();
+      }).get();
+
+      if (submissionIds.length === 0) {
+        alert('Please select submissions to grade.');
+        return;
+      }
+    }
+
+    if (!defaultMarks && method !== 'pass_fail') {
+      alert('Please enter default marks.');
+      return;
+    }
+
+    // Implement bulk grading logic here
+    console.log('Bulk grading:', { method, defaultMarks, feedback, submissionIds });
+
+    $('#bulkGradeModal').modal('hide');
+    alert('Bulk grading completed successfully!');
+    location.reload();
+  }
+
+  function extendDeadline() {
+    const newDeadline = $('#newDeadline').val();
+    const reason = $('#extensionReason').val();
+    const notify = $('#notifyStudents').is(':checked');
+
+    if (!newDeadline) {
+      alert('Please select a new deadline.');
+      return;
+    }
+
+    if (new Date(newDeadline) <= new Date()) {
+      alert('New deadline must be in the future.');
+      return;
+    }
+
+    // Implement deadline extension logic
+    console.log('Extending deadline:', { newDeadline, reason, notify });
+
+    $('#deadlineExtendModal').modal('hide');
+    alert('Deadline extended successfully!');
+    location.reload();
+  }
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<style>
+  .table-secondary td {
+    opacity: 0.7;
+  }
+
+  .avatar {
+    flex-shrink: 0;
+  }
+</style>
+{% endblock %}

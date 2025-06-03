@@ -1,0 +1,899 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% load assignment_tags %}
+
+{% block title %}Grade Submission - {{ submission.assignment.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <!-- Main Grading Area -->
+    <div class="col-lg-8">
+      <!-- Header Section -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-2">
+                  <li class="breadcrumb-item"><a href="{% url 'assignments:assignment_list' %}">Assignments</a></li>
+                  <li class="breadcrumb-item"><a
+                      href="{% url 'assignments:assignment_detail' submission.assignment.pk %}">{{ submission.assignment.title|truncatechars:30 }}</a>
+                  </li>
+                  <li class="breadcrumb-item"><a
+                      href="{% url 'assignments:submission_list' submission.assignment.pk %}">Submissions</a></li>
+                  <li class="breadcrumb-item active">Grade</li>
+                </ol>
+              </nav>
+              <h4 class="mb-1">Grade Submission</h4>
+              <p class="text-muted mb-0">{{ submission.student.user.get_full_name }} • {{ submission.assignment.title }}
+              </p>
+            </div>
+            <div>
+              {% submission_status_badge submission %}
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Student & Assignment Info -->
+          <div class="row">
+            <div class="col-md-6">
+              <div class="d-flex align-items-center">
+                <div class="avatar me-3">
+                  <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                    style="width: 48px; height: 48px;">
+                    {{ submission.student.user.get_full_name|slice:":1" }}
+                  </div>
+                </div>
+                <div>
+                  <h6 class="mb-1">{{ submission.student.user.get_full_name }}</h6>
+                  <small class="text-muted">{{ submission.student.admission_number }} •
+                    {{ submission.student.current_class_id }}</small>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 text-md-end">
+              <div class="submission-info">
+                <div><strong>Submitted:</strong> {{ submission.submission_date|date:"M d, Y g:i A" }}</div>
+                <div>
+                  <strong>Status:</strong>
+                  {% if submission.is_late %}
+                  <span class="badge bg-warning">{{ submission.days_late }} day{{ submission.days_late|pluralize }}
+                    late</span>
+                  {% else %}
+                  <span class="badge bg-success">On Time</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submission Content Review -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            <i class="fas fa-file-alt me-2"></i>Submission Content
+          </h5>
+          <div class="btn-group btn-group-sm">
+            {% if submission.attachment %}
+            <a href="{% url 'assignments:submission_download' submission.pk %}" class="btn btn-outline-primary">
+              <i class="fas fa-download me-1"></i>Download
+            </a>
+            {% endif %}
+            <button class="btn btn-outline-secondary" onclick="toggleFullscreen()">
+              <i class="fas fa-expand me-1"></i>Fullscreen
+            </button>
+          </div>
+        </div>
+        <div class="card-body" id="submissionContent">
+          {% if submission.content %}
+          <div class="submission-text mb-4">
+            <h6 class="text-muted mb-3">Text Submission</h6>
+            <div class="border rounded p-3 bg-light" style="max-height: 400px; overflow-y: auto;">
+              {{ submission.content|linebreaks }}
+            </div>
+            <div class="mt-2">
+              <small class="text-muted">{{ submission.content|length }} characters</small>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if submission.attachment %}
+          <div class="submission-file">
+            <h6 class="text-muted mb-3">File Attachment</h6>
+            <div class="border rounded p-3">
+              <div class="d-flex align-items-center">
+                {% file_icon submission.attachment.name %}
+                <div class="ms-3 flex-grow-1">
+                  <h6 class="mb-1">{{ submission.attachment.name }}</h6>
+                  <small class="text-muted">{{ submission.file_size_mb }} MB</small>
+                </div>
+                <div class="btn-group">
+                  <a href="{{ submission.attachment.url }}" class="btn btn-outline-primary" target="_blank">
+                    <i class="fas fa-eye me-1"></i>View
+                  </a>
+                  <a href="{% url 'assignments:submission_download' submission.pk %}" class="btn btn-primary">
+                    <i class="fas fa-download me-1"></i>Download
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if submission.student_remarks %}
+          <div class="student-remarks mt-4">
+            <h6 class="text-muted mb-3">Student Notes</h6>
+            <div class="alert alert-info">
+              {{ submission.student_remarks|linebreaks }}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Grading Form -->
+      <form method="post" id="gradingForm">
+        {% csrf_token %}
+
+        <!-- Quick Grading Mode Toggle -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+              <h5 class="mb-0">
+                <i class="fas fa-clipboard-check me-2"></i>Grading
+              </h5>
+              <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="gradingMode" id="simpleMode" value="simple" checked>
+                <label class="btn btn-outline-primary" for="simpleMode">Simple</label>
+
+                <input type="radio" class="btn-check" name="gradingMode" id="detailedMode" value="detailed">
+                <label class="btn btn-outline-primary" for="detailedMode">Detailed</label>
+
+                {% if submission.assignment.rubrics.exists %}
+                <input type="radio" class="btn-check" name="gradingMode" id="rubricMode" value="rubric">
+                <label class="btn btn-outline-primary" for="rubricMode">Rubric</label>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <!-- Simple Grading Mode -->
+            <div id="simpleGrading" class="grading-mode">
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="mb-3">
+                    <label for="{{ form.marks_obtained.id_for_label }}" class="form-label">
+                      <strong>Marks Obtained</strong>
+                    </label>
+                    <div class="input-group">
+                      {{ form.marks_obtained|add_class:"form-control form-control-lg text-center" }}
+                      <span class="input-group-text">/ {{ submission.assignment.total_marks }}</span>
+                    </div>
+                    {% if form.marks_obtained.errors %}
+                    <div class="invalid-feedback d-block">{{ form.marks_obtained.errors.0 }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="mb-3">
+                    <label class="form-label"><strong>Percentage</strong></label>
+                    <div class="form-control form-control-lg text-center bg-light" id="percentageDisplay">
+                      {{ submission.percentage|default:"0" }}%
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="mb-3">
+                    <label class="form-label"><strong>Grade</strong></label>
+                    <div class="form-control form-control-lg text-center bg-light" id="gradeDisplay">
+                      {{ submission.grade|default:"-" }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Grade Buttons -->
+              <div class="mb-4">
+                <label class="form-label">Quick Grade Options</label>
+                <div class="d-flex gap-2 flex-wrap">
+                  <button type="button" class="btn btn-outline-success" onclick="setQuickGrade(100)">A+ (100%)</button>
+                  <button type="button" class="btn btn-outline-success" onclick="setQuickGrade(90)">A (90%)</button>
+                  <button type="button" class="btn btn-outline-info" onclick="setQuickGrade(80)">B (80%)</button>
+                  <button type="button" class="btn btn-outline-warning" onclick="setQuickGrade(70)">C (70%)</button>
+                  <button type="button" class="btn btn-outline-danger" onclick="setQuickGrade(60)">D (60%)</button>
+                  <button type="button" class="btn btn-outline-secondary"
+                    onclick="setQuickGrade({{ submission.assignment.passing_marks|default:50 }})">Pass Mark</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Detailed Grading Mode -->
+            <div id="detailedGrading" class="grading-mode d-none">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label for="{{ form.marks_obtained.id_for_label }}_detailed" class="form-label">Marks
+                      Obtained</label>
+                    <input type="number" class="form-control" id="marksDetailed" min="0"
+                      max="{{ submission.assignment.total_marks }}" value="{{ submission.marks_obtained|default:'' }}">
+                    <div class="form-text">Out of {{ submission.assignment.total_marks }} marks</div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Performance Level</label>
+                    <select class="form-select" id="performanceLevel">
+                      <option value="">Select performance level</option>
+                      <option value="excellent">Excellent (90-100%)</option>
+                      <option value="good">Good (80-89%)</option>
+                      <option value="satisfactory">Satisfactory (70-79%)</option>
+                      <option value="needs_improvement">Needs Improvement (60-69%)</option>
+                      <option value="unsatisfactory">Unsatisfactory (Below 60%)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Criteria-based Assessment -->
+              <div class="criteria-assessment">
+                <h6 class="mb-3">Assessment Criteria</h6>
+                <div class="row">
+                  <div class="col-md-4">
+                    <div class="mb-3">
+                      <label class="form-label">Content Quality</label>
+                      <select class="form-select criteria-select" data-weight="40">
+                        <option value="">Select rating</option>
+                        <option value="5">Excellent (5/5)</option>
+                        <option value="4">Good (4/5)</option>
+                        <option value="3">Average (3/5)</option>
+                        <option value="2">Below Average (2/5)</option>
+                        <option value="1">Poor (1/5)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="mb-3">
+                      <label class="form-label">Organization</label>
+                      <select class="form-select criteria-select" data-weight="30">
+                        <option value="">Select rating</option>
+                        <option value="5">Excellent (5/5)</option>
+                        <option value="4">Good (4/5)</option>
+                        <option value="3">Average (3/5)</option>
+                        <option value="2">Below Average (2/5)</option>
+                        <option value="1">Poor (1/5)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="mb-3">
+                      <label class="form-label">Presentation</label>
+                      <select class="form-select criteria-select" data-weight="30">
+                        <option value="">Select rating</option>
+                        <option value="5">Excellent (5/5)</option>
+                        <option value="4">Good (4/5)</option>
+                        <option value="3">Average (3/5)</option>
+                        <option value="2">Below Average (2/5)</option>
+                        <option value="1">Poor (1/5)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="calculateFromCriteria()">
+                  <i class="fas fa-calculator me-1"></i>Calculate from Criteria
+                </button>
+              </div>
+            </div>
+
+            <!-- Rubric Grading Mode -->
+            {% if submission.assignment.rubrics.exists %}
+            <div id="rubricGrading" class="grading-mode d-none">
+              <div class="rubric-grading-area">
+                {% for rubric in submission.assignment.rubrics.all %}
+                <div class="rubric-criterion mb-4 border rounded p-3">
+                  <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                      <h6 class="mb-1">{{ rubric.criteria_name }}</h6>
+                      <small class="text-muted">{{ rubric.description }}</small>
+                    </div>
+                    <div class="text-end">
+                      <span class="badge bg-primary">{{ rubric.weight_percentage }}% weight</span>
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-md-3">
+                      <label class="form-label">Points Earned</label>
+                      <input type="number" class="form-control rubric-points" name="rubric_{{ rubric.id }}_points"
+                        min="0" max="{{ rubric.max_points }}" data-max="{{ rubric.max_points }}"
+                        data-weight="{{ rubric.weight_percentage }}">
+                      <small class="text-muted">Max: {{ rubric.max_points }}</small>
+                    </div>
+                    <div class="col-md-9">
+                      <label class="form-label">Feedback</label>
+                      <textarea class="form-control" name="rubric_{{ rubric.id }}_feedback" rows="2"
+                        placeholder="Specific feedback for this criterion..."></textarea>
+                    </div>
+                  </div>
+
+                  <!-- Performance Level Descriptors -->
+                  <div class="mt-3">
+                    <small class="text-muted d-block mb-2">Performance Levels:</small>
+                    <div class="row">
+                      <div class="col-md-3">
+                        <div class="performance-level border rounded p-2 cursor-pointer"
+                          onclick="selectRubricLevel({{ rubric.id }}, 100, '{{ rubric.excellent_description|escapejs }}')">
+                          <strong class="text-success">Excellent (90-100%)</strong>
+                          <small class="d-block">{{ rubric.excellent_description|truncatechars:60 }}</small>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="performance-level border rounded p-2 cursor-pointer"
+                          onclick="selectRubricLevel({{ rubric.id }}, 80, '{{ rubric.good_description|escapejs }}')">
+                          <strong class="text-info">Good (70-89%)</strong>
+                          <small class="d-block">{{ rubric.good_description|truncatechars:60 }}</small>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="performance-level border rounded p-2 cursor-pointer"
+                          onclick="selectRubricLevel({{ rubric.id }}, 65, '{{ rubric.satisfactory_description|escapejs }}')">
+                          <strong class="text-warning">Satisfactory (50-69%)</strong>
+                          <small class="d-block">{{ rubric.satisfactory_description|truncatechars:60 }}</small>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="performance-level border rounded p-2 cursor-pointer"
+                          onclick="selectRubricLevel({{ rubric.id }}, 40, '{{ rubric.needs_improvement_description|escapejs }}')">
+                          <strong class="text-danger">Needs Improvement</strong>
+                          <small class="d-block">{{ rubric.needs_improvement_description|truncatechars:60 }}</small>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
+
+                <div class="rubric-summary bg-light p-3 rounded">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <h6>Rubric Summary</h6>
+                      <div id="rubricCalculation">
+                        <div>Total Weighted Score: <span id="totalWeightedScore">0</span>%</div>
+                        <div>Equivalent Marks: <span
+                            id="equivalentMarks">0</span>/{{ submission.assignment.total_marks }}</div>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <button type="button" class="btn btn-primary" onclick="calculateRubricTotal()">
+                        <i class="fas fa-calculator me-1"></i>Calculate Total
+                      </button>
+                      <button type="button" class="btn btn-outline-secondary ms-2" onclick="applyRubricToForm()">
+                        <i class="fas fa-arrow-right me-1"></i>Apply to Grade
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Feedback Section -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-comments me-2"></i>Feedback
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label for="{{ form.teacher_remarks.id_for_label }}" class="form-label">General Comments</label>
+              {{ form.teacher_remarks|add_class:"form-control" }}
+              {% if form.teacher_remarks.errors %}
+              <div class="invalid-feedback d-block">{{ form.teacher_remarks.errors.0 }}</div>
+              {% endif %}
+              <div class="form-text">Overall feedback about the submission quality and performance.</div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.strengths.id_for_label }}" class="form-label">
+                    <i class="fas fa-thumbs-up text-success me-1"></i>Strengths
+                  </label>
+                  {{ form.strengths|add_class:"form-control" }}
+                  {% if form.strengths.errors %}
+                  <div class="invalid-feedback d-block">{{ form.strengths.errors.0 }}</div>
+                  {% endif %}
+                  <div class="form-text">What did the student do well?</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.improvements.id_for_label }}" class="form-label">
+                    <i class="fas fa-arrow-up text-warning me-1"></i>Areas for Improvement
+                  </label>
+                  {{ form.improvements|add_class:"form-control" }}
+                  {% if form.improvements.errors %}
+                  <div class="invalid-feedback d-block">{{ form.improvements.errors.0 }}</div>
+                  {% endif %}
+                  <div class="form-text">What can be improved for next time?</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Feedback Templates -->
+            <div class="feedback-templates">
+              <label class="form-label">Quick Feedback Templates</label>
+              <div class="d-flex gap-2 flex-wrap">
+                <button type="button" class="btn btn-sm btn-outline-success"
+                  onclick="addFeedbackTemplate('excellent')">Excellent Work</button>
+                <button type="button" class="btn btn-sm btn-outline-info" onclick="addFeedbackTemplate('good')">Good
+                  Effort</button>
+                <button type="button" class="btn btn-sm btn-outline-warning"
+                  onclick="addFeedbackTemplate('improvement')">Needs Improvement</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary"
+                  onclick="addFeedbackTemplate('late')">Late Submission</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                {% if submission.graded_at %}
+                <small class="text-muted">
+                  Last graded: {{ submission.graded_at|date:"M d, Y g:i A" }} by
+                  {{ submission.graded_by.user.get_full_name }}
+                </small>
+                {% endif %}
+              </div>
+              <div class="btn-group">
+                <a href="{% url 'assignments:submission_list' submission.assignment.pk %}"
+                  class="btn btn-outline-secondary">
+                  <i class="fas fa-arrow-left me-1"></i>Back to Submissions
+                </a>
+                <button type="button" class="btn btn-outline-info" onclick="saveDraft()">
+                  <i class="fas fa-save me-1"></i>Save Draft
+                </button>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-check me-1"></i>Save Grade
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+      <!-- Grade Preview -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-preview me-2"></i>Grade Preview
+          </h6>
+        </div>
+        <div class="card-body text-center">
+          <div class="grade-preview">
+            <h2 class="mb-1" id="previewMarks">
+              {{ submission.marks_obtained|default:"--" }}/{{ submission.assignment.total_marks }}
+            </h2>
+            <div class="h4 mb-2" id="previewPercentage">{{ submission.percentage|default:"--" }}%</div>
+            <div class="mb-3" id="previewGrade">
+              {% if submission.percentage %}
+              {% grade_badge submission.percentage %}
+              {% else %}
+              <span class="badge bg-secondary">Not Graded</span>
+              {% endif %}
+            </div>
+            <div id="previewStatus">
+              {% if submission.is_passed %}
+              <i class="fas fa-check-circle fa-2x text-success"></i>
+              <div class="text-success mt-1">Passed</div>
+              {% elif submission.marks_obtained %}
+              <i class="fas fa-times-circle fa-2x text-danger"></i>
+              <div class="text-danger mt-1">Failed</div>
+              {% else %}
+              <i class="fas fa-clock fa-2x text-muted"></i>
+              <div class="text-muted mt-1">Pending</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Assignment Details -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-info-circle me-2"></i>Assignment Details
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="assignment-details">
+            <div class="detail-item mb-2">
+              <strong>Subject:</strong> {{ submission.assignment.subject.name }}
+            </div>
+            <div class="detail-item mb-2">
+              <strong>Class:</strong> {{ submission.assignment.class_id }}
+            </div>
+            <div class="detail-item mb-2">
+              <strong>Total Marks:</strong> {{ submission.assignment.total_marks }}
+            </div>
+            <div class="detail-item mb-2">
+              <strong>Passing Marks:</strong> {{ submission.assignment.passing_marks|default:"Not Set" }}
+            </div>
+            <div class="detail-item mb-2">
+              <strong>Due Date:</strong> {{ submission.assignment.due_date|date:"M d, Y g:i A" }}
+            </div>
+            <div class="detail-item">
+              <strong>Difficulty:</strong> {% assignment_difficulty_icon submission.assignment.difficulty_level %}
+              {{ submission.assignment.get_difficulty_level_display }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Class Performance -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-chart-bar me-2"></i>Class Performance
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="performance-stats">
+            <div class="stat-item mb-3">
+              <div class="d-flex justify-content-between">
+                <span>Class Average:</span>
+                <span class="fw-bold">{{ submission.assignment.average_score|default:"--"|floatformat:1 }}</span>
+              </div>
+            </div>
+            <div class="stat-item mb-3">
+              <div class="d-flex justify-content-between">
+                <span>Submissions:</span>
+                <span class="fw-bold">{{ submission.assignment.submission_count }}</span>
+              </div>
+            </div>
+            <div class="stat-item mb-3">
+              <div class="d-flex justify-content-between">
+                <span>Completion Rate:</span>
+                <span class="fw-bold">{{ submission.assignment.completion_rate|floatformat:0 }}%</span>
+              </div>
+            </div>
+          </div>
+          <div class="text-center mt-3">
+            <a href="{% url 'assignments:assignment_analytics' submission.assignment.pk %}"
+              class="btn btn-sm btn-outline-primary">
+              <i class="fas fa-chart-line me-1"></i>View Analytics
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Previous Submissions -->
+      {% if previous_submissions %}
+      <div class="card">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-history me-2"></i>Student's Previous Work
+          </h6>
+        </div>
+        <div class="card-body">
+          {% for prev_sub in previous_submissions %}
+          <div class="previous-submission mb-3 p-2 border rounded">
+            <div class="d-flex justify-content-between">
+              <div>
+                <h6 class="mb-1">{{ prev_sub.assignment.title|truncatechars:25 }}</h6>
+                <small class="text-muted">{{ prev_sub.assignment.subject.name }}</small>
+              </div>
+              <div class="text-end">
+                {% if prev_sub.percentage %}
+                {% grade_badge prev_sub.percentage %}
+                {% else %}
+                <span class="badge bg-secondary">Ungraded</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Initialize grading mode
+    $('input[name="gradingMode"]').change(function () {
+      const mode = $(this).val();
+      $('.grading-mode').addClass('d-none');
+      $(`#${mode}Grading`).removeClass('d-none');
+    });
+
+    // Real-time percentage calculation
+    $('#{{ form.marks_obtained.id_for_label }}, #marksDetailed').on('input', function () {
+      const marks = parseFloat($(this).val()) || 0;
+      const totalMarks = {{ submission.assignment.total_marks }
+    };
+    const percentage = (marks / totalMarks) * 100;
+
+    updatePreview(marks, percentage);
+  });
+
+  // Rubric calculations
+  $('.rubric-points').on('input', calculateRubricTotal);
+
+  // Load existing values if editing
+  {% if submission.marks_obtained %}
+  updatePreview({{ submission.marks_obtained }}, {{ submission.percentage |default: 0 }});
+  {% endif %}
+});
+
+  function setQuickGrade(percentage) {
+    const totalMarks = {{ submission.assignment.total_marks }
+  };
+  const marks = Math.round((percentage / 100) * totalMarks);
+
+  $('#{{ form.marks_obtained.id_for_label }}').val(marks);
+  updatePreview(marks, percentage);
+}
+
+  function updatePreview(marks, percentage) {
+    $('#percentageDisplay').text(percentage.toFixed(1) + '%');
+    $('#previewMarks').text(marks + '/{{ submission.assignment.total_marks }}');
+    $('#previewPercentage').text(percentage.toFixed(1) + '%');
+
+    // Update grade
+    let grade = 'F';
+    let gradeClass = 'bg-danger';
+
+    if (percentage >= 90) { grade = 'A+'; gradeClass = 'bg-success'; }
+    else if (percentage >= 85) { grade = 'A'; gradeClass = 'bg-success'; }
+    else if (percentage >= 80) { grade = 'A-'; gradeClass = 'bg-success'; }
+    else if (percentage >= 75) { grade = 'B+'; gradeClass = 'bg-info'; }
+    else if (percentage >= 70) { grade = 'B'; gradeClass = 'bg-info'; }
+    else if (percentage >= 65) { grade = 'B-'; gradeClass = 'bg-info'; }
+    else if (percentage >= 60) { grade = 'C+'; gradeClass = 'bg-warning'; }
+    else if (percentage >= 55) { grade = 'C'; gradeClass = 'bg-warning'; }
+    else if (percentage >= 50) { grade = 'C-'; gradeClass = 'bg-warning'; }
+    else if (percentage >= 45) { grade = 'D'; gradeClass = 'bg-danger'; }
+
+    $('#gradeDisplay').text(grade);
+    $('#previewGrade').html(`<span class="badge ${gradeClass}">${grade} (${percentage.toFixed(1)}%)</span>`);
+
+    // Update pass/fail status
+    const passingMarks = {{ submission.assignment.passing_marks|default: 0
+  }};
+  const isPassed = marks >= passingMarks;
+
+  if (isPassed) {
+    $('#previewStatus').html(`
+            <i class="fas fa-check-circle fa-2x text-success"></i>
+            <div class="text-success mt-1">Passed</div>
+        `);
+  } else {
+    $('#previewStatus').html(`
+            <i class="fas fa-times-circle fa-2x text-danger"></i>
+            <div class="text-danger mt-1">Failed</div>
+        `);
+  }
+}
+
+  function calculateFromCriteria() {
+    let totalScore = 0;
+    let totalWeight = 0;
+
+    $('.criteria-select').each(function () {
+      const value = parseFloat($(this).val()) || 0;
+      const weight = parseFloat($(this).data('weight')) || 0;
+
+      if (value > 0) {
+        totalScore += (value / 5) * weight; // Assuming 5-point scale
+        totalWeight += weight;
+      }
+    });
+
+    if (totalWeight > 0) {
+      const percentage = (totalScore / totalWeight) * 100;
+      const marks = Math.round((percentage / 100) * {{ submission.assignment.total_marks }});
+
+    $('#marksDetailed').val(marks);
+    updatePreview(marks, percentage);
+  }
+}
+
+  function selectRubricLevel(rubricId, percentage, description) {
+    const maxPoints = $(`input[name="rubric_${rubricId}_points"]`).data('max');
+    const points = Math.round((percentage / 100) * maxPoints);
+
+    $(`input[name="rubric_${rubricId}_points"]`).val(points);
+    $(`textarea[name="rubric_${rubricId}_feedback"]`).val(description);
+
+    // Highlight selected level
+    $(event.target).closest('.row').find('.performance-level').removeClass('border-primary bg-light');
+    $(event.target).addClass('border-primary bg-light');
+
+    calculateRubricTotal();
+  }
+
+  function calculateRubricTotal() {
+    let totalWeightedScore = 0;
+    let totalWeight = 0;
+
+    $('.rubric-points').each(function () {
+      const points = parseFloat($(this).val()) || 0;
+      const maxPoints = parseFloat($(this).data('max')) || 1;
+      const weight = parseFloat($(this).data('weight')) || 0;
+
+      const criteriaPercentage = (points / maxPoints) * 100;
+      totalWeightedScore += (criteriaPercentage * weight) / 100;
+      totalWeight += weight;
+    });
+
+    if (totalWeight > 0) {
+      const finalPercentage = totalWeightedScore;
+      const equivalentMarks = Math.round((finalPercentage / 100) * {{ submission.assignment.total_marks }});
+
+    $('#totalWeightedScore').text(finalPercentage.toFixed(1));
+    $('#equivalentMarks').text(equivalentMarks);
+  }
+}
+
+  function applyRubricToForm() {
+    const equivalentMarks = parseInt($('#equivalentMarks').text()) || 0;
+    const percentage = parseFloat($('#totalWeightedScore').text()) || 0;
+
+    $('#{{ form.marks_obtained.id_for_label }}').val(equivalentMarks);
+    updatePreview(equivalentMarks, percentage);
+  }
+
+  function addFeedbackTemplate(type) {
+    const templates = {
+      excellent: {
+        general: "Excellent work! Your submission demonstrates a thorough understanding of the topic and exceeds expectations.",
+        strengths: "Clear writing, well-organized thoughts, comprehensive coverage of the topic",
+        improvements: "Continue this high standard of work"
+      },
+      good: {
+        general: "Good work overall. Your submission shows understanding of the key concepts with some areas for enhancement.",
+        strengths: "Good effort, adequate coverage of most topics",
+        improvements: "Focus on providing more detailed examples and stronger analysis"
+      },
+      improvement: {
+        general: "Your submission shows effort but needs improvement in several areas to meet the assignment requirements.",
+        strengths: "Shows basic understanding of the topic",
+        improvements: "Need to provide more detailed explanations, better organization, and clearer examples"
+      },
+      late: {
+        general: "Submission received after the deadline. Please ensure future assignments are submitted on time.",
+        strengths: "",
+        improvements: "Time management and meeting deadlines"
+      }
+    };
+
+    const template = templates[type];
+    if (template) {
+      $('#{{ form.teacher_remarks.id_for_label }}').val(template.general);
+      $('#{{ form.strengths.id_for_label }}').val(template.strengths);
+      $('#{{ form.improvements.id_for_label }}').val(template.improvements);
+    }
+  }
+
+  function toggleFullscreen() {
+    const content = document.getElementById('submissionContent');
+    if (content.requestFullscreen) {
+      content.requestFullscreen();
+    }
+  }
+
+  function saveDraft() {
+    // Implement draft saving functionality
+    alert('Grade draft saved successfully!');
+  }
+
+  // Form validation
+  $('#gradingForm').on('submit', function (e) {
+    const marks = parseFloat($('#{{ form.marks_obtained.id_for_label }}').val());
+    const totalMarks = {{ submission.assignment.total_marks }
+  };
+
+  if (isNaN(marks) || marks < 0 || marks > totalMarks) {
+    e.preventDefault();
+    alert(`Please enter valid marks between 0 and ${totalMarks}`);
+    return false;
+  }
+
+  if (!$('#{{ form.teacher_remarks.id_for_label }}').val().trim()) {
+    if (!confirm('No feedback provided. Continue without feedback?')) {
+      e.preventDefault();
+      return false;
+    }
+  }
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .grading-mode {
+    transition: all 0.3s ease;
+  }
+
+  .criteria-select {
+    transition: border-color 0.3s ease;
+  }
+
+  .criteria-select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  }
+
+  .performance-level {
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .performance-level:hover {
+    background-color: #f8f9fa;
+    border-color: #007bff;
+  }
+
+  .grade-preview h2 {
+    font-size: 2.5rem;
+    font-weight: bold;
+  }
+
+  .rubric-criterion {
+    background-color: #f8f9fa;
+  }
+
+  .rubric-points {
+    font-weight: bold;
+    text-align: center;
+  }
+
+  .feedback-templates .btn {
+    margin-bottom: 5px;
+  }
+
+  .previous-submission:hover {
+    background-color: #f8f9fa;
+  }
+
+  .detail-item {
+    line-height: 1.6;
+  }
+
+  .stat-item {
+    padding: 8px 0;
+  }
+
+  @media (max-width: 768px) {
+    .grade-preview h2 {
+      font-size: 2rem;
+    }
+
+    .btn-group {
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-group .btn {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}

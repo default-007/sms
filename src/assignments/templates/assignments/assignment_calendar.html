@@ -1,0 +1,1010 @@
+{% extends "base.html" %}
+{% load assignment_tags %}
+
+{% block title %}Assignment Calendar{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0">
+        <i class="fas fa-calendar-alt text-primary"></i>
+        Assignment Calendar
+      </h1>
+      <p class="text-muted mb-0">View and manage assignment schedules across all classes</p>
+    </div>
+    <div class="btn-group">
+      <button type="button" class="btn btn-primary" onclick="addNewAssignment()">
+        <i class="fas fa-plus"></i> New Assignment
+      </button>
+      <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="fas fa-filter"></i> Filter
+      </button>
+      <ul class="dropdown-menu">
+        <li>
+          <h6 class="dropdown-header">By Status</h6>
+        </li>
+        <li><a class="dropdown-item filter-option" data-filter="status" data-value="all">All Status</a></li>
+        <li><a class="dropdown-item filter-option" data-filter="status" data-value="published">Published</a></li>
+        <li><a class="dropdown-item filter-option" data-filter="status" data-value="draft">Draft</a></li>
+        <li><a class="dropdown-item filter-option" data-filter="status" data-value="closed">Closed</a></li>
+        <li>
+          <hr class="dropdown-divider">
+        </li>
+        <li>
+          <h6 class="dropdown-header">By Subject</h6>
+        </li>
+        <li><a class="dropdown-item filter-option" data-filter="subject" data-value="all">All Subjects</a></li>
+        <li><a class="dropdown-item filter-option" data-filter="subject" data-value="math">Mathematics</a></li>
+        <li><a class="dropdown-item filter-option" data-filter="subject" data-value="science">Science</a></li>
+        <li><a class="dropdown-item filter-option" data-filter="subject" data-value="english">English</a></li>
+        <li>
+          <hr class="dropdown-divider">
+        </li>
+        <li>
+          <h6 class="dropdown-header">By Priority</h6>
+        </li>
+        <li><a class="dropdown-item filter-option" data-filter="priority" data-value="overdue">Overdue</a></li>
+        <li><a class="dropdown-item filter-option" data-filter="priority" data-value="due_soon">Due Soon</a></li>
+      </ul>
+
+      <button type="button" class="btn btn-outline-info dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="fas fa-eye"></i> View
+      </button>
+      <ul class="dropdown-menu">
+        <li><a class="dropdown-item" onclick="changeCalendarView('dayGridMonth')">Month View</a></li>
+        <li><a class="dropdown-item" onclick="changeCalendarView('timeGridWeek')">Week View</a></li>
+        <li><a class="dropdown-item" onclick="changeCalendarView('timeGridDay')">Day View</a></li>
+        <li><a class="dropdown-item" onclick="changeCalendarView('listWeek')">List View</a></li>
+      </ul>
+
+      <button type="button" class="btn btn-outline-secondary" onclick="exportCalendar()">
+        <i class="fas fa-download"></i> Export
+      </button>
+    </div>
+  </div>
+
+  <!-- Calendar Controls -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-md-3">
+              <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-primary" onclick="calendar.prev()">
+                  <i class="fas fa-chevron-left"></i>
+                </button>
+                <button type="button" class="btn btn-outline-primary" onclick="calendar.today()">
+                  Today
+                </button>
+                <button type="button" class="btn btn-outline-primary" onclick="calendar.next()">
+                  <i class="fas fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-6 text-center">
+              <h4 id="calendarTitle" class="mb-0"></h4>
+            </div>
+            <div class="col-md-3 text-end">
+              <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-secondary" onclick="showCalendarLegend()">
+                  <i class="fas fa-info-circle"></i> Legend
+                </button>
+                <button type="button" class="btn btn-outline-secondary" onclick="refreshCalendar()">
+                  <i class="fas fa-sync"></i> Refresh
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">24</h4>
+              <p class="card-text">This Week</p>
+              <small>Assignments due</small>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-calendar-week fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+      <div class="card bg-danger text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">8</h4>
+              <p class="card-text">Overdue</p>
+              <small>Need immediate attention</small>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-exclamation-triangle fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+      <div class="card bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">15</h4>
+              <p class="card-text">Due Soon</p>
+              <small>Next 3 days</small>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-clock fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">156</h4>
+              <p class="card-text">Total Active</p>
+              <small>Published assignments</small>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-tasks fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Calendar and Sidebar -->
+  <div class="row">
+    <!-- Calendar -->
+    <div class="col-lg-9">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-calendar text-primary"></i>
+            Assignment Schedule
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="assignmentCalendar"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-3">
+      <!-- Mini Calendar -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-calendar-day text-info"></i>
+            Quick Navigation
+          </h6>
+        </div>
+        <div class="card-body">
+          <div id="miniCalendar"></div>
+        </div>
+      </div>
+
+      <!-- Today's Assignments -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-star text-warning"></i>
+            Today's Assignments
+          </h6>
+        </div>
+        <div class="card-body">
+          <div id="todayAssignments">
+            <div class="list-group list-group-flush">
+              <div class="list-group-item border-0 px-0">
+                <div class="d-flex align-items-center">
+                  <div class="bg-primary rounded-circle p-2 me-3">
+                    <i class="fas fa-calculator text-white"></i>
+                  </div>
+                  <div class="flex-grow-1">
+                    <h6 class="mb-1">Algebra Quiz</h6>
+                    <small class="text-muted">Mathematics • Due 2:00 PM</small>
+                  </div>
+                  <span class="badge bg-danger">Overdue</span>
+                </div>
+              </div>
+
+              <div class="list-group-item border-0 px-0">
+                <div class="d-flex align-items-center">
+                  <div class="bg-success rounded-circle p-2 me-3">
+                    <i class="fas fa-leaf text-white"></i>
+                  </div>
+                  <div class="flex-grow-1">
+                    <h6 class="mb-1">Plant Biology Report</h6>
+                    <small class="text-muted">Science • Due 11:59 PM</small>
+                  </div>
+                  <span class="badge bg-warning">4h left</span>
+                </div>
+              </div>
+
+              <div class="list-group-item border-0 px-0">
+                <div class="d-flex align-items-center">
+                  <div class="bg-info rounded-circle p-2 me-3">
+                    <i class="fas fa-book text-white"></i>
+                  </div>
+                  <div class="flex-grow-1">
+                    <h6 class="mb-1">Essay Review</h6>
+                    <small class="text-muted">English • Due 6:00 PM</small>
+                  </div>
+                  <span class="badge bg-success">On time</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upcoming Deadlines -->
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-clock text-danger"></i>
+            Upcoming Deadlines
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-marker bg-danger"></div>
+              <div class="timeline-content">
+                <h6 class="mb-1">Chemistry Lab Report</h6>
+                <small class="text-muted">Tomorrow, 9:00 AM</small>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-marker bg-warning"></div>
+              <div class="timeline-content">
+                <h6 class="mb-1">History Essay</h6>
+                <small class="text-muted">Friday, 3:00 PM</small>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-marker bg-info"></div>
+              <div class="timeline-content">
+                <h6 class="mb-1">Math Problem Set</h6>
+                <small class="text-muted">Next Monday, 8:00 AM</small>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-marker bg-success"></div>
+              <div class="timeline-content">
+                <h6 class="mb-1">Physics Project</h6>
+                <small class="text-muted">Next Wednesday, 11:59 PM</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assignment Details Table -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-list text-success"></i>
+            Assignment Details
+          </h5>
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-primary" onclick="showSelectedDateDetails()">
+              <i class="fas fa-calendar-day"></i> Selected Date
+            </button>
+            <button type="button" class="btn btn-outline-secondary" onclick="showCurrentWeekDetails()">
+              <i class="fas fa-calendar-week"></i> This Week
+            </button>
+            <button type="button" class="btn btn-outline-info" onclick="showCurrentMonthDetails()">
+              <i class="fas fa-calendar"></i> This Month
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="assignmentDetailsTable" class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Assignment</th>
+                  <th>Subject</th>
+                  <th>Class</th>
+                  <th>Teacher</th>
+                  <th>Due Date</th>
+                  <th>Status</th>
+                  <th>Progress</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-status="published" data-subject="math" data-priority="overdue">
+                  <td>
+                    <strong>Algebra Fundamentals Quiz</strong>
+                    <br><small class="text-muted">Quadratic equations and functions</small>
+                  </td>
+                  <td><span class="badge bg-primary">MATH101</span></td>
+                  <td>Grade 10 A</td>
+                  <td>Dr. Smith</td>
+                  <td>
+                    <span class="text-danger">
+                      <strong>Jan 15, 2:00 PM</strong>
+                      <br><small>2 hours overdue</small>
+                    </span>
+                  </td>
+                  <td><span class="badge bg-success">Published</span></td>
+                  <td>
+                    <div class="progress" style="height: 20px;">
+                      <div class="progress-bar bg-warning" style="width: 75%">18/24</div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-primary btn-sm" onclick="viewAssignment(1)">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="btn btn-outline-warning btn-sm" onclick="editAssignment(1)">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="btn btn-outline-info btn-sm" onclick="viewSubmissions(1)">
+                        <i class="fas fa-list"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr data-status="published" data-subject="science" data-priority="due_soon">
+                  <td>
+                    <strong>Plant Biology Lab Report</strong>
+                    <br><small class="text-muted">Photosynthesis experiment analysis</small>
+                  </td>
+                  <td><span class="badge bg-success">BIO201</span></td>
+                  <td>Grade 11 B</td>
+                  <td>Prof. Johnson</td>
+                  <td>
+                    <span class="text-warning">
+                      <strong>Jan 16, 11:59 PM</strong>
+                      <br><small>Due in 4 hours</small>
+                    </span>
+                  </td>
+                  <td><span class="badge bg-success">Published</span></td>
+                  <td>
+                    <div class="progress" style="height: 20px;">
+                      <div class="progress-bar bg-success" style="width: 90%">27/30</div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-primary btn-sm" onclick="viewAssignment(2)">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="btn btn-outline-warning btn-sm" onclick="editAssignment(2)">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="btn btn-outline-info btn-sm" onclick="viewSubmissions(2)">
+                        <i class="fas fa-list"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr data-status="published" data-subject="english" data-priority="normal">
+                  <td>
+                    <strong>Shakespeare Essay Analysis</strong>
+                    <br><small class="text-muted">Character development in Hamlet</small>
+                  </td>
+                  <td><span class="badge bg-info">ENG301</span></td>
+                  <td>Grade 12 A</td>
+                  <td>Ms. Williams</td>
+                  <td>
+                    <span class="text-success">
+                      <strong>Jan 18, 6:00 PM</strong>
+                      <br><small>Due in 2 days</small>
+                    </span>
+                  </td>
+                  <td><span class="badge bg-success">Published</span></td>
+                  <td>
+                    <div class="progress" style="height: 20px;">
+                      <div class="progress-bar bg-info" style="width: 60%">15/25</div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-primary btn-sm" onclick="viewAssignment(3)">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="btn btn-outline-warning btn-sm" onclick="editAssignment(3)">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="btn btn-outline-info btn-sm" onclick="viewSubmissions(3)">
+                        <i class="fas fa-list"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Assignment Details Modal -->
+<div class="modal fade" id="assignmentModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Assignment Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="assignmentModalContent">
+          <!-- Content will be loaded dynamically -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="editCurrentAssignment()">
+          <i class="fas fa-edit"></i> Edit Assignment
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Calendar Legend Modal -->
+<div class="modal fade" id="legendModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Calendar Legend</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-6">
+            <h6>Assignment Status</h6>
+            <ul class="list-unstyled">
+              <li><span class="badge bg-secondary me-2">■</span> Draft</li>
+              <li><span class="badge bg-success me-2">■</span> Published</li>
+              <li><span class="badge bg-warning me-2">■</span> Due Soon</li>
+              <li><span class="badge bg-danger me-2">■</span> Overdue</li>
+              <li><span class="badge bg-dark me-2">■</span> Closed</li>
+            </ul>
+          </div>
+          <div class="col-6">
+            <h6>Subject Colors</h6>
+            <ul class="list-unstyled">
+              <li><span class="badge bg-primary me-2">■</span> Mathematics</li>
+              <li><span class="badge bg-success me-2">■</span> Science</li>
+              <li><span class="badge bg-info me-2">■</span> English</li>
+              <li><span class="badge bg-warning me-2">■</span> History</li>
+              <li><span class="badge bg-purple me-2">■</span> Arts</li>
+            </ul>
+          </div>
+        </div>
+
+        <hr>
+
+        <h6>Calendar Controls</h6>
+        <ul class="list-unstyled">
+          <li><strong>Click:</strong> View assignment details</li>
+          <li><strong>Drag:</strong> Reschedule assignment</li>
+          <li><strong>Double-click:</strong> Quick edit</li>
+          <li><strong>Right-click:</strong> Context menu</li>
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+  let calendar;
+  let currentFilters = {
+    status: 'all',
+    subject: 'all',
+    priority: 'all'
+  };
+
+  $(document).ready(function () {
+    initializeCalendar();
+    initializeDataTable();
+    initializeMiniCalendar();
+    updateCalendarTitle();
+  });
+
+  function initializeCalendar() {
+    var calendarEl = document.getElementById('assignmentCalendar');
+
+    calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      headerToolbar: false, // We'll use custom controls
+      height: 600,
+      events: getCalendarEvents(),
+      eventClick: function (info) {
+        showAssignmentDetails(info.event);
+      },
+      eventDrop: function (info) {
+        rescheduleAssignment(info.event, info.event.start);
+      },
+      dateClick: function (info) {
+        showDateDetails(info.date);
+      },
+      eventMouseEnter: function (info) {
+        showEventTooltip(info.event, info.jsEvent);
+      },
+      eventMouseLeave: function (info) {
+        hideEventTooltip();
+      },
+      datesSet: function (info) {
+        updateCalendarTitle();
+      }
+    });
+
+    calendar.render();
+  }
+
+  function getCalendarEvents() {
+    // Sample calendar events - in real implementation, this would come from the server
+    return [
+      {
+        id: '1',
+        title: 'Algebra Quiz',
+        start: '2024-01-15T14:00:00',
+        end: '2024-01-15T15:00:00',
+        color: '#dc3545', // Red for overdue
+        extendedProps: {
+          subject: 'Mathematics',
+          class: 'Grade 10 A',
+          teacher: 'Dr. Smith',
+          status: 'overdue',
+          submissions: 18,
+          totalStudents: 24
+        }
+      },
+      {
+        id: '2',
+        title: 'Plant Biology Report',
+        start: '2024-01-16T23:59:00',
+        color: '#ffc107', // Yellow for due soon
+        extendedProps: {
+          subject: 'Science',
+          class: 'Grade 11 B',
+          teacher: 'Prof. Johnson',
+          status: 'due_soon',
+          submissions: 27,
+          totalStudents: 30
+        }
+      },
+      {
+        id: '3',
+        title: 'Shakespeare Essay',
+        start: '2024-01-18T18:00:00',
+        color: '#17a2b8', // Blue for normal
+        extendedProps: {
+          subject: 'English',
+          class: 'Grade 12 A',
+          teacher: 'Ms. Williams',
+          status: 'published',
+          submissions: 15,
+          totalStudents: 25
+        }
+      },
+      {
+        id: '4',
+        title: 'History Research',
+        start: '2024-01-20T23:59:00',
+        color: '#28a745', // Green for future
+        extendedProps: {
+          subject: 'History',
+          class: 'Grade 11 A',
+          teacher: 'Dr. Brown',
+          status: 'published',
+          submissions: 5,
+          totalStudents: 28
+        }
+      },
+      {
+        id: '5',
+        title: 'Chemistry Lab',
+        start: '2024-01-22T09:00:00',
+        color: '#6f42c1', // Purple for lab
+        extendedProps: {
+          subject: 'Chemistry',
+          class: 'Grade 12 B',
+          teacher: 'Dr. Davis',
+          status: 'published',
+          submissions: 0,
+          totalStudents: 22
+        }
+      }
+    ];
+  }
+
+  function initializeDataTable() {
+    var table = $('#assignmentDetailsTable').DataTable({
+      responsive: true,
+      pageLength: 10,
+      order: [[4, 'asc']], // Sort by due date
+      columnDefs: [
+        { orderable: false, targets: [7] }
+      ],
+      language: {
+        search: "Search assignments:",
+        lengthMenu: "Show _MENU_ assignments per page"
+      }
+    });
+
+    // Add filter functionality
+    $('.filter-option').on('click', function (e) {
+      e.preventDefault();
+      var filterType = $(this).data('filter');
+      var filterValue = $(this).data('value');
+
+      currentFilters[filterType] = filterValue;
+      applyFilters();
+
+      // Update active state
+      $(this).siblings().removeClass('active');
+      $(this).addClass('active');
+    });
+  }
+
+  function initializeMiniCalendar() {
+    // Initialize a mini calendar for quick navigation
+    var miniCalendarEl = document.createElement('div');
+    $('#miniCalendar').append(miniCalendarEl);
+
+    var miniCalendar = new FullCalendar.Calendar(miniCalendarEl, {
+      initialView: 'dayGridMonth',
+      headerToolbar: {
+        left: 'prev',
+        center: 'title',
+        right: 'next'
+      },
+      height: 250,
+      dateClick: function (info) {
+        calendar.gotoDate(info.date);
+        highlightSelectedDate(info.date);
+      }
+    });
+
+    miniCalendar.render();
+  }
+
+  function changeCalendarView(viewName) {
+    calendar.changeView(viewName);
+    updateCalendarTitle();
+  }
+
+  function updateCalendarTitle() {
+    var title = calendar.view.title;
+    $('#calendarTitle').text(title);
+  }
+
+  function applyFilters() {
+    var events = getCalendarEvents();
+    var filteredEvents = events.filter(function (event) {
+      var statusMatch = currentFilters.status === 'all' || event.extendedProps.status === currentFilters.status;
+      var subjectMatch = currentFilters.subject === 'all' || event.extendedProps.subject.toLowerCase().includes(currentFilters.subject);
+      var priorityMatch = currentFilters.priority === 'all' || event.extendedProps.status === currentFilters.priority;
+
+      return statusMatch && subjectMatch && priorityMatch;
+    });
+
+    calendar.removeAllEvents();
+    calendar.addEventSource(filteredEvents);
+
+    // Apply same filters to table
+    filterTable();
+  }
+
+  function filterTable() {
+    var table = $('#assignmentDetailsTable').DataTable();
+
+    // Clear existing filters
+    table.search('').draw();
+
+    // Apply row filtering based on data attributes
+    $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+      var row = $(table.row(dataIndex).node());
+
+      var statusMatch = currentFilters.status === 'all' || row.data('status') === currentFilters.status;
+      var subjectMatch = currentFilters.subject === 'all' || row.data('subject') === currentFilters.subject;
+      var priorityMatch = currentFilters.priority === 'all' || row.data('priority') === currentFilters.priority;
+
+      return statusMatch && subjectMatch && priorityMatch;
+    });
+
+    table.draw();
+
+    // Remove the custom filter
+    $.fn.dataTable.ext.search.pop();
+  }
+
+  function showAssignmentDetails(event) {
+    var content = `
+        <div class="row">
+            <div class="col-md-8">
+                <h5>${event.title}</h5>
+                <p class="text-muted">${event.extendedProps.subject} • ${event.extendedProps.class}</p>
+                <p><strong>Teacher:</strong> ${event.extendedProps.teacher}</p>
+                <p><strong>Due:</strong> ${event.start.toLocaleString()}</p>
+                <p><strong>Status:</strong> 
+                    <span class="badge bg-${getStatusColor(event.extendedProps.status)}">${event.extendedProps.status}</span>
+                </p>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h4>${event.extendedProps.submissions}/${event.extendedProps.totalStudents}</h4>
+                        <p class="mb-0">Submissions</p>
+                        <div class="progress mt-2">
+                            <div class="progress-bar" style="width: ${(event.extendedProps.submissions / event.extendedProps.totalStudents) * 100}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <hr>
+        
+        <div class="row">
+            <div class="col-12">
+                <h6>Quick Actions</h6>
+                <div class="btn-group">
+                    <button class="btn btn-outline-primary btn-sm" onclick="viewAssignment('${event.id}')">
+                        <i class="fas fa-eye"></i> View Details
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm" onclick="editAssignment('${event.id}')">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" onclick="viewSubmissions('${event.id}')">
+                        <i class="fas fa-list"></i> Submissions
+                    </button>
+                    <button class="btn btn-outline-success btn-sm" onclick="gradeAssignment('${event.id}')">
+                        <i class="fas fa-check"></i> Grade
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    $('#assignmentModalContent').html(content);
+    $('#assignmentModal').modal('show');
+  }
+
+  function getStatusColor(status) {
+    var colors = {
+      'draft': 'secondary',
+      'published': 'success',
+      'due_soon': 'warning',
+      'overdue': 'danger',
+      'closed': 'dark'
+    };
+    return colors[status] || 'secondary';
+  }
+
+  function showEventTooltip(event, jsEvent) {
+    var tooltip = $('<div class="calendar-tooltip"></div>');
+    tooltip.html(`
+        <strong>${event.title}</strong><br>
+        ${event.extendedProps.subject}<br>
+        Due: ${event.start.toLocaleString()}<br>
+        Submissions: ${event.extendedProps.submissions}/${event.extendedProps.totalStudents}
+    `);
+
+    tooltip.css({
+      position: 'absolute',
+      left: jsEvent.pageX + 10,
+      top: jsEvent.pageY + 10,
+      background: '#333',
+      color: '#fff',
+      padding: '8px',
+      borderRadius: '4px',
+      fontSize: '12px',
+      zIndex: 9999
+    });
+
+    $('body').append(tooltip);
+  }
+
+  function hideEventTooltip() {
+    $('.calendar-tooltip').remove();
+  }
+
+  function rescheduleAssignment(event, newDate) {
+    if (confirm(`Reschedule "${event.title}" to ${newDate.toLocaleDateString()}?`)) {
+      // Update assignment due date
+      console.log('Rescheduling assignment:', event.id, 'to:', newDate);
+      alert('Assignment rescheduled successfully!');
+    } else {
+      // Revert the change
+      calendar.refetchEvents();
+    }
+  }
+
+  function showDateDetails(date) {
+    alert(`Show details for ${date.toLocaleDateString()}`);
+  }
+
+  function highlightSelectedDate(date) {
+    // Remove previous highlights
+    $('.fc-day').removeClass('selected-date');
+
+    // Add highlight to selected date
+    var dateStr = date.toISOString().split('T')[0];
+    $(`.fc-day[data-date="${dateStr}"]`).addClass('selected-date');
+  }
+
+  function addNewAssignment() {
+    window.location.href = '{% url "assignments:assignment_create" %}';
+  }
+
+  function refreshCalendar() {
+    calendar.refetchEvents();
+    location.reload();
+  }
+
+  function exportCalendar() {
+    var format = prompt('Export format (ics/pdf/csv):', 'ics');
+    if (format) {
+      window.open(`{% url "assignments:calendar_feed" %}?format=${format}`, '_blank');
+    }
+  }
+
+  function showCalendarLegend() {
+    $('#legendModal').modal('show');
+  }
+
+  function showSelectedDateDetails() {
+    alert('Show details for selected date');
+  }
+
+  function showCurrentWeekDetails() {
+    alert('Show details for current week');
+  }
+
+  function showCurrentMonthDetails() {
+    alert('Show details for current month');
+  }
+
+  function viewAssignment(id) {
+    window.location.href = `{% url "assignments:assignment_detail" pk=0 %}`.replace('0', id);
+  }
+
+  function editAssignment(id) {
+    window.location.href = `{% url "assignments:assignment_edit" pk=0 %}`.replace('0', id);
+  }
+
+  function viewSubmissions(id) {
+    window.location.href = `{% url "assignments:submission_list" assignment_id=0 %}`.replace('0', id);
+  }
+
+  function gradeAssignment(id) {
+    window.location.href = `{% url "assignments:bulk_grade" assignment_id=0 %}`.replace('0', id);
+  }
+
+  function editCurrentAssignment() {
+    $('#assignmentModal').modal('hide');
+    // Get current assignment ID and redirect to edit
+  }
+</script>
+
+<style>
+  .calendar-tooltip {
+    max-width: 200px;
+    word-wrap: break-word;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  }
+
+  .selected-date {
+    background-color: #e3f2fd !important;
+    border: 2px solid #2196f3 !important;
+  }
+
+  .timeline {
+    position: relative;
+    padding-left: 25px;
+  }
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .timeline-marker {
+    position: absolute;
+    left: -29px;
+    top: 5px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #ddd;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: -24px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #ddd;
+  }
+
+  .fc-event {
+    cursor: pointer;
+    border: none !important;
+  }
+
+  .fc-event:hover {
+    opacity: 0.8;
+  }
+
+  .fc-daygrid-event {
+    border-radius: 3px;
+    padding: 2px 4px;
+  }
+
+  #miniCalendar .fc-toolbar {
+    font-size: 0.8em;
+  }
+
+  #miniCalendar .fc-toolbar-title {
+    font-size: 1.1em;
+  }
+
+  #miniCalendar .fc-button {
+    padding: 0.2em 0.4em;
+    font-size: 0.8em;
+  }
+
+  .bg-purple {
+    background-color: #6f42c1 !important;
+  }
+</style>
+{% endblock %}

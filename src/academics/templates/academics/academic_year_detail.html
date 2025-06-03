@@ -1,0 +1,513 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ academic_year.name }} - Academic Year Details{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0 text-gray-800">
+        <i class="fas fa-calendar-alt me-2"></i>{{ academic_year.name }}
+        {% if academic_year.is_current %}
+        <span class="badge bg-warning text-dark ms-2">
+          <i class="fas fa-star me-1"></i>Current Year
+        </span>
+        {% endif %}
+      </h1>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item"><a href="{% url 'academics:home' %}">Academics</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'academics:academic-year-list' %}">Academic Years</a></li>
+          <li class="breadcrumb-item active">{{ academic_year.name }}</li>
+        </ol>
+      </nav>
+    </div>
+    <div class="btn-group" role="group">
+      {% if not academic_year.is_current %}
+      <button type="button" class="btn btn-success" onclick="setCurrentYear()">
+        <i class="fas fa-check me-1"></i>Set as Current
+      </button>
+      {% endif %}
+      <button type="button" class="btn btn-primary" onclick="editYear()">
+        <i class="fas fa-edit me-1"></i>Edit
+      </button>
+      <a href="{% url 'academics:calendar' %}?academic_year_id={{ academic_year.id }}" class="btn btn-outline-info">
+        <i class="fas fa-calendar me-1"></i>View Calendar
+      </a>
+      <div class="btn-group" role="group">
+        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="fas fa-ellipsis-v"></i>
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="#" onclick="generateReport()">
+              <i class="fas fa-file-pdf me-2"></i>Generate Report
+            </a></li>
+          <li><a class="dropdown-item" href="#" onclick="exportData()">
+              <i class="fas fa-download me-2"></i>Export Data
+            </a></li>
+          <li>
+            <hr class="dropdown-divider">
+          </li>
+          <li><a class="dropdown-item text-danger" href="#" onclick="archiveYear()">
+              <i class="fas fa-archive me-2"></i>Archive Year
+            </a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Academic Year Overview -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="card shadow h-100">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-info-circle me-2"></i>Year Overview
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <table class="table table-borderless">
+                <tr>
+                  <td class="fw-bold text-muted">Academic Year:</td>
+                  <td>{{ academic_year.name }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">Start Date:</td>
+                  <td>{{ academic_year.start_date|date:"F d, Y" }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">End Date:</td>
+                  <td>{{ academic_year.end_date|date:"F d, Y" }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">Duration:</td>
+                  <td>
+                    {% with duration=academic_year.end_date|timeuntil:academic_year.start_date %}
+                    {{ duration|floatformat:0 }} days
+                    {% endwith %}
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">Status:</td>
+                  <td>
+                    {% if academic_year.is_current %}
+                    <span class="badge bg-warning text-dark">
+                      <i class="fas fa-star me-1"></i>Current
+                    </span>
+                    {% elif academic_year.is_active %}
+                    <span class="badge bg-success">
+                      <i class="fas fa-check me-1"></i>Active
+                    </span>
+                    {% else %}
+                    <span class="badge bg-secondary">
+                      <i class="fas fa-pause me-1"></i>Inactive
+                    </span>
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <div class="col-md-6">
+              <table class="table table-borderless">
+                <tr>
+                  <td class="fw-bold text-muted">Created By:</td>
+                  <td>
+                    {% if academic_year.created_by %}
+                    {{ academic_year.created_by.first_name }} {{ academic_year.created_by.last_name }}
+                    {% else %}
+                    System
+                    {% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">Created On:</td>
+                  <td>{{ academic_year.created_at|date:"F d, Y g:i A" }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">Last Updated:</td>
+                  <td>{{ academic_year.updated_at|date:"F d, Y g:i A" }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">Current Term:</td>
+                  <td>
+                    {% if academic_year.get_current_term %}
+                    <span class="badge bg-info">{{ academic_year.get_current_term.name }}</span>
+                    {% else %}
+                    <span class="text-muted">No current term</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card shadow h-100">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-chart-bar me-2"></i>Quick Statistics
+          </h6>
+        </div>
+        <div class="card-body">
+          {% if summary %}
+          <div class="text-center">
+            <div class="row">
+              <div class="col-6 border-right">
+                <div class="h4 mb-0 text-primary">{{ summary.statistics.total_terms }}</div>
+                <div class="text-xs text-muted">Terms</div>
+              </div>
+              <div class="col-6">
+                <div class="h4 mb-0 text-success">{{ summary.statistics.total_classes }}</div>
+                <div class="text-xs text-muted">Classes</div>
+              </div>
+            </div>
+            <hr>
+            <div class="row">
+              <div class="col-12">
+                <div class="h4 mb-0 text-warning">{{ summary.statistics.total_students }}</div>
+                <div class="text-xs text-muted">Total Students</div>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="text-center text-muted">
+            <i class="fas fa-chart-bar fa-2x mb-2"></i>
+            <p>Statistics not available</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Terms Section -->
+  {% if summary.terms %}
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-clock me-2"></i>Terms & Semesters
+          </h6>
+          <button type="button" class="btn btn-sm btn-outline-primary" onclick="addTerm()">
+            <i class="fas fa-plus me-1"></i>Add Term
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% for term in summary.terms %}
+            <div class="col-md-6 col-lg-4 mb-3">
+              <div class="card {% if term.is_current %}border-warning{% else %}border-light{% endif %} h-100">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="card-title mb-0">{{ term.name }}</h6>
+                    {% if term.is_current %}
+                    <span class="badge bg-warning text-dark">
+                      <i class="fas fa-play me-1"></i>Current
+                    </span>
+                    {% endif %}
+                  </div>
+                  <p class="card-text">
+                    <small class="text-muted">
+                      <i class="fas fa-calendar me-1"></i>
+                      {{ term.start_date|date:"M d" }} - {{ term.end_date|date:"M d, Y" }}
+                    </small>
+                  </p>
+                  <p class="card-text">
+                    <small class="text-muted">
+                      <i class="fas fa-clock me-1"></i>
+                      {{ term.duration_days }} days
+                    </small>
+                  </p>
+
+                  <!-- Progress Bar -->
+                  {% if term.is_current %}
+                  <div class="progress mb-2" style="height: 8px;">
+                    <div class="progress-bar bg-warning" role="progressbar" style="width: 65%"></div>
+                  </div>
+                  <small class="text-muted">65% Complete</small>
+                  {% endif %}
+
+                  <div class="mt-3">
+                    <div class="btn-group btn-group-sm w-100" role="group">
+                      <a href="{% url 'academics:term-detail' term.id %}" class="btn btn-outline-primary">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      <button type="button" class="btn btn-outline-warning" onclick="editTerm({{ term.id }})">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      {% if not term.is_current %}
+                      <button type="button" class="btn btn-outline-success" onclick="setCurrentTerm({{ term.id }})">
+                        <i class="fas fa-check"></i>
+                      </button>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Classes Section -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-chalkboard me-2"></i>Classes in {{ academic_year.name }}
+          </h6>
+          <a href="{% url 'academics:class-create' %}?academic_year={{ academic_year.id }}"
+            class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-plus me-1"></i>Add Class
+          </a>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered" id="classesTable" width="100%" cellspacing="0">
+              <thead class="table-light">
+                <tr>
+                  <th>Class Name</th>
+                  <th>Section</th>
+                  <th>Grade</th>
+                  <th>Room</th>
+                  <th>Students</th>
+                  <th>Capacity</th>
+                  <th>Teacher</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for class in academic_year.classes.all %}
+                <tr>
+                  <td>
+                    <strong>{{ class.display_name }}</strong>
+                  </td>
+                  <td>
+                    <span class="badge bg-primary">{{ class.section.name }}</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-success">{{ class.grade.name }}</span>
+                  </td>
+                  <td>
+                    {% if class.room_number %}
+                    <span class="badge bg-info">{{ class.room_number }}</span>
+                    {% else %}
+                    <span class="text-muted">Not assigned</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-center">
+                    <span class="badge bg-warning text-dark">{{ class.get_students_count }}</span>
+                  </td>
+                  <td class="text-center">
+                    <span class="fw-bold">{{ class.capacity }}</span>
+                  </td>
+                  <td>
+                    {% if class.class_teacher %}
+                    <small>{{ class.class_teacher.user.first_name }} {{ class.class_teacher.user.last_name }}</small>
+                    {% else %}
+                    <span class="text-muted">Not assigned</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-center">
+                    {% if class.is_active %}
+                    <span class="badge bg-success">Active</span>
+                    {% else %}
+                    <span class="badge bg-danger">Inactive</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                      <a href="{% url 'academics:class-detail' class.pk %}" class="btn btn-outline-primary"
+                        title="View">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      <button type="button" class="btn btn-outline-warning" onclick="editClass({{ class.id }})"
+                        title="Edit">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="9" class="text-center py-4">
+                    <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                    <p class="text-muted mb-2">No classes created for this academic year</p>
+                    <a href="{% url 'academics:class-create' %}?academic_year={{ academic_year.id }}"
+                      class="btn btn-primary">
+                      <i class="fas fa-plus me-1"></i>Create First Class
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    $('#classesTable').DataTable({
+      pageLength: 15,
+      responsive: true,
+      order: [[1, 'asc'], [2, 'asc'], [0, 'asc']], // Section, Grade, Class Name
+      columnDefs: [
+        { orderable: false, targets: -1 },
+        { className: "text-center", targets: [4, 5, 7] }
+      ],
+      language: {
+        search: "",
+        searchPlaceholder: "Search classes...",
+        lengthMenu: "Show _MENU_ classes per page",
+        info: "Showing _START_ to _END_ of _TOTAL_ classes"
+      }
+    });
+  });
+
+  function setCurrentYear() {
+    if (confirm('Are you sure you want to set {{ academic_year.name }} as the current academic year?')) {
+      fetch(`/api/academics/academic-years/{{ academic_year.id }}/set-current/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val(),
+          'Content-Type': 'application/json'
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            location.reload();
+          } else {
+            alert('Error setting current year: ' + (data.message || 'Unknown error'));
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred while setting current year');
+        });
+    }
+  }
+
+  function editYear() {
+    window.location.href = '/academics/academic-years/{{ academic_year.id }}/edit/';
+  }
+
+  function editClass(classId) {
+    window.location.href = `/academics/classes/${classId}/edit/`;
+  }
+
+  function addTerm() {
+    window.location.href = '/academics/terms/create/?academic_year={{ academic_year.id }}';
+  }
+
+  function editTerm(termId) {
+    window.location.href = `/academics/terms/${termId}/edit/`;
+  }
+
+  function setCurrentTerm(termId) {
+    if (confirm('Are you sure you want to set this as the current term?')) {
+      fetch(`/api/academics/terms/${termId}/set-current/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val(),
+          'Content-Type': 'application/json'
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            location.reload();
+          } else {
+            alert('Error setting current term: ' + (data.message || 'Unknown error'));
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred while setting current term');
+        });
+    }
+  }
+
+  function generateReport() {
+    window.open(`/academics/academic-years/{{ academic_year.id }}/report/`, '_blank');
+  }
+
+  function exportData() {
+    window.location.href = `/academics/academic-years/{{ academic_year.id }}/export/`;
+  }
+
+  function archiveYear() {
+    if (confirm('Are you sure you want to archive this academic year? This action cannot be undone.')) {
+      fetch(`/api/academics/academic-years/{{ academic_year.id }}/archive/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val(),
+          'Content-Type': 'application/json'
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Academic year archived successfully');
+            window.location.href = '{% url "academics:academic-year-list" %}';
+          } else {
+            alert('Error archiving year: ' + (data.message || 'Unknown error'));
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred while archiving');
+        });
+    }
+  }
+</script>
+
+<style>
+  .border-right {
+    border-right: 1px solid #e3e6f0 !important;
+  }
+
+  .table-borderless td {
+    border: none !important;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .btn-group-sm>.btn {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .card.border-warning {
+    border-color: #ffc107 !important;
+    background-color: #fffbf0;
+  }
+</style>
+{% endblock %}

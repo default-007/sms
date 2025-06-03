@@ -1,0 +1,761 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% load assignment_tags %}
+
+{% block title %}Submit Assignment - {{ assignment.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <!-- Header Section -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-2">
+                  <li class="breadcrumb-item"><a href="{% url 'assignments:assignment_list' %}">Assignments</a></li>
+                  <li class="breadcrumb-item"><a
+                      href="{% url 'assignments:assignment_detail' assignment.pk %}">{{ assignment.title|truncatechars:30 }}</a>
+                  </li>
+                  <li class="breadcrumb-item active">Submit</li>
+                </ol>
+              </nav>
+              <h4 class="mb-1">
+                <i class="fas fa-upload me-2"></i>Submit Assignment
+              </h4>
+              <p class="text-muted mb-0">{{ assignment.title }}</p>
+            </div>
+            <div>
+              {% assignment_deadline_warning assignment %}
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Assignment Summary -->
+          <div class="row">
+            <div class="col-md-6">
+              <div class="assignment-info">
+                <h6 class="text-muted mb-2">Assignment Details</h6>
+                <div class="row text-sm">
+                  <div class="col-6">
+                    <strong>Subject:</strong><br>
+                    <span>{{ assignment.subject.name }}</span>
+                  </div>
+                  <div class="col-6">
+                    <strong>Total Marks:</strong><br>
+                    <span>{{ assignment.total_marks }} marks</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="deadline-info">
+                <h6 class="text-muted mb-2">Deadline Information</h6>
+                <div class="row text-sm">
+                  <div class="col-6">
+                    <strong>Due Date:</strong><br>
+                    <span>{{ assignment.due_date|date:"M d, Y" }}</span><br>
+                    <small class="text-muted">{{ assignment.due_date|date:"g:i A" }}</small>
+                  </div>
+                  <div class="col-6">
+                    <strong>Time Left:</strong><br>
+                    {% time_until_deadline assignment %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {% if assignment.is_overdue and not assignment.allow_late_submission %}
+          <div class="alert alert-danger mt-3">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Deadline Passed:</strong> This assignment is no longer accepting submissions.
+          </div>
+          {% elif assignment.is_overdue and assignment.allow_late_submission %}
+          <div class="alert alert-warning mt-3">
+            <i class="fas fa-clock me-2"></i>
+            <strong>Late Submission:</strong> This assignment is overdue. A {{ assignment.late_penalty_percentage }}%
+            penalty will be applied to your score.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Assignment Instructions -->
+      {% if assignment.instructions %}
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-list-ul me-2"></i>Assignment Instructions
+            <button class="btn btn-sm btn-outline-secondary float-end" type="button" data-bs-toggle="collapse"
+              data-bs-target="#instructionsCollapse">
+              <i class="fas fa-chevron-down"></i>
+            </button>
+          </h5>
+        </div>
+        <div class="collapse show" id="instructionsCollapse">
+          <div class="card-body">
+            <div class="alert alert-info">
+              {{ assignment.instructions|linebreaks }}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Submission Guidelines -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-info-circle me-2"></i>Submission Guidelines
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="guideline-section">
+                <h6 class="text-muted mb-2">Submission Requirements</h6>
+                <ul class="list-unstyled">
+                  <li><i class="fas fa-check text-success me-2"></i><strong>Type:</strong>
+                    {{ assignment.get_submission_type_display }}
+                  </li>
+                  <li><i class="fas fa-check text-success me-2"></i><strong>Late Submission:</strong>
+                    {% if assignment.allow_late_submission %}
+                    <span class="text-warning">Allowed ({{ assignment.late_penalty_percentage }}% penalty)</span>
+                    {% else %}
+                    <span class="text-danger">Not Allowed</span>
+                    {% endif %}
+                  </li>
+                  {% if assignment.estimated_duration_hours %}
+                  <li><i class="fas fa-clock text-info me-2"></i><strong>Estimated Time:</strong>
+                    {{ assignment.estimated_duration_hours }} hours
+                  </li>
+                  {% endif %}
+                </ul>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="guideline-section">
+                <h6 class="text-muted mb-2">File Requirements</h6>
+                <ul class="list-unstyled">
+                  <li><i class="fas fa-file text-primary me-2"></i><strong>Max Size:</strong>
+                    {{ assignment.max_file_size_mb }} MB
+                  </li>
+                  <li><i class="fas fa-file-alt text-secondary me-2"></i><strong>Allowed Types:</strong>
+                    {{ assignment.allowed_file_types }}
+                  </li>
+                  <li><i class="fas fa-shield-alt text-warning me-2"></i><strong>Plagiarism:</strong> All submissions
+                    will be checked</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submission Form -->
+      <form method="post" enctype="multipart/form-data" id="submissionForm">
+        {% csrf_token %}
+
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-edit me-2"></i>Your Submission
+            </h5>
+          </div>
+          <div class="card-body">
+            <!-- Submission Type Tabs -->
+            {% if assignment.submission_type == 'both' %}
+            <ul class="nav nav-tabs mb-4" id="submissionTabs" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="text-tab" data-bs-toggle="tab" data-bs-target="#text-submission"
+                  type="button">
+                  <i class="fas fa-edit me-2"></i>Text Submission
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="file-tab" data-bs-toggle="tab" data-bs-target="#file-submission"
+                  type="button">
+                  <i class="fas fa-file-upload me-2"></i>File Upload
+                </button>
+              </li>
+            </ul>
+            {% endif %}
+
+            <div class="tab-content" id="submissionTabContent">
+              <!-- Text Submission -->
+              {% if assignment.submission_type == 'online' or assignment.submission_type == 'both' %}
+              <div
+                class="tab-pane fade {% if assignment.submission_type == 'online' or assignment.submission_type == 'both' %}show active{% endif %}"
+                id="text-submission">
+                <div class="mb-4">
+                  <label for="{{ form.content.id_for_label }}" class="form-label">
+                    <i class="fas fa-edit me-2"></i>Text Submission
+                  </label>
+                  {{ form.content|add_class:"form-control"|attr:"rows:12" }}
+                  {% if form.content.errors %}
+                  <div class="invalid-feedback d-block">{{ form.content.errors.0 }}</div>
+                  {% endif %}
+                  <div class="form-text">
+                    Type your assignment response directly here. You can use this area for essays, short answers, or any
+                    text-based submissions.
+                  </div>
+
+                  <!-- Character Counter -->
+                  <div class="d-flex justify-content-between mt-2">
+                    <small class="text-muted" id="charCount">0 characters</small>
+                    <div class="text-end">
+                      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="autoSave()">
+                        <i class="fas fa-save me-1"></i>Auto Save
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+
+              <!-- File Upload -->
+              {% if assignment.submission_type == 'physical' or assignment.submission_type == 'both' %}
+              <div class="tab-pane fade {% if assignment.submission_type == 'physical' %}show active{% endif %}"
+                id="file-submission">
+                <div class="mb-4">
+                  <label for="{{ form.attachment.id_for_label }}" class="form-label">
+                    <i class="fas fa-file-upload me-2"></i>Upload File
+                  </label>
+
+                  <!-- File Upload Area -->
+                  <div class="file-upload-area border-2 border-dashed border-secondary rounded p-5 text-center mb-3"
+                    id="fileUploadArea">
+                    <div class="upload-placeholder">
+                      <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                      <h5>Drag and drop your file here</h5>
+                      <p class="text-muted">or click to browse and select a file</p>
+                      {{ form.attachment|add_class:"form-control d-none" }}
+                    </div>
+                    <div class="upload-preview d-none">
+                      <div class="file-info d-flex align-items-center justify-content-center">
+                        <div class="file-icon me-3">
+                          <i class="fas fa-file fa-2x text-primary"></i>
+                        </div>
+                        <div class="file-details text-start">
+                          <h6 class="mb-1 file-name">filename.pdf</h6>
+                          <small class="text-muted file-size">2.5 MB</small>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger ms-3" onclick="removeFile()">
+                          <i class="fas fa-times"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {% if form.attachment.errors %}
+                  <div class="invalid-feedback d-block">{{ form.attachment.errors.0 }}</div>
+                  {% endif %}
+
+                  <div class="form-text">
+                    <strong>Accepted formats:</strong> {{ assignment.allowed_file_types|upper }}
+                    | <strong>Maximum size:</strong> {{ assignment.max_file_size_mb }} MB
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+
+            <!-- Submission Method (Hidden if only one option) -->
+            {% if assignment.submission_type == 'both' %}
+            <div class="mb-4">
+              <label for="{{ form.submission_method.id_for_label }}" class="form-label">Submission Method</label>
+              {{ form.submission_method|add_class:"form-select" }}
+            </div>
+            {% else %}
+            {{ form.submission_method|add_class:"d-none" }}
+            {% endif %}
+
+            <!-- Student Remarks -->
+            <div class="mb-4">
+              <label for="{{ form.student_remarks.id_for_label }}" class="form-label">
+                <i class="fas fa-comment me-2"></i>Additional Notes (Optional)
+              </label>
+              {{ form.student_remarks|add_class:"form-control" }}
+              {% if form.student_remarks.errors %}
+              <div class="invalid-feedback d-block">{{ form.student_remarks.errors.0 }}</div>
+              {% endif %}
+              <div class="form-text">
+                Any additional comments, explanations, or notes you'd like to share with your teacher.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Assignment Reference (if file provided) -->
+        {% if assignment.attachment %}
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-paperclip me-2"></i>Assignment Reference
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              {% file_icon assignment.attachment.name %}
+              <div class="ms-3 flex-grow-1">
+                <h6 class="mb-1">{{ assignment.attachment.name }}</h6>
+                <small class="text-muted">{{ assignment.attachment.size|filesizeformat }} • Assignment
+                  questions/instructions</small>
+              </div>
+              <div>
+                <a href="{{ assignment.attachment.url }}" class="btn btn-outline-primary" target="_blank">
+                  <i class="fas fa-eye me-1"></i>View
+                </a>
+                <a href="{{ assignment.attachment.url }}" class="btn btn-primary ms-2" download>
+                  <i class="fas fa-download me-1"></i>Download
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Submission Checklist -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-tasks me-2"></i>Submission Checklist
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="checklist">
+              <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="checkContent">
+                <label class="form-check-label" for="checkContent">
+                  I have provided content for my submission (text or file)
+                </label>
+              </div>
+              <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="checkInstructions">
+                <label class="form-check-label" for="checkInstructions">
+                  I have followed all assignment instructions
+                </label>
+              </div>
+              <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="checkFormat">
+                <label class="form-check-label" for="checkFormat">
+                  My file is in the correct format and under the size limit
+                </label>
+              </div>
+              <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="checkOriginal">
+                <label class="form-check-label" for="checkOriginal">
+                  This is my original work and properly cites any sources
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="checkReviewed">
+                <label class="form-check-label" for="checkReviewed">
+                  I have reviewed my submission for errors
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <small class="text-muted">
+                  <i class="fas fa-info-circle me-1"></i>
+                  {% if assignment.allow_late_submission %}
+                  You can edit your submission until the deadline passes.
+                  {% else %}
+                  You can edit your submission until you submit it or the deadline passes.
+                  {% endif %}
+                </small>
+              </div>
+              <div class="btn-group">
+                <a href="{% url 'assignments:assignment_detail' assignment.pk %}" class="btn btn-outline-secondary">
+                  <i class="fas fa-arrow-left me-1"></i>Cancel
+                </a>
+                <button type="button" class="btn btn-outline-info" onclick="saveDraft()">
+                  <i class="fas fa-save me-1"></i>Save Draft
+                </button>
+                <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                  <i class="fas fa-paper-plane me-1"></i>Submit Assignment
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmSubmissionModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm Submission</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          <strong>Important:</strong> Once you submit, you {% if not assignment.allow_late_submission %}cannot make
+          changes{% else %}can only make changes before the deadline{% endif %}.
+        </div>
+
+        <h6>Submission Summary:</h6>
+        <ul class="list-unstyled">
+          <li><strong>Assignment:</strong> {{ assignment.title }}</li>
+          <li><strong>Subject:</strong> {{ assignment.subject.name }}</li>
+          <li><strong>Due Date:</strong> {{ assignment.due_date|date:"F d, Y g:i A" }}</li>
+          <li id="submissionSummary"></li>
+        </ul>
+
+        <p>Are you sure you want to submit this assignment?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="confirmSubmission()">
+          <i class="fas fa-paper-plane me-1"></i>Yes, Submit
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Character counter for text submission
+    $('#{{ form.content.id_for_label }}').on('input', function () {
+      const charCount = $(this).val().length;
+      $('#charCount').text(charCount + ' characters');
+      checkFormValidity();
+    });
+
+    // File upload handling
+    const fileInput = $('#{{ form.attachment.id_for_label }}');
+    const uploadArea = $('#fileUploadArea');
+
+    // Drag and drop functionality
+    uploadArea.on('dragover', function (e) {
+      e.preventDefault();
+      $(this).addClass('border-primary bg-light');
+    });
+
+    uploadArea.on('dragleave', function (e) {
+      e.preventDefault();
+      $(this).removeClass('border-primary bg-light');
+    });
+
+    uploadArea.on('drop', function (e) {
+      e.preventDefault();
+      $(this).removeClass('border-primary bg-light');
+
+      const files = e.originalEvent.dataTransfer.files;
+      if (files.length > 0) {
+        fileInput[0].files = files;
+        fileInput.trigger('change');
+      }
+    });
+
+    // Click to upload
+    uploadArea.on('click', function () {
+      fileInput.click();
+    });
+
+    // File input change
+    fileInput.on('change', function () {
+      const file = this.files[0];
+      if (file) {
+        displayFilePreview(file);
+        checkFormValidity();
+      }
+    });
+
+    // Checklist validation
+    $('.checklist input[type="checkbox"]').on('change', checkFormValidity);
+
+    // Form submission
+    $('#submissionForm').on('submit', function (e) {
+      e.preventDefault();
+      showConfirmationModal();
+    });
+
+    // Auto-save functionality
+    let autoSaveTimer;
+    $('#{{ form.content.id_for_label }}').on('input', function () {
+      clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(autoSave, 30000); // Auto-save after 30 seconds
+    });
+
+    // Initial form validation
+    checkFormValidity();
+  });
+
+  function displayFilePreview(file) {
+    const uploadArea = $('#fileUploadArea');
+    const placeholder = uploadArea.find('.upload-placeholder');
+    const preview = uploadArea.find('.upload-preview');
+
+    // Validate file
+    const maxSize = {{ assignment.max_file_size_mb }
+  } * 1024 * 1024; // Convert to bytes
+  const allowedTypes = '{{ assignment.allowed_file_types }}'.split(',');
+  const fileExtension = file.name.split('.').pop().toLowerCase();
+
+  if (file.size > maxSize) {
+    alert(`File size exceeds {{ assignment.max_file_size_mb }}MB limit.`);
+    return;
+  }
+
+  if (!allowedTypes.includes(fileExtension)) {
+    alert(`File type .${fileExtension} is not allowed. Allowed types: {{ assignment.allowed_file_types }}`);
+    return;
+  }
+
+  // Update preview
+  preview.find('.file-name').text(file.name);
+  preview.find('.file-size').text(formatFileSize(file.size));
+
+  // Update file icon based on extension
+  const iconMap = {
+    'pdf': 'fas fa-file-pdf text-danger',
+    'doc': 'fas fa-file-word text-primary',
+    'docx': 'fas fa-file-word text-primary',
+    'txt': 'fas fa-file-alt text-secondary',
+    'jpg': 'fas fa-file-image text-success',
+    'jpeg': 'fas fa-file-image text-success',
+    'png': 'fas fa-file-image text-success'
+  };
+
+  const iconClass = iconMap[fileExtension] || 'fas fa-file text-secondary';
+  preview.find('.file-icon i').attr('class', iconClass + ' fa-2x');
+
+  placeholder.addClass('d-none');
+  preview.removeClass('d-none');
+}
+
+  function removeFile() {
+    const fileInput = $('#{{ form.attachment.id_for_label }}');
+    const uploadArea = $('#fileUploadArea');
+
+    fileInput.val('');
+    uploadArea.find('.upload-placeholder').removeClass('d-none');
+    uploadArea.find('.upload-preview').addClass('d-none');
+
+    checkFormValidity();
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  function checkFormValidity() {
+    const hasContent = $('#{{ form.content.id_for_label }}').val().trim().length > 0;
+    const hasFile = $('#{{ form.attachment.id_for_label }}')[0].files.length > 0;
+    const checkboxes = $('.checklist input[type="checkbox"]');
+    const allChecked = checkboxes.length === checkboxes.filter(':checked').length;
+
+    // Need either content or file
+    const hasSubmissionContent = hasContent || hasFile;
+
+    $('#submitBtn').prop('disabled', !(hasSubmissionContent && allChecked));
+  }
+
+  function showConfirmationModal() {
+    // Update submission summary
+    const hasContent = $('#{{ form.content.id_for_label }}').val().trim().length > 0;
+    const hasFile = $('#{{ form.attachment.id_for_label }}')[0].files.length > 0;
+
+    let summary = '<strong>Submission Type:</strong> ';
+    if (hasContent && hasFile) {
+      summary += 'Text and File';
+    } else if (hasContent) {
+      summary += 'Text Only';
+    } else if (hasFile) {
+      summary += 'File Only';
+    }
+
+    $('#submissionSummary').html(summary);
+    $('#confirmSubmissionModal').modal('show');
+  }
+
+  function confirmSubmission() {
+    $('#confirmSubmissionModal').modal('hide');
+
+    // Show loading state
+    const submitBtn = $('#submitBtn');
+    submitBtn.html('<i class="fas fa-spinner fa-spin me-1"></i>Submitting...');
+    submitBtn.prop('disabled', true);
+
+    // Submit the form
+    $('#submissionForm')[0].submit();
+  }
+
+  function saveDraft() {
+    // Implement draft saving functionality
+    const content = $('#{{ form.content.id_for_label }}').val();
+    const remarks = $('#{{ form.student_remarks.id_for_label }}').val();
+
+    // Save to localStorage
+    const draftData = {
+      content: content,
+      remarks: remarks,
+      timestamp: new Date().toISOString()
+    };
+
+    localStorage.setItem('assignment_draft_{{ assignment.id }}', JSON.stringify(draftData));
+
+    // Show success message
+    const toast = $(`
+        <div class="toast" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+            <div class="toast-header">
+                <i class="fas fa-save text-success me-2"></i>
+                <strong class="me-auto">Draft Saved</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+                Your progress has been saved locally.
+            </div>
+        </div>
+    `);
+
+    $('body').append(toast);
+    toast.toast('show');
+
+    setTimeout(() => toast.remove(), 5000);
+  }
+
+  function autoSave() {
+    saveDraft();
+  }
+
+  // Load draft on page load
+  $(document).ready(function () {
+    const draftKey = 'assignment_draft_{{ assignment.id }}';
+    const draftData = localStorage.getItem(draftKey);
+
+    if (draftData) {
+      try {
+        const data = JSON.parse(draftData);
+
+        if (confirm('A draft of this assignment was found. Would you like to load it?')) {
+          $('#{{ form.content.id_for_label }}').val(data.content);
+          $('#{{ form.student_remarks.id_for_label }}').val(data.remarks);
+
+          // Update character count
+          const charCount = data.content.length;
+          $('#charCount').text(charCount + ' characters');
+
+          checkFormValidity();
+        }
+      } catch (e) {
+        console.error('Error loading draft:', e);
+      }
+    }
+  });
+
+  // Clear draft on successful submission
+  window.addEventListener('beforeunload', function () {
+    // This will be handled by the server response
+  });
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .file-upload-area {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .file-upload-area:hover {
+    border-color: #007bff !important;
+    background-color: #f8f9fa;
+  }
+
+  .file-upload-area.border-primary {
+    border-color: #007bff !important;
+  }
+
+  .upload-placeholder h5 {
+    margin-bottom: 10px;
+  }
+
+  .checklist .form-check {
+    padding: 10px;
+    border-radius: 5px;
+    transition: background-color 0.2s;
+  }
+
+  .checklist .form-check:hover {
+    background-color: #f8f9fa;
+  }
+
+  .checklist .form-check-input:checked+.form-check-label {
+    color: #28a745;
+  }
+
+  .timeline-item {
+    border-left: 2px solid #dee2e6;
+    padding-left: 15px;
+    padding-bottom: 15px;
+    position: relative;
+  }
+
+  .timeline-item::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background-color: #007bff;
+    border-radius: 50%;
+    position: absolute;
+    left: -5px;
+    top: 5px;
+  }
+
+  .timeline-item:last-child {
+    border-left: none;
+  }
+
+  .character-limit {
+    font-size: 0.875rem;
+  }
+
+  @media (max-width: 768px) {
+    .file-upload-area {
+      min-height: 150px;
+    }
+
+    .file-upload-area h5 {
+      font-size: 1rem;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-group .btn {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}

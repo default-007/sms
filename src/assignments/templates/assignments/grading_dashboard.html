@@ -1,0 +1,575 @@
+{% extends "base.html" %}
+{% load assignment_tags %}
+
+{% block title %}Grading Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">
+      <i class="fas fa-clipboard-check text-primary"></i>
+      Grading Dashboard
+    </h1>
+    <div class="btn-group">
+      <a href="{% url 'assignments:grading_queue' %}" class="btn btn-primary">
+        <i class="fas fa-list"></i> Grading Queue
+      </a>
+      <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="fas fa-filter"></i> Filter
+      </button>
+      <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="?status=submitted">Pending Only</a></li>
+        <li><a class="dropdown-item" href="?status=graded">Graded Only</a></li>
+        <li><a class="dropdown-item" href="?days=7">Last 7 Days</a></li>
+        <li><a class="dropdown-item" href="?days=30">Last 30 Days</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="card-title">{{ ungraded_count }}</h3>
+              <p class="card-text">Pending Grading</p>
+              <small>{{ recent_submissions|length }} recent submissions</small>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-hourglass-half fa-3x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <a href="{% url 'assignments:grading_queue' %}" class="text-white text-decoration-none">
+            <small><i class="fas fa-arrow-right"></i> View Queue</small>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="card-title">85%</h3>
+              <p class="card-text">Grading Rate</p>
+              <small>This week</small>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-check-circle fa-3x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="card-title">2.5h</h3>
+              <p class="card-text">Avg Grading Time</p>
+              <small>Per submission</small>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-stopwatch fa-3x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="card-title">12</h3>
+              <p class="card-text">Active Assignments</p>
+              <small>Accepting submissions</small>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-tasks fa-3x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-bolt text-warning"></i>
+            Quick Actions
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="d-grid">
+                <button type="button" class="btn btn-outline-primary btn-lg" onclick="bulkGradeModal()">
+                  <i class="fas fa-tasks"></i>
+                  <div class="small">Bulk Grade</div>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="d-grid">
+                <button type="button" class="btn btn-outline-info btn-lg" onclick="downloadGradingSheet()">
+                  <i class="fas fa-download"></i>
+                  <div class="small">Download Grading Sheet</div>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="d-grid">
+                <button type="button" class="btn btn-outline-success btn-lg" onclick="sendReminders()">
+                  <i class="fas fa-bell"></i>
+                  <div class="small">Send Grade Notifications</div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Submissions Requiring Grading -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-list-ul text-primary"></i>
+            Recent Submissions Requiring Grading
+          </h5>
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-secondary" onclick="selectAllSubmissions()">
+              <i class="fas fa-check-square"></i> Select All
+            </button>
+            <button type="button" class="btn btn-outline-secondary" onclick="clearSelection()">
+              <i class="fas fa-square"></i> Clear
+            </button>
+            <button type="button" class="btn btn-success" onclick="bulkGradeSelected()" disabled id="bulkGradeBtn">
+              <i class="fas fa-edit"></i> Grade Selected
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="gradingTable" class="table table-hover">
+              <thead>
+                <tr>
+                  <th width="40">
+                    <input type="checkbox" id="selectAll" class="form-check-input">
+                  </th>
+                  <th>Student</th>
+                  <th>Assignment</th>
+                  <th>Subject</th>
+                  <th>Class</th>
+                  <th>Submitted</th>
+                  <th>Days Pending</th>
+                  <th>Priority</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for submission in recent_submissions %}
+                <tr data-submission-id="{{ submission.id }}">
+                  <td>
+                    <input type="checkbox" class="form-check-input submission-checkbox" value="{{ submission.id }}">
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div
+                        class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center text-white me-2">
+                        {{ submission.student.user.first_name.0 }}{{ submission.student.user.last_name.0 }}
+                      </div>
+                      <div>
+                        <strong>{{ submission.student.user.get_full_name }}</strong>
+                        <br><small class="text-muted">{{ submission.student.admission_number }}</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div>
+                      <strong>{{ submission.assignment.title|truncatechars:30 }}</strong>
+                      <br><small class="text-muted">{{ submission.assignment.total_marks }} marks</small>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-secondary">{{ submission.assignment.subject.code }}</span>
+                    <br><small>{{ submission.assignment.subject.name }}</small>
+                  </td>
+                  <td>{{ submission.assignment.class_id }}</td>
+                  <td>
+                    <span class="text-muted">{{ submission.submission_date|timesince }} ago</span>
+                    <br><small class="text-{{ submission.is_late|yesno:'danger,success' }}">
+                      {% if submission.is_late %}
+                      <i class="fas fa-clock"></i> Late
+                      {% else %}
+                      <i class="fas fa-check"></i> On Time
+                      {% endif %}
+                    </small>
+                  </td>
+                  <td>
+                    {% with days_pending=submission.submission_date|timesince|slice:":1" %}
+                    <span class="badge bg-{{ days_pending|add:0 > 7|yesno:'danger,warning' }}">
+                      {{ submission.submission_date|timesince|slice:":1" }} days
+                    </span>
+                    {% endwith %}
+                  </td>
+                  <td>
+                    {% if submission.is_late %}
+                    <span class="badge bg-danger">High</span>
+                    {% elif submission.assignment.due_date < submission.submission_date|add_days:3 %}
+                    <span class="badge bg-warning">Medium</span>
+                    {% else %}
+                    <span class="badge bg-success">Normal</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <a href="{% url 'assignments:submission_detail' pk=submission.pk %}"
+                        class="btn btn-outline-primary btn-sm" title="View Details">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      <a href="{% url 'assignments:submission_grade' pk=submission.pk %}" class="btn btn-primary btn-sm"
+                        title="Grade Now">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                      {% if submission.attachment %}
+                      <a href="{% url 'assignments:submission_download' pk=submission.pk %}"
+                        class="btn btn-outline-secondary btn-sm" title="Download">
+                        <i class="fas fa-download"></i>
+                      </a>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="9" class="text-center py-5">
+                    <div class="text-muted">
+                      <i class="fas fa-check-circle fa-3x mb-3"></i>
+                      <h5>All caught up!</h5>
+                      <p>No submissions pending grading at the moment.</p>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grading Statistics Chart -->
+  <div class="row mt-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Grading Activity (Last 30 Days)</h5>
+        </div>
+        <div class="card-body">
+          <div id="gradingActivityChart"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Grading Progress</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <div class="d-flex justify-content-between">
+              <span>Mathematics</span>
+              <span>85%</span>
+            </div>
+            <div class="progress">
+              <div class="progress-bar bg-success" style="width: 85%"></div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <div class="d-flex justify-content-between">
+              <span>Science</span>
+              <span>72%</span>
+            </div>
+            <div class="progress">
+              <div class="progress-bar bg-info" style="width: 72%"></div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <div class="d-flex justify-content-between">
+              <span>English</span>
+              <span>91%</span>
+            </div>
+            <div class="progress">
+              <div class="progress-bar bg-primary" style="width: 91%"></div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <div class="d-flex justify-content-between">
+              <span>History</span>
+              <span>68%</span>
+            </div>
+            <div class="progress">
+              <div class="progress-bar bg-warning" style="width: 68%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Grade Modal -->
+<div class="modal fade" id="bulkGradeModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Bulk Grade Submissions</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="bulkGradeForm">
+          <div class="row">
+            <div class="col-md-6">
+              <label class="form-label">Default Grade/Score</label>
+              <input type="number" class="form-control" id="defaultGrade" min="0" max="100">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Grade Type</label>
+              <select class="form-select" id="gradeType">
+                <option value="percentage">Percentage</option>
+                <option value="marks">Marks</option>
+                <option value="pass_fail">Pass/Fail</option>
+              </select>
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="form-label">Default Comments</label>
+            <textarea class="form-control" id="defaultComments" rows="3"
+              placeholder="Enter default feedback for all selected submissions..."></textarea>
+          </div>
+          <div class="mt-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="sendNotifications" checked>
+              <label class="form-check-label" for="sendNotifications">
+                Send grade notifications to students
+              </label>
+            </div>
+          </div>
+        </form>
+        <div class="mt-3">
+          <h6>Selected Submissions: <span id="selectedCount">0</span></h6>
+          <div id="selectedSubmissions" class="small text-muted"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="submitBulkGrade()">
+          <i class="fas fa-save"></i> Apply Grades
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    var table = $('#gradingTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[5, 'asc']], // Sort by submission date
+      columnDefs: [
+        { orderable: false, targets: [0, 8] }
+      ],
+      language: {
+        search: "Search submissions:",
+        lengthMenu: "Show _MENU_ submissions per page",
+        info: "Showing _START_ to _END_ of _TOTAL_ submissions"
+      },
+      dom: 'Bfrtip',
+      buttons: [
+        {
+          extend: 'csv',
+          text: '<i class="fas fa-file-csv"></i> Export CSV',
+          className: 'btn btn-outline-secondary btn-sm'
+        }
+      ]
+    });
+
+    // Handle select all checkbox
+    $('#selectAll').on('change', function () {
+      $('.submission-checkbox').prop('checked', this.checked);
+      updateBulkGradeButton();
+      updateSelectedSubmissions();
+    });
+
+    // Handle individual checkboxes
+    $(document).on('change', '.submission-checkbox', function () {
+      updateBulkGradeButton();
+      updateSelectedSubmissions();
+
+      // Update select all checkbox
+      var totalCheckboxes = $('.submission-checkbox').length;
+      var checkedCheckboxes = $('.submission-checkbox:checked').length;
+      $('#selectAll').prop('checked', totalCheckboxes === checkedCheckboxes);
+    });
+
+    // Update bulk grade button state
+    function updateBulkGradeButton() {
+      var checkedCount = $('.submission-checkbox:checked').length;
+      $('#bulkGradeBtn').prop('disabled', checkedCount === 0);
+    }
+
+    // Update selected submissions display
+    function updateSelectedSubmissions() {
+      var selected = $('.submission-checkbox:checked');
+      $('#selectedCount').text(selected.length);
+
+      var submissionsList = [];
+      selected.each(function () {
+        var row = $(this).closest('tr');
+        var student = row.find('td:eq(1) strong').text();
+        var assignment = row.find('td:eq(2) strong').text();
+        submissionsList.push(student + ' - ' + assignment);
+      });
+
+      $('#selectedSubmissions').html(submissionsList.slice(0, 5).join('<br>') +
+        (submissionsList.length > 5 ? '<br>... and ' + (submissionsList.length - 5) + ' more' : ''));
+    }
+
+    // Grading Activity Chart
+    var gradingActivityOptions = {
+      series: [{
+        name: 'Graded',
+        data: [12, 19, 15, 21, 14, 25, 18, 22, 16, 24, 20, 17, 23, 19, 21, 26, 15, 18, 22, 25, 19, 21, 24, 18, 20, 23, 17, 25, 22, 19]
+      }, {
+        name: 'Pending',
+        data: [8, 11, 13, 10, 16, 9, 12, 8, 14, 6, 10, 13, 7, 11, 9, 4, 15, 12, 8, 5, 11, 9, 6, 12, 10, 7, 13, 5, 8, 11]
+      }],
+      chart: {
+        type: 'area',
+        height: 350,
+        stacked: true
+      },
+      colors: ['#28a745', '#ffc107'],
+      xaxis: {
+        categories: Array.from({ length: 30 }, (_, i) => {
+          const date = new Date();
+          date.setDate(date.getDate() - (29 - i));
+          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        })
+      },
+      title: {
+        text: 'Daily Grading Activity'
+      },
+      stroke: {
+        curve: 'smooth'
+      },
+      fill: {
+        type: 'gradient',
+        gradient: {
+          opacityFrom: 0.6,
+          opacityTo: 0.8
+        }
+      }
+    };
+
+    var gradingActivityChart = new ApexCharts(document.querySelector("#gradingActivityChart"), gradingActivityOptions);
+    gradingActivityChart.render();
+  });
+
+  // Function implementations
+  function selectAllSubmissions() {
+    $('.submission-checkbox').prop('checked', true);
+    $('#selectAll').prop('checked', true);
+    updateBulkGradeButton();
+    updateSelectedSubmissions();
+  }
+
+  function clearSelection() {
+    $('.submission-checkbox').prop('checked', false);
+    $('#selectAll').prop('checked', false);
+    $('#bulkGradeBtn').prop('disabled', true);
+    $('#selectedCount').text('0');
+    $('#selectedSubmissions').html('');
+  }
+
+  function bulkGradeModal() {
+    var checkedCount = $('.submission-checkbox:checked').length;
+    if (checkedCount === 0) {
+      alert('Please select at least one submission to grade.');
+      return;
+    }
+    $('#bulkGradeModal').modal('show');
+    updateSelectedSubmissions();
+  }
+
+  function bulkGradeSelected() {
+    bulkGradeModal();
+  }
+
+  function submitBulkGrade() {
+    var selectedIds = $('.submission-checkbox:checked').map(function () {
+      return this.value;
+    }).get();
+
+    var gradeData = {
+      submission_ids: selectedIds,
+      default_grade: $('#defaultGrade').val(),
+      grade_type: $('#gradeType').val(),
+      default_comments: $('#defaultComments').val(),
+      send_notifications: $('#sendNotifications').is(':checked')
+    };
+
+    // Submit bulk grade data
+    console.log('Bulk grade data:', gradeData);
+    // TODO: Implement actual AJAX submission
+
+    $('#bulkGradeModal').modal('hide');
+    alert('Bulk grading completed successfully!');
+    location.reload();
+  }
+
+  function downloadGradingSheet() {
+    window.location.href = '{% url "assignments:assignment_export" %}?format=grading_sheet';
+  }
+
+  function sendReminders() {
+    if (confirm('Send grade notifications to all students with recent grades?')) {
+      // TODO: Implement notification sending
+      alert('Notifications sent successfully!');
+    }
+  }
+</script>
+{% endblock %}

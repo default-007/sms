@@ -1,0 +1,677 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ class.display_name }} - Class Details{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0 text-gray-800">
+        <i class="fas fa-chalkboard me-2"></i>{{ class.display_name }}
+        {% if not class.is_active %}
+        <span class="badge bg-danger ms-2">Inactive</span>
+        {% endif %}
+      </h1>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item"><a href="{% url 'academics:home' %}">Academics</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'academics:class-list' %}">Classes</a></li>
+          <li class="breadcrumb-item active">{{ class.display_name }}</li>
+        </ol>
+      </nav>
+    </div>
+    <div class="btn-group" role="group">
+      <button type="button" class="btn btn-primary" onclick="editClass()">
+        <i class="fas fa-edit me-1"></i>Edit Class
+      </button>
+      <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+        <i class="fas fa-user-plus me-1"></i>Add Student
+      </button>
+      <div class="btn-group" role="group">
+        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="fas fa-ellipsis-v"></i>
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="#" onclick="generateClassReport()">
+              <i class="fas fa-file-pdf me-2"></i>Generate Report
+            </a></li>
+          <li><a class="dropdown-item" href="#" onclick="exportStudentList()">
+              <i class="fas fa-download me-2"></i>Export Student List
+            </a></li>
+          <li>
+            <hr class="dropdown-divider">
+          </li>
+          <li><a class="dropdown-item" href="#" onclick="duplicateClass()">
+              <i class="fas fa-copy me-2"></i>Duplicate Class
+            </a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Class Overview Cards -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="card shadow h-100">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-info-circle me-2"></i>Class Information
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <table class="table table-borderless">
+                <tr>
+                  <td class="fw-bold text-muted">Class Name:</td>
+                  <td>{{ class.display_name }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">Full Name:</td>
+                  <td>{{ class.full_name }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">Section:</td>
+                  <td>
+                    <span class="badge bg-primary">{{ class.section.name }}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">Grade:</td>
+                  <td>
+                    <span class="badge bg-success">{{ class.grade.name }}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">Academic Year:</td>
+                  <td>{{ class.academic_year.name }}</td>
+                </tr>
+              </table>
+            </div>
+            <div class="col-md-6">
+              <table class="table table-borderless">
+                <tr>
+                  <td class="fw-bold text-muted">Room Number:</td>
+                  <td>
+                    {% if class.room_number %}
+                    <span class="badge bg-info">{{ class.room_number }}</span>
+                    {% else %}
+                    <span class="text-muted">Not assigned</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">Capacity:</td>
+                  <td><strong>{{ class.capacity }}</strong> students</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">Current Students:</td>
+                  <td>
+                    <strong>{{ class.get_students_count }}</strong> students
+                    {% if details.statistics.utilization_rate > 100 %}
+                    <span class="badge bg-danger ms-1">Over Capacity</span>
+                    {% elif details.statistics.utilization_rate > 90 %}
+                    <span class="badge bg-warning text-dark ms-1">Near Full</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">Available Spots:</td>
+                  <td>
+                    <strong>{{ class.get_available_capacity }}</strong> spots
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">Class Teacher:</td>
+                  <td>
+                    {% if class.class_teacher %}
+                    <div class="d-flex align-items-center">
+                      <i class="fas fa-user-tie text-info me-2"></i>
+                      <div>
+                        <strong>{{ class.class_teacher.user.first_name }}
+                          {{ class.class_teacher.user.last_name }}</strong>
+                        <br>
+                        <small class="text-muted">{{ class.class_teacher.employee_id }}</small>
+                      </div>
+                    </div>
+                    {% else %}
+                    <span class="text-muted">Not assigned</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card shadow h-100">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-chart-pie me-2"></i>Quick Statistics
+          </h6>
+        </div>
+        <div class="card-body">
+          {% if details.statistics %}
+          <!-- Capacity Utilization -->
+          <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="text-muted">Capacity Utilization</span>
+              <span class="fw-bold">{{ details.statistics.utilization_rate|floatformat:1 }}%</span>
+            </div>
+            <div class="progress">
+              <div class="progress-bar 
+                                {% if details.statistics.utilization_rate > 100 %}bg-danger
+                                {% elif details.statistics.utilization_rate > 90 %}bg-warning
+                                {% elif details.statistics.utilization_rate > 75 %}bg-info
+                                {% else %}bg-success{% endif %}" role="progressbar"
+                style="width: {% if details.statistics.utilization_rate > 100 %}100{% else %}{{ details.statistics.utilization_rate }}{% endif %}%">
+              </div>
+            </div>
+          </div>
+
+          <!-- Statistics Grid -->
+          <div class="row text-center">
+            <div class="col-6 border-right">
+              <div class="h5 mb-0 text-success">{{ details.statistics.subjects_count }}</div>
+              <div class="text-xs text-muted">Subjects</div>
+            </div>
+            <div class="col-6">
+              <div class="h5 mb-0 text-info">{{ details.statistics.timetable_periods }}</div>
+              <div class="text-xs text-muted">Periods</div>
+            </div>
+          </div>
+          {% else %}
+          <div class="text-center text-muted">
+            <i class="fas fa-chart-bar fa-2x mb-2"></i>
+            <p>Statistics not available</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Class Analytics -->
+  {% if analytics %}
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-chart-line me-2"></i>Class Analytics
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <!-- Demographics -->
+            <div class="col-lg-4 mb-4">
+              <h6 class="text-primary">Gender Distribution</h6>
+              <div id="genderChart"></div>
+            </div>
+
+            <!-- Performance -->
+            <div class="col-lg-4 mb-4">
+              <h6 class="text-primary">Performance Overview</h6>
+              {% if analytics.performance.has_data %}
+              <div class="text-center">
+                <div class="h4 mb-0 text-success">{{ analytics.performance.class_average }}</div>
+                <div class="text-muted">Class Average</div>
+                <hr>
+                <div class="row">
+                  <div class="col-6">
+                    <div class="h6 mb-0 text-info">{{ analytics.performance.highest_score }}</div>
+                    <small class="text-muted">Highest</small>
+                  </div>
+                  <div class="col-6">
+                    <div class="h6 mb-0 text-warning">{{ analytics.performance.lowest_score }}</div>
+                    <small class="text-muted">Lowest</small>
+                  </div>
+                </div>
+              </div>
+              {% else %}
+              <div class="text-center text-muted">
+                <i class="fas fa-chart-line fa-2x mb-2"></i>
+                <p>No performance data available</p>
+              </div>
+              {% endif %}
+            </div>
+
+            <!-- Attendance -->
+            <div class="col-lg-4 mb-4">
+              <h6 class="text-primary">Attendance Overview</h6>
+              {% if analytics.attendance.has_data %}
+              <div class="text-center">
+                <div class="h4 mb-0 text-success">{{ analytics.attendance.attendance_rate }}%</div>
+                <div class="text-muted">Attendance Rate</div>
+                <hr>
+                <div class="row">
+                  <div class="col-6">
+                    <div class="h6 mb-0 text-success">{{ analytics.attendance.present_days }}</div>
+                    <small class="text-muted">Present</small>
+                  </div>
+                  <div class="col-6">
+                    <div class="h6 mb-0 text-danger">{{ analytics.attendance.absent_days }}</div>
+                    <small class="text-muted">Absent</small>
+                  </div>
+                </div>
+              </div>
+              {% else %}
+              <div class="text-center text-muted">
+                <i class="fas fa-calendar-check fa-2x mb-2"></i>
+                <p>No attendance data available</p>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Recommendations -->
+          {% if analytics.recommendations %}
+          <div class="alert alert-info">
+            <h6 class="alert-heading">
+              <i class="fas fa-lightbulb me-2"></i>Recommendations
+            </h6>
+            <ul class="mb-0">
+              {% for recommendation in analytics.recommendations %}
+              <li>{{ recommendation }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Students List -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-users me-2"></i>Students in {{ class.display_name }}
+            <span class="badge bg-secondary ms-2">{{ details.students|length }}
+              Student{{ details.students|length|pluralize }}</span>
+          </h6>
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+              data-bs-target="#addStudentModal">
+              <i class="fas fa-user-plus me-1"></i>Add Student
+            </button>
+            <button type="button" class="btn btn-outline-info" onclick="manageAttendance()">
+              <i class="fas fa-calendar-check me-1"></i>Attendance
+            </button>
+            <button type="button" class="btn btn-outline-secondary" onclick="exportStudentList()">
+              <i class="fas fa-download me-1"></i>Export
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          {% if details.students %}
+          <div class="table-responsive">
+            <table class="table table-hover" id="studentsTable" width="100%" cellspacing="0">
+              <thead class="table-light">
+                <tr>
+                  <th>Admission No.</th>
+                  <th>Student Name</th>
+                  <th>Roll No.</th>
+                  <th>Gender</th>
+                  <th>Date of Birth</th>
+                  <th>Admission Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for student in details.students %}
+                <tr>
+                  <td>
+                    <strong>{{ student.admission_number }}</strong>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="me-2">
+                        <i class="fas fa-user-graduate text-info"></i>
+                      </div>
+                      <div>
+                        <strong>{{ student.user.first_name }} {{ student.user.last_name }}</strong>
+                        <br>
+                        <small class="text-muted">{{ student.user.email }}</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    {% if student.roll_number %}
+                    <span class="badge bg-secondary">{{ student.roll_number }}</span>
+                    {% else %}
+                    <span class="text-muted">Not assigned</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if student.user.gender %}
+                    <span class="badge 
+                                                {% if student.user.gender == 'Male' %}bg-info
+                                                {% elif student.user.gender == 'Female' %}bg-pink
+                                                {% else %}bg-secondary{% endif %}">
+                      {{ student.user.gender }}
+                    </span>
+                    {% else %}
+                    <span class="text-muted">Not specified</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if student.user.date_of_birth %}
+                    {{ student.user.date_of_birth|date:"M d, Y" }}
+                    <br>
+                    <small class="text-muted">
+                      {% with today=request.user.date_joined|date:"Y-m-d" %}
+                      {% with age=student.user.date_of_birth|timesince %}
+                      {{ age|truncatewords:1 }}
+                      {% endwith %}
+                      {% endwith %}
+                    </small>
+                    {% else %}
+                    <span class="text-muted">Not provided</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {{ student.admission_date|date:"M d, Y" }}
+                  </td>
+                  <td>
+                    <span class="badge 
+                                            {% if student.status == 'Active' %}bg-success
+                                            {% elif student.status == 'Inactive' %}bg-danger
+                                            {% else %}bg-warning text-dark{% endif %}">
+                      {{ student.status }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                      <a href="/students/{{ student.id }}/" class="btn btn-outline-primary" title="View Profile">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      <button type="button" class="btn btn-outline-info" onclick="viewAttendance({{ student.id }})"
+                        title="Attendance">
+                        <i class="fas fa-calendar-check"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-warning" onclick="transferStudent({{ student.id }})"
+                        title="Transfer">
+                        <i class="fas fa-exchange-alt"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-5">
+            <i class="fas fa-user-plus fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">No Students Enrolled</h5>
+            <p class="text-muted mb-4">Add students to this class to get started</p>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+              <i class="fas fa-user-plus me-2"></i>Add First Student
+            </button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Student Modal -->
+<div class="modal fade" id="addStudentModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-user-plus me-2"></i>Add Student to {{ class.display_name }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="studentSearch" class="form-label">Search Student</label>
+          <input type="text" class="form-control" id="studentSearch"
+            placeholder="Search by name, admission number, or email">
+          <div class="form-text">Type to search for students not enrolled in this class</div>
+        </div>
+        <div id="studentSearchResults">
+          <!-- Search results will be populated here -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    $('#studentsTable').DataTable({
+      pageLength: 25,
+      responsive: true,
+      order: [[1, 'asc']], // Sort by name
+      columnDefs: [
+        { orderable: false, targets: -1 },
+        { className: "text-center", targets: [2, 3, 6] }
+      ],
+      language: {
+        search: "",
+        searchPlaceholder: "Search students...",
+        lengthMenu: "Show _MENU_ students per page",
+        info: "Showing _START_ to _END_ of _TOTAL_ students"
+      }
+    });
+
+    // Initialize charts if analytics data exists
+    {% if analytics %}
+    initializeCharts();
+    {% endif %}
+
+    // Student search functionality
+    $('#studentSearch').on('input', debounce(searchStudents, 300));
+  });
+
+  function initializeCharts() {
+    // Gender Distribution Chart
+    const genderData = [
+      {{ analytics.demographics.gender_distribution.male }},
+  { { analytics.demographics.gender_distribution.female } },
+  { { analytics.demographics.gender_distribution.other } }
+    ];
+
+  const genderChart = new ApexCharts(document.querySelector("#genderChart"), {
+    series: genderData,
+    chart: {
+      type: 'donut',
+      height: 200
+    },
+    labels: ['Male', 'Female', 'Other'],
+    colors: ['#4e73df', '#e74a3b', '#36b9cc'],
+    legend: {
+      position: 'bottom',
+      fontSize: '12px'
+    },
+    dataLabels: {
+      enabled: true,
+      formatter: function (val) {
+        return Math.round(val) + '%';
+      }
+    }
+  });
+  genderChart.render();
+}
+
+  function editClass() {
+    window.location.href = '{% url "academics:class-detail" class.pk %}edit/';
+  }
+
+  function manageAttendance() {
+    window.location.href = '/attendance/classes/{{ class.id }}/';
+  }
+
+  function viewAttendance(studentId) {
+    window.location.href = `/attendance/students/${studentId}/`;
+  }
+
+  function transferStudent(studentId) {
+    // Open transfer modal or redirect to transfer page
+    window.location.href = `/students/${studentId}/transfer/`;
+  }
+
+  function generateClassReport() {
+    window.open('{% url "academics:class-detail" class.pk %}report/', '_blank');
+  }
+
+  function exportStudentList() {
+    window.location.href = '{% url "academics:class-detail" class.pk %}export/';
+  }
+
+  function duplicateClass() {
+    if (confirm('Create a copy of this class for another academic year?')) {
+      window.location.href = '{% url "academics:class-detail" class.pk %}duplicate/';
+    }
+  }
+
+  function searchStudents() {
+    const query = $('#studentSearch').val();
+
+    if (query.length < 2) {
+      $('#studentSearchResults').empty();
+      return;
+    }
+
+    fetch(`/api/students/search/?q=${encodeURIComponent(query)}&exclude_class={{ class.id }}`)
+      .then(response => response.json())
+      .then(data => {
+        let html = '';
+
+        if (data.length > 0) {
+          html = '<div class="list-group">';
+          data.forEach(student => {
+            html += `
+                        <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${student.user.first_name} ${student.user.last_name}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    ${student.admission_number} • ${student.current_class ? student.current_class.display_name : 'No class assigned'}
+                                </small>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-primary" 
+                                    onclick="addStudentToClass(${student.id})">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                    `;
+          });
+          html += '</div>';
+        } else {
+          html = '<div class="text-center text-muted py-3">No students found</div>';
+        }
+
+        $('#studentSearchResults').html(html);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        $('#studentSearchResults').html('<div class="alert alert-danger">Error searching students</div>');
+      });
+  }
+
+  function addStudentToClass(studentId) {
+    fetch(`/api/academics/classes/{{ class.id }}/add-student/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+      },
+      body: JSON.stringify({ student_id: studentId })
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          $('#addStudentModal').modal('hide');
+          location.reload();
+        } else {
+          alert('Error adding student: ' + (data.message || 'Unknown error'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while adding the student');
+      });
+  }
+
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+</script>
+
+<style>
+  .border-right {
+    border-right: 1px solid #e3e6f0 !important;
+  }
+
+  .table-borderless td {
+    border: none !important;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .btn-group-sm>.btn {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .progress {
+    height: 15px;
+    background-color: #f8f9fc;
+  }
+
+  .text-xs {
+    font-size: 0.75rem;
+  }
+
+  .bg-pink {
+    background-color: #e83e8c !important;
+  }
+
+  .list-group-item-action:hover {
+    background-color: #f8f9fc;
+  }
+
+  @media (max-width: 768px) {
+    .btn-group {
+      flex-direction: column;
+    }
+
+    .btn-group .btn {
+      margin-bottom: 0.25rem;
+    }
+  }
+</style>
+{% endblock %}

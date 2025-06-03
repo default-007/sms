@@ -1,0 +1,804 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Academic Reports{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+  rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0 text-gray-800">
+        <i class="fas fa-file-chart-column me-2"></i>Academic Reports
+      </h1>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item"><a href="{% url 'academics:home' %}">Academics</a></li>
+          <li class="breadcrumb-item active">Reports</li>
+        </ol>
+      </nav>
+    </div>
+    <div class="btn-group" role="group">
+      <button type="button" class="btn btn-primary" onclick="showQuickReport()">
+        <i class="fas fa-bolt me-1"></i>Quick Report
+      </button>
+      <button type="button" class="btn btn-outline-primary" onclick="scheduleReport()">
+        <i class="fas fa-clock me-1"></i>Schedule Report
+      </button>
+    </div>
+  </div>
+
+  <!-- Report Categories -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-layer-group me-2"></i>Report Categories
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <!-- Academic Structure Reports -->
+            <div class="col-lg-3 col-md-6 mb-4">
+              <div class="card h-100 border-left-primary">
+                <div class="card-body">
+                  <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                      <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                        Academic Structure
+                      </div>
+                      <div class="h5 mb-0 font-weight-bold text-gray-800">
+                        <i class="fas fa-sitemap fa-2x text-primary"></i>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mt-3">
+                    <button class="btn btn-primary btn-sm w-100" onclick="generateReport('structure')">
+                      <i class="fas fa-file-pdf me-1"></i>Generate
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Enrollment Reports -->
+            <div class="col-lg-3 col-md-6 mb-4">
+              <div class="card h-100 border-left-success">
+                <div class="card-body">
+                  <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                      <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                        Enrollment Analysis
+                      </div>
+                      <div class="h5 mb-0 font-weight-bold text-gray-800">
+                        <i class="fas fa-user-graduate fa-2x text-success"></i>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mt-3">
+                    <button class="btn btn-success btn-sm w-100" onclick="generateReport('enrollment')">
+                      <i class="fas fa-file-excel me-1"></i>Generate
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Capacity Reports -->
+            <div class="col-lg-3 col-md-6 mb-4">
+              <div class="card h-100 border-left-info">
+                <div class="card-body">
+                  <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                      <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                        Capacity Utilization
+                      </div>
+                      <div class="h5 mb-0 font-weight-bold text-gray-800">
+                        <i class="fas fa-chart-bar fa-2x text-info"></i>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mt-3">
+                    <button class="btn btn-info btn-sm w-100" onclick="generateReport('capacity')">
+                      <i class="fas fa-file-pdf me-1"></i>Generate
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Teacher Reports -->
+            <div class="col-lg-3 col-md-6 mb-4">
+              <div class="card h-100 border-left-warning">
+                <div class="card-body">
+                  <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                      <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                        Teacher Assignment
+                      </div>
+                      <div class="h5 mb-0 font-weight-bold text-gray-800">
+                        <i class="fas fa-chalkboard-teacher fa-2x text-warning"></i>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mt-3">
+                    <button class="btn btn-warning btn-sm w-100" onclick="generateReport('teachers')">
+                      <i class="fas fa-file-excel me-1"></i>Generate
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Report Builder -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-tools me-2"></i>Custom Report Builder
+          </h6>
+        </div>
+        <div class="card-body">
+          <form id="customReportForm">
+            <div class="row">
+              <div class="col-md-3 mb-3">
+                <label for="reportType" class="form-label">Report Type</label>
+                <select class="form-select" id="reportType" name="report_type" required>
+                  <option value="">Select Report Type</option>
+                  <option value="comprehensive">Comprehensive Academic Report</option>
+                  <option value="section_analysis">Section Analysis</option>
+                  <option value="grade_breakdown">Grade Breakdown</option>
+                  <option value="class_summary">Class Summary</option>
+                  <option value="teacher_workload">Teacher Workload</option>
+                  <option value="capacity_planning">Capacity Planning</option>
+                </select>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label for="academicYear" class="form-label">Academic Year</label>
+                <select class="form-select" id="academicYear" name="academic_year" required>
+                  <option value="">Select Academic Year</option>
+                  {% for year in academic_years %}
+                  <option value="{{ year.id }}">{{ year.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label for="reportFormat" class="form-label">Format</label>
+                <select class="form-select" id="reportFormat" name="format" required>
+                  <option value="">Select Format</option>
+                  <option value="pdf">PDF Document</option>
+                  <option value="excel">Excel Spreadsheet</option>
+                  <option value="csv">CSV Data</option>
+                  <option value="html">HTML Report</option>
+                </select>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn btn-primary w-100">
+                  <i class="fas fa-cog me-1"></i>Build Report
+                </button>
+              </div>
+            </div>
+
+            <!-- Advanced Options (Initially Hidden) -->
+            <div class="row" id="advancedOptions" style="display: none;">
+              <div class="col-12">
+                <hr>
+                <h6 class="text-primary mb-3">Advanced Options</h6>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="sections" class="form-label">Sections (Optional)</label>
+                <select class="form-select" id="sections" name="sections" multiple>
+                  <!-- Populated by JavaScript -->
+                </select>
+                <div class="form-text">Leave empty to include all sections</div>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="grades" class="form-label">Grades (Optional)</label>
+                <select class="form-select" id="grades" name="grades" multiple>
+                  <!-- Populated by JavaScript -->
+                </select>
+                <div class="form-text">Leave empty to include all grades</div>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="reportOptions" class="form-label">Include</label>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="includeCharts" name="include_charts" checked>
+                  <label class="form-check-label" for="includeCharts">
+                    Charts and Graphs
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="includeStatistics" name="include_statistics"
+                    checked>
+                  <label class="form-check-label" for="includeStatistics">
+                    Statistical Analysis
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="includeRecommendations"
+                    name="include_recommendations">
+                  <label class="form-check-label" for="includeRecommendations">
+                    Recommendations
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12 text-center">
+                <button type="button" class="btn btn-outline-secondary" onclick="toggleAdvancedOptions()">
+                  <i class="fas fa-cog me-1"></i>
+                  <span id="advancedToggleText">Show Advanced Options</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Reports -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-history me-2"></i>Recent Reports
+          </h6>
+          <button type="button" class="btn btn-outline-primary btn-sm" onclick="clearReportHistory()">
+            <i class="fas fa-trash me-1"></i>Clear History
+          </button>
+        </div>
+        <div class="card-body">
+          <div id="recentReports">
+            <div class="text-center text-muted py-4">
+              <i class="fas fa-file-alt fa-3x mb-3"></i>
+              <p>No recent reports. Generate your first report to see it here.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Stats Dashboard -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-tachometer-alt me-2"></i>Quick Statistics Dashboard
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-lg-3 col-md-6 mb-4">
+              <div class="card bg-primary text-white shadow">
+                <div class="card-body">
+                  <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                      <div class="text-xs font-weight-bold text-uppercase mb-1">
+                        Total Sections
+                      </div>
+                      <div class="h5 mb-0 font-weight-bold" id="totalSections">
+                        <i class="fas fa-spinner fa-spin"></i>
+                      </div>
+                    </div>
+                    <div class="col-auto">
+                      <i class="fas fa-layer-group fa-2x text-gray-300"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6 mb-4">
+              <div class="card bg-success text-white shadow">
+                <div class="card-body">
+                  <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                      <div class="text-xs font-weight-bold text-uppercase mb-1">
+                        Total Grades
+                      </div>
+                      <div class="h5 mb-0 font-weight-bold" id="totalGrades">
+                        <i class="fas fa-spinner fa-spin"></i>
+                      </div>
+                    </div>
+                    <div class="col-auto">
+                      <i class="fas fa-list-ol fa-2x text-gray-300"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6 mb-4">
+              <div class="card bg-info text-white shadow">
+                <div class="card-body">
+                  <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                      <div class="text-xs font-weight-bold text-uppercase mb-1">
+                        Total Classes
+                      </div>
+                      <div class="h5 mb-0 font-weight-bold" id="totalClasses">
+                        <i class="fas fa-spinner fa-spin"></i>
+                      </div>
+                    </div>
+                    <div class="col-auto">
+                      <i class="fas fa-chalkboard fa-2x text-gray-300"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6 mb-4">
+              <div class="card bg-warning text-white shadow">
+                <div class="card-body">
+                  <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                      <div class="text-xs font-weight-bold text-uppercase mb-1">
+                        Total Students
+                      </div>
+                      <div class="h5 mb-0 font-weight-bold" id="totalStudents">
+                        <i class="fas fa-spinner fa-spin"></i>
+                      </div>
+                    </div>
+                    <div class="col-auto">
+                      <i class="fas fa-user-graduate fa-2x text-gray-300"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Charts -->
+          <div class="row">
+            <div class="col-lg-6 mb-4">
+              <div class="card border-left-primary">
+                <div class="card-header py-3">
+                  <h6 class="m-0 font-weight-bold text-primary">Students by Section</h6>
+                </div>
+                <div class="card-body">
+                  <div id="sectionChart"></div>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+              <div class="card border-left-success">
+                <div class="card-header py-3">
+                  <h6 class="m-0 font-weight-bold text-success">Capacity Utilization</h6>
+                </div>
+                <div class="card-body">
+                  <div id="capacityChart"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Report Modal -->
+<div class="modal fade" id="quickReportModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-bolt me-2"></i>Quick Report
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="list-group">
+          <button type="button" class="list-group-item list-group-item-action"
+            onclick="generateQuickReport('current_status')">
+            <i class="fas fa-chart-line me-2"></i>
+            <strong>Current Academic Status</strong>
+            <br>
+            <small class="text-muted">Overview of current academic year progress</small>
+          </button>
+          <button type="button" class="list-group-item list-group-item-action"
+            onclick="generateQuickReport('enrollment_summary')">
+            <i class="fas fa-users me-2"></i>
+            <strong>Enrollment Summary</strong>
+            <br>
+            <small class="text-muted">Student enrollment across all sections and grades</small>
+          </button>
+          <button type="button" class="list-group-item list-group-item-action"
+            onclick="generateQuickReport('capacity_overview')">
+            <i class="fas fa-chart-bar me-2"></i>
+            <strong>Capacity Overview</strong>
+            <br>
+            <small class="text-muted">Class capacity utilization and recommendations</small>
+          </button>
+          <button type="button" class="list-group-item list-group-item-action"
+            onclick="generateQuickReport('teacher_assignments')">
+            <i class="fas fa-chalkboard-teacher me-2"></i>
+            <strong>Teacher Assignments</strong>
+            <br>
+            <small class="text-muted">Current teacher-class assignments overview</small>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize Select2
+    $('.form-select').select2({
+      theme: 'bootstrap-5'
+    });
+
+    // Load initial data
+    loadStatistics();
+    loadSectionsAndGrades();
+    loadRecentReports();
+
+    // Custom report form submission
+    $('#customReportForm').on('submit', function (e) {
+      e.preventDefault();
+      generateCustomReport();
+    });
+  });
+
+  function loadStatistics() {
+    fetch('/api/academics/statistics/')
+      .then(response => response.json())
+      .then(data => {
+        $('#totalSections').text(data.sections || 0);
+        $('#totalGrades').text(data.grades || 0);
+        $('#totalClasses').text(data.classes || 0);
+        $('#totalStudents').text(data.students || 0);
+
+        // Load charts with the data
+        initializeCharts(data);
+      })
+      .catch(error => {
+        console.error('Error loading statistics:', error);
+        $('#totalSections, #totalGrades, #totalClasses, #totalStudents').text('N/A');
+      });
+  }
+
+  function loadSectionsAndGrades() {
+    // Load sections
+    fetch('/api/academics/sections/')
+      .then(response => response.json())
+      .then(data => {
+        const sectionsSelect = $('#sections');
+        sectionsSelect.empty();
+        data.forEach(section => {
+          sectionsSelect.append(`<option value="${section.id}">${section.name}</option>`);
+        });
+      });
+
+    // Load grades
+    fetch('/api/academics/grades/')
+      .then(response => response.json())
+      .then(data => {
+        const gradesSelect = $('#grades');
+        gradesSelect.empty();
+        data.forEach(grade => {
+          gradesSelect.append(`<option value="${grade.id}">${grade.section.name} - ${grade.name}</option>`);
+        });
+      });
+  }
+
+  function loadRecentReports() {
+    const recentReports = JSON.parse(localStorage.getItem('recentReports') || '[]');
+
+    if (recentReports.length > 0) {
+      let html = '<div class="list-group">';
+      recentReports.slice(0, 5).forEach(report => {
+        html += `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${report.name}</strong>
+                        <br>
+                        <small class="text-muted">
+                            ${report.type} • ${report.format.toUpperCase()} • 
+                            Generated: ${new Date(report.timestamp).toLocaleDateString()}
+                        </small>
+                    </div>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="downloadReport('${report.id}')">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" onclick="removeFromHistory('${report.id}')">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+      });
+      html += '</div>';
+      $('#recentReports').html(html);
+    }
+  }
+
+  function initializeCharts(data) {
+    // Section Chart
+    if (data.section_breakdown) {
+      const sectionChart = new ApexCharts(document.querySelector("#sectionChart"), {
+        series: Object.values(data.section_breakdown),
+        chart: {
+          type: 'pie',
+          height: 300
+        },
+        labels: Object.keys(data.section_breakdown),
+        colors: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'],
+        legend: {
+          position: 'bottom'
+        }
+      });
+      sectionChart.render();
+    }
+
+    // Capacity Chart
+    if (data.capacity_data) {
+      const capacityChart = new ApexCharts(document.querySelector("#capacityChart"), {
+        series: [{
+          name: 'Utilization %',
+          data: data.capacity_data.map(item => item.utilization)
+        }],
+        chart: {
+          type: 'bar',
+          height: 300
+        },
+        xaxis: {
+          categories: data.capacity_data.map(item => item.section)
+        },
+        yaxis: {
+          title: {
+            text: 'Utilization Percentage'
+          },
+          max: 100
+        },
+        colors: ['#1cc88a']
+      });
+      capacityChart.render();
+    }
+  }
+
+  function toggleAdvancedOptions() {
+    const options = $('#advancedOptions');
+    const toggleText = $('#advancedToggleText');
+
+    if (options.is(':visible')) {
+      options.slideUp();
+      toggleText.text('Show Advanced Options');
+    } else {
+      options.slideDown();
+      toggleText.text('Hide Advanced Options');
+    }
+  }
+
+  function generateReport(type) {
+    const params = new URLSearchParams({
+      type: type,
+      format: 'pdf'
+    });
+
+    // Show loading
+    showLoading(`Generating ${type} report...`);
+
+    fetch(`/api/academics/reports/generate/?${params}`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+      }
+    })
+      .then(response => response.blob())
+      .then(blob => {
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${type}_report_${new Date().getTime()}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        // Add to recent reports
+        addToRecentReports({
+          id: Date.now().toString(),
+          name: `${type.charAt(0).toUpperCase() + type.slice(1)} Report`,
+          type: type,
+          format: 'pdf',
+          timestamp: new Date().toISOString()
+        });
+
+        hideLoading();
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error generating report');
+        hideLoading();
+      });
+  }
+
+  function generateCustomReport() {
+    const formData = new FormData(document.getElementById('customReportForm'));
+
+    showLoading('Generating custom report...');
+
+    fetch('/api/academics/reports/custom/', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+      }
+    })
+      .then(response => response.blob())
+      .then(blob => {
+        const format = formData.get('format');
+        const reportType = formData.get('report_type');
+
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `custom_${reportType}_${new Date().getTime()}.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        // Add to recent reports
+        addToRecentReports({
+          id: Date.now().toString(),
+          name: `Custom ${reportType.replace('_', ' ')} Report`,
+          type: reportType,
+          format: format,
+          timestamp: new Date().toISOString()
+        });
+
+        hideLoading();
+        loadRecentReports();
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error generating custom report');
+        hideLoading();
+      });
+  }
+
+  function showQuickReport() {
+    $('#quickReportModal').modal('show');
+  }
+
+  function generateQuickReport(type) {
+    $('#quickReportModal').modal('hide');
+    generateReport(type);
+  }
+
+  function scheduleReport() {
+    alert('Report scheduling feature coming soon!');
+  }
+
+  function addToRecentReports(report) {
+    let recentReports = JSON.parse(localStorage.getItem('recentReports') || '[]');
+    recentReports.unshift(report);
+    recentReports = recentReports.slice(0, 10); // Keep only 10 recent reports
+    localStorage.setItem('recentReports', JSON.stringify(recentReports));
+  }
+
+  function removeFromHistory(reportId) {
+    let recentReports = JSON.parse(localStorage.getItem('recentReports') || '[]');
+    recentReports = recentReports.filter(report => report.id !== reportId);
+    localStorage.setItem('recentReports', JSON.stringify(recentReports));
+    loadRecentReports();
+  }
+
+  function clearReportHistory() {
+    if (confirm('Are you sure you want to clear all report history?')) {
+      localStorage.removeItem('recentReports');
+      loadRecentReports();
+    }
+  }
+
+  function downloadReport(reportId) {
+    alert('Report re-download feature will be implemented with server-side storage');
+  }
+
+  function showLoading(message) {
+    $('body').append(`
+        <div class="loading-overlay">
+            <div class="text-center">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <div class="text-primary">${message}</div>
+            </div>
+        </div>
+    `);
+  }
+
+  function hideLoading() {
+    $('.loading-overlay').remove();
+  }
+</script>
+
+<style>
+  .border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+  }
+
+  .border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+  }
+
+  .border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+  }
+
+  .border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+  }
+
+  .text-xs {
+    font-size: 0.75rem;
+  }
+
+  .select2-container {
+    width: 100% !important;
+  }
+
+  .loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+
+  .list-group-item-action:hover {
+    background-color: #f8f9fc;
+  }
+
+  .form-check-input:checked {
+    background-color: #4e73df;
+    border-color: #4e73df;
+  }
+
+  @media (max-width: 768px) {
+    .btn-group {
+      flex-direction: column;
+    }
+
+    .btn-group .btn {
+      margin-bottom: 0.25rem;
+    }
+  }
+</style>
+{% endblock %}

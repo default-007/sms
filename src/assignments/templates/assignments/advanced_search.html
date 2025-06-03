@@ -1,0 +1,891 @@
+{% extends "base.html" %}
+{% load assignment_tags %}
+
+{% block title %}Search Assignments{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/searchpanes/2.2.0/css/searchPanes.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/select/1.7.0/css/select.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0">
+        <i class="fas fa-search text-primary"></i>
+        Search Assignments
+      </h1>
+      <p class="text-muted mb-0">Find assignments across all subjects and classes</p>
+    </div>
+    <div class="btn-group">
+      <button type="button" class="btn btn-outline-primary" onclick="toggleAdvancedSearch()">
+        <i class="fas fa-sliders-h"></i> Advanced Search
+      </button>
+      <button type="button" class="btn btn-outline-secondary" onclick="clearAllFilters()">
+        <i class="fas fa-eraser"></i> Clear Filters
+      </button>
+      <button type="button" class="btn btn-info" onclick="saveSearch()">
+        <i class="fas fa-bookmark"></i> Save Search
+      </button>
+    </div>
+  </div>
+
+  <!-- Search Form -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-filter text-info"></i>
+            Search Filters
+          </h5>
+        </div>
+        <div class="card-body">
+          <form id="searchForm" method="get">
+            <!-- Basic Search -->
+            <div class="row mb-3">
+              <div class="col-md-8">
+                <label class="form-label">Search Term</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fas fa-search"></i></span>
+                  <input type="text" class="form-control" name="query" id="searchQuery" value="{{ query }}"
+                    placeholder="Search by title, description, teacher name, or subject..." autocomplete="off">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Search
+                  </button>
+                </div>
+                <div class="form-text">Search across assignment titles, descriptions, teacher names, and subjects</div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Quick Filters</label>
+                <div class="btn-group d-grid" role="group">
+                  <input type="radio" class="btn-check" name="quick_filter" id="all" value="" checked>
+                  <label class="btn btn-outline-secondary" for="all">All</label>
+
+                  <input type="radio" class="btn-check" name="quick_filter" id="published" value="published">
+                  <label class="btn btn-outline-success" for="published">Active</label>
+
+                  <input type="radio" class="btn-check" name="quick_filter" id="overdue" value="overdue">
+                  <label class="btn btn-outline-danger" for="overdue">Overdue</label>
+
+                  <input type="radio" class="btn-check" name="quick_filter" id="recent" value="recent">
+                  <label class="btn btn-outline-info" for="recent">Recent</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Advanced Search Panel -->
+            <div id="advancedSearchPanel" class="border rounded p-3 bg-light" style="display: none;">
+              <h6 class="mb-3">
+                <i class="fas fa-cogs text-warning"></i>
+                Advanced Search Options
+              </h6>
+
+              <div class="row">
+                <div class="col-md-3">
+                  <label class="form-label">Status</label>
+                  <select class="form-select" name="status" id="statusFilter">
+                    <option value="">All Status</option>
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
+                    <option value="closed">Closed</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                </div>
+
+                <div class="col-md-3">
+                  <label class="form-label">Subject</label>
+                  <select class="form-select" name="subject" id="subjectFilter">
+                    <option value="">All Subjects</option>
+                    {% for subject in subjects %}
+                    <option value="{{ subject.id }}">{{ subject.name }} ({{ subject.code }})</option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div class="col-md-3">
+                  <label class="form-label">Class</label>
+                  <select class="form-select" name="class" id="classFilter">
+                    <option value="">All Classes</option>
+                    {% for class in classes %}
+                    <option value="{{ class.id }}">{{ class }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div class="col-md-3">
+                  <label class="form-label">Difficulty</label>
+                  <select class="form-select" name="difficulty" id="difficultyFilter">
+                    <option value="">All Levels</option>
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row mt-3">
+                <div class="col-md-3">
+                  <label class="form-label">Teacher</label>
+                  <select class="form-select" name="teacher" id="teacherFilter">
+                    <option value="">All Teachers</option>
+                    {% for teacher in teachers %}
+                    <option value="{{ teacher.id }}">{{ teacher.user.get_full_name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div class="col-md-3">
+                  <label class="form-label">Term</label>
+                  <select class="form-select" name="term" id="termFilter">
+                    <option value="">All Terms</option>
+                    {% for term in terms %}
+                    <option value="{{ term.id }}">{{ term.name }} ({{ term.academic_year.name }})</option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div class="col-md-3">
+                  <label class="form-label">Due Date From</label>
+                  <input type="date" class="form-control" name="due_from" id="dueDateFrom">
+                </div>
+
+                <div class="col-md-3">
+                  <label class="form-label">Due Date To</label>
+                  <input type="date" class="form-control" name="due_to" id="dueDateTo">
+                </div>
+              </div>
+
+              <div class="row mt-3">
+                <div class="col-md-3">
+                  <label class="form-label">Total Marks Range</label>
+                  <div class="row">
+                    <div class="col-6">
+                      <input type="number" class="form-control" name="marks_min" placeholder="Min" min="0">
+                    </div>
+                    <div class="col-6">
+                      <input type="number" class="form-control" name="marks_max" placeholder="Max" min="0">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-3">
+                  <label class="form-label">Submission Type</label>
+                  <select class="form-select" name="submission_type">
+                    <option value="">All Types</option>
+                    <option value="online">Online</option>
+                    <option value="physical">Physical</option>
+                    <option value="both">Both</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">Additional Options</label>
+                  <div class="row">
+                    <div class="col-6">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="has_submissions" id="hasSubmissions">
+                        <label class="form-check-label" for="hasSubmissions">
+                          Has Submissions
+                        </label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="allow_late" id="allowLate">
+                        <label class="form-check-label" for="allowLate">
+                          Allows Late Submission
+                        </label>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="overdue_only" id="overdueOnly">
+                        <label class="form-check-label" for="overdueOnly">
+                          Overdue Only
+                        </label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="my_assignments" id="myAssignments">
+                        <label class="form-check-label" for="myAssignments">
+                          My Assignments Only
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row mt-3">
+                <div class="col-12">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Apply Advanced Search
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary" onclick="resetAdvancedSearch()">
+                    <i class="fas fa-undo"></i> Reset
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Results Summary -->
+  {% if query or request.GET %}
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="alert alert-info">
+        <div class="row align-items-center">
+          <div class="col-md-8">
+            <h6 class="mb-0">
+              <i class="fas fa-info-circle"></i>
+              Search Results
+            </h6>
+            <small>
+              {% if query %}
+              Showing results for: <strong>"{{ query }}"</strong>
+              {% else %}
+              Showing filtered results
+              {% endif %}
+              | Found {{ assignments.count }} assignment(s)
+            </small>
+          </div>
+          <div class="col-md-4 text-end">
+            <div class="btn-group btn-group-sm">
+              <button type="button" class="btn btn-outline-primary" onclick="exportResults()">
+                <i class="fas fa-download"></i> Export
+              </button>
+              <button type="button" class="btn btn-outline-success" onclick="saveSearchQuery()">
+                <i class="fas fa-bookmark"></i> Save Search
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Search Results Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-list text-success"></i>
+            Search Results
+            {% if assignments %}
+            <span class="badge bg-primary">{{ assignments|length }}</span>
+            {% endif %}
+          </h5>
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="fas fa-sort"></i> Sort By
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#" onclick="sortTable('title')">Title</a></li>
+              <li><a class="dropdown-item" href="#" onclick="sortTable('subject')">Subject</a></li>
+              <li><a class="dropdown-item" href="#" onclick="sortTable('teacher')">Teacher</a></li>
+              <li><a class="dropdown-item" href="#" onclick="sortTable('due_date')">Due Date</a></li>
+              <li><a class="dropdown-item" href="#" onclick="sortTable('created_at')">Created Date</a></li>
+              <li><a class="dropdown-item" href="#" onclick="sortTable('total_marks')">Total Marks</a></li>
+            </ul>
+
+            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="fas fa-eye"></i> View
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#" onclick="toggleView('table')">Table View</a></li>
+              <li><a class="dropdown-item" href="#" onclick="toggleView('card')">Card View</a></li>
+              <li><a class="dropdown-item" href="#" onclick="toggleView('timeline')">Timeline View</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Table View -->
+          <div id="tableView">
+            <div class="table-responsive">
+              <table id="searchResultsTable" class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Assignment</th>
+                    <th>Subject</th>
+                    <th>Teacher</th>
+                    <th>Class</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th>Marks</th>
+                    <th>Submissions</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for assignment in assignments %}
+                  <tr data-assignment-id="{{ assignment.id }}">
+                    <td>
+                      <div>
+                        <strong>{{ assignment.title }}</strong>
+                        {% assignment_difficulty_icon assignment.difficulty_level %}
+                        <br>
+                        <small class="text-muted">{{ assignment.description|truncatechars:60 }}</small>
+                        {% if assignment.is_overdue %}
+                        <br><small class="text-danger">
+                          <i class="fas fa-exclamation-triangle"></i> Overdue
+                        </small>
+                        {% endif %}
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge bg-secondary">{{ assignment.subject.code }}</span>
+                      <br><small>{{ assignment.subject.name }}</small>
+                    </td>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <div
+                          class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center text-white me-2">
+                          {{ assignment.teacher.user.first_name.0 }}{{ assignment.teacher.user.last_name.0 }}
+                        </div>
+                        <div>
+                          <strong>{{ assignment.teacher.user.get_full_name }}</strong>
+                          <br><small class="text-muted">{{ assignment.teacher.employee_id }}</small>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{{ assignment.class_id }}</td>
+                    <td>
+                      <div>
+                        <strong>{{ assignment.due_date|date:"M d, Y" }}</strong>
+                        <br><small class="text-muted">{{ assignment.due_date|date:"H:i" }}</small>
+                        {% assignment_deadline_warning assignment %}
+                      </div>
+                    </td>
+                    <td>
+                      {% assignment_status_badge assignment %}
+                    </td>
+                    <td>
+                      <strong>{{ assignment.total_marks }}</strong>
+                      {% if assignment.passing_marks %}
+                      <br><small class="text-muted">Pass: {{ assignment.passing_marks }}</small>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <div class="text-center">
+                        <strong>{{ assignment.submission_count }}</strong>
+                        <br>
+                        {% assignment_completion_bar assignment %}
+                      </div>
+                    </td>
+                    <td>
+                      {% assignment_action_buttons assignment user %}
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="9" class="text-center py-5">
+                      <div class="text-muted">
+                        <i class="fas fa-search fa-3x mb-3"></i>
+                        <h5>No assignments found</h5>
+                        <p>Try adjusting your search criteria or filters.</p>
+                        <button type="button" class="btn btn-outline-primary" onclick="clearAllFilters()">
+                          <i class="fas fa-eraser"></i> Clear All Filters
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Card View -->
+          <div id="cardView" style="display: none;">
+            <div class="row">
+              {% for assignment in assignments %}
+              <div class="col-lg-4 col-md-6 mb-4">
+                {% assignment_card assignment user %}
+              </div>
+              {% empty %}
+              <div class="col-12 text-center py-5">
+                <div class="text-muted">
+                  <i class="fas fa-search fa-3x mb-3"></i>
+                  <h5>No assignments found</h5>
+                  <p>Try adjusting your search criteria or filters.</p>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Timeline View -->
+          <div id="timelineView" style="display: none;">
+            <div class="timeline">
+              {% for assignment in assignments %}
+              <div class="timeline-item">
+                <div class="timeline-marker bg-{{ assignment.status|yesno:'success,warning,danger' }}"></div>
+                <div class="timeline-content">
+                  <div class="card">
+                    <div class="card-body">
+                      <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                          <h6 class="card-title">{{ assignment.title }}</h6>
+                          <p class="card-text text-muted">{{ assignment.description|truncatechars:100 }}</p>
+                          <small class="text-muted">
+                            <i class="fas fa-user"></i> {{ assignment.teacher.user.get_full_name }} |
+                            <i class="fas fa-book"></i> {{ assignment.subject.name }} |
+                            <i class="fas fa-users"></i> {{ assignment.class_id }}
+                          </small>
+                        </div>
+                        <div class="text-end">
+                          {% assignment_status_badge assignment %}
+                          <br><small class="text-muted">{{ assignment.due_date|date:"M d, H:i" }}</small>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% empty %}
+              <div class="text-center py-5">
+                <div class="text-muted">
+                  <i class="fas fa-search fa-3x mb-3"></i>
+                  <h5>No assignments found</h5>
+                  <p>Try adjusting your search criteria or filters.</p>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        {% if assignments %}
+        <div class="card-footer">
+          <div class="row align-items-center">
+            <div class="col-md-6">
+              <small class="text-muted">
+                Showing {{ assignments|length }} of {{ total_count|default:assignments|length }} assignments
+              </small>
+            </div>
+            <div class="col-md-6 text-end">
+              <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-secondary" onclick="selectAllResults()">
+                  <i class="fas fa-check-square"></i> Select All
+                </button>
+                <button type="button" class="btn btn-outline-primary" onclick="bulkActions()">
+                  <i class="fas fa-tasks"></i> Bulk Actions
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Saved Searches -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-bookmark text-info"></i>
+            Saved Searches
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3">
+              <div class="card border-primary">
+                <div class="card-body text-center">
+                  <i class="fas fa-exclamation-triangle text-danger fa-2x mb-2"></i>
+                  <h6>Overdue Assignments</h6>
+                  <small class="text-muted">Assignments past due date</small>
+                  <br>
+                  <button type="button" class="btn btn-outline-primary btn-sm mt-2"
+                    onclick="loadSavedSearch('overdue')">
+                    Load Search
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card border-success">
+                <div class="card-body text-center">
+                  <i class="fas fa-clock text-warning fa-2x mb-2"></i>
+                  <h6>Due This Week</h6>
+                  <small class="text-muted">Assignments due in next 7 days</small>
+                  <br>
+                  <button type="button" class="btn btn-outline-success btn-sm mt-2"
+                    onclick="loadSavedSearch('due_week')">
+                    Load Search
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card border-info">
+                <div class="card-body text-center">
+                  <i class="fas fa-user-graduate text-info fa-2x mb-2"></i>
+                  <h6>My Assignments</h6>
+                  <small class="text-muted">Assignments I created</small>
+                  <br>
+                  <button type="button" class="btn btn-outline-info btn-sm mt-2"
+                    onclick="loadSavedSearch('my_assignments')">
+                    Load Search
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card border-warning">
+                <div class="card-body text-center">
+                  <i class="fas fa-star text-warning fa-2x mb-2"></i>
+                  <h6>High Marks</h6>
+                  <small class="text-muted">Assignments >100 marks</small>
+                  <br>
+                  <button type="button" class="btn btn-outline-warning btn-sm mt-2"
+                    onclick="loadSavedSearch('high_marks')">
+                    Load Search
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Save Search Modal -->
+<div class="modal fade" id="saveSearchModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Save Search Query</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="saveSearchForm">
+          <div class="mb-3">
+            <label class="form-label">Search Name</label>
+            <input type="text" class="form-control" id="searchName" required
+              placeholder="Enter a name for this search...">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" id="searchDescription" rows="3"
+              placeholder="Optional description..."></textarea>
+          </div>
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="makePublic">
+              <label class="form-check-label" for="makePublic">
+                Share with other teachers
+              </label>
+            </div>
+          </div>
+          <div class="alert alert-info">
+            <small>
+              <strong>Current Search:</strong> {{ query|default:"Advanced filter query" }}
+            </small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="confirmSaveSearch()">
+          <i class="fas fa-save"></i> Save Search
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/searchpanes/2.2.0/js/dataTables.searchPanes.min.js"></script>
+<script src="https://cdn.datatables.net/searchpanes/2.2.0/js/searchPanes.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/select/1.7.0/js/dataTables.select.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable with search panes
+    var table = $('#searchResultsTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[4, 'desc']], // Sort by due date
+      columnDefs: [
+        { orderable: false, targets: [8] }
+      ],
+      language: {
+        search: "Filter results:",
+        lengthMenu: "Show _MENU_ assignments per page"
+      },
+      dom: 'Pfrtip',
+      searchPanes: {
+        cascadePanes: true,
+        viewTotal: true,
+        threshold: 1
+      },
+      buttons: [
+        {
+          extend: 'csv',
+          text: '<i class="fas fa-file-csv"></i> Export CSV',
+          className: 'btn btn-outline-secondary btn-sm'
+        },
+        {
+          extend: 'pdf',
+          text: '<i class="fas fa-file-pdf"></i> Export PDF',
+          className: 'btn btn-outline-secondary btn-sm'
+        }
+      ]
+    });
+
+    // Auto-suggest for search input
+    $('#searchQuery').on('input', function () {
+      var query = $(this).val();
+      if (query.length >= 3) {
+        // Implement auto-suggest functionality
+        showSearchSuggestions(query);
+      } else {
+        hideSearchSuggestions();
+      }
+    });
+
+    // Quick filter handlers
+    $('input[name="quick_filter"]').on('change', function () {
+      var filter = $(this).val();
+      applyQuickFilter(filter);
+    });
+
+    // Advanced search form submission
+    $('#searchForm').on('submit', function (e) {
+      e.preventDefault();
+      performSearch();
+    });
+  });
+
+  function toggleAdvancedSearch() {
+    $('#advancedSearchPanel').slideToggle();
+  }
+
+  function clearAllFilters() {
+    $('#searchForm')[0].reset();
+    $('#advancedSearchPanel').hide();
+    window.location.href = window.location.pathname;
+  }
+
+  function resetAdvancedSearch() {
+    $('#advancedSearchPanel input, #advancedSearchPanel select').val('');
+    $('#advancedSearchPanel input[type="checkbox"]').prop('checked', false);
+  }
+
+  function performSearch() {
+    // Collect form data and perform search
+    var formData = new FormData($('#searchForm')[0]);
+    var searchParams = new URLSearchParams(formData);
+    window.location.href = window.location.pathname + '?' + searchParams.toString();
+  }
+
+  function applyQuickFilter(filter) {
+    var baseUrl = window.location.pathname;
+    switch (filter) {
+      case 'published':
+        window.location.href = baseUrl + '?status=published';
+        break;
+      case 'overdue':
+        window.location.href = baseUrl + '?overdue_only=on';
+        break;
+      case 'recent':
+        var weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        window.location.href = baseUrl + '?created_after=' + weekAgo.toISOString().split('T')[0];
+        break;
+      default:
+        window.location.href = baseUrl;
+    }
+  }
+
+  function toggleView(viewType) {
+    // Hide all views
+    $('#tableView, #cardView, #timelineView').hide();
+
+    // Show selected view
+    $('#' + viewType + 'View').show();
+
+    // Update active state in dropdown
+    $('.dropdown-item').removeClass('active');
+    $(`[onclick="toggleView('${viewType}')"]`).addClass('active');
+  }
+
+  function sortTable(column) {
+    var table = $('#searchResultsTable').DataTable();
+    var columnIndex = getColumnIndex(column);
+    table.order([columnIndex, 'asc']).draw();
+  }
+
+  function getColumnIndex(column) {
+    var columns = {
+      'title': 0,
+      'subject': 1,
+      'teacher': 2,
+      'class': 3,
+      'due_date': 4,
+      'status': 5,
+      'total_marks': 6,
+      'submissions': 7
+    };
+    return columns[column] || 0;
+  }
+
+  function exportResults() {
+    var format = prompt('Export format (csv/pdf/excel):', 'csv');
+    if (format) {
+      var url = '{% url "assignments:assignment_export" %}?format=' + format;
+      // Add current search parameters
+      var currentParams = new URLSearchParams(window.location.search);
+      url += '&' + currentParams.toString();
+      window.open(url, '_blank');
+    }
+  }
+
+  function saveSearch() {
+    $('#saveSearchModal').modal('show');
+  }
+
+  function saveSearchQuery() {
+    $('#saveSearchModal').modal('show');
+  }
+
+  function confirmSaveSearch() {
+    var searchData = {
+      name: $('#searchName').val(),
+      description: $('#searchDescription').val(),
+      query: $('#searchQuery').val(),
+      filters: getActiveFilters(),
+      isPublic: $('#makePublic').is(':checked')
+    };
+
+    // TODO: Implement actual save functionality
+    console.log('Saving search:', searchData);
+
+    $('#saveSearchModal').modal('hide');
+    alert('Search saved successfully!');
+  }
+
+  function getActiveFilters() {
+    var filters = {};
+    $('#searchForm').serializeArray().forEach(function (field) {
+      if (field.value) {
+        filters[field.name] = field.value;
+      }
+    });
+    return filters;
+  }
+
+  function loadSavedSearch(searchType) {
+    var searches = {
+      'overdue': '?overdue_only=on',
+      'due_week': '?due_from=' + new Date().toISOString().split('T')[0] + '&due_to=' + getDateAfterDays(7),
+      'my_assignments': '?my_assignments=on',
+      'high_marks': '?marks_min=100'
+    };
+
+    if (searches[searchType]) {
+      window.location.href = window.location.pathname + searches[searchType];
+    }
+  }
+
+  function getDateAfterDays(days) {
+    var date = new Date();
+    date.setDate(date.getDate() + days);
+    return date.toISOString().split('T')[0];
+  }
+
+  function selectAllResults() {
+    var table = $('#searchResultsTable').DataTable();
+    table.rows().select();
+  }
+
+  function bulkActions() {
+    var selectedCount = $('#searchResultsTable').DataTable().rows('.selected').count();
+    if (selectedCount === 0) {
+      alert('Please select at least one assignment.');
+      return;
+    }
+
+    var actions = [
+      'Export Selected',
+      'Bulk Edit',
+      'Change Status',
+      'Set Reminder'
+    ];
+
+    var action = prompt('Choose action:\n' + actions.join('\n'), actions[0]);
+    if (action) {
+      alert(`Performing "${action}" on ${selectedCount} selected assignments.`);
+    }
+  }
+
+  function showSearchSuggestions(query) {
+    // Implement search suggestions based on query
+    // This would typically make an AJAX call to get suggestions
+    console.log('Showing suggestions for:', query);
+  }
+
+  function hideSearchSuggestions() {
+    // Hide search suggestions dropdown
+    console.log('Hiding suggestions');
+  }
+</script>
+
+<style>
+  .timeline {
+    position: relative;
+    padding-left: 30px;
+  }
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 30px;
+  }
+
+  .timeline-marker {
+    position: absolute;
+    left: -34px;
+    top: 10px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #ddd;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: -28px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #ddd;
+  }
+
+  .avatar-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+</style>
+{% endblock %}

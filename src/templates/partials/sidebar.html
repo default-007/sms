@@ -16,85 +16,64 @@
           </a>
         </div>
         <ul class="mini-nav-ul" data-simplebar>
-          <!-- --------------------------------------------------------------------------------------------------------- -->
-          <!-- Dashboards -->
-          <!-- --------------------------------------------------------------------------------------------------------- -->
+          <!-- Dashboard -->
           <li class="mini-nav-item" id="mini-1">
             <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
-              data-bs-placement="right" data-bs-title="Dashboards">
+              data-bs-placement="right" data-bs-title="Dashboard">
               <i class="fas fa-tachometer-alt" style="color: #3B82F6;"></i>
             </a>
           </li>
-          <!-- --------------------------------------------------------------------------------------------------------- -->
-          <!-- 👥 People Management -->
-          <!-- --------------------------------------------------------------------------------------------------------- -->
+          <!-- People Management -->
           <li class="mini-nav-item" id="mini-2">
             <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
               data-bs-placement="right" data-bs-title="People Management">
               <i class="fas fa-users" style="color: #10B981;"></i>
             </a>
           </li>
-          <!-- --------------------------------------------------------------------------------------------------------- -->
           <!-- Academic Management -->
-          <!-- --------------------------------------------------------------------------------------------------------- -->
           <li class="mini-nav-item" id="mini-3">
             <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
               data-bs-placement="right" data-bs-title="Academic Management">
               <i class="fas fa-graduation-cap" style="color: #8B5CF6;"></i>
             </a>
           </li>
-          <!-- --------------------------------------------------------------------------------------------------------- -->
-          <!-- Learning & Assessment  -->
-          <!-- --------------------------------------------------------------------------------------------------------- -->
+          <!-- Learning & Assessment -->
           <li class="mini-nav-item" id="mini-4">
             <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
               data-bs-placement="right" data-bs-title="Learning & Assessment">
               <i class="fas fa-book-open" style="color: #F59E0B;"></i>
             </a>
           </li>
-
-          <li>
-            <span class="sidebar-divider lg"></span>
-          </li>
-          <!-- --------------------------------------------------------------------------------------------------------- -->
-          <!-- Financial Management -->
-          <!-- --------------------------------------------------------------------------------------------------------- -->
+          <li><span class="sidebar-divider lg"></span></li>
+          <!-- Finance & Fees -->
           <li class="mini-nav-item" id="mini-5">
             <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
-              data-bs-placement="right" data-bs-title="Financial Management">
+              data-bs-placement="right" data-bs-title="Finance & Fees">
               <i class="fas fa-dollar-sign" style="color: #059669;"></i>
             </a>
           </li>
-          <!-- --------------------------------------------------------------------------------------------------------- -->
           <!-- Operations -->
-          <!-- --------------------------------------------------------------------------------------------------------- -->
           <li class="mini-nav-item" id="mini-6">
             <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
               data-bs-placement="right" data-bs-title="Operations">
               <i class="fas fa-cogs" style="color: #6366F1;"></i>
             </a>
           </li>
-          <!-- --------------------------------------------------------------------------------------------------------- -->
-          <!-- Communication -->
-          <!-- --------------------------------------------------------------------------------------------------------- -->
+          <!-- Communications -->
           <li class="mini-nav-item" id="mini-7">
             <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
-              data-bs-placement="right" data-bs-title="Communication">
+              data-bs-placement="right" data-bs-title="Communications">
               <i class="fas fa-comments" style="color: #EC4899;"></i>
             </a>
           </li>
-          <!-- --------------------------------------------------------------------------------------------------------- -->
-          <!-- Analytics & reports -->
-          <!-- --------------------------------------------------------------------------------------------------------- -->
+          <!-- Reports & Analytics -->
           <li class="mini-nav-item" id="mini-8">
             <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
-              data-bs-placement="right" data-bs-title="Analytics & reports">
+              data-bs-placement="right" data-bs-title="Reports & Analytics">
               <i class="fas fa-chart-bar" style="color: #14B8A6;"></i>
             </a>
           </li>
-          <!-- --------------------------------------------------------------------------------------------------------- -->
           <!-- System Administration -->
-          <!-- --------------------------------------------------------------------------------------------------------- -->
           <li class="mini-nav-item" id="mini-9">
             <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
               data-bs-placement="right" data-bs-title="System Administration">
@@ -109,15 +88,14 @@
               <div
                 class="d-flex align-items-center justify-content-center gap-2 lh-base hover-border p-1 mx-auto rounded-circle"
                 width="35">
-                <img src="{{ user.profile_picture.url }}" class="rounded-circle" width="35" height="35"
-                  alt="MaterialM-img" />
+                <img src="{{ user.profile_picture.url }}" class="rounded-circle" width="35" height="35" alt="Profile" />
               </div>
               {% else %}
               <div
                 class="d-flex align-items-center justify-content-center gap-2 lh-base hover-border p-1 mx-auto rounded-circle"
                 width="35">
                 <img src="{% static 'assets/images/profile/user-1.jpg' %}" class="rounded-circle" width="35" height="35"
-                  alt="MaterialM-img" />
+                  alt="Profile" />
               </div>
               {% endif %}
             </a>
@@ -130,10 +108,10 @@
                 <div class="d-flex align-items-center py-9 mx-7 border-bottom">
                   {% if user.profile_picture %}
                   <img src="{{ user.profile_picture.url }}" class="rounded-circle" width="80" height="80"
-                    alt="Profile-img" />
+                    alt="Profile" />
                   {% else %}
                   <img src="{% static 'assets/images/profile/user-1.jpg' %}" class="rounded-circle" width="80"
-                    height="80" alt="Profile-img" />
+                    height="80" alt="Profile" />
                   {% endif %}
                   <div class="ms-3">
                     <h5 class="mb-0 fs-4">{{ user.get_full_name|default:user.username }}</h5>
@@ -141,7 +119,7 @@
                     <span class="mb-1 d-block">{{ role_assignment.role.name }}</span>
                     {% endfor %}
                     <p class="mb-0 d-flex align-items-center gap-2">
-                      <i class="ti ti-mail fs-4"></i> info@MaterialM.com
+                      <i class="ti ti-mail fs-4"></i> {{ user.email }}
                     </p>
                   </div>
                 </div>
@@ -149,31 +127,11 @@
                   <a href="{% url 'accounts:profile' %}" class="py-8 px-7 mt-8 d-flex align-items-center">
                     <span
                       class="d-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded round">
-                      <iconify-icon icon="solar:wallet-2-line-duotone" class="fs-7"></iconify-icon>
+                      <i class="fas fa-user-circle fs-7"></i>
                     </span>
                     <div class="w-75 v-middle ps-3">
                       <h5 class="mb-1 fs-3 fw-medium">My Profile</h5>
                       <span class="fs-2 d-block text-body-secondary">Account Settings</span>
-                    </div>
-                  </a>
-                  <a href="../main/app-email.html" class="py-8 px-7 d-flex align-items-center">
-                    <span
-                      class="d-flex align-items-center justify-content-center bg-success-subtle text-success rounded round">
-                      <iconify-icon icon="solar:inbox-line-duotone" class="fs-7"></iconify-icon>
-                    </span>
-                    <div class="w-75 v-middle ps-3">
-                      <h5 class="mb-1 fs-3 fw-medium">My Inbox</h5>
-                      <span class="fs-2 d-block text-body-secondary">Messages & Emails</span>
-                    </div>
-                  </a>
-                  <a href="../main/app-notes.html" class="py-8 px-7 d-flex align-items-center">
-                    <span
-                      class="d-flex align-items-center justify-content-center bg-danger-subtle text-danger rounded round">
-                      <iconify-icon icon="solar:checklist-minimalistic-line-duotone" class="fs-7"></iconify-icon>
-                    </span>
-                    <div class="w-75 v-middle ps-3">
-                      <h5 class="mb-1 fs-3 fw-medium">My Task</h5>
-                      <span class="fs-2 d-block text-body-secondary">To-do and Daily Tasks</span>
                     </div>
                   </a>
                 </div>
@@ -185,192 +143,165 @@
           </li>
         </ul>
       </div>
+
       <div class="sidebarmenu">
-        <!-- ---------------------------------- -->
-        <!-- Dashboard -->
-        <!-- ---------------------------------- -->
+        <!-- ================================== -->
+        <!-- 🏠 Dashboard -->
+        <!-- ================================== -->
         <nav class="sidebar-nav" id="menu-right-mini-1" data-simplebar>
-          <ul class="sidebar-menu" id="sidebarnav">
-            <!-- ---------------------------------- -->
-            <!-- Home -->
-            <!-- ---------------------------------- -->
+          <ul class="sidebar-menu">
             <li class="nav-small-cap">
-              <span class="hide-menu">Dashboards</span>
+              <span class="hide-menu">🏠 Dashboard</span>
             </li>
-            <!-- ---------------------------------- -->
-            <!-- Dashboard -->
-            <!-- ---------------------------------- -->
             <li class="sidebar-item">
               <a class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
                 href="{% url 'core:dashboard' %}" aria-expanded="false">
                 <i class="fas fa-tachometer-alt" style="color: #3B82F6;"></i>
-                <span class="hide-menu">Dashboard</span>
+                <span class="hide-menu">Main Dashboard</span>
               </a>
             </li>
-
             <li class="sidebar-item">
-              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
-                <iconify-icon icon="solar:home-angle-line-duotone"></iconify-icon>
-                <span class="hide-menu">Overviews</span>
+              <a class="sidebar-link" href="{% url 'core:analytics' %}" aria-expanded="false">
+                <i class="fas fa-chart-pie" style="color: #3B82F6;"></i>
+                <span class="hide-menu">Analytics Overview</span>
               </a>
-              <ul aria-expanded="false" class="collapse first-level">
-                <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-landingpage.html">
-                    <span class="icon-small"></span>
-                    Admin Dashboard
-                  </a>
-                </li>
-                <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <span class="icon-small"></span>
-                    Parents DAshboard
-                  </a>
-                </li>
-              </ul>
             </li>
           </ul>
         </nav>
-        <!-- sidebar -->
+
+        <!-- ================================== -->
+        <!-- 👥 People Management -->
+        <!-- ================================== -->
         <nav class="sidebar-nav" id="menu-right-mini-2" data-simplebar>
-          <ul class="sidebar-menu" id="sidebarnav">
-            <!-- ---------------------------------- -->
-            <!-- 👥 People Management -->
-            <!-- ---------------------------------- -->
+          <ul class="sidebar-menu">
             <li class="nav-small-cap">
               <span class="hide-menu">👥 People Management</span>
             </li>
-            <li class="sidebar-item {% if request.path == '/' %}mm-active{% endif %}">
-              <a class="sidebar-link {% if request.path == '/' %}active{% endif %}" href="{% url 'core:dashboard' %}"
-                aria-expanded="false">
-                <i class="fas fa-eye" style="color: #0D9488;"></i>
-                <span class="hide-menu">Overview</span>
-              </a>
-            </li>
-            <li>
-              <span class="sidebar-divider lg"></span>
-            </li>
-            <!-- ---------------------------------- -->
-            <!-- Students -->
-            <!-- ---------------------------------- -->
-            <li class="sidebar-item {% if 'users' in request.path %}mm-active{% endif %}">
-              <a class="sidebar-link has-arrow {% if 'users' in request.path %}active{% endif %}"
-                href="javascript:void(0)" aria-expanded="false">
+
+            <!-- Students Section -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                 <i class="fas fa-user-graduate" style="color: #10B981;"></i>
                 <span class="hide-menu">Students</span>
               </a>
               <ul aria-expanded="false" class="collapse first-level">
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'accounts:user_list' %}">
-                    <i class="fas fa-address-book" style="color: #34D399;"></i>
-                    Students Directory
+                  <a class="sidebar-link" href="{% url 'students:student-list' %}">
+                    <i class="fas fa-list" style="color: #34D399;"></i>
+                    Student Directory
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'accounts:user_create' %}">
+                  <a class="sidebar-link" href="{% url 'students:student-create' %}">
                     <i class="fas fa-user-plus" style="color: #34D399;"></i>
-                    Student Registration
+                    Add Student
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'accounts:role_list' %}">
-                    <i class="fas fa-id-card" style="color: #34D399;"></i>
-                    Student Profiles
+                  <a class="sidebar-link" href="{% url 'students:student-quick-add' %}">
+                    <i class="fas fa-bolt" style="color: #34D399;"></i>
+                    Quick Add
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'accounts:role_list' %}">
-                    <i class="fas fa-users" style="color: #34D399;"></i>
-                    Parent Relationships
+                  <a class="sidebar-link" href="{% url 'students:student-promotion' %}">
+                    <i class="fas fa-level-up-alt" style="color: #34D399;"></i>
+                    Student Promotion
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'accounts:role_list' %}">
-                    <i class="fas fa-chart-line" style="color: #34D399;"></i>
-                    Student Analytics
+                  <a class="sidebar-link" href="{% url 'students:student-import' %}">
+                    <i class="fas fa-file-import" style="color: #34D399;"></i>
+                    Bulk Import
                   </a>
                 </li>
               </ul>
             </li>
 
-            <li>
-              <span class="sidebar-divider lg"></span>
-            </li>
-            <!-- ---------------------------------- -->
-            <!-- Teacher -->
-            <!-- ---------------------------------- -->
-            <li class="sidebar-item {% if 'users' in request.path %}mm-active{% endif %}">
-              <a class="sidebar-link has-arrow {% if 'users' in request.path %}active{% endif %}"
-                href="javascript:void(0)" aria-expanded="false">
+            <!-- Teachers Section -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                 <i class="fas fa-chalkboard-teacher" style="color: #10B981;"></i>
                 <span class="hide-menu">Teachers</span>
               </a>
               <ul aria-expanded="false" class="collapse first-level">
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'accounts:role_list' %}">
-                    <i class="fas fa-address-book" style="color: #34D399;"></i>
+                  <a class="sidebar-link" href="{% url 'teachers:teacher-list' %}">
+                    <i class="fas fa-list" style="color: #34D399;"></i>
                     Teacher Directory
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'accounts:role_create' %}">
+                  <a class="sidebar-link" href="{% url 'teachers:teacher-create' %}">
                     <i class="fas fa-user-tie" style="color: #34D399;"></i>
-                    Teacher Registration
+                    Add Teacher
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'accounts:role_create' %}">
-                    <i class="fas fa-id-badge" style="color: #34D399;"></i>
-                    Teacher Profiles
+                  <a class="sidebar-link" href="{% url 'teachers:teacher-dashboard' %}">
+                    <i class="fas fa-chart-line" style="color: #34D399;"></i>
+                    Teacher Analytics
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'accounts:role_create' %}">
-                    <i class="fas fa-tasks" style="color: #34D399;"></i>
-                    Teacher Assignments
-                  </a>
-                </li>
-                <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'accounts:role_create' %}">
+                  <a class="sidebar-link" href="{% url 'teachers:teacher-performance' %}">
                     <i class="fas fa-star" style="color: #34D399;"></i>
-                    Performance Evaluation
+                    Performance Reports
                   </a>
                 </li>
               </ul>
             </li>
-            <li>
-              <span class="sidebar-divider lg"></span>
+
+            <!-- Parents Section -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+                <i class="fas fa-users" style="color: #10B981;"></i>
+                <span class="hide-menu">Parents</span>
+              </a>
+              <ul aria-expanded="false" class="collapse first-level">
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'students:parent-list' %}">
+                    <i class="fas fa-list" style="color: #34D399;"></i>
+                    Parent Directory
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'students:parent-create' %}">
+                    <i class="fas fa-user-plus" style="color: #34D399;"></i>
+                    Add Parent
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'students:relation-create' %}">
+                    <i class="fas fa-link" style="color: #34D399;"></i>
+                    Link Relationships
+                  </a>
+                </li>
+              </ul>
             </li>
-            <!-- ---------------------------------- -->
-            <!-- Users & Roles -->
-            <!-- ---------------------------------- -->
-            <li class="sidebar-item {% if 'users' in request.path %}mm-active{% endif %}">
-              <a class="sidebar-link has-arrow {% if 'users' in request.path %}active{% endif %}"
-                href="javascript:void(0)" aria-expanded="false">
+
+            <!-- Users & Roles Section -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                 <i class="fas fa-users-cog" style="color: #10B981;"></i>
                 <span class="hide-menu">Users & Roles</span>
               </a>
               <ul aria-expanded="false" class="collapse first-level">
                 <li class="sidebar-item">
                   <a class="sidebar-link" href="{% url 'accounts:user_list' %}">
-                    <i class="fas fa-shield-alt" style="color: #34D399;"></i>
+                    <i class="fas fa-users" style="color: #34D399;"></i>
                     User Management
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'accounts:role_create' %}">
+                  <a class="sidebar-link" href="{% url 'accounts:role_list' %}">
                     <i class="fas fa-key" style="color: #34D399;"></i>
                     Role Management
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'accounts:role_create' %}">
-                    <i class="fas fa-lock" style="color: #34D399;"></i>
-                    User Permissions
-                  </a>
-                </li>
-                <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'accounts:role_create' %}">
-                    <i class="fas fa-list-check" style="color: #34D399;"></i>
+                  <a class="sidebar-link" href="{% url 'accounts:bulk_action' %}">
+                    <i class="fas fa-tasks" style="color: #34D399;"></i>
                     Bulk Actions
                   </a>
                 </li>
@@ -378,129 +309,139 @@
             </li>
           </ul>
         </nav>
-        <!-- sidebar -->
-        <nav class="sidebar-nav scroll-sidebar" id="menu-right-mini-3" data-simplebar>
-          <ul class="sidebar-menu" id="sidebarnav">
-            <!-- ---------------------------------- -->
-            <!-- 🎓 Academic Management -->
-            <!-- ---------------------------------- -->
+
+        <!-- ================================== -->
+        <!-- 🎓 Academic Management -->
+        <!-- ================================== -->
+        <nav class="sidebar-nav" id="menu-right-mini-3" data-simplebar>
+          <ul class="sidebar-menu">
             <li class="nav-small-cap">
               <span class="hide-menu">🎓 Academic Management</span>
             </li>
-            <!-- ---------------------------------- -->
-            <!-- Structure -->
-            <!-- ---------------------------------- -->
-            <li class="sidebar-item {% if 'students' in request.path %}mm-active{% endif %}">
-              <a class="sidebar-link has-arrow {% if 'students' in request.path %}active{% endif %}"
-                href="javascript:void(0)" aria-expanded="false">
+
+            <!-- Academic Structure -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                 <i class="fas fa-sitemap" style="color: #8B5CF6;"></i>
-                <span class="hide-menu">Structure</span>
+                <span class="hide-menu">Academic Structure</span>
               </a>
               <ul aria-expanded="false" class="collapse first-level">
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'students:student-list' %}">
-                    <i class="fas fa-layer-group" style="color: #A78BFA;"></i>
-                    Sections & Grades
+                  <a class="sidebar-link" href="{% url 'academics:structure' %}">
+                    <i class="fas fa-eye" style="color: #A78BFA;"></i>
+                    Structure Overview
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'students:student-list' %}">
+                  <a class="sidebar-link" href="{% url 'academics:department-list' %}">
+                    <i class="fas fa-building" style="color: #A78BFA;"></i>
+                    Departments
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'academics:section-list' %}">
+                    <i class="fas fa-layer-group" style="color: #A78BFA;"></i>
+                    Sections
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'academics:grade-list' %}">
                     <i class="fas fa-stairs" style="color: #A78BFA;"></i>
                     Grades
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'students:student-create' %}">
+                  <a class="sidebar-link" href="{% url 'academics:class-list' %}">
                     <i class="fas fa-door-open" style="color: #A78BFA;"></i>
-                    Class Management
-                  </a>
-                </li>
-                <li class="sidebar-item">
-                  <a class="sidebar-link" href="#">
-                    <i class="fas fa-calendar-alt" style="color: #A78BFA;"></i>
-                    Academic Years
-                  </a>
-                </li>
-                <li class="sidebar-item">
-                  <a class="sidebar-link" href="#">
-                    <i class="fas fa-clock" style="color: #A78BFA;"></i>
-                    Term Configuration
+                    Classes
                   </a>
                 </li>
               </ul>
             </li>
-            <li>
-              <span class="sidebar-divider lg"></span>
+
+            <!-- Academic Years & Terms -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+                <i class="fas fa-calendar-alt" style="color: #8B5CF6;"></i>
+                <span class="hide-menu">Academic Calendar</span>
+              </a>
+              <ul aria-expanded="false" class="collapse first-level">
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'academics:academic-year-list' %}">
+                    <i class="fas fa-calendar" style="color: #A78BFA;"></i>
+                    Academic Years
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'academics:term-list' %}">
+                    <i class="fas fa-clock" style="color: #A78BFA;"></i>
+                    Terms
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'academics:calendar' %}">
+                    <i class="fas fa-calendar-week" style="color: #A78BFA;"></i>
+                    Academic Calendar
+                  </a>
+                </li>
+              </ul>
             </li>
-            <!-- ---------------------------------- -->
-            <!-- Curriculum -->
-            <!-- ---------------------------------- -->
-            <li class="sidebar-item {% if 'students' in request.path %}mm-active{% endif %}">
-              <a class="sidebar-link has-arrow {% if 'students' in request.path %}active{% endif %}"
-                href="javascript:void(0)" aria-expanded="false">
+
+            <!-- Subjects & Curriculum -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                 <i class="fas fa-book-reader" style="color: #8B5CF6;"></i>
                 <span class="hide-menu">Curriculum</span>
               </a>
               <ul aria-expanded="false" class="collapse first-level">
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'students:student-list' %}">
+                  <a class="sidebar-link" href="{% url 'subjects:subject-list' %}">
                     <i class="fas fa-book" style="color: #A78BFA;"></i>
-                    Subject Catalog
+                    Subjects
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
+                  <a class="sidebar-link" href="{% url 'subjects:syllabus-list' %}">
                     <i class="fas fa-list-alt" style="color: #A78BFA;"></i>
                     Syllabus Management
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-bullseye" style="color: #A78BFA;"></i>
-                    Learning Objectives
-                  </a>
-                </li>
-                <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-tasks" style="color: #A78BFA;"></i>
-                    Content Tracking
+                  <a class="sidebar-link" href="{% url 'subjects:curriculum-structure' %}">
+                    <i class="fas fa-project-diagram" style="color: #A78BFA;"></i>
+                    Curriculum Structure
                   </a>
                 </li>
               </ul>
             </li>
-            <li>
-              <span class="sidebar-divider lg"></span>
-            </li>
-            <!-- ---------------------------------- -->
+
             <!-- Scheduling -->
-            <!-- ---------------------------------- -->
-            <li class="sidebar-item {% if 'students' in request.path %}mm-active{% endif %}">
-              <a class="sidebar-link has-arrow {% if 'students' in request.path %}active{% endif %}"
-                href="javascript:void(0)" aria-expanded="false">
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                 <i class="fas fa-calendar-week" style="color: #8B5CF6;"></i>
                 <span class="hide-menu">Scheduling</span>
               </a>
               <ul aria-expanded="false" class="collapse first-level">
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'students:student-list' %}">
+                  <a class="sidebar-link" href="{% url 'scheduling:timetable_list' %}">
                     <i class="fas fa-table" style="color: #A78BFA;"></i>
                     Timetables
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
+                  <a class="sidebar-link" href="{% url 'scheduling:timeslot_list' %}">
                     <i class="fas fa-clock" style="color: #A78BFA;"></i>
                     Time Slots
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-map-marker-alt" style="color: #A78BFA;"></i>
+                  <a class="sidebar-link" href="{% url 'scheduling:room_list' %}">
+                    <i class="fas fa-door-closed" style="color: #A78BFA;"></i>
                     Room Management
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
+                  <a class="sidebar-link" href="{% url 'scheduling:conflict_management' %}">
                     <i class="fas fa-exclamation-triangle" style="color: #A78BFA;"></i>
                     Conflict Resolution
                   </a>
@@ -509,608 +450,500 @@
             </li>
           </ul>
         </nav>
-        <!-- sidebar -->
-        <nav class="sidebar-nav scroll-sidebar" id="menu-right-mini-4" data-simplebar>
-          <div>
-            <ul class="sidebar-menu" id="sidebarnav">
-              <!-- ---------------------------------- -->
-              <!-- 📚 Learning & Assessment -->
-              <!-- ---------------------------------- -->
-              <li class="nav-small-cap">
-                <span class="hide-menu">📚 Learning & Assessment</span>
-              </li>
-              <!-- ---------------------------------- -->
-              <!-- Assignments -->
-              <!-- ---------------------------------- -->
-              <li class="sidebar-item {% if 'teachers' in request.path %}mm-active{% endif %}">
-                <a class="sidebar-link has-arrow {% if 'students' in request.path %}active{% endif %}"
-                  href="javascript:void(0)" aria-expanded="false">
-                  <i class="fas fa-clipboard-list" style="color: #F59E0B;"></i>
-                  <span class="hide-menu">Assignments</span>
-                </a>
-                <ul aria-expanded="false" class="collapse first-level">
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="{% url 'teachers:teacher-list' %}">
-                      <i class="fas fa-plus-circle" style="color: #FBBF24;"></i>
-                      Create Assignments
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="{% url 'teachers:teacher-create' %}">
-                      <i class="fas fa-file-upload" style="color: #FBBF24;"></i>
-                      Assignment Submissions
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="{% url 'teachers:teacher-statistics' %}">
-                      <i class="fas fa-pen-fancy" style="color: #FBBF24;"></i>
-                      Grading
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="{% url 'teachers:teacher-statistics' %}">
-                      <i class="fas fa-chart-line" style="color: #FBBF24;"></i>
-                      Progress Tracking
-                    </a>
-                  </li>
-                </ul>
-              </li>
-              <li>
-                <span class="sidebar-divider lg"></span>
-              </li>
-              <!-- ---------------------------------- -->
-              <!-- Examinations -->
-              <!-- ---------------------------------- -->
-              <li class="sidebar-item {% if 'teachers' in request.path %}mm-active{% endif %}">
-                <a class="sidebar-link has-arrow {% if 'students' in request.path %}active{% endif %}"
-                  href="javascript:void(0)" aria-expanded="false">
-                  <i class="fas fa-clipboard-check" style="color: #F59E0B;"></i>
-                  <span class="hide-menu">Examinations</span>
-                </a>
-                <ul aria-expanded="false" class="collapse first-level">
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="{% url 'students:student-list' %}">
-                      <i class="fas fa-calendar-plus" style="color: #FBBF24;"></i>
-                      Exam Scheduling
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                      <i class="fas fa-list-ul" style="color: #FBBF24;"></i>
-                      Exam Types
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                      <i class="fas fa-poll" style="color: #FBBF24;"></i>
-                      Result Entry
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                      <i class="fas fa-calculator" style="color: #FBBF24;"></i>
-                      Grade Calculation
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                      <i class="fas fa-certificate" style="color: #FBBF24;"></i>
-                      Report Cards
-                    </a>
-                  </li>
-                </ul>
-              </li>
-              <li>
-                <span class="sidebar-divider lg"></span>
-              </li>
-              <!-- ---------------------------------- -->
-              <!-- Attendance -->
-              <!-- ---------------------------------- -->
-              <li class="sidebar-item {% if 'teachers' in request.path %}mm-active{% endif %}">
-                <a class="sidebar-link has-arrow {% if 'students' in request.path %}active{% endif %}"
-                  href="javascript:void(0)" aria-expanded="false">
-                  <i class="fas fa-calendar-check" style="color: #F59E0B;"></i>
-                  <span class="hide-menu">Attendance</span>
-                </a>
-                <ul aria-expanded="false" class="collapse first-level">
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="{% url 'teachers:teacher-performance' %}">
-                      <i class="fas fa-check-circle" style="color: #FBBF24;"></i>
-                      Mark Attendance
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="#">
-                      <i class="fas fa-chart-bar" style="color: #FBBF24;"></i>
-                      Attendance Reports
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="#">
-                      <i class="fas fa-bed" style="color: #FBBF24;"></i>
-                      Leave Management
-                    </a>
-                  </li>
-                  <li class="sidebar-item">
-                    <a class="sidebar-link" href="#">
-                      <i class="fas fa-analytics" style="color: #FBBF24;"></i>
-                      Attendance Analytics
-                    </a>
-                  </li>
-                </ul>
-              </li>
-            </ul>
-          </div>
+
+        <!-- ================================== -->
+        <!-- 📚 Learning & Assessment -->
+        <!-- ================================== -->
+        <nav class="sidebar-nav" id="menu-right-mini-4" data-simplebar>
+          <ul class="sidebar-menu">
+            <li class="nav-small-cap">
+              <span class="hide-menu">📚 Learning & Assessment</span>
+            </li>
+
+            <!-- Assignments -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+                <i class="fas fa-clipboard-list" style="color: #F59E0B;"></i>
+                <span class="hide-menu">Assignments</span>
+              </a>
+              <ul aria-expanded="false" class="collapse first-level">
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'assignments:assignment_list' %}">
+                    <i class="fas fa-list" style="color: #FBBF24;"></i>
+                    All Assignments
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'assignments:assignment_create' %}">
+                    <i class="fas fa-plus-circle" style="color: #FBBF24;"></i>
+                    Create Assignment
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'assignments:grading_dashboard' %}">
+                    <i class="fas fa-pen-fancy" style="color: #FBBF24;"></i>
+                    Grading Dashboard
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'assignments:assignment_templates' %}">
+                    <i class="fas fa-copy" style="color: #FBBF24;"></i>
+                    Templates
+                  </a>
+                </li>
+              </ul>
+            </li>
+
+            <!-- Examinations -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+                <i class="fas fa-clipboard-check" style="color: #F59E0B;"></i>
+                <span class="hide-menu">Examinations</span>
+              </a>
+              <ul aria-expanded="false" class="collapse first-level">
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'exams:exam_list' %}">
+                    <i class="fas fa-list" style="color: #FBBF24;"></i>
+                    All Exams
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'exams:create_exam' %}">
+                    <i class="fas fa-plus-circle" style="color: #FBBF24;"></i>
+                    Create Exam
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'exams:question_bank' %}">
+                    <i class="fas fa-question-circle" style="color: #FBBF24;"></i>
+                    Question Bank
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'exams:my_results' %}">
+                    <i class="fas fa-poll" style="color: #FBBF24;"></i>
+                    Results Entry
+                  </a>
+                </li>
+              </ul>
+            </li>
+
+            <!-- Attendance -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+                <i class="fas fa-calendar-check" style="color: #F59E0B;"></i>
+                <span class="hide-menu">Attendance</span>
+              </a>
+              <ul aria-expanded="false" class="collapse first-level">
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'attendance:mark-attendance' %}">
+                    <i class="fas fa-check-circle" style="color: #FBBF24;"></i>
+                    Mark Attendance
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'attendance:record-list' %}">
+                    <i class="fas fa-list" style="color: #FBBF24;"></i>
+                    Attendance Records
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'attendance:dashboard' %}">
+                    <i class="fas fa-chart-bar" style="color: #FBBF24;"></i>
+                    Attendance Dashboard
+                  </a>
+                </li>
+              </ul>
+            </li>
+          </ul>
         </nav>
-        <!-- sidebar -->
-        <nav class="sidebar-nav scroll-sidebar" id="menu-right-mini-5" data-simplebar>
-          <ul class="sidebar-menu" id="sidebarnav">
-            <!-- ---------------------------------- -->
-            <!-- 💰 Finance & Fees -->
-            <!-- ---------------------------------- -->
+
+        <!-- ================================== -->
+        <!-- 💰 Finance & Fees -->
+        <!-- ================================== -->
+        <nav class="sidebar-nav" id="menu-right-mini-5" data-simplebar>
+          <ul class="sidebar-menu">
             <li class="nav-small-cap">
               <span class="hide-menu">💰 Finance & Fees</span>
             </li>
-            <li>
-              <span class="sidebar-divider lg"></span>
-            </li>
-            <li class="sidebar-item {% if 'teachers' in request.path %}mm-active{% endif %}">
-              <a class="sidebar-link has-arrow {% if 'students' in request.path %}active{% endif %}"
-                href="javascript:void(0)" aria-expanded="false">
+
+            <!-- Fee Management -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                 <i class="fas fa-money-bill-wave" style="color: #059669;"></i>
                 <span class="hide-menu">Fee Management</span>
               </a>
               <ul aria-expanded="false" class="collapse first-level">
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'students:student-list' %}">
+                  <a class="sidebar-link" href="{% url 'finance:fee-structure-list' %}">
                     <i class="fas fa-list-ol" style="color: #10B981;"></i>
-                    Fee Structure
+                    Fee Structures
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
+                  <a class="sidebar-link" href="{% url 'finance:fee-category-list' %}">
+                    <i class="fas fa-tags" style="color: #10B981;"></i>
+                    Fee Categories
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'finance:special-fee-list' %}">
                     <i class="fas fa-plus-circle" style="color: #10B981;"></i>
                     Special Fees
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
+                  <a class="sidebar-link" href="{% url 'finance:scholarship-list' %}">
                     <i class="fas fa-hand-holding-usd" style="color: #10B981;"></i>
                     Scholarships
                   </a>
                 </li>
-                <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-percentage" style="color: #10B981;"></i>
-                    Discounts
-                  </a>
-                </li>
               </ul>
             </li>
-            <li>
-              <span class="sidebar-divider lg"></span>
-            </li>
-            <li class="sidebar-item {% if 'teachers' in request.path %}mm-active{% endif %}">
-              <a class="sidebar-link has-arrow {% if 'students' in request.path %}active{% endif %}"
-                href="javascript:void(0)" aria-expanded="false">
+
+            <!-- Billing & Payments -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                 <i class="fas fa-file-invoice-dollar" style="color: #059669;"></i>
                 <span class="hide-menu">Billing & Payments</span>
               </a>
               <ul aria-expanded="false" class="collapse first-level">
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'students:student-list' %}">
+                  <a class="sidebar-link" href="{% url 'finance:invoice-list' %}">
                     <i class="fas fa-file-invoice" style="color: #10B981;"></i>
-                    Generate Invoices
+                    Invoices
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
+                  <a class="sidebar-link" href="{% url 'finance:invoice-generate' %}">
+                    <i class="fas fa-plus" style="color: #10B981;"></i>
+                    Generate Invoice
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'finance:payment-list' %}">
                     <i class="fas fa-credit-card" style="color: #10B981;"></i>
-                    Payment Processing
+                    Payments
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-history" style="color: #10B981;"></i>
-                    Payment History
-                  </a>
-                </li>
-                <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-exclamation-triangle" style="color: #10B981;"></i>
-                    Outstanding Reports
+                  <a class="sidebar-link" href="{% url 'finance:payment-process' %}">
+                    <i class="fas fa-money-check-alt" style="color: #10B981;"></i>
+                    Process Payment
                   </a>
                 </li>
               </ul>
             </li>
-            <li>
-              <span class="sidebar-divider lg"></span>
-            </li>
-            <li class="sidebar-item {% if 'teachers' in request.path %}mm-active{% endif %}">
-              <a class="sidebar-link has-arrow {% if 'students' in request.path %}active{% endif %}"
-                href="javascript:void(0)" aria-expanded="false">
+
+            <!-- Financial Reports -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                 <i class="fas fa-chart-pie" style="color: #059669;"></i>
                 <span class="hide-menu">Financial Reports</span>
               </a>
               <ul aria-expanded="false" class="collapse first-level">
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'students:student-list' %}">
+                  <a class="sidebar-link" href="{% url 'finance:collection-report' %}">
                     <i class="fas fa-chart-area" style="color: #10B981;"></i>
                     Collection Reports
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-chart-line" style="color: #10B981;"></i>
-                    Revenue Analytics
+                  <a class="sidebar-link" href="{% url 'finance:defaulters-report' %}">
+                    <i class="fas fa-exclamation-triangle" style="color: #10B981;"></i>
+                    Defaulters Report
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-search-dollar" style="color: #10B981;"></i>
-                    Fee Analysis
+                  <a class="sidebar-link" href="{% url 'finance:analytics' %}">
+                    <i class="fas fa-chart-line" style="color: #10B981;"></i>
+                    Financial Analytics
                   </a>
                 </li>
               </ul>
             </li>
           </ul>
         </nav>
-        <!-- sidebar -->
-        <nav class="sidebar-nav scroll-sidebar" id="menu-right-mini-6" data-simplebar>
-          <ul class="sidebar-menu" id="sidebarnav">
-            <!-- ---------------------------------- -->
-            <!-- 🏢 Operations -->
-            <!-- ---------------------------------- -->
+
+        <!-- ================================== -->
+        <!-- 🏢 Operations -->
+        <!-- ================================== -->
+        <nav class="sidebar-nav" id="menu-right-mini-6" data-simplebar>
+          <ul class="sidebar-menu">
             <li class="nav-small-cap">
               <span class="hide-menu">🏢 Operations</span>
             </li>
-            <li class="sidebar-item {% if 'teachers' in request.path %}mm-active{% endif %}">
-              <a class="sidebar-link has-arrow {% if 'students' in request.path %}active{% endif %}"
-                href="javascript:void(0)" aria-expanded="false">
+
+            <!-- Library Operations -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                 <i class="fas fa-book" style="color: #6366F1;"></i>
                 <span class="hide-menu">Library</span>
               </a>
               <ul aria-expanded="false" class="collapse first-level">
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'students:student-list' %}">
+                  <a class="sidebar-link" href="#">
                     <i class="fas fa-books" style="color: #818CF8;"></i>
                     Book Catalog
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
+                  <a class="sidebar-link" href="#">
                     <i class="fas fa-hand-paper" style="color: #818CF8;"></i>
                     Issue/Return Books
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
+                  <a class="sidebar-link" href="#">
                     <i class="fas fa-exclamation-triangle" style="color: #818CF8;"></i>
                     Fine Management
                   </a>
                 </li>
-                <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-chart-bar" style="color: #818CF8;"></i>
-                    Library Analytics
-                  </a>
-                </li>
               </ul>
             </li>
-            <li>
-              <span class="sidebar-divider lg"></span>
-            </li>
-            <li class="sidebar-item {% if 'teachers' in request.path %}mm-active{% endif %}">
-              <a class="sidebar-link has-arrow {% if 'students' in request.path %}active{% endif %}"
-                href="javascript:void(0)" aria-expanded="false">
+
+            <!-- Transport Management -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                 <i class="fas fa-bus" style="color: #6366F1;"></i>
                 <span class="hide-menu">Transport</span>
               </a>
               <ul aria-expanded="false" class="collapse first-level">
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'students:student-list' %}">
+                  <a class="sidebar-link" href="#">
                     <i class="fas fa-route" style="color: #818CF8;"></i>
                     Route Management
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
+                  <a class="sidebar-link" href="#">
                     <i class="fas fa-truck" style="color: #818CF8;"></i>
                     Vehicle Management
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
+                  <a class="sidebar-link" href="#">
                     <i class="fas fa-id-badge" style="color: #818CF8;"></i>
                     Driver Management
-                  </a>
-                </li>
-                <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-map-signs" style="color: #818CF8;"></i>
-                    Student Transport Assignment
                   </a>
                 </li>
               </ul>
             </li>
           </ul>
         </nav>
-        <!-- sidebar -->
-        <nav class="sidebar-nav scroll-sidebar" id="menu-right-mini-7" data-simplebar>
-          <ul class="sidebar-menu" id="sidebarnav">
-            <!-- ---------------------------------- -->
-            <!-- 📢 Communications -->
-            <!-- ---------------------------------- -->
+
+        <!-- ================================== -->
+        <!-- 📢 Communications -->
+        <!-- ================================== -->
+        <nav class="sidebar-nav" id="menu-right-mini-7" data-simplebar>
+          <ul class="sidebar-menu">
             <li class="nav-small-cap">
               <span class="hide-menu">📢 Communications</span>
             </li>
-            <li class="sidebar-item {% if 'teachers' in request.path %}mm-active{% endif %}">
-              <a class="sidebar-link has-arrow {% if 'students' in request.path %}active{% endif %}"
-                href="javascript:void(0)" aria-expanded="false">
+
+            <!-- Messaging -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                 <i class="fas fa-envelope" style="color: #EC4899;"></i>
                 <span class="hide-menu">Messaging</span>
               </a>
               <ul aria-expanded="false" class="collapse first-level">
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'students:student-list' %}">
-                    <i class="fas fa-paper-plane" style="color: #F472B6;"></i>
-                    Send Messages
+                  <a class="sidebar-link" href="{% url 'communications:thread_list' %}">
+                    <i class="fas fa-comments" style="color: #F472B6;"></i>
+                    Messages
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
+                  <a class="sidebar-link" href="{% url 'communications:thread_create' %}">
+                    <i class="fas fa-paper-plane" style="color: #F472B6;"></i>
+                    Send Message
+                  </a>
+                </li>
+                <li class="sidebar-item">
+                  <a class="sidebar-link" href="{% url 'communications:announcement_list' %}">
                     <i class="fas fa-bullhorn" style="color: #F472B6;"></i>
                     Announcements
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-at" style="color: #F472B6;"></i>
-                    Email Management
-                  </a>
-                </li>
-                <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-sms" style="color: #F472B6;"></i>
-                    SMS Gateway
+                  <a class="sidebar-link" href="{% url 'communications:bulk_message_create' %}">
+                    <i class="fas fa-broadcast-tower" style="color: #F472B6;"></i>
+                    Bulk Messaging
                   </a>
                 </li>
               </ul>
             </li>
-            <li>
-              <span class="sidebar-divider lg"></span>
-            </li>
-            <li class="sidebar-item {% if 'teachers' in request.path %}mm-active{% endif %}">
-              <a class="sidebar-link has-arrow {% if 'students' in request.path %}active{% endif %}"
-                href="javascript:void(0)" aria-expanded="false">
+
+            <!-- Notifications -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                 <i class="fas fa-bell" style="color: #EC4899;"></i>
                 <span class="hide-menu">Notifications</span>
               </a>
               <ul aria-expanded="false" class="collapse first-level">
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'students:student-list' %}">
-                    <i class="fas fa-bell-slash" style="color: #F472B6;"></i>
-                    System Notifications
+                  <a class="sidebar-link" href="{% url 'communications:notifications_overview' %}">
+                    <i class="fas fa-bell" style="color: #F472B6;"></i>
+                    All Notifications
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-exclamation" style="color: #F472B6;"></i>
-                    Custom Alerts
+                  <a class="sidebar-link" href="{% url 'communications:quick_notification' %}">
+                    <i class="fas fa-bolt" style="color: #F472B6;"></i>
+                    Quick Notification
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-archive" style="color: #F472B6;"></i>
-                    Notification History
+                  <a class="sidebar-link" href="{% url 'communications:template_list' %}">
+                    <i class="fas fa-copy" style="color: #F472B6;"></i>
+                    Message Templates
                   </a>
                 </li>
               </ul>
             </li>
           </ul>
         </nav>
-        <!-- sidebar -->
-        <nav class="sidebar-nav scroll-sidebar" id="menu-right-mini-8" data-simplebar>
-          <ul class="sidebar-menu" id="sidebarnav">
-            <!-- ---------------------------------- -->
-            <!-- 📊 Reports & Analytics -->
-            <!-- ---------------------------------- -->
+
+        <!-- ================================== -->
+        <!-- 📊 Reports & Analytics -->
+        <!-- ================================== -->
+        <nav class="sidebar-nav" id="menu-right-mini-8" data-simplebar>
+          <ul class="sidebar-menu">
             <li class="nav-small-cap">
               <span class="hide-menu">📊 Reports & Analytics</span>
             </li>
-            <li class="sidebar-item {% if 'library' in request.path %}mm-active{% endif %}">
-              <a class="sidebar-link has-arrow {% if 'library' in request.path %}active{% endif %}"
-                href="javascript:void(0)" aria-expanded="false">
+
+            <!-- Academic Analytics -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                 <i class="fas fa-chart-line" style="color: #14B8A6;"></i>
-                <span class="hide-menu">Academic Reports</span>
+                <span class="hide-menu">Academic Analytics</span>
               </a>
               <ul aria-expanded="false" class="collapse first-level">
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'students:student-list' %}">
+                  <a class="sidebar-link" href="{% url 'core:student_analytics' %}">
                     <i class="fas fa-user-graduate" style="color: #2DD4BF;"></i>
                     Student Performance
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
+                  <a class="sidebar-link" href="{% url 'core:class_analytics' %}">
                     <i class="fas fa-chalkboard" style="color: #2DD4BF;"></i>
                     Class Performance
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
+                  <a class="sidebar-link" href="{% url 'core:teacher_analytics' %}">
                     <i class="fas fa-user-tie" style="color: #2DD4BF;"></i>
                     Teacher Analytics
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
+                  <a class="sidebar-link" href="{% url 'core:attendance_analytics' %}">
                     <i class="fas fa-calendar-check" style="color: #2DD4BF;"></i>
-                    Attendance Reports
+                    Attendance Analytics
                   </a>
                 </li>
               </ul>
             </li>
-            <li>
-              <span class="sidebar-divider lg"></span>
-            </li>
-            <li class="sidebar-item {% if 'teachers' in request.path %}mm-active{% endif %}">
-              <a class="sidebar-link has-arrow {% if 'students' in request.path %}active{% endif %}"
-                href="javascript:void(0)" aria-expanded="false">
-                <i class="fas fa-chart-bar" style="color: #14B8A6;"></i>
-                <span class="hide-menu">Administrative Reports</span>
+
+            <!-- Reports Generation -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+                <i class="fas fa-file-alt" style="color: #14B8A6;"></i>
+                <span class="hide-menu">Reports</span>
               </a>
               <ul aria-expanded="false" class="collapse first-level">
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'students:student-list' %}">
-                    <i class="fas fa-dollar-sign" style="color: #2DD4BF;"></i>
-                    Financial Reports
+                  <a class="sidebar-link" href="{% url 'core:reports' %}">
+                    <i class="fas fa-list" style="color: #2DD4BF;"></i>
+                    All Reports
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-cogs" style="color: #2DD4BF;"></i>
-                    Operational Reports
+                  <a class="sidebar-link" href="{% url 'core:generate_report' %}">
+                    <i class="fas fa-plus-circle" style="color: #2DD4BF;"></i>
+                    Generate Report
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-file-alt" style="color: #2DD4BF;"></i>
-                    Custom Reports
+                  <a class="sidebar-link" href="{% url 'academics:analytics' %}">
+                    <i class="fas fa-chart-bar" style="color: #2DD4BF;"></i>
+                    Academic Reports
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-download" style="color: #2DD4BF;"></i>
-                    Data Export
-                  </a>
-                </li>
-              </ul>
-            </li>
-            <li>
-              <span class="sidebar-divider lg"></span>
-            </li>
-            <li class="sidebar-item {% if 'teachers' in request.path %}mm-active{% endif %}">
-              <a class="sidebar-link has-arrow {% if 'students' in request.path %}active{% endif %}"
-                href="javascript:void(0)" aria-expanded="false">
-                <i class="fas fa-tachometer-alt" style="color: #14B8A6;"></i>
-                <span class="hide-menu">Dashboards</span>
-              </a>
-              <ul aria-expanded="false" class="collapse first-level">
-                <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'students:student-list' %}">
-                    <i class="fas fa-crown" style="color: #2DD4BF;"></i>
-                    Executive Dashboard
-                  </a>
-                </li>
-                <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-graduation-cap" style="color: #2DD4BF;"></i>
-                    Academic Dashboard
-                  </a>
-                </li>
-                <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-wallet" style="color: #2DD4BF;"></i>
-                    Financial Dashboard
+                  <a class="sidebar-link" href="{% url 'scheduling:analytics' %}">
+                    <i class="fas fa-calendar" style="color: #2DD4BF;"></i>
+                    Scheduling Reports
                   </a>
                 </li>
               </ul>
             </li>
           </ul>
         </nav>
-        <!-- sidebar -->
-        <nav class="sidebar-nav scroll-sidebar" id="menu-right-mini-9" data-simplebar>
-          <ul class="sidebar-menu" id="sidebarnav">
-            <!-- ---------------------------------- -->
-            <!-- ⚙️ System Administration -->
-            <!-- ---------------------------------- -->
+
+        <!-- ================================== -->
+        <!-- ⚙️ System Administration -->
+        <!-- ================================== -->
+        <nav class="sidebar-nav" id="menu-right-mini-9" data-simplebar>
+          <ul class="sidebar-menu">
             <li class="nav-small-cap">
               <span class="hide-menu">⚙️ System Administration</span>
             </li>
-            <li class="sidebar-item {% if 'teachers' in request.path %}mm-active{% endif %}">
-              <a class="sidebar-link has-arrow {% if 'students' in request.path %}active{% endif %}"
-                href="javascript:void(0)" aria-expanded="false">
+
+            <!-- System Settings -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                 <i class="fas fa-sliders-h" style="color: #EF4444;"></i>
                 <span class="hide-menu">Settings</span>
               </a>
               <ul aria-expanded="false" class="collapse first-level">
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'students:student-list' %}">
+                  <a class="sidebar-link" href="{% url 'core:settings' %}">
                     <i class="fas fa-cog" style="color: #F87171;"></i>
                     System Configuration
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-school" style="color: #F87171;"></i>
-                    Academic Settings
+                  <a class="sidebar-link" href="{% url 'core:system_admin' %}">
+                    <i class="fas fa-tools" style="color: #F87171;"></i>
+                    System Administration
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-shield-alt" style="color: #F87171;"></i>
-                    Security Settings
+                  <a class="sidebar-link" href="{% url 'scheduling:settings' %}">
+                    <i class="fas fa-calendar-alt" style="color: #F87171;"></i>
+                    Scheduling Settings
                   </a>
                 </li>
               </ul>
             </li>
-            <li>
-              <span class="sidebar-divider lg"></span>
-            </li>
-            <li class="sidebar-item {% if 'teachers' in request.path %}mm-active{% endif %}">
-              <a class="sidebar-link has-arrow {% if 'students' in request.path %}active{% endif %}"
-                href="javascript:void(0)" aria-expanded="false">
+
+            <!-- Audit & Monitoring -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                 <i class="fas fa-clipboard-list" style="color: #EF4444;"></i>
                 <span class="hide-menu">Audit & Logs</span>
               </a>
               <ul aria-expanded="false" class="collapse first-level">
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'students:student-list' %}">
+                  <a class="sidebar-link" href="{% url 'core:audit_logs' %}">
                     <i class="fas fa-search" style="color: #F87171;"></i>
                     Audit Trail
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-file-alt" style="color: #F87171;"></i>
-                    System Logs
-                  </a>
-                </li>
-                <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-users-cog" style="color: #F87171;"></i>
-                    User Activity
-                  </a>
-                </li>
-              </ul>
-            </li>
-            <li>
-              <span class="sidebar-divider lg"></span>
-            </li>
-            <li class="sidebar-item {% if 'teachers' in request.path %}mm-active{% endif %}">
-              <a class="sidebar-link has-arrow {% if 'students' in request.path %}active{% endif %}"
-                href="javascript:void(0)" aria-expanded="false">
-                <i class="fas fa-tools" style="color: #EF4444;"></i>
-                <span class="hide-menu">Maintenance</span>
-              </a>
-              <ul aria-expanded="false" class="collapse first-level">
-                <li class="sidebar-item">
-                  <a class="sidebar-link" href="{% url 'students:student-list' %}">
-                    <i class="fas fa-database" style="color: #F87171;"></i>
-                    Data Backup
-                  </a>
-                </li>
-                <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
+                  <a class="sidebar-link" href="{% url 'core:system_health' %}">
                     <i class="fas fa-heartbeat" style="color: #F87171;"></i>
                     System Health
                   </a>
                 </li>
                 <li class="sidebar-item">
-                  <a class="sidebar-link" href="../main/frontend-aboutpage.html">
-                    <i class="fas fa-user-clock" style="color: #F87171;"></i>
-                    User Session Management
+                  <a class="sidebar-link" href="{% url 'core:user_management' %}">
+                    <i class="fas fa-users-cog" style="color: #F87171;"></i>
+                    User Activity Monitor
                   </a>
                 </li>
               </ul>
@@ -1121,3 +954,189 @@
     </div>
   </div>
 </aside>
+
+<script>
+  // Sidebar navigation functionality
+  document.addEventListener('DOMContentLoaded', function () {
+    // Mini navigation items
+    const miniNavItems = document.querySelectorAll('.mini-nav-item');
+    const sidebarMenus = document.querySelectorAll('.sidebar-nav');
+
+    // Hide all sidebar menus initially except the first one
+    sidebarMenus.forEach((menu, index) => {
+      if (index !== 0) {
+        menu.style.display = 'none';
+      }
+    });
+
+    // Add click event listeners to mini nav items
+    miniNavItems.forEach((item, index) => {
+      item.addEventListener('click', function () {
+        // Remove active class from all mini nav items
+        miniNavItems.forEach(navItem => navItem.classList.remove('mm-active'));
+
+        // Add active class to clicked item
+        this.classList.add('mm-active');
+
+        // Hide all sidebar menus
+        sidebarMenus.forEach(menu => menu.style.display = 'none');
+
+        // Show corresponding sidebar menu
+        const targetMenu = document.getElementById(`menu-right-mini-${index + 1}`);
+        if (targetMenu) {
+          targetMenu.style.display = 'block';
+        }
+      });
+    });
+
+    // Handle collapsible menus
+    const hasArrowLinks = document.querySelectorAll('.sidebar-link.has-arrow');
+    hasArrowLinks.forEach(link => {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        const parentLi = this.parentElement;
+        const submenu = parentLi.querySelector('ul');
+
+        if (submenu) {
+          const isOpen = submenu.classList.contains('show');
+
+          // Close all other submenus at the same level
+          const siblingMenus = parentLi.parentElement.querySelectorAll('li > ul');
+          siblingMenus.forEach(menu => {
+            if (menu !== submenu) {
+              menu.classList.remove('show');
+              menu.parentElement.classList.remove('mm-active');
+            }
+          });
+
+          // Toggle current submenu
+          if (isOpen) {
+            submenu.classList.remove('show');
+            parentLi.classList.remove('mm-active');
+          } else {
+            submenu.classList.add('show');
+            parentLi.classList.add('mm-active');
+          }
+        }
+      });
+    });
+
+    // Set active states based on current URL
+    const currentPath = window.location.pathname;
+    const allLinks = document.querySelectorAll('.sidebar-link:not(.has-arrow)');
+
+    allLinks.forEach(link => {
+      if (link.getAttribute('href') === currentPath) {
+        // Mark link as active
+        link.classList.add('active');
+
+        // Mark parent menu items as active
+        let parent = link.closest('ul.collapse');
+        while (parent) {
+          parent.classList.add('show');
+          const parentLi = parent.parentElement;
+          parentLi.classList.add('mm-active');
+          parent = parentLi.closest('ul.collapse');
+        }
+
+        // Determine which main navigation should be active
+        const sidebarNav = link.closest('.sidebar-nav');
+        if (sidebarNav) {
+          const navId = sidebarNav.id;
+          const miniIndex = navId.split('-').pop();
+          const miniNavItem = document.querySelector(`#mini-${miniIndex}`);
+          if (miniNavItem) {
+            miniNavItems.forEach(item => item.classList.remove('mm-active'));
+            miniNavItem.classList.add('mm-active');
+
+            sidebarMenus.forEach(menu => menu.style.display = 'none');
+            sidebarNav.style.display = 'block';
+          }
+        }
+      }
+    });
+  });
+</script>
+
+<style>
+  /* Enhanced sidebar styles */
+  .sidebar-nav {
+    transition: all 0.3s ease;
+  }
+
+  .sidebar-menu .nav-small-cap .hide-menu {
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+  }
+
+  .sidebar-item.mm-active>.sidebar-link {
+    background-color: rgba(99, 102, 241, 0.1);
+    color: #6366F1;
+    border-radius: 8px;
+  }
+
+  .sidebar-link.active {
+    background-color: #6366F1;
+    color: white !important;
+    border-radius: 8px;
+  }
+
+  .sidebar-link.active i {
+    color: white !important;
+  }
+
+  .mini-nav-item.mm-active {
+    background-color: rgba(99, 102, 241, 0.1);
+    border-radius: 8px;
+  }
+
+  .collapse.show {
+    display: block !important;
+  }
+
+  .sidebar-link:hover {
+    background-color: rgba(99, 102, 241, 0.05);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+
+  /* Icon spacing */
+  .sidebar-link i {
+    width: 20px;
+    margin-right: 10px;
+    display: inline-block;
+    text-align: center;
+  }
+
+  /* Submenu indentation */
+  .first-level .sidebar-link {
+    padding-left: 3rem;
+  }
+
+  /* Badge for notifications */
+  .notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #EF4444;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+  }
+
+  /* Responsive improvements */
+  @media (max-width: 1199px) {
+    .mini-nav-item {
+      margin-bottom: 0.5rem;
+    }
+  }
+</style>

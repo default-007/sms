@@ -1,0 +1,531 @@
+{% extends "base.html" %}
+{% load assignment_tags %}
+
+{% block title %}Assignment Analytics Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Assignment Analytics Dashboard</h1>
+    <div class="btn-group">
+      <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="fas fa-filter"></i> Filter Period
+      </button>
+      <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="?period=week">This Week</a></li>
+        <li><a class="dropdown-item" href="?period=month">This Month</a></li>
+        <li><a class="dropdown-item" href="?period=term">Current Term</a></li>
+        <li><a class="dropdown-item" href="?period=year">Academic Year</a></li>
+      </ul>
+    </div>
+  </div>
+
+  {% if role == 'teacher' %}
+  <!-- Teacher Analytics -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ analytics.assignment_stats.total_assignments }}</h4>
+              <p class="card-text">Total Assignments</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-tasks fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ analytics.grading_stats.graded_submissions }}</h4>
+              <p class="card-text">Graded Submissions</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-check-circle fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ analytics.grading_stats.pending_submissions }}</h4>
+              <p class="card-text">Pending Grading</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-clock fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ analytics.grading_stats.average_grading_time|floatformat:1 }}h</h4>
+              <p class="card-text">Avg Grading Time</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-stopwatch fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Class Performance Overview</h5>
+        </div>
+        <div class="card-body">
+          <div id="classPerformanceChart"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Grade Distribution</h5>
+        </div>
+        <div class="card-body">
+          <div id="gradeDistributionChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Subject Performance</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="subjectPerformanceTable" class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Subject</th>
+                  <th>Assignments</th>
+                  <th>Avg Score</th>
+                  <th>Completion Rate</th>
+                  <th>Performance Trend</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for subject in analytics.subject_performance %}
+                <tr>
+                  <td>
+                    <strong>{{ subject.subject__name }}</strong>
+                    <br><small class="text-muted">{{ subject.subject__code }}</small>
+                  </td>
+                  <td>{{ subject.assignment_count }}</td>
+                  <td>
+                    <span
+                      class="badge bg-{{ subject.average_score|default:0|floatformat:0|add:0 >= 80|yesno:'success,warning' }}">
+                      {{ subject.average_score|default:0|floatformat:1 }}%
+                    </span>
+                  </td>
+                  <td>
+                    <div class="progress" style="height: 20px;">
+                      <div class="progress-bar" role="progressbar"
+                        style="width: {{ subject.completion_rate|default:0 }}%">
+                        {{ subject.completion_rate|default:0|floatformat:1 }}%
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <i class="fas fa-arrow-up text-success"></i>
+                    <span class="small">Improving</span>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="5" class="text-center text-muted">No data available</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% elif role == 'student' %}
+  <!-- Student Analytics -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ analytics.basic_stats.total_assignments }}</h4>
+              <p class="card-text">Total Assignments</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-tasks fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ analytics.performance_stats.average_percentage|floatformat:1 }}%</h4>
+              <p class="card-text">Average Score</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-chart-line fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ analytics.basic_stats.submission_rate|floatformat:1 }}%</h4>
+              <p class="card-text">Submission Rate</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-upload fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ analytics.basic_stats.late_submissions }}</h4>
+              <p class="card-text">Late Submissions</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-exclamation-triangle fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Performance Trend</h5>
+        </div>
+        <div class="card-body">
+          <div id="performanceTrendChart"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Grade Distribution</h5>
+        </div>
+        <div class="card-body">
+          <div id="studentGradeChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% elif role == 'admin' %}
+  <!-- System Analytics -->
+  <div class="row mb-4">
+    <div class="col-md-2">
+      <div class="card bg-primary text-white">
+        <div class="card-body text-center">
+          <h4>{{ analytics.overall_stats.total_assignments }}</h4>
+          <p class="mb-0">Assignments</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card bg-success text-white">
+        <div class="card-body text-center">
+          <h4>{{ analytics.overall_stats.total_submissions }}</h4>
+          <p class="mb-0">Submissions</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card bg-info text-white">
+        <div class="card-body text-center">
+          <h4>{{ analytics.overall_stats.total_teachers }}</h4>
+          <p class="mb-0">Teachers</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card bg-warning text-white">
+        <div class="card-body text-center">
+          <h4>{{ analytics.overall_stats.total_students }}</h4>
+          <p class="mb-0">Students</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card bg-secondary text-white">
+        <div class="card-body text-center">
+          <h4>{{ analytics.overall_stats.total_classes }}</h4>
+          <p class="mb-0">Classes</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card bg-dark text-white">
+        <div class="card-body text-center">
+          <h4>{{ analytics.overall_stats.total_subjects }}</h4>
+          <p class="mb-0">Subjects</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">System Activity Trends</h5>
+        </div>
+        <div class="card-body">
+          <div id="systemTrendsChart"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Section Performance</h5>
+        </div>
+        <div class="card-body">
+          <div id="sectionPerformanceChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTables
+    $('#subjectPerformanceTable').DataTable({
+      responsive: true,
+      pageLength: 10,
+      order: [[2, 'desc']],
+      language: {
+        search: "Search subjects:"
+      }
+    });
+
+    {% if role == 'teacher' %}
+    // Class Performance Chart
+    var classPerformanceOptions = {
+      series: [{
+        name: 'Average Score',
+        data: [
+          {% for class in analytics.class_performance %}
+                {{ class.average_score |default: 0 | floatformat: 1 }},
+      {% endfor %}
+            ]
+        }],
+    chart: {
+    type: 'bar',
+    height: 350
+  },
+    xaxis: {
+    categories: [
+      {% for class in analytics.class_performance %}
+                '{{ class.class_id__name }}',
+    {% endfor %}
+            ]
+        },
+    title: {
+    text: 'Class Performance Comparison'
+  },
+    colors: ['#1f77b4']
+    };
+  var classPerformanceChart = new ApexCharts(document.querySelector("#classPerformanceChart"), classPerformanceOptions);
+  classPerformanceChart.render();
+
+  // Grade Distribution Chart
+  var gradeDistributionOptions = {
+    series: [
+      {% for grade, count in analytics.grading_distribution %}
+  { { count } },
+  {% endfor %}
+        ],
+  chart: {
+    type: 'donut',
+      height: 350
+  },
+  labels: [
+    {% for grade, count in analytics.grading_distribution %}
+  '{{ grade }}',
+    {% endfor %}
+        ],
+  title: {
+    text: 'Grade Distribution'
+  }
+    };
+  var gradeDistributionChart = new ApexCharts(document.querySelector("#gradeDistributionChart"), gradeDistributionOptions);
+  gradeDistributionChart.render();
+
+  {% elif role == 'student' %}
+  // Performance Trend Chart
+  var performanceTrendOptions = {
+    series: [{
+      name: 'Score %',
+      data: [
+        {% for trend in analytics.recent_trend %}
+                {{ trend.percentage | floatformat: 1 }},
+    {% endfor %}
+            ]
+        }],
+  chart: {
+    type: 'line',
+      height: 350
+  },
+  xaxis: {
+    categories: [
+      {% for trend in analytics.recent_trend %}
+  '{{ trend.assignment_title|truncatechars:15 }}',
+    {% endfor %}
+            ]
+        },
+  title: {
+    text: 'Recent Performance Trend'
+  },
+  stroke: {
+    curve: 'smooth'
+  }
+    };
+  var performanceTrendChart = new ApexCharts(document.querySelector("#performanceTrendChart"), performanceTrendOptions);
+  performanceTrendChart.render();
+
+  // Student Grade Chart
+  var studentGradeOptions = {
+    series: [
+      {% for grade, count in analytics.grade_distribution.items %}
+  { { count } },
+  {% endfor %}
+        ],
+  chart: {
+    type: 'pie',
+      height: 350
+  },
+  labels: [
+    {% for grade, count in analytics.grade_distribution.items %}
+  '{{ grade }}',
+    {% endfor %}
+        ],
+  title: {
+    text: 'Grade Distribution'
+  }
+    };
+  var studentGradeChart = new ApexCharts(document.querySelector("#studentGradeChart"), studentGradeOptions);
+  studentGradeChart.render();
+
+  {% elif role == 'admin' %}
+  // System Trends Chart
+  var systemTrendsOptions = {
+    series: [{
+      name: 'Assignments',
+      data: [
+        {% for trend in analytics.monthly_trends %}
+                {{ trend.assignment_count }},
+    {% endfor %}
+            ]
+        }, {
+    name: 'Submissions',
+      data: [
+        {% for trend in analytics.monthly_trends %}
+  { { trend.submission_count } },
+  {% endfor %}
+            ]
+        }],
+  chart: {
+    type: 'line',
+      height: 350
+  },
+  xaxis: {
+    categories: [
+      {% for trend in analytics.monthly_trends %}
+  '{{ trend.month|date:"M Y" }}',
+    {% endfor %}
+            ]
+        },
+  title: {
+    text: 'System Activity Over Time'
+  }
+    };
+  var systemTrendsChart = new ApexCharts(document.querySelector("#systemTrendsChart"), systemTrendsOptions);
+  systemTrendsChart.render();
+
+  // Section Performance Chart
+  var sectionPerformanceOptions = {
+    series: [{
+      name: 'Average Score',
+      data: [
+        {% for section in analytics.section_analysis %}
+                {{ section.average_score |default: 0 | floatformat: 1 }},
+    {% endfor %}
+            ]
+        }],
+  chart: {
+    type: 'column',
+      height: 350
+  },
+  xaxis: {
+    categories: [
+      {% for section in analytics.section_analysis %}
+  '{{ section.class_id__grade__section__name }}',
+    {% endfor %}
+            ]
+        },
+  title: {
+    text: 'Performance by Section'
+  }
+    };
+  var sectionPerformanceChart = new ApexCharts(document.querySelector("#sectionPerformanceChart"), sectionPerformanceOptions);
+  sectionPerformanceChart.render();
+  {% endif %}
+});
+</script>
+{% endblock %}

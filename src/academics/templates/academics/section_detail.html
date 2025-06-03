@@ -1,0 +1,414 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ section.name }} - Section Details{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-0">{{ section.name }}</h2>
+          <p class="text-muted mb-0">Section Overview & Grade Management</p>
+        </div>
+        <div>
+          <a href="{% url 'academics:section-list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Sections
+          </a>
+          <a href="{% url 'academics:section-hierarchy' section.id %}" class="btn btn-info">
+            <i class="fas fa-sitemap"></i> View Hierarchy
+          </a>
+          {% if perms.academics.change_section %}
+          <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editSectionModal">
+            <i class="fas fa-edit"></i> Edit Section
+          </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section Overview -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-info-circle text-primary"></i> Section Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label fw-bold">Section Name</label>
+                <p class="form-control-plaintext">{{ section.name }}</p>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold">Department</label>
+                <p class="form-control-plaintext">
+                  {% if section.department %}
+                  <span class="badge bg-info">{{ section.department.name }}</span>
+                  {% else %}
+                  <span class="text-muted">Not assigned</span>
+                  {% endif %}
+                </p>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold">Order Sequence</label>
+                <p class="form-control-plaintext">{{ section.order_sequence }}</p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label fw-bold">Status</label>
+                <p class="form-control-plaintext">
+                  {% if section.is_active %}
+                  <span class="badge bg-success">Active</span>
+                  {% else %}
+                  <span class="badge bg-danger">Inactive</span>
+                  {% endif %}
+                </p>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold">Created</label>
+                <p class="form-control-plaintext">{{ section.created_at|date:"F d, Y" }}</p>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold">Last Updated</label>
+                <p class="form-control-plaintext">{{ section.updated_at|date:"F d, Y g:i A" }}</p>
+              </div>
+            </div>
+          </div>
+          {% if section.description %}
+          <div class="mb-3">
+            <label class="form-label fw-bold">Description</label>
+            <p class="form-control-plaintext">{{ section.description }}</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-chart-bar text-success"></i> Section Statistics
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if hierarchy %}
+          <div class="row text-center mb-3">
+            <div class="col-4">
+              <h4 class="text-primary mb-0">{{ hierarchy.statistics.total_grades }}</h4>
+              <small class="text-muted">Grades</small>
+            </div>
+            <div class="col-4">
+              <h4 class="text-info mb-0">{{ hierarchy.statistics.total_classes }}</h4>
+              <small class="text-muted">Classes</small>
+            </div>
+            <div class="col-4">
+              <h4 class="text-success mb-0">{{ hierarchy.statistics.total_students }}</h4>
+              <small class="text-muted">Students</small>
+            </div>
+          </div>
+          <div id="sectionStatsChart"></div>
+          {% else %}
+          <div class="text-center text-muted">
+            <i class="fas fa-chart-bar fa-3x mb-3"></i>
+            <p>No data available</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grades in Section -->
+  {% if hierarchy %}
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-graduation-cap text-primary"></i> Grades in {{ section.name }}
+          </h5>
+          {% if perms.academics.add_grade %}
+          <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addGradeModal">
+            <i class="fas fa-plus"></i> Add Grade
+          </button>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="gradesTable" class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Grade Name</th>
+                  <th>Order</th>
+                  <th>Age Range</th>
+                  <th>Classes</th>
+                  <th>Students</th>
+                  <th>Department</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for grade in hierarchy.grades %}
+                <tr>
+                  <td>
+                    <strong>{{ grade.name }}</strong>
+                    {% if grade.description %}
+                    <br><small class="text-muted">{{ grade.description }}</small>
+                    {% endif %}
+                  </td>
+                  <td>{{ grade.order_sequence }}</td>
+                  <td>
+                    {% if grade.minimum_age and grade.maximum_age %}
+                    {{ grade.minimum_age }}-{{ grade.maximum_age }} years
+                    {% elif grade.minimum_age %}
+                    {{ grade.minimum_age }}+ years
+                    {% elif grade.maximum_age %}
+                    ≤{{ grade.maximum_age }} years
+                    {% else %}
+                    <span class="text-muted">Not specified</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="badge bg-info">{{ grade.classes_count }}</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-success">{{ grade.students_count }}</span>
+                  </td>
+                  <td>
+                    {% if grade.department %}
+                    <span class="badge bg-secondary">{{ grade.department.name }}</span>
+                    {% else %}
+                    <span class="text-muted">None</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <a href="{% url 'academics:grade-detail' grade.id %}" class="btn btn-outline-primary">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      {% if perms.academics.change_grade %}
+                      <button class="btn btn-outline-warning" onclick="editGrade({{ grade.id }})">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="7" class="text-center text-muted">No grades in this section</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Edit Section Modal -->
+{% if perms.academics.change_section %}
+<div class="modal fade" id="editSectionModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Section</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" id="editSectionForm">
+        <div class="modal-body">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="name" class="form-label">Section Name</label>
+            <input type="text" class="form-control" id="name" name="name" value="{{ section.name }}" required>
+          </div>
+          <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <textarea class="form-control" id="description" name="description"
+              rows="3">{{ section.description }}</textarea>
+          </div>
+          <div class="mb-3">
+            <label for="department" class="form-label">Department</label>
+            <select class="form-select" id="department" name="department">
+              <option value="">Select Department</option>
+              <!-- Options will be populated via AJAX -->
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="order_sequence" class="form-label">Order Sequence</label>
+            <input type="number" class="form-control" id="order_sequence" name="order_sequence"
+              value="{{ section.order_sequence }}" min="1">
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
+              {% if section.is_active %}checked{% endif %}>
+            <label class="form-check-label" for="is_active">Active Section</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Update Section</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Add Grade Modal -->
+{% if perms.academics.add_grade %}
+<div class="modal fade" id="addGradeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add New Grade</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'api:grades-create' %}" id="addGradeForm">
+        <div class="modal-body">
+          {% csrf_token %}
+          <input type="hidden" name="section" value="{{ section.id }}">
+          <div class="mb-3">
+            <label for="grade_name" class="form-label">Grade Name</label>
+            <input type="text" class="form-control" id="grade_name" name="name" placeholder="e.g., Grade 1" required>
+          </div>
+          <div class="mb-3">
+            <label for="grade_description" class="form-label">Description</label>
+            <textarea class="form-control" id="grade_description" name="description" rows="2"></textarea>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="minimum_age" class="form-label">Minimum Age</label>
+                <input type="number" class="form-control" id="minimum_age" name="minimum_age" min="3" max="25">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="maximum_age" class="form-label">Maximum Age</label>
+                <input type="number" class="form-control" id="maximum_age" name="maximum_age" min="3" max="25">
+              </div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="grade_department" class="form-label">Department</label>
+            <select class="form-select" id="grade_department" name="department">
+              <option value="">Select Department (Optional)</option>
+              <!-- Options will be populated via AJAX -->
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Grade</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable for grades
+    $('#gradesTable').DataTable({
+      responsive: true,
+      order: [[1, 'asc']], // Order by sequence
+      columnDefs: [
+        { orderable: false, targets: [-1] } // Actions column not orderable
+      ]
+    });
+
+    {% if hierarchy %}
+    // Section Statistics Chart
+    const gradeData = [
+      {% for grade in hierarchy.grades %}
+        {
+      name: '{{ grade.name }}',
+      classes: {{ grade.classes_count }},
+    students: {{ grade.students_count }}
+        }{% if not forloop.last %}, {% endif %}
+  {% endfor %}
+    ];
+
+  const options = {
+    series: [{
+      name: 'Classes',
+      data: gradeData.map(g => g.classes)
+    }, {
+      name: 'Students',
+      data: gradeData.map(g => g.students)
+    }],
+    chart: {
+      type: 'bar',
+      height: 300
+    },
+    plotOptions: {
+      bar: {
+        horizontal: false,
+        columnWidth: '55%',
+        endingShape: 'rounded'
+      },
+    },
+    dataLabels: {
+      enabled: false
+    },
+    stroke: {
+      show: true,
+      width: 2,
+      colors: ['transparent']
+    },
+    xaxis: {
+      categories: gradeData.map(g => g.name)
+    },
+    yaxis: {
+      title: {
+        text: 'Count'
+      }
+    },
+    fill: {
+      opacity: 1
+    },
+    tooltip: {
+      y: {
+        formatter: function (val) {
+          return val
+        }
+      }
+    },
+    colors: ['#0d6efd', '#198754']
+  };
+
+  const chart = new ApexCharts(document.querySelector("#sectionStatsChart"), options);
+  chart.render();
+  {% endif %}
+});
+
+  function editGrade(gradeId) {
+    // Implement grade editing functionality
+    window.location.href = `/academics/grades/${gradeId}/`;
+  }
+</script>
+{% endblock %}

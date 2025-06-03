@@ -1,0 +1,584 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Departments{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<link href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0 text-gray-800">
+        <i class="fas fa-building me-2"></i>Departments
+      </h1>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item"><a href="{% url 'academics:home' %}">Academics</a></li>
+          <li class="breadcrumb-item active">Departments</li>
+        </ol>
+      </nav>
+    </div>
+    <div class="btn-group" role="group">
+      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createDepartmentModal">
+        <i class="fas fa-plus me-1"></i>Add Department
+      </button>
+      <button type="button" class="btn btn-outline-primary" onclick="showDepartmentStats()">
+        <i class="fas fa-chart-bar me-1"></i>Statistics
+      </button>
+    </div>
+  </div>
+
+  <!-- Search and Filter -->
+  <div class="card shadow mb-4">
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <div class="input-group">
+            <span class="input-group-text">
+              <i class="fas fa-search"></i>
+            </span>
+            <input type="text" class="form-control" id="searchDepartments" placeholder="Search departments...">
+          </div>
+        </div>
+        <div class="col-md-3 mb-3">
+          <select class="form-select" id="filterStatus">
+            <option value="">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+        <div class="col-md-3 mb-3">
+          <select class="form-select" id="filterHead">
+            <option value="">All Departments</option>
+            <option value="with-head">With Department Head</option>
+            <option value="without-head">Without Department Head</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Departments Grid -->
+  <div class="row" id="departmentsGrid">
+    {% for department in departments %}
+    <div class="col-lg-4 col-md-6 mb-4 department-card"
+      data-status="{% if department.is_active %}active{% else %}inactive{% endif %}"
+      data-head="{% if department.head %}with-head{% else %}without-head{% endif %}">
+      <div class="card h-100 shadow-sm border-left-primary">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-building me-2"></i>{{ department.name }}
+          </h6>
+          <div class="dropdown">
+            <button class="btn btn-link text-muted" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-ellipsis-v"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li>
+                <a class="dropdown-item" href="{% url 'academics:department-detail' department.pk %}">
+                  <i class="fas fa-eye me-2"></i>View Details
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" onclick="editDepartment({{ department.id }})">
+                  <i class="fas fa-edit me-2"></i>Edit
+                </a>
+              </li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li>
+                <a class="dropdown-item text-danger" href="#" onclick="deleteDepartment({{ department.id }})">
+                  <i class="fas fa-trash me-2"></i>Delete
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="card-body">
+          <p class="card-text text-muted mb-3">
+            {{ department.description|default:"No description available"|truncatechars:100 }}
+          </p>
+
+          <!-- Department Head -->
+          <div class="mb-3">
+            <strong class="text-muted">Department Head:</strong>
+            <div class="mt-1">
+              {% if department.head %}
+              <div class="d-flex align-items-center">
+                <i class="fas fa-user-tie text-info me-2"></i>
+                <span>{{ department.head.user.first_name }} {{ department.head.user.last_name }}</span>
+              </div>
+              <small class="text-muted">{{ department.head.employee_id }}</small>
+              {% else %}
+              <span class="text-muted">
+                <i class="fas fa-user-slash me-2"></i>Not assigned
+              </span>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Statistics -->
+          <div class="row text-center">
+            <div class="col-4">
+              <div class="h5 mb-0 text-primary">{{ department.get_teachers_count }}</div>
+              <small class="text-muted">Teachers</small>
+            </div>
+            <div class="col-4">
+              <div class="h5 mb-0 text-success">{{ department.get_subjects_count }}</div>
+              <small class="text-muted">Subjects</small>
+            </div>
+            <div class="col-4">
+              <div class="h5 mb-0 text-info">{{ department.sections.count }}</div>
+              <small class="text-muted">Sections</small>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer d-flex justify-content-between align-items-center">
+          <div>
+            {% if department.is_active %}
+            <span class="badge bg-success">
+              <i class="fas fa-check me-1"></i>Active
+            </span>
+            {% else %}
+            <span class="badge bg-danger">
+              <i class="fas fa-times me-1"></i>Inactive
+            </span>
+            {% endif %}
+          </div>
+          <small class="text-muted">
+            <i class="fas fa-calendar me-1"></i>
+            Created {{ department.creation_date|date:"M d, Y" }}
+          </small>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-body text-center py-5">
+          <i class="fas fa-building fa-4x text-muted mb-3"></i>
+          <h4 class="text-muted">No Departments Found</h4>
+          <p class="text-muted mb-4">Create your first department to organize academic activities</p>
+          <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createDepartmentModal">
+            <i class="fas fa-plus me-2"></i>Create First Department
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Department Statistics (Initially Hidden) -->
+  <div class="card shadow mt-4" id="statisticsCard" style="display: none;">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">
+        <i class="fas fa-chart-bar me-2"></i>Department Statistics
+      </h6>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-3 text-center">
+          <div class="h4 mb-0 text-primary">{{ departments.count }}</div>
+          <div class="text-xs text-muted">Total Departments</div>
+        </div>
+        <div class="col-md-3 text-center">
+          <div class="h4 mb-0 text-success">
+            {% with active_count=0 %}
+            {% for dept in departments %}
+            {% if dept.is_active %}
+            {% with active_count=active_count|add:1 %}
+            {% endwith %}
+            {% endif %}
+            {% endfor %}
+            {{ active_count }}
+            {% endwith %}
+          </div>
+          <div class="text-xs text-muted">Active Departments</div>
+        </div>
+        <div class="col-md-3 text-center">
+          <div class="h4 mb-0 text-info">
+            {% with head_count=0 %}
+            {% for dept in departments %}
+            {% if dept.head %}
+            {% with head_count=head_count|add:1 %}
+            {% endwith %}
+            {% endif %}
+            {% endfor %}
+            {{ head_count }}
+            {% endwith %}
+          </div>
+          <div class="text-xs text-muted">With Department Heads</div>
+        </div>
+        <div class="col-md-3 text-center">
+          <div class="h4 mb-0 text-warning">
+            {% with total_teachers=0 %}
+            {% for dept in departments %}
+            {% with total_teachers=total_teachers|add:dept.get_teachers_count %}
+            {% endwith %}
+            {% endfor %}
+            {{ total_teachers }}
+            {% endwith %}
+          </div>
+          <div class="text-xs text-muted">Total Teachers</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Department Modal -->
+<div class="modal fade" id="createDepartmentModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-plus me-2"></i>Create New Department
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="createDepartmentForm">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-8 mb-3">
+              <label for="departmentName" class="form-label">
+                Department Name <span class="text-danger">*</span>
+              </label>
+              <input type="text" class="form-control" id="departmentName" name="name"
+                placeholder="e.g., Mathematics, Science, English" required>
+              <div class="form-text">Enter a descriptive name for the department</div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="form-check form-switch mt-4">
+                <input class="form-check-input" type="checkbox" id="departmentIsActive" name="is_active" checked>
+                <label class="form-check-label" for="departmentIsActive">
+                  <strong>Active Department</strong>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="departmentDescription" class="form-label">Description</label>
+            <textarea class="form-control" id="departmentDescription" name="description" rows="3"
+              placeholder="Describe the department's purpose and responsibilities"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="departmentHead" class="form-label">Department Head (Optional)</label>
+            <select class="form-select" id="departmentHead" name="head">
+              <option value="">Select Department Head</option>
+              <!-- Options populated by JavaScript -->
+            </select>
+            <div class="form-text">Assign a teacher as the department head</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-1"></i>Create Department
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Department Modal -->
+<div class="modal fade" id="editDepartmentModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-edit me-2"></i>Edit Department
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="editDepartmentForm">
+        {% csrf_token %}
+        <input type="hidden" id="editDepartmentId" name="department_id">
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-8 mb-3">
+              <label for="editDepartmentName" class="form-label">
+                Department Name <span class="text-danger">*</span>
+              </label>
+              <input type="text" class="form-control" id="editDepartmentName" name="name" required>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="form-check form-switch mt-4">
+                <input class="form-check-input" type="checkbox" id="editDepartmentIsActive" name="is_active">
+                <label class="form-check-label" for="editDepartmentIsActive">
+                  <strong>Active Department</strong>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="editDepartmentDescription" class="form-label">Description</label>
+            <textarea class="form-control" id="editDepartmentDescription" name="description" rows="3"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="editDepartmentHead" class="form-label">Department Head (Optional)</label>
+            <select class="form-select" id="editDepartmentHead" name="head">
+              <option value="">Select Department Head</option>
+              <!-- Options populated by JavaScript -->
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-1"></i>Update Department
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Load teachers for department head selection
+    loadTeachers();
+
+    // Search functionality
+    $('#searchDepartments').on('input', function () {
+      filterDepartments();
+    });
+
+    // Filter functionality
+    $('#filterStatus, #filterHead').on('change', function () {
+      filterDepartments();
+    });
+
+    // Create department form submission
+    $('#createDepartmentForm').on('submit', function (e) {
+      e.preventDefault();
+      createDepartment();
+    });
+
+    // Edit department form submission
+    $('#editDepartmentForm').on('submit', function (e) {
+      e.preventDefault();
+      updateDepartment();
+    });
+  });
+
+  function loadTeachers() {
+    fetch('/api/teachers/?status=active')
+      .then(response => response.json())
+      .then(data => {
+        const selects = ['#departmentHead', '#editDepartmentHead'];
+        selects.forEach(selector => {
+          const select = $(selector);
+          select.empty().append('<option value="">Select Department Head</option>');
+          data.forEach(teacher => {
+            select.append(`<option value="${teacher.id}">${teacher.user.first_name} ${teacher.user.last_name} (${teacher.employee_id})</option>`);
+          });
+        });
+      })
+      .catch(error => console.error('Error loading teachers:', error));
+  }
+
+  function filterDepartments() {
+    const searchTerm = $('#searchDepartments').val().toLowerCase();
+    const statusFilter = $('#filterStatus').val();
+    const headFilter = $('#filterHead').val();
+
+    $('.department-card').each(function () {
+      const $card = $(this);
+      const cardText = $card.text().toLowerCase();
+      const cardStatus = $card.data('status');
+      const cardHead = $card.data('head');
+
+      let showCard = true;
+
+      // Search filter
+      if (searchTerm && !cardText.includes(searchTerm)) {
+        showCard = false;
+      }
+
+      // Status filter
+      if (statusFilter && cardStatus !== statusFilter) {
+        showCard = false;
+      }
+
+      // Head filter
+      if (headFilter && cardHead !== headFilter) {
+        showCard = false;
+      }
+
+      $card.toggle(showCard);
+    });
+  }
+
+  function showDepartmentStats() {
+    $('#statisticsCard').slideToggle();
+  }
+
+  function createDepartment() {
+    const formData = new FormData(document.getElementById('createDepartmentForm'));
+
+    fetch('/api/academics/departments/', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          $('#createDepartmentModal').modal('hide');
+          location.reload();
+        } else {
+          alert('Error creating department: ' + (data.message || 'Unknown error'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while creating the department');
+      });
+  }
+
+  function editDepartment(departmentId) {
+    // Fetch department data and populate edit modal
+    fetch(`/api/academics/departments/${departmentId}/`)
+      .then(response => response.json())
+      .then(data => {
+        $('#editDepartmentId').val(data.id);
+        $('#editDepartmentName').val(data.name);
+        $('#editDepartmentDescription').val(data.description);
+        $('#editDepartmentIsActive').prop('checked', data.is_active);
+
+        if (data.head) {
+          $('#editDepartmentHead').val(data.head.id);
+        }
+
+        $('#editDepartmentModal').modal('show');
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error loading department data');
+      });
+  }
+
+  function updateDepartment() {
+    const departmentId = $('#editDepartmentId').val();
+    const formData = new FormData(document.getElementById('editDepartmentForm'));
+
+    fetch(`/api/academics/departments/${departmentId}/`, {
+      method: 'PUT',
+      body: formData,
+      headers: {
+        'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          $('#editDepartmentModal').modal('hide');
+          location.reload();
+        } else {
+          alert('Error updating department: ' + (data.message || 'Unknown error'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating the department');
+      });
+  }
+
+  function deleteDepartment(departmentId) {
+    if (confirm('Are you sure you want to delete this department? This action cannot be undone.')) {
+      fetch(`/api/academics/departments/${departmentId}/`, {
+        method: 'DELETE',
+        headers: {
+          'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+        }
+      })
+        .then(response => {
+          if (response.ok) {
+            location.reload();
+          } else {
+            return response.json().then(data => {
+              throw new Error(data.message || 'Delete failed');
+            });
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error deleting department: ' + error.message);
+        });
+    }
+  }
+</script>
+
+<style>
+  .border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+  }
+
+  .card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+  }
+
+  .department-card {
+    transition: all 0.3s ease;
+  }
+
+  .department-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .department-card .card {
+    border: 1px solid #e3e6f0;
+  }
+
+  .department-card .card:hover {
+    box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45) !important;
+  }
+
+  .text-xs {
+    font-size: 0.75rem;
+  }
+
+  .form-check-input:checked {
+    background-color: #4e73df;
+    border-color: #4e73df;
+  }
+
+  .btn-link {
+    border: none;
+    background: none;
+    padding: 0.25rem;
+  }
+
+  .dropdown-menu {
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    border: 1px solid #e3e6f0;
+  }
+
+  @media (max-width: 768px) {
+    .department-card {
+      margin-bottom: 1rem;
+    }
+
+    .col-4 {
+      margin-bottom: 1rem;
+    }
+  }
+</style>
+{% endblock %}

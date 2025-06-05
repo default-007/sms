@@ -1,0 +1,520 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Rooms{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/css/dataTables.bootstrap5.min.css"
+  rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">Room Management</h1>
+          <p class="text-muted">Manage classrooms, laboratories, and other facilities</p>
+        </div>
+        <div class="btn-group">
+          <a href="{% url 'scheduling:room_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Room
+          </a>
+          <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="fas fa-filter"></i> Filter
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item filter-link" href="#" data-filter="all">All Rooms</a></li>
+              <li><a class="dropdown-item filter-link" href="#" data-filter="classroom">Classrooms</a></li>
+              <li><a class="dropdown-item filter-link" href="#" data-filter="laboratory">Laboratories</a></li>
+              <li><a class="dropdown-item filter-link" href="#" data-filter="computer_lab">Computer Labs</a></li>
+              <li><a class="dropdown-item filter-link" href="#" data-filter="gymnasium">Gymnasium</a></li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li><a class="dropdown-item filter-link" href="#" data-filter="available">Available</a></li>
+              <li><a class="dropdown-item filter-link" href="#" data-filter="maintenance">Under Maintenance</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h4 class="card-title text-primary">{{ rooms|length }}</h4>
+          <p class="card-text">Total Rooms</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h4 class="card-title text-success">
+            {% for room in rooms %}{% if room.is_available %}1{% endif %}{% endfor %}
+          </h4>
+          <p class="card-text">Available</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h4 class="card-title text-info">
+            {{ room_types|length }}
+          </h4>
+          <p class="card-text">Room Types</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h4 class="card-title text-warning">
+            {{ buildings|length }}
+          </h4>
+          <p class="card-text">Buildings</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search and Filters -->
+  <div class="row mb-3">
+    <div class="col-md-4">
+      <div class="input-group">
+        <span class="input-group-text">
+          <i class="fas fa-search"></i>
+        </span>
+        <input type="text" id="searchInput" class="form-control" placeholder="Search rooms...">
+      </div>
+    </div>
+    <div class="col-md-3">
+      <select id="buildingFilter" class="form-select">
+        <option value="">All Buildings</option>
+        {% for building in buildings %}
+        <option value="{{ building }}">{{ building }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <select id="roomTypeFilter" class="form-select">
+        <option value="">All Types</option>
+        {% for room_type in room_types %}
+        <option value="{{ room_type }}">{{ room_type|title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button type="button" class="btn btn-outline-secondary w-100" id="resetFilters">
+        <i class="fas fa-undo"></i> Reset
+      </button>
+    </div>
+  </div>
+
+  <!-- Rooms Grid/List -->
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="btn-group btn-group-sm" role="group">
+          <input type="radio" class="btn-check" name="viewMode" id="gridView" checked>
+          <label class="btn btn-outline-primary" for="gridView">
+            <i class="fas fa-th-large"></i> Grid
+          </label>
+
+          <input type="radio" class="btn-check" name="viewMode" id="listView">
+          <label class="btn btn-outline-primary" for="listView">
+            <i class="fas fa-list"></i> List
+          </label>
+        </div>
+        <span class="text-muted" id="roomCount">{{ rooms|length }} rooms</span>
+      </div>
+
+      <!-- Grid View -->
+      <div id="roomsGrid" class="row">
+        {% for room in rooms %}
+        <div class="col-lg-4 col-md-6 mb-4 room-card" data-room-type="{{ room.room_type }}"
+          data-building="{{ room.building }}" data-available="{{ room.is_available|yesno:'true,false' }}"
+          data-search="{{ room.number|lower }} {{ room.name|lower }} {{ room.building|lower }}">
+          <div class="card h-100 {% if not room.is_available %}border-warning{% endif %}">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="card-title mb-0">
+                  <strong>{{ room.number }}</strong>
+                </h6>
+                <small class="text-muted">{{ room.building }}{% if room.floor %} - Floor
+                  {{ room.floor }}{% endif %}</small>
+              </div>
+              <div>
+                {% if room.is_available %}
+                <span class="badge bg-success">Available</span>
+                {% else %}
+                <span class="badge bg-warning text-dark">Maintenance</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="card-body">
+              <h6 class="card-subtitle mb-2">{{ room.name }}</h6>
+
+              <div class="row mb-3">
+                <div class="col-6">
+                  <small class="text-muted">Type:</small>
+                  <br>
+                  <span class="badge bg-primary">{{ room.get_room_type_display }}</span>
+                </div>
+                <div class="col-6">
+                  <small class="text-muted">Capacity:</small>
+                  <br>
+                  <span class="fw-bold">{{ room.capacity }} students</span>
+                </div>
+              </div>
+
+              {% if room.equipment %}
+              <div class="mb-3">
+                <small class="text-muted">Equipment:</small>
+                <div class="mt-1">
+                  {% for equipment in room.equipment|slice:":3" %}
+                  <span class="badge bg-light text-dark me-1">{{ equipment|title }}</span>
+                  {% endfor %}
+                  {% if room.equipment|length > 3 %}
+                  <span class="badge bg-secondary">+{{ room.equipment|length|add:"-3" }} more</span>
+                  {% endif %}
+                </div>
+              </div>
+              {% endif %}
+
+              {% if room.maintenance_notes %}
+              <div class="alert alert-warning py-2">
+                <small><i class="fas fa-wrench"></i> {{ room.maintenance_notes|truncatechars:50 }}</small>
+              </div>
+              {% endif %}
+            </div>
+            <div class="card-footer">
+              <div class="btn-group w-100">
+                <a href="{% url 'scheduling:room_detail' room.pk %}" class="btn btn-outline-primary btn-sm">
+                  <i class="fas fa-eye"></i> View
+                </a>
+                <a href="{% url 'scheduling:room_utilization' room.pk %}" class="btn btn-outline-info btn-sm">
+                  <i class="fas fa-chart-bar"></i> Usage
+                </a>
+                <a href="{% url 'scheduling:room_edit' room.pk %}" class="btn btn-outline-warning btn-sm">
+                  <i class="fas fa-edit"></i> Edit
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body text-center py-5">
+              <i class="fas fa-door-open fa-4x text-muted mb-3"></i>
+              <h4 class="text-muted">No Rooms Found</h4>
+              <p class="text-muted">No rooms match your current filters.</p>
+              <a href="{% url 'scheduling:room_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add First Room
+              </a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- List View (Hidden by default) -->
+      <div id="roomsList" class="d-none">
+        <div class="card">
+          <div class="card-body">
+            <div class="table-responsive">
+              <table id="roomsTable" class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Room</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Building</th>
+                    <th>Capacity</th>
+                    <th>Status</th>
+                    <th>Equipment</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for room in rooms %}
+                  <tr class="room-row" data-room-type="{{ room.room_type }}" data-building="{{ room.building }}"
+                    data-available="{{ room.is_available|yesno:'true,false' }}"
+                    data-search="{{ room.number|lower }} {{ room.name|lower }} {{ room.building|lower }}">
+                    <td>
+                      <strong>{{ room.number }}</strong>
+                      {% if room.floor %}
+                      <br><small class="text-muted">Floor {{ room.floor }}</small>
+                      {% endif %}
+                    </td>
+                    <td>{{ room.name }}</td>
+                    <td>
+                      <span class="badge bg-primary">{{ room.get_room_type_display }}</span>
+                    </td>
+                    <td>{{ room.building|default:"-" }}</td>
+                    <td>{{ room.capacity }}</td>
+                    <td>
+                      {% if room.is_available %}
+                      <span class="badge bg-success">Available</span>
+                      {% else %}
+                      <span class="badge bg-warning text-dark">Maintenance</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if room.equipment %}
+                      {% for equipment in room.equipment|slice:":2" %}
+                      <span class="badge bg-light text-dark">{{ equipment|title }}</span>
+                      {% endfor %}
+                      {% if room.equipment|length > 2 %}
+                      <span class="badge bg-secondary">+{{ room.equipment|length|add:"-2" }}</span>
+                      {% endif %}
+                      {% else %}
+                      <span class="text-muted">None</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <div class="btn-group btn-group-sm">
+                        <a href="{% url 'scheduling:room_detail' room.pk %}" class="btn btn-outline-primary"
+                          data-bs-toggle="tooltip" title="View Details">
+                          <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{% url 'scheduling:room_utilization' room.pk %}" class="btn btn-outline-info"
+                          data-bs-toggle="tooltip" title="View Utilization">
+                          <i class="fas fa-chart-bar"></i>
+                        </a>
+                        <a href="{% url 'scheduling:room_edit' room.pk %}" class="btn btn-outline-warning"
+                          data-bs-toggle="tooltip" title="Edit">
+                          <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'scheduling:room_delete' room.pk %}" class="btn btn-outline-danger"
+                          data-bs-toggle="tooltip" title="Delete" onclick="return confirm('Are you sure?')">
+                          <i class="fas fa-trash"></i>
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Room Quick View Modal -->
+<div class="modal fade" id="roomQuickView" tabindex="-1" aria-labelledby="roomQuickViewLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="roomQuickViewLabel">Room Quick View</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="roomQuickViewBody">
+        <!-- Content loaded dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <a href="#" id="roomQuickViewEdit" class="btn btn-primary">
+          <i class="fas fa-edit"></i> Edit Room
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    let currentFilter = 'all';
+
+    // Initialize DataTable for list view
+    $('#roomsTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[0, 'asc']],
+      columnDefs: [
+        { orderable: false, targets: [7] }
+      ]
+    });
+
+    // View mode toggle
+    $('input[name="viewMode"]').change(function () {
+      if ($('#gridView').is(':checked')) {
+        $('#roomsGrid').removeClass('d-none');
+        $('#roomsList').addClass('d-none');
+      } else {
+        $('#roomsGrid').addClass('d-none');
+        $('#roomsList').removeClass('d-none');
+      }
+    });
+
+    // Search functionality
+    $('#searchInput').on('input', function () {
+      var searchTerm = $(this).val().toLowerCase();
+      filterRooms();
+    });
+
+    // Filter dropdowns
+    $('#buildingFilter, #roomTypeFilter').change(function () {
+      filterRooms();
+    });
+
+    // Quick filter links
+    $('.filter-link').click(function (e) {
+      e.preventDefault();
+      currentFilter = $(this).data('filter');
+      filterRooms();
+
+      // Update active state
+      $('.filter-link').removeClass('active');
+      $(this).addClass('active');
+    });
+
+    // Reset filters
+    $('#resetFilters').click(function () {
+      $('#searchInput').val('');
+      $('#buildingFilter, #roomTypeFilter').val('');
+      currentFilter = 'all';
+      $('.filter-link').removeClass('active');
+      $('.filter-link[data-filter="all"]').addClass('active');
+      filterRooms();
+    });
+
+    function filterRooms() {
+      var searchTerm = $('#searchInput').val().toLowerCase();
+      var buildingFilter = $('#buildingFilter').val();
+      var roomTypeFilter = $('#roomTypeFilter').val();
+      var visibleCount = 0;
+
+      $('.room-card, .room-row').each(function () {
+        var $item = $(this);
+        var searchData = $item.data('search') || '';
+        var roomType = $item.data('room-type');
+        var building = $item.data('building');
+        var isAvailable = $item.data('available');
+
+        var show = true;
+
+        // Search filter
+        if (searchTerm && searchData.indexOf(searchTerm) === -1) {
+          show = false;
+        }
+
+        // Building filter
+        if (buildingFilter && building !== buildingFilter) {
+          show = false;
+        }
+
+        // Room type filter
+        if (roomTypeFilter && roomType !== roomTypeFilter) {
+          show = false;
+        }
+
+        // Quick filters
+        if (currentFilter === 'available' && !isAvailable) {
+          show = false;
+        } else if (currentFilter === 'maintenance' && isAvailable) {
+          show = false;
+        } else if (currentFilter !== 'all' && currentFilter !== 'available' && currentFilter !== 'maintenance') {
+          if (roomType !== currentFilter) {
+            show = false;
+          }
+        }
+
+        if (show) {
+          $item.show();
+          visibleCount++;
+        } else {
+          $item.hide();
+        }
+      });
+
+      // Update count
+      $('#roomCount').text(visibleCount + ' rooms');
+    }
+
+    // Room quick view
+    $(document).on('click', '.btn-outline-primary[href*="room_detail"]', function (e) {
+      if (e.ctrlKey || e.metaKey) {
+        return; // Allow normal navigation with Ctrl/Cmd+click
+      }
+
+      e.preventDefault();
+      var roomUrl = $(this).attr('href');
+      var roomId = roomUrl.split('/').slice(-2, -1)[0];
+
+      // Load room details
+      loadRoomQuickView(roomId, roomUrl);
+    });
+
+    function loadRoomQuickView(roomId, editUrl) {
+      $('#roomQuickView').modal('show');
+      $('#roomQuickViewEdit').attr('href', editUrl.replace('/detail/', '/edit/'));
+
+      $('#roomQuickViewBody').html(`
+            <div class="text-center py-4">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading room details...</p>
+            </div>
+        `);
+
+      // Simulate loading room details (replace with actual AJAX call)
+      setTimeout(function () {
+        $('#roomQuickViewBody').html(`
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Room Information</h6>
+                        <p><strong>Room Number:</strong> R-101</p>
+                        <p><strong>Name:</strong> Physics Laboratory</p>
+                        <p><strong>Type:</strong> Laboratory</p>
+                        <p><strong>Building:</strong> Science Block</p>
+                        <p><strong>Floor:</strong> 1st Floor</p>
+                        <p><strong>Capacity:</strong> 30 students</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Equipment & Facilities</h6>
+                        <div class="mb-2">
+                            <span class="badge bg-primary me-1">Projector</span>
+                            <span class="badge bg-primary me-1">Whiteboard</span>
+                            <span class="badge bg-primary me-1">Lab Equipment</span>
+                        </div>
+                        <h6 class="mt-3">Current Status</h6>
+                        <span class="badge bg-success">Available</span>
+                        <div class="mt-3">
+                            <canvas id="roomUtilizationChart" width="300" height="150"></canvas>
+                        </div>
+                    </div>
+                </div>
+            `);
+      }, 1000);
+    }
+
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Set initial filter
+    $('.filter-link[data-filter="all"]').addClass('active');
+  });
+</script>
+{% endblock %}

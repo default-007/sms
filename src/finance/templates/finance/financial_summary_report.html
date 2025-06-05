@@ -1,0 +1,749 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Financial Summary Report - Finance{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Financial Summary Report</h2>
+          <p class="text-muted mb-0">Comprehensive financial overview and analytics</p>
+        </div>
+        <div>
+          <button class="btn btn-outline-primary me-2" id="refreshReport">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+          <div class="btn-group">
+            <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="fas fa-download"></i> Export
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#" onclick="exportReport('pdf')">
+                  <i class="fas fa-file-pdf"></i> PDF Report
+                </a></li>
+              <li><a class="dropdown-item" href="#" onclick="exportReport('excel')">
+                  <i class="fas fa-file-excel"></i> Excel Report
+                </a></li>
+              <li><a class="dropdown-item" href="#" onclick="exportReport('csv')">
+                  <i class="fas fa-file-csv"></i> CSV Data
+                </a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <form id="reportFilters" class="row g-3">
+            <div class="col-md-3">
+              <label for="academicYear" class="form-label">Academic Year</label>
+              <select class="form-select" id="academicYear" name="academic_year" required>
+                <option value="">Select Academic Year</option>
+                <!-- Populated via JavaScript -->
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="term" class="form-label">Term</label>
+              <select class="form-select" id="term" name="term">
+                <option value="">All Terms</option>
+                <!-- Populated via JavaScript -->
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="section" class="form-label">Section</label>
+              <select class="form-select" id="section" name="section">
+                <option value="">All Sections</option>
+                <!-- Populated via JavaScript -->
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="reportType" class="form-label">Report Type</label>
+              <select class="form-select" id="reportType" name="report_type">
+                <option value="summary">Summary Report</option>
+                <option value="detailed">Detailed Analysis</option>
+                <option value="comparison">Comparative Analysis</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-chart-bar"></i> Generate Report
+              </button>
+              <button type="reset" class="btn btn-outline-secondary ms-2">
+                <i class="fas fa-times"></i> Reset
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Metrics Cards -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-gradient-primary text-white h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h6 class="card-title mb-1">Total Revenue</h6>
+              <h3 class="mb-0" id="totalRevenue">$0.00</h3>
+              <small class="opacity-75">Expected: <span id="expectedRevenue">$0.00</span></small>
+            </div>
+            <div class="fs-1 opacity-50">
+              <i class="fas fa-dollar-sign"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-gradient-success text-white h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h6 class="card-title mb-1">Collection Rate</h6>
+              <h3 class="mb-0" id="collectionRate">0%</h3>
+              <small class="opacity-75">vs Last Term: <span id="collectionTrend">+0%</span></small>
+            </div>
+            <div class="fs-1 opacity-50">
+              <i class="fas fa-percentage"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-gradient-warning text-white h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h6 class="card-title mb-1">Outstanding</h6>
+              <h3 class="mb-0" id="totalOutstanding">$0.00</h3>
+              <small class="opacity-75">Overdue: <span id="overdueAmount">$0.00</span></small>
+            </div>
+            <div class="fs-1 opacity-50">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-gradient-info text-white h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h6 class="card-title mb-1">Active Students</h6>
+              <h3 class="mb-0" id="activeStudents">0</h3>
+              <small class="opacity-75">With Fees: <span id="studentsWithFees">0</span></small>
+            </div>
+            <div class="fs-1 opacity-50">
+              <i class="fas fa-users"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Collection Trends</h5>
+        </div>
+        <div class="card-body">
+          <div id="collectionTrendsChart" style="height: 350px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Payment Methods</h5>
+        </div>
+        <div class="card-body">
+          <div id="paymentMethodsChart" style="height: 350px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section Performance -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Section-wise Performance</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="sectionPerformanceTable" class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Section</th>
+                  <th>Total Students</th>
+                  <th>Expected Revenue</th>
+                  <th>Collected</th>
+                  <th>Outstanding</th>
+                  <th>Collection Rate</th>
+                  <th>Avg. per Student</th>
+                  <th>Performance</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Data populated via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fee Categories Analysis -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Fee Categories Analysis</h5>
+          <button class="btn btn-sm btn-outline-primary" onclick="toggleCategoryView()">
+            <i class="fas fa-exchange-alt"></i> Toggle View
+          </button>
+        </div>
+        <div class="card-body">
+          <div id="categoriesChartView">
+            <div id="feeCategoriesChart" style="height: 400px;"></div>
+          </div>
+          <div id="categoriesTableView" style="display: none;">
+            <div class="table-responsive">
+              <table id="categoriesTable" class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Expected</th>
+                    <th>Collected</th>
+                    <th>Outstanding</th>
+                    <th>Collection Rate</th>
+                    <th>Performance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Data populated via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Outstanding Analysis -->
+  <div class="row mb-4">
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Outstanding by Age</h5>
+        </div>
+        <div class="card-body">
+          <div id="outstandingAgeChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Top Defaulters</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="defaultersTable" class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Class</th>
+                  <th>Amount</th>
+                  <th>Days Overdue</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Data populated via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Transactions -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Recent Transactions</h5>
+          <a href="/finance/payments/" class="btn btn-sm btn-outline-primary">
+            View All <i class="fas fa-arrow-right"></i>
+          </a>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="recentTransactionsTable" class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Receipt #</th>
+                  <th>Student</th>
+                  <th>Amount</th>
+                  <th>Method</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Data populated via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.41.0/apexcharts.min.js"></script>
+
+<script>
+  // Global variables
+  let chartInstances = {};
+  let reportData = {};
+
+  $(document).ready(function () {
+    // Initialize components
+    initializeFilters();
+    initializeTables();
+    loadReportData();
+
+    // Event handlers
+    $('#reportFilters').on('submit', function (e) {
+      e.preventDefault();
+      loadReportData();
+    });
+
+    $('#refreshReport').on('click', function () {
+      loadReportData();
+    });
+  });
+
+  function initializeFilters() {
+    // Load academic years
+    $.get('/api/academics/academic-years/', function (data) {
+      const select = $('#academicYear');
+      select.empty().append('<option value="">Select Academic Year</option>');
+      data.forEach(year => {
+        select.append(`<option value="${year.id}" ${year.is_current ? 'selected' : ''}>${year.name}</option>`);
+      });
+    });
+
+    // Load sections
+    $.get('/api/academics/sections/', function (data) {
+      const select = $('#section');
+      select.empty().append('<option value="">All Sections</option>');
+      data.forEach(section => {
+        select.append(`<option value="${section.id}">${section.name}</option>`);
+      });
+    });
+
+    // Academic year change handler
+    $('#academicYear').on('change', function () {
+      const yearId = $(this).val();
+      if (yearId) {
+        $.get(`/api/academics/terms/?academic_year=${yearId}`, function (data) {
+          const select = $('#term');
+          select.empty().append('<option value="">All Terms</option>');
+          data.forEach(term => {
+            select.append(`<option value="${term.id}">${term.name}</option>`);
+          });
+        });
+      }
+    });
+  }
+
+  function initializeTables() {
+    // Section Performance Table
+    $('#sectionPerformanceTable').DataTable({
+      responsive: true,
+      pageLength: 10,
+      order: [[5, 'desc']], // Sort by collection rate
+      columnDefs: [
+        { targets: [2, 3, 4, 6], className: 'text-end' },
+        { targets: [5], className: 'text-center' },
+        { targets: [7], orderable: false }
+      ]
+    });
+
+    // Categories Table
+    $('#categoriesTable').DataTable({
+      responsive: true,
+      pageLength: 10,
+      order: [[4, 'desc']]
+    });
+
+    // Recent Transactions Table
+    $('#recentTransactionsTable').DataTable({
+      responsive: true,
+      pageLength: 10,
+      order: [[0, 'desc']]
+    });
+
+    // Defaulters Table
+    $('#defaultersTable').DataTable({
+      responsive: true,
+      pageLength: 5,
+      order: [[2, 'desc']]
+    });
+  }
+
+  function loadReportData() {
+    showLoadingState();
+
+    const formData = new FormData($('#reportFilters')[0]);
+    const params = new URLSearchParams(formData);
+
+    $.get(`/api/finance/financial-summary/?${params.toString()}`)
+      .done(function (data) {
+        reportData = data;
+        updateDashboard(data);
+        updateCharts(data);
+        updateTables(data);
+      })
+      .fail(function () {
+        showErrorState();
+      });
+  }
+
+  function showLoadingState() {
+    $('.card-body').each(function () {
+      if ($(this).find('canvas, .table').length > 0) {
+        $(this).html('<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Loading data...</p></div>');
+      }
+    });
+  }
+
+  function showErrorState() {
+    $('.card-body').each(function () {
+      if ($(this).find('.fa-spinner').length > 0) {
+        $(this).html('<div class="alert alert-danger">Error loading data. Please try again.</div>');
+      }
+    });
+  }
+
+  function updateDashboard(data) {
+    // Update key metrics
+    $('#totalRevenue').text(`$${formatNumber(data.metrics.total_collected)}`);
+    $('#expectedRevenue').text(`$${formatNumber(data.metrics.total_expected)}`);
+    $('#collectionRate').text(`${data.metrics.collection_rate}%`);
+    $('#totalOutstanding').text(`$${formatNumber(data.metrics.total_outstanding)}`);
+    $('#overdueAmount').text(`$${formatNumber(data.metrics.overdue_amount)}`);
+    $('#activeStudents').text(data.metrics.total_students);
+    $('#studentsWithFees').text(data.metrics.students_with_fees);
+
+    // Update collection trend
+    const trend = data.metrics.collection_trend || 0;
+    const trendElement = $('#collectionTrend');
+    trendElement.text(`${trend > 0 ? '+' : ''}${trend}%`);
+    trendElement.removeClass('text-success text-danger').addClass(trend >= 0 ? 'text-success' : 'text-danger');
+  }
+
+  function updateCharts(data) {
+    // Collection Trends Chart
+    const collectionTrendsOptions = {
+      series: [{
+        name: 'Collections',
+        data: data.trends.daily_collections.map(item => ({
+          x: item.date,
+          y: item.amount
+        }))
+      }],
+      chart: {
+        type: 'line',
+        height: 350,
+        toolbar: { show: false }
+      },
+      xaxis: {
+        type: 'datetime'
+      },
+      yaxis: {
+        labels: {
+          formatter: function (val) {
+            return '$' + formatNumber(val);
+          }
+        }
+      },
+      colors: ['#0d6efd'],
+      stroke: {
+        curve: 'smooth',
+        width: 3
+      },
+      markers: {
+        size: 5
+      }
+    };
+
+    if (chartInstances.collectionTrends) {
+      chartInstances.collectionTrends.destroy();
+    }
+    chartInstances.collectionTrends = new ApexCharts(document.querySelector("#collectionTrendsChart"), collectionTrendsOptions);
+    chartInstances.collectionTrends.render();
+
+    // Payment Methods Chart
+    const paymentMethodsOptions = {
+      series: data.payment_methods.map(method => method.amount),
+      chart: {
+        type: 'donut',
+        height: 350
+      },
+      labels: data.payment_methods.map(method => method.name),
+      colors: ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6f42c1'],
+      legend: {
+        position: 'bottom'
+      }
+    };
+
+    if (chartInstances.paymentMethods) {
+      chartInstances.paymentMethods.destroy();
+    }
+    chartInstances.paymentMethods = new ApexCharts(document.querySelector("#paymentMethodsChart"), paymentMethodsOptions);
+    chartInstances.paymentMethods.render();
+
+    // Fee Categories Chart
+    const categoriesOptions = {
+      series: [{
+        name: 'Expected',
+        data: data.categories.map(cat => cat.expected)
+      }, {
+        name: 'Collected',
+        data: data.categories.map(cat => cat.collected)
+      }],
+      chart: {
+        type: 'bar',
+        height: 400
+      },
+      xaxis: {
+        categories: data.categories.map(cat => cat.name)
+      },
+      yaxis: {
+        labels: {
+          formatter: function (val) {
+            return '$' + formatNumber(val);
+          }
+        }
+      },
+      colors: ['#6c757d', '#198754']
+    };
+
+    if (chartInstances.categories) {
+      chartInstances.categories.destroy();
+    }
+    chartInstances.categories = new ApexCharts(document.querySelector("#feeCategoriesChart"), categoriesOptions);
+    chartInstances.categories.render();
+
+    // Outstanding by Age Chart
+    const outstandingAgeOptions = {
+      series: data.outstanding_analysis.map(item => item.amount),
+      chart: {
+        type: 'pie',
+        height: 300
+      },
+      labels: data.outstanding_analysis.map(item => item.age_range),
+      colors: ['#198754', '#ffc107', '#fd7e14', '#dc3545']
+    };
+
+    if (chartInstances.outstandingAge) {
+      chartInstances.outstandingAge.destroy();
+    }
+    chartInstances.outstandingAge = new ApexCharts(document.querySelector("#outstandingAgeChart"), outstandingAgeOptions);
+    chartInstances.outstandingAge.render();
+  }
+
+  function updateTables(data) {
+    // Update Section Performance Table
+    const sectionTable = $('#sectionPerformanceTable').DataTable();
+    sectionTable.clear();
+
+    data.section_performance.forEach(section => {
+      const collectionRate = ((section.collected / section.expected) * 100).toFixed(1);
+      const performance = getPerformanceIcon(collectionRate);
+
+      sectionTable.row.add([
+        section.name,
+        section.total_students,
+        `$${formatNumber(section.expected)}`,
+        `$${formatNumber(section.collected)}`,
+        `$${formatNumber(section.outstanding)}`,
+        `${collectionRate}%`,
+        `$${formatNumber(section.avg_per_student)}`,
+        performance
+      ]);
+    });
+    sectionTable.draw();
+
+    // Update Categories Table
+    const categoriesTableBody = $('#categoriesTable tbody');
+    categoriesTableBody.empty();
+
+    data.categories.forEach(category => {
+      const collectionRate = ((category.collected / category.expected) * 100).toFixed(1);
+      const performance = getPerformanceIcon(collectionRate);
+
+      categoriesTableBody.append(`
+            <tr>
+                <td>${category.name}</td>
+                <td>$${formatNumber(category.expected)}</td>
+                <td>$${formatNumber(category.collected)}</td>
+                <td>$${formatNumber(category.outstanding)}</td>
+                <td>${collectionRate}%</td>
+                <td>${performance}</td>
+            </tr>
+        `);
+    });
+
+    // Update Defaulters Table
+    const defaultersTableBody = $('#defaultersTable tbody');
+    defaultersTableBody.empty();
+
+    data.top_defaulters.slice(0, 5).forEach(defaulter => {
+      defaultersTableBody.append(`
+            <tr>
+                <td><strong>${defaulter.student_name}</strong></td>
+                <td>${defaulter.class}</td>
+                <td>$${formatNumber(defaulter.amount)}</td>
+                <td><span class="badge bg-danger">${defaulter.days_overdue}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="contactStudent('${defaulter.student_id}')">
+                        <i class="fas fa-envelope"></i>
+                    </button>
+                </td>
+            </tr>
+        `);
+    });
+
+    // Update Recent Transactions
+    const transactionsTableBody = $('#recentTransactionsTable tbody');
+    transactionsTableBody.empty();
+
+    data.recent_transactions.slice(0, 10).forEach(transaction => {
+      const statusBadge = getStatusBadge(transaction.status);
+
+      transactionsTableBody.append(`
+            <tr>
+                <td>${formatDate(transaction.date)}</td>
+                <td><code>${transaction.receipt_number}</code></td>
+                <td>${transaction.student_name}</td>
+                <td>$${formatNumber(transaction.amount)}</td>
+                <td><span class="badge bg-secondary">${transaction.method}</span></td>
+                <td>${statusBadge}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-info" onclick="viewReceipt('${transaction.id}')">
+                        <i class="fas fa-receipt"></i>
+                    </button>
+                </td>
+            </tr>
+        `);
+    });
+  }
+
+  // Utility functions
+  function formatNumber(num) {
+    return parseFloat(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function formatDate(dateStr) {
+    return new Date(dateStr).toLocaleDateString();
+  }
+
+  function getPerformanceIcon(rate) {
+    if (rate >= 90) return '<i class="fas fa-check-circle text-success"></i>';
+    if (rate >= 70) return '<i class="fas fa-exclamation-circle text-warning"></i>';
+    return '<i class="fas fa-times-circle text-danger"></i>';
+  }
+
+  function getStatusBadge(status) {
+    const statusMap = {
+      'completed': 'bg-success',
+      'pending': 'bg-warning',
+      'failed': 'bg-danger'
+    };
+    return `<span class="badge ${statusMap[status] || 'bg-secondary'}">${status}</span>`;
+  }
+
+  function toggleCategoryView() {
+    $('#categoriesChartView').toggle();
+    $('#categoriesTableView').toggle();
+  }
+
+  function exportReport(format) {
+    const formData = new FormData($('#reportFilters')[0]);
+    formData.set('export', format);
+    const params = new URLSearchParams(formData);
+    window.open(`/finance/reports/financial-summary/export/?${params.toString()}`);
+  }
+
+  function contactStudent(studentId) {
+    // Open communication modal or redirect to contact form
+    window.location.href = `/communications/send/?student=${studentId}&type=payment_reminder`;
+  }
+
+  function viewReceipt(paymentId) {
+    window.open(`/finance/payments/${paymentId}/receipt/`);
+  }
+</script>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.4/css/dataTables.bootstrap5.min.css"
+  rel="stylesheet">
+<style>
+  .bg-gradient-primary {
+    background: linear-gradient(45deg, #0d6efd, #0056b3);
+  }
+
+  .bg-gradient-success {
+    background: linear-gradient(45deg, #198754, #146c43);
+  }
+
+  .bg-gradient-warning {
+    background: linear-gradient(45deg, #ffc107, #f0ad4e);
+  }
+
+  .bg-gradient-info {
+    background: linear-gradient(45deg, #0dcaf0, #31d2f2);
+  }
+
+  .table td {
+    vertical-align: middle;
+  }
+
+  .card-title {
+    font-weight: 600;
+  }
+
+  .text-end {
+    text-align: right !important;
+  }
+</style>
+{% endblock %}

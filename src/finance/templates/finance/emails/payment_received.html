@@ -1,0 +1,111 @@
+<!-- finance/emails/payment_received.html -->
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Payment Received</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .header {
+        background: #198754;
+        color: white;
+        padding: 20px;
+        text-align: center;
+      }
+
+      .content {
+        padding: 20px;
+        background: #f8f9fa;
+      }
+
+      .payment-details {
+        background: white;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 5px;
+      }
+
+      .footer {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+        font-size: 12px;
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 10px 20px;
+        background: #198754;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+      }
+
+      .success {
+        color: #198754;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Payment Received</h1>
+      </div>
+
+      <div class="content">
+        <p>Dear {{ payment.invoice.student.user.first_name }},</p>
+
+        <p class="success">Thank you! Your payment has been successfully received and processed.</p>
+
+        <div class="payment-details">
+          <h3>Payment Details:</h3>
+          <ul>
+            <li><strong>Receipt Number:</strong> {{ payment.receipt_number }}</li>
+            <li><strong>Payment Date:</strong> {{ payment.payment_date|date:"F d, Y" }}</li>
+            <li><strong>Amount Paid:</strong> ${{ payment.amount }}</li>
+            <li><strong>Payment Method:</strong> {{ payment.get_payment_method_display }}</li>
+            <li><strong>Invoice Number:</strong> {{ payment.invoice.invoice_number }}</li>
+            {% if payment.transaction_id %}
+            <li><strong>Transaction ID:</strong> {{ payment.transaction_id }}</li>
+            {% endif %}
+          </ul>
+
+          {% if payment.invoice.outstanding_amount > 0 %}
+          <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 5px;">
+            <strong>Remaining Balance:</strong> ${{ payment.invoice.outstanding_amount }}
+          </div>
+          {% else %}
+          <div style="margin-top: 15px; padding: 10px; background: #d1edff; border-radius: 5px;">
+            <strong>Invoice Status:</strong> Fully Paid ✓
+          </div>
+          {% endif %}
+        </div>
+
+        <p style="text-align: center;">
+          <a href="{{ receipt_url }}" class="btn">Download Receipt</a>
+        </p>
+      </div>
+
+      <div class="footer">
+        <p>{{ school_name }} Finance Department</p>
+        <p>{{ school_address }} | {{ school_phone }} | {{ school_email }}</p>
+      </div>
+    </div>
+  </body>
+
+</html>

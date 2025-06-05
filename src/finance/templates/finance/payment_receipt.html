@@ -1,136 +1,573 @@
-<!-- ================================ -->
-<!-- payment_receipt.html -->
-<!-- ================================ -->
+<!DOCTYPE html>
+<html>
 
-{% extends 'base.html' %}
-{% load static %}
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Payment Receipt - {{ payment.receipt_number }}</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 1cm;
+      }
 
-{% block title %}Payment Receipt - {{ object.receipt_number }}{% endblock %}
+      @media print {
+        .no-print {
+          display: none !important;
+        }
 
-{% block extra_css %}
-<style>
-  @media print {
-    .no-print {
-      display: none !important;
-    }
+        body {
+          font-size: 12px;
+        }
 
-    .container-fluid {
-      margin: 0;
-      padding: 0;
-    }
+        .receipt-container {
+          box-shadow: none;
+          border: none;
+        }
+      }
 
-    .card {
-      border: none;
-      box-shadow: none;
-    }
-  }
-</style>
-{% endblock %}
+      body {
+        font-family: 'Arial', sans-serif;
+        font-size: 14px;
+        line-height: 1.4;
+        color: #333;
+        margin: 0;
+        padding: 20px;
+        background: #f5f5f5;
+      }
 
-{% block content %}
-<div class="container-fluid">
-  <div class="row no-print mb-3">
-    <div class="col-12 text-end">
-      <button onclick="window.print()" class="btn btn-primary me-2">
-        <i class="fas fa-print me-2"></i>Print Receipt
-      </button>
-      <a href="{% url 'finance:payment-detail' object.pk %}" class="btn btn-secondary">
-        <i class="fas fa-arrow-left me-2"></i>Back to Details
-      </a>
-    </div>
-  </div>
+      .receipt-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background: white;
+        border: 1px solid #ddd;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
 
-  <div class="card">
-    <div class="card-body">
-      <!-- Receipt Header -->
-      <div class="text-center mb-4">
-        <h1 class="mb-1">School Management System</h1>
-        <p class="text-muted mb-0">Payment Receipt</p>
-        <hr class="my-3">
+      .receipt-header {
+        background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+        color: white;
+        padding: 20px;
+        text-align: center;
+      }
+
+      .school-name {
+        font-size: 22px;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+
+      .school-details {
+        font-size: 12px;
+        opacity: 0.9;
+      }
+
+      .receipt-title {
+        background: #198754;
+        color: white;
+        padding: 15px;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+      }
+
+      .receipt-body {
+        padding: 30px;
+      }
+
+      .receipt-info {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 30px;
+      }
+
+      .receipt-left,
+      .receipt-right {
+        flex: 1;
+      }
+
+      .receipt-right {
+        text-align: right;
+      }
+
+      .receipt-number {
+        font-size: 24px;
+        font-weight: bold;
+        color: #0d6efd;
+        margin-bottom: 5px;
+      }
+
+      .receipt-date {
+        color: #666;
+        font-size: 14px;
+      }
+
+      .student-info {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        border-left: 4px solid #0d6efd;
+      }
+
+      .student-info h3 {
+        color: #0d6efd;
+        margin: 0 0 15px 0;
+        font-size: 16px;
+      }
+
+      .info-row {
+        display: flex;
+        margin-bottom: 8px;
+      }
+
+      .info-label {
+        font-weight: bold;
+        min-width: 140px;
+        color: #555;
+      }
+
+      .info-value {
+        flex: 1;
+        color: #333;
+      }
+
+      .payment-details {
+        border: 2px solid #198754;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 25px;
+      }
+
+      .payment-header {
+        background: #198754;
+        color: white;
+        padding: 15px;
+        font-weight: bold;
+        font-size: 16px;
+      }
+
+      .payment-content {
+        padding: 20px;
+      }
+
+      .amount-display {
+        text-align: center;
+        margin: 20px 0;
+        padding: 20px;
+        background: #e8f5e8;
+        border-radius: 8px;
+      }
+
+      .amount-label {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 5px;
+      }
+
+      .amount-value {
+        font-size: 32px;
+        font-weight: bold;
+        color: #198754;
+      }
+
+      .amount-words {
+        font-style: italic;
+        color: #666;
+        margin-top: 10px;
+        font-size: 12px;
+      }
+
+      .invoice-summary {
+        background: #fff3cd;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        border-left: 4px solid #ffc107;
+      }
+
+      .invoice-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+      }
+
+      .invoice-table td {
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+      }
+
+      .invoice-table .label {
+        font-weight: bold;
+        color: #555;
+        width: 60%;
+      }
+
+      .invoice-table .value {
+        text-align: right;
+        font-weight: bold;
+      }
+
+      .invoice-table .highlight {
+        background: #fff3cd;
+        padding: 8px;
+        border-radius: 4px;
+      }
+
+      .payment-status {
+        text-align: center;
+        margin-bottom: 25px;
+      }
+
+      .status-badge {
+        display: inline-block;
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .status-completed {
+        background: #d1edff;
+        color: #0d47a1;
+        border: 2px solid #1976d2;
+      }
+
+      .status-pending {
+        background: #fff3cd;
+        color: #856404;
+        border: 2px solid #ffc107;
+      }
+
+      .footer-info {
+        background: #f8f9fa;
+        padding: 20px;
+        border-top: 2px solid #0d6efd;
+        margin-top: 30px;
+      }
+
+      .footer-notes {
+        font-size: 12px;
+        color: #666;
+        line-height: 1.5;
+      }
+
+      .footer-contact {
+        text-align: center;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #ddd;
+        font-size: 12px;
+        color: #666;
+      }
+
+      .qr-section {
+        text-align: center;
+        margin: 20px 0;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+      }
+
+      .qr-code {
+        width: 100px;
+        height: 100px;
+        border: 1px solid #ddd;
+        margin: 0 auto 10px;
+        background: white;
+      }
+
+      .print-buttons {
+        text-align: center;
+        margin: 20px 0;
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 12px 24px;
+        margin: 0 10px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: bold;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .btn-primary {
+        background: #0d6efd;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #0b5ed7;
+      }
+
+      .btn-secondary {
+        background: #6c757d;
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background: #5a6268;
+      }
+
+      .watermark {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-45deg);
+        font-size: 48px;
+        font-weight: bold;
+        color: rgba(13, 110, 253, 0.1);
+        z-index: -1;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="receipt-container">
+      <!-- Watermark -->
+      <div class="watermark">PAID</div>
+
+      <!-- Header -->
+      <div class="receipt-header">
+        <div class="school-name">{{ school.name|default:"School Name" }}</div>
+        <div class="school-details">
+          {{ school.address|default:"School Address" }}<br>
+          Phone: {{ school.phone|default:"(000) 000-0000" }} | Email: {{ school.email|default:"admin@school.edu" }}
+        </div>
       </div>
 
-      <!-- Receipt Details -->
-      <div class="row mb-4">
-        <div class="col-md-6">
-          <h5>Receipt Information</h5>
-          <table class="table table-borderless">
-            <tr>
-              <td><strong>Receipt Number:</strong></td>
-              <td>{{ object.receipt_number }}</td>
-            </tr>
-            <tr>
-              <td><strong>Payment Date:</strong></td>
-              <td>{{ object.payment_date|date:"F d, Y g:i A" }}</td>
-            </tr>
-            <tr>
-              <td><strong>Payment Method:</strong></td>
-              <td>{{ object.get_payment_method_display }}</td>
-            </tr>
-            {% if object.transaction_id %}
-            <tr>
-              <td><strong>Transaction ID:</strong></td>
-              <td>{{ object.transaction_id }}</td>
-            </tr>
+      <!-- Receipt Title -->
+      <div class="receipt-title">
+        ✓ PAYMENT RECEIPT
+      </div>
+
+      <!-- Receipt Body -->
+      <div class="receipt-body">
+        <!-- Receipt Info -->
+        <div class="receipt-info">
+          <div class="receipt-left">
+            <div style="font-weight: bold; color: #555; margin-bottom: 5px;">Receipt Number:</div>
+            <div class="receipt-number">{{ payment.receipt_number }}</div>
+          </div>
+          <div class="receipt-right">
+            <div style="font-weight: bold; color: #555; margin-bottom: 5px;">Payment Date:</div>
+            <div class="receipt-date">{{ payment.payment_date|date:"F d, Y" }}</div>
+            <div class="receipt-date">{{ payment.payment_date|date:"g:i A" }}</div>
+          </div>
+        </div>
+
+        <!-- Student Information -->
+        <div class="student-info">
+          <h3><i class="fas fa-user"></i> Student Information</h3>
+          <div class="info-row">
+            <span class="info-label">Student Name:</span>
+            <span class="info-value">{{ payment.invoice.student.user.get_full_name }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Admission Number:</span>
+            <span class="info-value">{{ payment.invoice.student.admission_number }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Class:</span>
+            <span class="info-value">{{ payment.invoice.student.current_class }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Academic Year:</span>
+            <span class="info-value">{{ payment.invoice.academic_year }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Term:</span>
+            <span class="info-value">{{ payment.invoice.term }}</span>
+          </div>
+        </div>
+
+        <!-- Payment Details -->
+        <div class="payment-details">
+          <div class="payment-header">
+            <i class="fas fa-credit-card"></i> Payment Details
+          </div>
+          <div class="payment-content">
+            <div class="info-row">
+              <span class="info-label">Payment Method:</span>
+              <span class="info-value">{{ payment.get_payment_method_display }}</span>
+            </div>
+            {% if payment.transaction_id %}
+            <div class="info-row">
+              <span class="info-label">Transaction ID:</span>
+              <span class="info-value">{{ payment.transaction_id }}</span>
+            </div>
             {% endif %}
+            {% if payment.reference_number %}
+            <div class="info-row">
+              <span class="info-label">Reference Number:</span>
+              <span class="info-value">{{ payment.reference_number }}</span>
+            </div>
+            {% endif %}
+            <div class="info-row">
+              <span class="info-label">Received By:</span>
+              <span class="info-value">{{ payment.received_by.get_full_name|default:"System" }}</span>
+            </div>
+            {% if payment.remarks %}
+            <div class="info-row">
+              <span class="info-label">Remarks:</span>
+              <span class="info-value">{{ payment.remarks }}</span>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Amount Display -->
+        <div class="amount-display">
+          <div class="amount-label">Amount Paid</div>
+          <div class="amount-value">${{ payment.amount|floatformat:2 }}</div>
+          <div class="amount-words">{{ payment.amount|floatformat:2|title }} Dollars</div>
+        </div>
+
+        <!-- Payment Status -->
+        <div class="payment-status">
+          <span class="status-badge status-{{ payment.status }}">
+            {% if payment.status == 'completed' %}✓ Payment
+            Confirmed{% else %}{{ payment.get_status_display }}{% endif %}
+          </span>
+        </div>
+
+        <!-- Invoice Summary -->
+        <div class="invoice-summary">
+          <h4 style="margin: 0 0 10px 0; color: #856404;">
+            <i class="fas fa-file-invoice"></i> Invoice Summary
+          </h4>
+          <div class="info-row">
+            <span class="info-label">Invoice Number:</span>
+            <span class="info-value">{{ payment.invoice.invoice_number }}</span>
+          </div>
+
+          <table class="invoice-table">
+            <tr>
+              <td class="label">Invoice Total:</td>
+              <td class="value">${{ payment.invoice.net_amount|floatformat:2 }}</td>
+            </tr>
+            <tr>
+              <td class="label">Previous Payments:</td>
+              <td class="value">
+                ${{ payment.invoice.paid_amount|add:payment.amount|floatformat:2|sub:payment.amount|floatformat:2 }}
+              </td>
+            </tr>
+            <tr>
+              <td class="label">This Payment:</td>
+              <td class="value">${{ payment.amount|floatformat:2 }}</td>
+            </tr>
+            <tr>
+              <td class="label">Total Paid:</td>
+              <td class="value">${{ payment.invoice.paid_amount|floatformat:2 }}</td>
+            </tr>
+            <tr class="highlight">
+              <td class="label"><strong>Remaining Balance:</strong></td>
+              <td class="value">
+                <strong>
+                  {% if payment.invoice.outstanding_amount <= 0 %}
+                  $0.00 (FULLY PAID ✓)
+                  {% else %}
+                  ${{ payment.invoice.outstanding_amount|floatformat:2 }}
+                  {% endif %}
+                </strong>
+              </td>
+            </tr>
           </table>
         </div>
-        <div class="col-md-6">
-          <h5>Student Information</h5>
-          <table class="table table-borderless">
-            <tr>
-              <td><strong>Student Name:</strong></td>
-              <td>{{ object.invoice.student.user.get_full_name }}</td>
-            </tr>
-            <tr>
-              <td><strong>Admission Number:</strong></td>
-              <td>{{ object.invoice.student.admission_number }}</td>
-            </tr>
-            <tr>
-              <td><strong>Class:</strong></td>
-              <td>{{ object.invoice.student.current_class }}</td>
-            </tr>
-            <tr>
-              <td><strong>Invoice Number:</strong></td>
-              <td>{{ object.invoice.invoice_number }}</td>
-            </tr>
-          </table>
-        </div>
-      </div>
 
-      <!-- Payment Amount -->
-      <div class="text-center mb-4">
-        <div class="border p-4 bg-light">
-          <h2 class="text-success mb-0">Amount Paid: ${{ object.amount }}</h2>
+        <!-- QR Code Section -->
+        <div class="qr-section">
+          <div class="qr-code">
+            <!-- QR Code would be generated here -->
+            <div style="line-height: 100px; color: #ccc;">QR CODE</div>
+          </div>
+          <div style="font-size: 12px; color: #666;">
+            Scan to verify payment authenticity
+          </div>
         </div>
-      </div>
 
-      <!-- Invoice Summary -->
-      <div class="row">
-        <div class="col-12">
-          <h5>Invoice Summary</h5>
-          <table class="table table-bordered">
-            <tr>
-              <td><strong>Invoice Total Amount:</strong></td>
-              <td class="text-end">${{ object.invoice.net_amount }}</td>
-            </tr>
-            <tr>
-              <td><strong>Total Amount Paid:</strong></td>
-              <td class="text-end">${{ object.invoice.paid_amount }}</td>
-            </tr>
-            <tr class="table-warning">
-              <td><strong>Outstanding Balance:</strong></td>
-              <td class="text-end"><strong>${{ object.invoice.outstanding_amount }}</strong></td>
-            </tr>
-          </table>
+        <!-- Footer Information -->
+        <div class="footer-info">
+          <div class="footer-notes">
+            <strong>Important Notes:</strong>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li>This receipt is computer generated and is valid without signature.</li>
+              <li>Please retain this receipt for your records.</li>
+              <li>For any queries regarding this payment, quote the receipt number.</li>
+              {% if payment.invoice.outstanding_amount > 0 %}
+              <li>Remaining balance must be paid by the next due date to avoid late fees.</li>
+              {% endif %}
+              <li>Refunds, if applicable, will be processed within 7-10 business days.</li>
+            </ul>
+          </div>
+
+          <div class="footer-contact">
+            <strong>For queries contact:</strong><br>
+            Finance Office: {{ school.phone|default:"(000) 000-0000" }} |
+            Email: {{ school.finance_email|default:"finance@school.edu" }}<br>
+            Office Hours: Monday - Friday, 8:00 AM - 4:00 PM
+          </div>
         </div>
-      </div>
-
-      <!-- Footer -->
-      <div class="text-center mt-4 pt-4 border-top">
-        <p class="text-muted mb-0">Thank you for your payment!</p>
-        <small class="text-muted">This is a computer-generated receipt and does not require a signature.</small>
       </div>
     </div>
-  </div>
-</div>
-{% endblock %}
+
+    <!-- Print Buttons -->
+    <div class="print-buttons no-print">
+      <button class="btn btn-primary" onclick="window.print()">
+        <i class="fas fa-print"></i> Print Receipt
+      </button>
+      <button class="btn btn-secondary" onclick="downloadPDF()">
+        <i class="fas fa-download"></i> Download PDF
+      </button>
+      <button class="btn btn-secondary" onclick="sendEmail()">
+        <i class="fas fa-envelope"></i> Email Receipt
+      </button>
+      <button class="btn btn-secondary" onclick="window.close()">
+        <i class="fas fa-times"></i> Close
+      </button>
+    </div>
+
+    <script>
+      // Auto-print when page loads (optional)
+      // window.onload = function() { window.print(); };
+
+      function downloadPDF() {
+        // Implementation would depend on backend PDF generation
+        window.location.href = `/finance/payments/{{ payment.id }}/receipt/pdf/`;
+      }
+
+      function sendEmail() {
+        // Send receipt via email
+        if (confirm('Send receipt to registered email address?')) {
+          fetch(`/finance/payments/{{ payment.id }}/receipt/email/`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': '{{ csrf_token }}'
+            }
+          })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                alert('Receipt sent successfully!');
+              } else {
+                alert('Error sending receipt: ' + data.error);
+              }
+            });
+        }
+      }
+
+      // Function to convert number to words (simplified)
+      function numberToWords(amount) {
+        // This would be a full implementation to convert numbers to words
+        return amount.toString();
+      }
+    </script>
+  </body>
+
+</html>

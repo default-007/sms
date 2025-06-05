@@ -1,0 +1,493 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ class_obj }} Timetable{% endblock %}
+
+{% block extra_css %}
+<style>
+  .timetable-grid {
+    display: grid;
+    grid-template-columns: 100px repeat(7, 1fr);
+    gap: 1px;
+    background-color: #dee2e6;
+    border: 1px solid #dee2e6;
+  }
+
+  .timetable-cell {
+    background: white;
+    padding: 8px;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+  }
+
+  .timetable-header {
+    background: #f8f9fa;
+    font-weight: bold;
+    text-align: center;
+    padding: 12px 8px;
+  }
+
+  .timetable-time {
+    background: #e9ecef;
+    font-weight: 500;
+    text-align: center;
+    font-size: 0.85rem;
+  }
+
+  .subject-block {
+    background: #fff;
+    border-left: 4px solid #007bff;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .subject-block:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+  }
+
+  .subject-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 2px;
+  }
+
+  .teacher-name {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-bottom: 2px;
+  }
+
+  .room-info {
+    font-size: 0.7rem;
+    color: #495057;
+  }
+
+  .break-slot {
+    background: #fff3cd !important;
+    border-left-color: #ffc107 !important;
+    text-align: center;
+    color: #856404;
+  }
+
+  .empty-slot {
+    background: #f8f9fa;
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+  }
+
+  @media (max-width: 768px) {
+    .timetable-grid {
+      grid-template-columns: 80px repeat(5, 1fr);
+    }
+
+    .timetable-cell {
+      min-height: 60px;
+      padding: 4px;
+    }
+
+    .subject-name {
+      font-size: 0.8rem;
+    }
+
+    .teacher-name,
+    .room-info {
+      font-size: 0.7rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+          <h1 class="h3 mb-0">{{ class_obj.grade.name }} {{ class_obj.name }} Timetable</h1>
+          <p class="text-muted mb-0">
+            {{ class_obj.grade.section.name }} •
+            {% if term %}{{ term.name }}{% else %}No term selected{% endif %}
+            {% if class_obj.class_teacher %}
+            • Class Teacher: {{ class_obj.class_teacher.user.get_full_name }}
+            {% endif %}
+          </p>
+        </div>
+        <div class="btn-group">
+          <a href="{% url 'scheduling:timetable_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to List
+          </a>
+          <div class="btn-group">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="fas fa-download"></i> Export
+            </button>
+            <ul class="dropdown-menu">
+              <li>
+                <a class="dropdown-item"
+                  href="{% url 'scheduling:export_class_timetable' class_obj.pk %}?term_id={{ term.id }}">
+                  <i class="fas fa-file-csv"></i> Download CSV
+                </a>
+              </li>
+              <li><a class="dropdown-item" href="#" onclick="window.print()"><i class="fas fa-print"></i> Print</a></li>
+              <li><a class="dropdown-item" href="#" id="shareLink"><i class="fas fa-share"></i> Share Link</a></li>
+            </ul>
+          </div>
+          <a href="{% url 'scheduling:timetable_create' %}?class_id={{ class_obj.pk }}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Add Period
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Term Selector -->
+  {% if available_terms %}
+  <div class="row mb-3">
+    <div class="col-md-4">
+      <select id="termSelector" class="form-select">
+        {% for available_term in available_terms %}
+        <option value="{{ available_term.id }}" {% if available_term == term %}selected{% endif %}>
+          {{ available_term.name }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if term and timetable_data %}
+  <!-- Statistics -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h4 class="card-title text-primary">{{ timetable_data|length }}</h4>
+          <p class="card-text">Total Periods</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h4 class="card-title text-success">
+            {% for day, entries in timetable_data.items %}{{ entries|length }}{% if not forloop.last %} +
+            {% endif %}{% endfor %}
+          </h4>
+          <p class="card-text">Weekly Load</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h4 class="card-title text-info">
+            {% regroup timetable_data.values|flatten:"" by subject as subjects_list %}{{ subjects_list|length }}
+          </h4>
+          <p class="card-text">Subjects</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h4 class="card-title text-warning">
+            {% regroup timetable_data.values|flatten:"" by teacher as teachers_list %}{{ teachers_list|length }}
+          </h4>
+          <p class="card-text">Teachers</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timetable Grid -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div id="timetableGrid" class="timetable-grid">
+            <!-- Header Row -->
+            <div class="timetable-header">Time</div>
+            <div class="timetable-header">Monday</div>
+            <div class="timetable-header">Tuesday</div>
+            <div class="timetable-header">Wednesday</div>
+            <div class="timetable-header">Thursday</div>
+            <div class="timetable-header">Friday</div>
+            <div class="timetable-header d-none d-md-block">Saturday</div>
+            <div class="timetable-header d-none d-md-block">Sunday</div>
+
+            <!-- Time Slots -->
+            {% for period in 1|range:9 %}
+            <div class="timetable-cell timetable-time">
+              Period {{ period }}
+              <small class="d-block">08:{{ period|add:"-1"|mul:45|time:"H:i" }}</small>
+            </div>
+
+            <!-- Monday to Friday -->
+            {% for day_num in 0|range:5 %}
+            <div class="timetable-cell">
+              {% for day_name, entries in timetable_data.items %}
+              {% if forloop.counter0 == day_num %}
+              {% for entry in entries %}
+              {% if entry.time_slot.period_number == period %}
+              <div class="subject-block" data-bs-toggle="modal" data-bs-target="#periodModal"
+                data-entry-id="{{ entry.id }}" style="border-left-color: {{ entry.subject.color|default:'#007bff' }}">
+                <div class="subject-name">{{ entry.subject.name }}</div>
+                <div class="teacher-name">{{ entry.teacher.user.get_full_name }}</div>
+                {% if entry.room %}
+                <div class="room-info">
+                  <i class="fas fa-map-marker-alt"></i> {{ entry.room.number }}
+                </div>
+                {% else %}
+                <div class="room-info text-warning">
+                  <i class="fas fa-exclamation-triangle"></i> No room
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+              {% endfor %}
+
+              <!-- Check if this period is empty -->
+              {% if not entries or period not in entries.0.time_slot.period_number %}
+              <div class="empty-slot">
+                <i class="fas fa-plus-circle"></i>
+                <div>Free Period</div>
+                <button class="btn btn-sm btn-outline-primary mt-1" onclick="addPeriod({{ day_num }}, {{ period }})">
+                  Add
+                </button>
+              </div>
+              {% endif %}
+              {% endif %}
+              {% endfor %}
+            </div>
+            {% endfor %}
+
+            <!-- Weekend (hidden on mobile) -->
+            {% for day_num in 5|range:7 %}
+            <div class="timetable-cell d-none d-md-flex empty-slot">
+              Weekend
+            </div>
+            {% endfor %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subject Summary -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-book"></i> Subject Summary
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% regroup timetable_data.values|flatten:"" by subject as subjects_grouped %}
+            {% for subject_group in subjects_grouped %}
+            <div class="col-md-4 mb-3">
+              <div class="card h-100">
+                <div class="card-body">
+                  <h6 class="card-title">{{ subject_group.grouper.name }}</h6>
+                  <p class="card-text">
+                    <strong>{{ subject_group.list|length }}</strong> periods per week
+                    <br>
+                    <small class="text-muted">
+                      Teachers:
+                      {% regroup subject_group.list by teacher as teachers_by_subject %}
+                      {% for teacher_group in teachers_by_subject %}
+                      {{ teacher_group.grouper.user.get_full_name }}{% if not forloop.last %}, {% endif %}
+                      {% endfor %}
+                    </small>
+                  </p>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <!-- No Timetable Data -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+          <h4 class="text-muted">No Timetable Data</h4>
+          <p class="text-muted">
+            {% if not term %}
+            No term selected. Please select a term to view the timetable.
+            {% else %}
+            No timetable entries found for this class in {{ term.name }}.
+            {% endif %}
+          </p>
+          {% if term %}
+          <a href="{% url 'scheduling:timetable_create' %}?class_id={{ class_obj.pk }}&term_id={{ term.id }}"
+            class="btn btn-primary">
+            <i class="fas fa-plus"></i> Create Timetable
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Period Detail Modal -->
+<div class="modal fade" id="periodModal" tabindex="-1" aria-labelledby="periodModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="periodModalLabel">Period Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="periodModalBody">
+        <!-- Content will be loaded dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <a href="#" id="editPeriodBtn" class="btn btn-primary">
+          <i class="fas fa-edit"></i> Edit
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Term selector change
+    $('#termSelector').change(function () {
+      var termId = $(this).val();
+      var currentUrl = new URL(window.location);
+      currentUrl.searchParams.set('term_id', termId);
+      window.location.href = currentUrl.toString();
+    });
+
+    // Period modal
+    $('#periodModal').on('show.bs.modal', function (event) {
+      var button = $(event.relatedTarget);
+      var entryId = button.data('entry-id');
+
+      // Load period details via AJAX
+      $.ajax({
+        url: '{% url "scheduling:timetable_detail" "dummy" %}'.replace('dummy', entryId),
+        success: function (data) {
+          // Parse the HTML response to extract relevant information
+          var $response = $(data);
+          var content = $response.find('.timetable-detail-content').html();
+
+          if (!content) {
+            content = `
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    `;
+          }
+
+          $('#periodModalBody').html(content);
+          $('#editPeriodBtn').attr('href', '{% url "scheduling:timetable_edit" "dummy" %}'.replace('dummy', entryId));
+        },
+        error: function () {
+          $('#periodModalBody').html('<div class="alert alert-danger">Error loading period details</div>');
+        }
+      });
+    });
+
+    // Share link functionality
+    $('#shareLink').click(function (e) {
+      e.preventDefault();
+      if (navigator.share) {
+        navigator.share({
+          title: '{{ class_obj }} Timetable',
+          url: window.location.href
+        });
+      } else {
+        // Fallback: copy to clipboard
+        navigator.clipboard.writeText(window.location.href).then(function () {
+          alert('Link copied to clipboard!');
+        });
+      }
+    });
+
+    // Color coding for subjects
+    var subjectColors = {
+      'Mathematics': '#dc3545',
+      'English': '#28a745',
+      'Science': '#007bff',
+      'Physics': '#6f42c1',
+      'Chemistry': '#fd7e14',
+      'Biology': '#20c997',
+      'History': '#6c757d',
+      'Geography': '#17a2b8',
+      'Computer': '#343a40',
+      'Physical Education': '#ffc107',
+      'Art': '#e83e8c',
+      'Music': '#fd7e14'
+    };
+
+    // Apply subject colors
+    $('.subject-block').each(function () {
+      var subjectName = $(this).find('.subject-name').text().trim();
+      var color = subjectColors[subjectName] || '#007bff';
+      $(this).css('border-left-color', color);
+    });
+
+    // Responsive timetable adjustments
+    function adjustTimetableForMobile() {
+      if ($(window).width() < 768) {
+        $('.timetable-grid').addClass('mobile-view');
+        $('.d-none.d-md-block, .d-none.d-md-flex').hide();
+      } else {
+        $('.timetable-grid').removeClass('mobile-view');
+        $('.d-none.d-md-block, .d-none.d-md-flex').show();
+      }
+    }
+
+    adjustTimetableForMobile();
+    $(window).resize(adjustTimetableForMobile);
+  });
+
+  // Add period function
+  function addPeriod(dayOfWeek, periodNumber) {
+    var url = '{% url "scheduling:timetable_create" %}' +
+      '?class_id={{ class_obj.pk }}' +
+      '&term_id={{ term.id }}' +
+      '&day_of_week=' + dayOfWeek +
+      '&period_number=' + periodNumber;
+    window.location.href = url;
+  }
+
+  // Custom range filter for template
+  var range = function (start, end) {
+    var result = [];
+    for (var i = start; i <= end; i++) {
+      result.push(i);
+    }
+    return result;
+  };
+
+  // Add to template context
+  document.addEventListener('DOMContentLoaded', function () {
+    // Add any additional JavaScript functionality here
+  });
+</script>
+{% endblock %}

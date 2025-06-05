@@ -1,0 +1,863 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Timetable Generation{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.css" rel="stylesheet">
+<style>
+  .generation-step {
+    opacity: 0.5;
+    transition: all 0.3s ease;
+  }
+
+  .generation-step.active {
+    opacity: 1;
+  }
+
+  .generation-step.completed {
+    opacity: 1;
+  }
+
+  .progress-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid #dee2e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    position: relative;
+  }
+
+  .progress-circle.active {
+    border-color: #007bff;
+    background: #007bff;
+    color: white;
+  }
+
+  .progress-circle.completed {
+    border-color: #28a745;
+    background: #28a745;
+    color: white;
+  }
+
+  .algorithm-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+  }
+
+  .algorithm-card:hover {
+    border-color: #007bff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .algorithm-card.selected {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+  }
+
+  .constraints-list {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .generation-log {
+    background: #1e1e1e;
+    color: #ffffff;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #444;
+  }
+
+  .log-entry {
+    padding: 2px 0;
+    white-space: pre-wrap;
+  }
+
+  .log-info {
+    color: #17a2b8;
+  }
+
+  .log-warning {
+    color: #ffc107;
+  }
+
+  .log-error {
+    color: #dc3545;
+  }
+
+  .log-success {
+    color: #28a745;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(1.05);
+    }
+
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  .pulse {
+    animation: pulse 2s infinite;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">
+            <i class="fas fa-magic"></i> Timetable Generation
+          </h1>
+          <p class="text-muted">Generate optimized timetables using AI algorithms</p>
+        </div>
+        <div>
+          <a href="{% url 'scheduling:generation_history' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-history"></i> Generation History
+          </a>
+          <a href="{% url 'scheduling:timetable_list' %}" class="btn btn-outline-primary">
+            <i class="fas fa-calendar-alt"></i> View Current Timetables
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generation Progress -->
+  <div class="row mb-4" id="generationProgress" style="display: none;">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-cogs"></i> Generation Progress
+            </h5>
+            <button type="button" class="btn btn-outline-danger btn-sm" id="cancelGeneration">
+              <i class="fas fa-stop"></i> Cancel
+            </button>
+          </div>
+
+          <!-- Progress Steps -->
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="generation-step active" data-step="1">
+              <div class="d-flex align-items-center">
+                <div class="progress-circle active">1</div>
+                <div class="ms-3">
+                  <h6 class="mb-0">Initialization</h6>
+                  <small class="text-muted">Setting up parameters</small>
+                </div>
+              </div>
+            </div>
+            <div class="flex-fill mx-3">
+              <hr class="my-0">
+            </div>
+            <div class="generation-step" data-step="2">
+              <div class="d-flex align-items-center">
+                <div class="progress-circle">2</div>
+                <div class="ms-3">
+                  <h6 class="mb-0">Optimization</h6>
+                  <small class="text-muted">Running algorithm</small>
+                </div>
+              </div>
+            </div>
+            <div class="flex-fill mx-3">
+              <hr class="my-0">
+            </div>
+            <div class="generation-step" data-step="3">
+              <div class="d-flex align-items-center">
+                <div class="progress-circle">3</div>
+                <div class="ms-3">
+                  <h6 class="mb-0">Validation</h6>
+                  <small class="text-muted">Checking conflicts</small>
+                </div>
+              </div>
+            </div>
+            <div class="flex-fill mx-3">
+              <hr class="my-0">
+            </div>
+            <div class="generation-step" data-step="4">
+              <div class="d-flex align-items-center">
+                <div class="progress-circle">4</div>
+                <div class="ms-3">
+                  <h6 class="mb-0">Completion</h6>
+                  <small class="text-muted">Saving results</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Progress Details -->
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Overall Progress</label>
+                <div class="progress" style="height: 8px;">
+                  <div id="overallProgress" class="progress-bar progress-bar-striped progress-bar-animated"
+                    style="width: 0%"></div>
+                </div>
+                <small class="text-muted" id="progressText">Initializing...</small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Current Optimization Score</label>
+                <div class="d-flex align-items-center">
+                  <div class="progress flex-grow-1" style="height: 8px;">
+                    <div id="scoreProgress" class="progress-bar bg-success" style="width: 0%"></div>
+                  </div>
+                  <span class="ms-2 fw-bold" id="currentScore">0%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Generation Log -->
+          <div class="generation-log p-3 rounded" id="generationLog">
+            <div class="log-entry log-info">[INFO] Initializing timetable generation...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generation Form -->
+  <div class="row" id="generationForm">
+    <div class="col-lg-8">
+      <form id="timetableGenerationForm" method="post">
+        {% csrf_token %}
+
+        <!-- Step 1: Basic Settings -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-cog"></i> Basic Settings
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <label for="{{ form.term.id_for_label }}" class="form-label required">
+                  <i class="fas fa-calendar-alt"></i> Academic Term
+                </label>
+                {{ form.term }}
+                <div class="form-text">Select the term for timetable generation</div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label required">
+                  <i class="fas fa-layer-group"></i> Grades to Include
+                </label>
+                <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                  {{ form.grades }}
+                </div>
+                <div class="form-text">Select grades for timetable generation</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Algorithm Selection -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-brain"></i> Algorithm Selection
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="algorithm-card card h-100" data-algorithm="genetic">
+                  <div class="card-body text-center">
+                    <i class="fas fa-dna fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Genetic Algorithm</h5>
+                    <p class="card-text">Advanced evolutionary algorithm that finds optimal solutions through genetic
+                      operations.</p>
+                    <ul class="list-unstyled text-start">
+                      <li><i class="fas fa-check text-success"></i> High quality solutions</li>
+                      <li><i class="fas fa-check text-success"></i> Handles complex constraints</li>
+                      <li><i class="fas fa-clock text-warning"></i> Longer processing time</li>
+                    </ul>
+                    <span class="badge bg-primary">Recommended</span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="algorithm-card card h-100" data-algorithm="greedy">
+                  <div class="card-body text-center">
+                    <i class="fas fa-rocket fa-3x text-success mb-3"></i>
+                    <h5 class="card-title">Greedy Algorithm</h5>
+                    <p class="card-text">Fast algorithm that makes locally optimal choices at each step.</p>
+                    <ul class="list-unstyled text-start">
+                      <li><i class="fas fa-check text-success"></i> Fast processing</li>
+                      <li><i class="fas fa-check text-success"></i> Good for simple cases</li>
+                      <li><i class="fas fa-exclamation-triangle text-warning"></i> May not find optimal solution</li>
+                    </ul>
+                    <span class="badge bg-success">Fast</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <input type="hidden" name="algorithm_used" id="algorithmInput" value="genetic">
+          </div>
+        </div>
+
+        <!-- Step 3: Algorithm Parameters -->
+        <div class="card mb-4" id="algorithmParams">
+          <div class="card-header">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-sliders-h"></i> Algorithm Parameters
+            </h5>
+          </div>
+          <div class="card-body">
+            <div id="geneticParams">
+              <div class="row">
+                <div class="col-md-4">
+                  <label for="{{ form.population_size.id_for_label }}" class="form-label">
+                    Population Size
+                  </label>
+                  {{ form.population_size }}
+                  <div class="form-text">Number of potential solutions (10-200)</div>
+                </div>
+                <div class="col-md-4">
+                  <label for="{{ form.generations.id_for_label }}" class="form-label">
+                    Generations
+                  </label>
+                  {{ form.generations }}
+                  <div class="form-text">Number of evolution cycles (10-500)</div>
+                </div>
+                <div class="col-md-4">
+                  <label for="{{ form.mutation_rate.id_for_label }}" class="form-label">
+                    Mutation Rate
+                  </label>
+                  {{ form.mutation_rate }}
+                  <div class="form-text">Probability of random changes (0.01-0.5)</div>
+                </div>
+              </div>
+            </div>
+
+            <div id="greedyParams" style="display: none;">
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                Greedy algorithm uses default parameters optimized for speed.
+                No additional configuration required.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: Generation Options -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-wrench"></i> Generation Options
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="clearExisting" name="clear_existing" checked>
+                  <label class="form-check-label" for="clearExisting">
+                    <strong>Clear Existing Timetables</strong>
+                    <div class="form-text">Remove existing timetables before generating new ones</div>
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="autoAssignRooms" name="auto_assign_rooms" checked>
+                  <label class="form-check-label" for="autoAssignRooms">
+                    <strong>Auto-assign Rooms</strong>
+                    <div class="form-text">Automatically assign suitable rooms based on requirements</div>
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="enforceConstraints" name="enforce_constraints"
+                    checked>
+                  <label class="form-check-label" for="enforceConstraints">
+                    <strong>Enforce Scheduling Constraints</strong>
+                    <div class="form-text">Apply all active scheduling rules and constraints</div>
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="sendNotifications" name="send_notifications"
+                    checked>
+                  <label class="form-check-label" for="sendNotifications">
+                    <strong>Send Notifications</strong>
+                    <div class="form-text">Notify relevant users about the new timetable</div>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between">
+              <div>
+                <button type="button" class="btn btn-outline-info" id="previewBtn">
+                  <i class="fas fa-eye"></i> Preview Settings
+                </button>
+                <button type="button" class="btn btn-outline-warning" id="validateBtn">
+                  <i class="fas fa-check-circle"></i> Validate Prerequisites
+                </button>
+              </div>
+              <div>
+                <button type="button" class="btn btn-secondary" onclick="window.history.back()">
+                  <i class="fas fa-times"></i> Cancel
+                </button>
+                <button type="submit" class="btn btn-primary" id="generateBtn">
+                  <i class="fas fa-magic"></i> Generate Timetable
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Sidebar Information -->
+    <div class="col-lg-4">
+      <!-- Prerequisites Check -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-list-check"></i> Prerequisites Check
+          </h6>
+        </div>
+        <div class="card-body">
+          <div id="prerequisitesList">
+            <div class="d-flex align-items-center mb-2">
+              <i class="fas fa-spinner fa-spin text-primary me-2"></i>
+              <span>Checking prerequisites...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Constraints -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-rules"></i> Active Constraints
+            <span class="badge bg-primary ms-2" id="constraintCount">0</span>
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="constraints-list" id="constraintsList">
+            <div class="text-center text-muted py-3">
+              <i class="fas fa-spinner fa-spin"></i>
+              <p class="mb-0 mt-2">Loading constraints...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Generation Tips -->
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-lightbulb"></i> Generation Tips
+          </h6>
+        </div>
+        <div class="card-body">
+          <ul class="list-unstyled mb-0">
+            <li class="mb-2">
+              <i class="fas fa-check-circle text-success me-2"></i>
+              Ensure all teachers have subject assignments
+            </li>
+            <li class="mb-2">
+              <i class="fas fa-check-circle text-success me-2"></i>
+              Verify room availability and capacity
+            </li>
+            <li class="mb-2">
+              <i class="fas fa-check-circle text-success me-2"></i>
+              Set up time slots for all working days
+            </li>
+            <li class="mb-2">
+              <i class="fas fa-info-circle text-info me-2"></i>
+              Genetic algorithm takes 2-5 minutes
+            </li>
+            <li class="mb-0">
+              <i class="fas fa-info-circle text-info me-2"></i>
+              You can cancel generation at any time
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="previewModalLabel">
+          <i class="fas fa-eye"></i> Generation Settings Preview
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="previewContent">
+        <!-- Content will be loaded dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="proceedFromPreview">
+          Proceed with Generation
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.js"></script>
+<script>
+  $(document).ready(function () {
+    let generationInProgress = false;
+    let generationInterval;
+
+    // Algorithm selection
+    $('.algorithm-card').click(function () {
+      $('.algorithm-card').removeClass('selected');
+      $(this).addClass('selected');
+
+      const algorithm = $(this).data('algorithm');
+      $('#algorithmInput').val(algorithm);
+
+      if (algorithm === 'genetic') {
+        $('#geneticParams').show();
+        $('#greedyParams').hide();
+      } else {
+        $('#geneticParams').hide();
+        $('#greedyParams').show();
+      }
+    });
+
+    // Form styling
+    $('#timetableGenerationForm select, #timetableGenerationForm input').addClass('form-control');
+    $('#timetableGenerationForm input[type="checkbox"]').removeClass('form-control').addClass('form-check-input');
+
+    // Load prerequisites on page load
+    loadPrerequisites();
+    loadConstraints();
+
+    // Prerequisites validation
+    $('#validateBtn').click(function () {
+      loadPrerequisites();
+    });
+
+    // Settings preview
+    $('#previewBtn').click(function () {
+      showSettingsPreview();
+    });
+
+    // Form submission
+    $('#timetableGenerationForm').submit(function (e) {
+      e.preventDefault();
+      startGeneration();
+    });
+
+    // Cancel generation
+    $('#cancelGeneration').click(function () {
+      if (confirm('Are you sure you want to cancel the generation?')) {
+        cancelGeneration();
+      }
+    });
+
+    function loadPrerequisites() {
+      $('#prerequisitesList').html(`
+            <div class="d-flex align-items-center mb-2">
+                <i class="fas fa-spinner fa-spin text-primary me-2"></i>
+                <span>Checking prerequisites...</span>
+            </div>
+        `);
+
+      // Simulate API call
+      setTimeout(function () {
+        const prerequisites = [
+          { name: 'Active Academic Term', status: 'success', message: 'Current term is active' },
+          { name: 'Teacher Assignments', status: 'success', message: '45 teachers with subject assignments' },
+          { name: 'Time Slots Configuration', status: 'success', message: '40 time slots configured' },
+          { name: 'Available Rooms', status: 'warning', message: '5 rooms under maintenance' },
+          { name: 'Class Setup', status: 'success', message: '12 classes ready for scheduling' }
+        ];
+
+        let html = '';
+        prerequisites.forEach(function (prereq) {
+          const iconClass = prereq.status === 'success' ? 'fa-check-circle text-success' :
+            prereq.status === 'warning' ? 'fa-exclamation-triangle text-warning' :
+              'fa-times-circle text-danger';
+
+          html += `
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas ${iconClass} me-2"></i>
+                        <div>
+                            <div class="fw-medium">${prereq.name}</div>
+                            <small class="text-muted">${prereq.message}</small>
+                        </div>
+                    </div>
+                `;
+        });
+
+        $('#prerequisitesList').html(html);
+      }, 1000);
+    }
+
+    function loadConstraints() {
+      // Simulate loading constraints
+      setTimeout(function () {
+        const constraints = [
+          { name: 'Core Subjects Morning Preference', type: 'time_preference', priority: 8 },
+          { name: 'Teacher Daily Limit', type: 'daily_limit', priority: 9 },
+          { name: 'Laboratory Requirements', type: 'room_requirement', priority: 7 },
+          { name: 'Consecutive Periods Limit', type: 'consecutive_periods', priority: 6 }
+        ];
+
+        $('#constraintCount').text(constraints.length);
+
+        let html = '';
+        constraints.forEach(function (constraint) {
+          const priorityColor = constraint.priority >= 8 ? 'danger' :
+            constraint.priority >= 6 ? 'warning' : 'info';
+
+          html += `
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <div class="fw-medium">${constraint.name}</div>
+                            <small class="text-muted">${constraint.type.replace('_', ' ')}</small>
+                        </div>
+                        <span class="badge bg-${priorityColor}">${constraint.priority}</span>
+                    </div>
+                `;
+        });
+
+        $('#constraintsList').html(html);
+      }, 800);
+    }
+
+    function showSettingsPreview() {
+      const formData = new FormData($('#timetableGenerationForm')[0]);
+
+      let content = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Basic Settings</h6>
+                    <p><strong>Term:</strong> ${$('#id_term option:selected').text()}</p>
+                    <p><strong>Algorithm:</strong> ${$('#algorithmInput').val()}</p>
+                    <p><strong>Grades:</strong> ${$('#id_grades input:checked').length} selected</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>Algorithm Parameters</h6>
+                    <p><strong>Population Size:</strong> ${$('#id_population_size').val()}</p>
+                    <p><strong>Generations:</strong> ${$('#id_generations').val()}</p>
+                    <p><strong>Mutation Rate:</strong> ${$('#id_mutation_rate').val()}</p>
+                </div>
+            </div>
+            <div class="mt-3">
+                <h6>Options</h6>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-${$('#clearExisting').is(':checked') ? 'check text-success' : 'times text-danger'} me-2"></i>Clear Existing Timetables</li>
+                    <li><i class="fas fa-${$('#autoAssignRooms').is(':checked') ? 'check text-success' : 'times text-danger'} me-2"></i>Auto-assign Rooms</li>
+                    <li><i class="fas fa-${$('#enforceConstraints').is(':checked') ? 'check text-success' : 'times text-danger'} me-2"></i>Enforce Constraints</li>
+                    <li><i class="fas fa-${$('#sendNotifications').is(':checked') ? 'check text-success' : 'times text-danger'} me-2"></i>Send Notifications</li>
+                </ul>
+            </div>
+        `;
+
+      $('#previewContent').html(content);
+      $('#previewModal').modal('show');
+    }
+
+    function startGeneration() {
+      generationInProgress = true;
+
+      // Hide form and show progress
+      $('#generationForm').hide();
+      $('#generationProgress').show();
+
+      // Start progress simulation
+      simulateGeneration();
+
+      // In real implementation, start actual AJAX call here
+      /*
+      $.ajax({
+          url: '{% url "scheduling:timetable_generation" %}',
+          method: 'POST',
+          data: new FormData($('#timetableGenerationForm')[0]),
+          processData: false,
+          contentType: false,
+          success: function(response) {
+              handleGenerationSuccess(response);
+          },
+          error: function(xhr) {
+              handleGenerationError(xhr);
+          }
+      });
+      */
+    }
+
+    function simulateGeneration() {
+      let progress = 0;
+      let step = 1;
+      let score = 0;
+
+      addLogEntry('info', 'Starting timetable generation...');
+      addLogEntry('info', 'Loading academic data and constraints...');
+
+      generationInterval = setInterval(function () {
+        progress += Math.random() * 5;
+        score += Math.random() * 2;
+
+        if (progress > 100) progress = 100;
+        if (score > 95) score = 95;
+
+        updateProgress(progress, step, score);
+
+        if (progress >= 25 && step === 1) {
+          step = 2;
+          updateStep(2);
+          addLogEntry('success', 'Initialization completed successfully');
+          addLogEntry('info', 'Starting genetic algorithm optimization...');
+        } else if (progress >= 70 && step === 2) {
+          step = 3;
+          updateStep(3);
+          addLogEntry('success', 'Optimization phase completed');
+          addLogEntry('info', 'Validating generated schedule...');
+        } else if (progress >= 90 && step === 3) {
+          step = 4;
+          updateStep(4);
+          addLogEntry('success', 'Validation completed with no critical conflicts');
+          addLogEntry('info', 'Saving timetable to database...');
+        } else if (progress >= 100) {
+          completeGeneration();
+        }
+
+        // Add random log entries during optimization
+        if (step === 2 && Math.random() < 0.3) {
+          addLogEntry('info', `Generation ${Math.floor(Math.random() * 100 + 1)}: Score ${score.toFixed(1)}%`);
+        }
+      }, 500);
+    }
+
+    function updateProgress(progress, step, score) {
+      $('#overallProgress').css('width', progress + '%');
+      $('#scoreProgress').css('width', score + '%');
+      $('#currentScore').text(score.toFixed(1) + '%');
+
+      const stepTexts = {
+        1: 'Initializing parameters and data...',
+        2: 'Running optimization algorithm...',
+        3: 'Validating schedule and resolving conflicts...',
+        4: 'Saving results and sending notifications...'
+      };
+
+      $('#progressText').text(stepTexts[step] || 'Processing...');
+    }
+
+    function updateStep(step) {
+      $('.generation-step').removeClass('active');
+      $('.progress-circle').removeClass('active');
+
+      // Mark previous steps as completed
+      for (let i = 1; i < step; i++) {
+        $(`.generation-step[data-step="${i}"]`).addClass('completed');
+        $(`.generation-step[data-step="${i}"] .progress-circle`).removeClass('active').addClass('completed').html('<i class="fas fa-check"></i>');
+      }
+
+      // Mark current step as active
+      $(`.generation-step[data-step="${step}"]`).addClass('active');
+      $(`.generation-step[data-step="${step}"] .progress-circle`).addClass('active');
+    }
+
+    function addLogEntry(type, message) {
+      const timestamp = new Date().toLocaleTimeString();
+      const logClass = 'log-' + type;
+      const typeUpper = type.toUpperCase();
+
+      $('#generationLog').append(`<div class="log-entry ${logClass}">[${timestamp}] [${typeUpper}] ${message}</div>`);
+
+      // Auto-scroll to bottom
+      $('#generationLog').scrollTop($('#generationLog')[0].scrollHeight);
+    }
+
+    function completeGeneration() {
+      clearInterval(generationInterval);
+      generationInProgress = false;
+
+      // Complete final step
+      $('.generation-step[data-step="4"]').addClass('completed');
+      $('.generation-step[data-step="4"] .progress-circle').removeClass('active').addClass('completed').html('<i class="fas fa-check"></i>');
+
+      $('#overallProgress').css('width', '100%').removeClass('progress-bar-animated');
+      $('#progressText').text('Generation completed successfully!');
+
+      addLogEntry('success', 'Timetable generation completed successfully');
+      addLogEntry('info', 'Generated 145 timetable entries with 92.5% optimization score');
+      addLogEntry('info', 'Notifications sent to relevant users');
+
+      // Show completion options
+      setTimeout(function () {
+        $('#generationProgress .card-body').append(`
+                <div class="alert alert-success mt-3">
+                    <h6><i class="fas fa-check-circle"></i> Generation Completed Successfully!</h6>
+                    <p class="mb-3">Your timetable has been generated with a 92.5% optimization score.</p>
+                    <div class="btn-group">
+                        <a href="{% url 'scheduling:timetable_list' %}" class="btn btn-primary">
+                            <i class="fas fa-calendar-alt"></i> View Timetables
+                        </a>
+                        <a href="{% url 'scheduling:analytics' %}" class="btn btn-outline-info">
+                            <i class="fas fa-chart-bar"></i> View Analytics
+                        </a>
+                        <button type="button" class="btn btn-outline-secondary" onclick="location.reload()">
+                            <i class="fas fa-redo"></i> Generate Again
+                        </button>
+                    </div>
+                </div>
+            `);
+      }, 2000);
+    }
+
+    function cancelGeneration() {
+      if (generationInterval) {
+        clearInterval(generationInterval);
+      }
+      generationInProgress = false;
+
+      addLogEntry('warning', 'Generation cancelled by user');
+
+      $('#generationForm').show();
+      $('#generationProgress').hide();
+    }
+
+    // Prevent page navigation during generation
+    window.addEventListener('beforeunload', function (e) {
+      if (generationInProgress) {
+        e.preventDefault();
+        e.returnValue = 'Timetable generation is in progress. Are you sure you want to leave?';
+      }
+    });
+  });
+</script>
+{% endblock %}

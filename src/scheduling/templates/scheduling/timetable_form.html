@@ -1,0 +1,543 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+{% if object %}Edit Timetable Entry{% else %}Create Timetable Entry{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2-bootstrap-5-theme.min.css"
+  rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">
+            {% if object %}
+            <i class="fas fa-edit"></i> Edit Timetable Entry
+            {% else %}
+            <i class="fas fa-plus"></i> Create Timetable Entry
+            {% endif %}
+          </h1>
+          <p class="text-muted">
+            {% if object %}
+            Modify the existing timetable entry
+            {% else %}
+            Add a new period to the timetable
+            {% endif %}
+          </p>
+        </div>
+        <div>
+          <a href="{% url 'scheduling:timetable_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to List
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-calendar-plus"></i> Timetable Details
+          </h5>
+        </div>
+        <div class="card-body">
+          <form method="post" id="timetableForm">
+            {% csrf_token %}
+
+            <!-- Primary Assignment Fields -->
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <label for="{{ form.class_assigned.id_for_label }}" class="form-label required">
+                  <i class="fas fa-users"></i> Class
+                </label>
+                {{ form.class_assigned }}
+                {% if form.class_assigned.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.class_assigned.errors.0 }}
+                </div>
+                {% endif %}
+                <div class="form-text">Select the class for this timetable entry</div>
+              </div>
+
+              <div class="col-md-6">
+                <label for="{{ form.subject.id_for_label }}" class="form-label required">
+                  <i class="fas fa-book"></i> Subject
+                </label>
+                {{ form.subject }}
+                {% if form.subject.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.subject.errors.0 }}
+                </div>
+                {% endif %}
+                <div class="form-text">Choose the subject to be taught</div>
+              </div>
+            </div>
+
+            <!-- Teacher and Time Slot -->
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <label for="{{ form.teacher.id_for_label }}" class="form-label required">
+                  <i class="fas fa-user-tie"></i> Teacher
+                </label>
+                {{ form.teacher }}
+                {% if form.teacher.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.teacher.errors.0 }}
+                </div>
+                {% endif %}
+                <div class="form-text">
+                  <span id="teacherInfo" class="text-muted">Select a subject first to see available teachers</span>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <label for="{{ form.time_slot.id_for_label }}" class="form-label required">
+                  <i class="fas fa-clock"></i> Time Slot
+                </label>
+                {{ form.time_slot }}
+                {% if form.time_slot.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.time_slot.errors.0 }}
+                </div>
+                {% endif %}
+                <div class="form-text">Select day and period</div>
+              </div>
+            </div>
+
+            <!-- Room and Term -->
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <label for="{{ form.room.id_for_label }}" class="form-label">
+                  <i class="fas fa-door-open"></i> Room
+                </label>
+                {{ form.room }}
+                {% if form.room.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.room.errors.0 }}
+                </div>
+                {% endif %}
+                <div class="form-text">
+                  <span id="roomInfo" class="text-muted">Select time slot to see available rooms</span>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <label for="{{ form.term.id_for_label }}" class="form-label required">
+                  <i class="fas fa-calendar-alt"></i> Term
+                </label>
+                {{ form.term }}
+                {% if form.term.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.term.errors.0 }}
+                </div>
+                {% endif %}
+                <div class="form-text">Academic term for this timetable</div>
+              </div>
+            </div>
+
+            <!-- Date Range -->
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <label for="{{ form.effective_from_date.id_for_label }}" class="form-label required">
+                  <i class="fas fa-calendar-check"></i> Effective From
+                </label>
+                {{ form.effective_from_date }}
+                {% if form.effective_from_date.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.effective_from_date.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+
+              <div class="col-md-6">
+                <label for="{{ form.effective_to_date.id_for_label }}" class="form-label required">
+                  <i class="fas fa-calendar-times"></i> Effective To
+                </label>
+                {{ form.effective_to_date }}
+                {% if form.effective_to_date.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.effective_to_date.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <label for="{{ form.notes.id_for_label }}" class="form-label">
+                  <i class="fas fa-sticky-note"></i> Notes
+                </label>
+                {{ form.notes }}
+                {% if form.notes.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.notes.errors.0 }}
+                </div>
+                {% endif %}
+                <div class="form-text">Optional notes about this timetable entry</div>
+              </div>
+            </div>
+
+            <!-- Conflict Check Results -->
+            <div id="conflictAlert" class="alert alert-warning d-none">
+              <h6><i class="fas fa-exclamation-triangle"></i> Conflicts Detected</h6>
+              <ul id="conflictList" class="mb-0"></ul>
+            </div>
+
+            <!-- Success Message -->
+            <div id="validationSuccess" class="alert alert-success d-none">
+              <i class="fas fa-check-circle"></i> No conflicts detected. Ready to save!
+            </div>
+
+            <!-- Form Actions -->
+            <div class="row">
+              <div class="col-12">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <button type="button" id="checkConflictsBtn" class="btn btn-outline-warning">
+                      <i class="fas fa-search"></i> Check Conflicts
+                    </button>
+                    {% if object %}
+                    <a href="{% url 'scheduling:timetable_delete' object.pk %}" class="btn btn-outline-danger"
+                      onclick="return confirm('Are you sure you want to delete this timetable entry?')">
+                      <i class="fas fa-trash"></i> Delete
+                    </a>
+                    {% endif %}
+                  </div>
+                  <div>
+                    <a href="{% url 'scheduling:timetable_list' %}" class="btn btn-secondary">
+                      <i class="fas fa-times"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                      <i class="fas fa-save"></i>
+                      {% if object %}Update{% else %}Create{% endif %} Timetable
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Quick Info Panel -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-info-circle"></i> Quick Information
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4">
+              <div id="classInfo" class="mb-3">
+                <strong>Class Information:</strong>
+                <div class="text-muted">Select a class to see details</div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div id="subjectInfo" class="mb-3">
+                <strong>Subject Information:</strong>
+                <div class="text-muted">Select a subject to see details</div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div id="timeSlotInfo" class="mb-3">
+                <strong>Time Slot Information:</strong>
+                <div class="text-muted">Select a time slot to see details</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-body text-center py-4">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3 mb-0">Checking for conflicts...</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/select2.min.js"></script>
+<script>
+  $(document).ready(function () {
+    // Initialize Select2
+    $('#id_class_assigned, #id_subject, #id_teacher, #id_time_slot, #id_room, #id_term').select2({
+      theme: 'bootstrap-5',
+      width: '100%'
+    });
+
+    // Add required class to form controls
+    $('#timetableForm select, #timetableForm input, #timetableForm textarea').addClass('form-control');
+    $('#id_effective_from_date, #id_effective_to_date').attr('type', 'date');
+
+    // Handle subject change - load available teachers
+    $('#id_subject').change(function () {
+      var subjectId = $(this).val();
+      var classId = $('#id_class_assigned').val();
+
+      if (subjectId) {
+        loadTeachers(subjectId, classId);
+        loadSubjectInfo(subjectId);
+      } else {
+        $('#id_teacher').empty().append('<option value="">Select a teacher</option>').trigger('change');
+        $('#teacherInfo').text('Select a subject first to see available teachers');
+      }
+    });
+
+    // Handle class change
+    $('#id_class_assigned').change(function () {
+      var classId = $(this).val();
+      var subjectId = $('#id_subject').val();
+
+      if (classId) {
+        loadClassInfo(classId);
+        if (subjectId) {
+          loadTeachers(subjectId, classId);
+        }
+      }
+    });
+
+    // Handle time slot change - load available rooms
+    $('#id_time_slot').change(function () {
+      var timeSlotId = $(this).val();
+
+      if (timeSlotId) {
+        loadAvailableRooms(timeSlotId);
+        loadTimeSlotInfo(timeSlotId);
+      } else {
+        $('#id_room').empty().append('<option value="">Select a room</option>').trigger('change');
+        $('#roomInfo').text('Select time slot to see available rooms');
+      }
+    });
+
+    // Auto-conflict check when key fields change
+    $('#id_teacher, #id_time_slot, #id_class_assigned').change(function () {
+      if ($('#id_teacher').val() && $('#id_time_slot').val() && $('#id_class_assigned').val()) {
+        // Auto-check conflicts after a short delay
+        setTimeout(checkConflicts, 500);
+      }
+    });
+
+    // Manual conflict check
+    $('#checkConflictsBtn').click(function () {
+      checkConflicts();
+    });
+
+    // Form submission with validation
+    $('#timetableForm').submit(function (e) {
+      e.preventDefault();
+
+      var formData = new FormData(this);
+
+      // Show loading state
+      var submitBtn = $(this).find('button[type="submit"]');
+      var originalText = submitBtn.html();
+      submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Saving...').prop('disabled', true);
+
+      // Submit form
+      $.ajax({
+        url: $(this).attr('action') || window.location.href,
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (response) {
+          if (response.success || (typeof response === 'string' && response.includes('success'))) {
+            window.location.href = '{% url "scheduling:timetable_list" %}';
+          } else {
+            // Handle form errors
+            displayFormErrors(response);
+          }
+        },
+        error: function (xhr) {
+          if (xhr.status === 422) {
+            displayFormErrors(xhr.responseJSON);
+          } else {
+            alert('An error occurred. Please try again.');
+          }
+        },
+        complete: function () {
+          submitBtn.html(originalText).prop('disabled', false);
+        }
+      });
+    });
+
+    // Load initial data if editing
+    {% if object %}
+    loadClassInfo('{{ object.class_assigned.id }}');
+    loadSubjectInfo('{{ object.subject.id }}');
+    loadTimeSlotInfo('{{ object.time_slot.id }}');
+    {% endif %}
+
+    // Functions
+    function loadTeachers(subjectId, classId) {
+      $('#teacherInfo').html('<i class="fas fa-spinner fa-spin"></i> Loading teachers...');
+
+      $.ajax({
+        url: '{% url "scheduling:ajax_available_teachers" %}',
+        data: {
+          'subject_id': subjectId,
+          'class_id': classId,
+          'time_slot_id': $('#id_time_slot').val(),
+          'date': $('#id_effective_from_date').val() || '{% now "Y-m-d" %}'
+        },
+        success: function (data) {
+          var teacherSelect = $('#id_teacher');
+          teacherSelect.empty();
+          teacherSelect.append('<option value="">Select a teacher</option>');
+
+          if (data.teachers && data.teachers.length > 0) {
+            $.each(data.teachers, function (index, teacher) {
+              teacherSelect.append('<option value="' + teacher.id + '">' +
+                teacher.name + ' (' + teacher.employee_id + ')</option>');
+            });
+            $('#teacherInfo').text(data.teachers.length + ' available teachers');
+          } else {
+            $('#teacherInfo').text('No available teachers for this subject/time');
+          }
+
+          teacherSelect.trigger('change');
+        },
+        error: function () {
+          $('#teacherInfo').text('Error loading teachers');
+        }
+      });
+    }
+
+    function loadAvailableRooms(timeSlotId) {
+      $('#roomInfo').html('<i class="fas fa-spinner fa-spin"></i> Loading rooms...');
+
+      $.ajax({
+        url: '{% url "scheduling:ajax_available_rooms" %}',
+        data: {
+          'time_slot_id': timeSlotId,
+          'date': $('#id_effective_from_date').val() || '{% now "Y-m-d" %}'
+        },
+        success: function (data) {
+          var roomSelect = $('#id_room');
+          roomSelect.empty();
+          roomSelect.append('<option value="">Select a room (optional)</option>');
+
+          if (data.rooms && data.rooms.length > 0) {
+            $.each(data.rooms, function (index, room) {
+              roomSelect.append('<option value="' + room.id + '">' +
+                room.number + ' - ' + room.name +
+                ' (Cap: ' + room.capacity + ')</option>');
+            });
+            $('#roomInfo').text(data.rooms.length + ' available rooms');
+          } else {
+            $('#roomInfo').text('No available rooms for this time slot');
+          }
+
+          roomSelect.trigger('change');
+        },
+        error: function () {
+          $('#roomInfo').text('Error loading rooms');
+        }
+      });
+    }
+
+    function loadClassInfo(classId) {
+      $.ajax({
+        url: '{% url "scheduling:ajax_class_students" %}',
+        data: { 'class_id': classId },
+        success: function (data) {
+          $('#classInfo').html('<strong>Class Information:</strong><br>' +
+            'Students: ' + data.total_count);
+        }
+      });
+    }
+
+    function loadSubjectInfo(subjectId) {
+      // This would load subject details from an API endpoint
+      $('#subjectInfo').html('<strong>Subject Information:</strong><br>' +
+        'Credit Hours: Loading...');
+    }
+
+    function loadTimeSlotInfo(timeSlotId) {
+      // This would load time slot details from an API endpoint
+      $('#timeSlotInfo').html('<strong>Time Slot Information:</strong><br>' +
+        'Duration: Loading...');
+    }
+
+    function checkConflicts() {
+      var formData = {
+        'teacher_id': $('#id_teacher').val(),
+        'room_id': $('#id_room').val(),
+        'class_id': $('#id_class_assigned').val(),
+        'time_slot_id': $('#id_time_slot').val(),
+        'start_date': $('#id_effective_from_date').val(),
+        'end_date': $('#id_effective_to_date').val(),
+            {% if object %} 'exclude_id': '{{ object.id }}', {% endif %}
+    'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+  };
+
+  $('#loadingModal').modal('show');
+
+  $.ajax({
+    url: '{% url "scheduling:ajax_check_conflicts" %}',
+    method: 'POST',
+    data: formData,
+    success: function (data) {
+      $('#loadingModal').modal('hide');
+
+      if (data.conflicts && data.conflicts.length > 0) {
+        var conflictHtml = '';
+        $.each(data.conflicts, function (index, conflict) {
+          conflictHtml += '<li>' + conflict.message + '</li>';
+        });
+
+        $('#conflictList').html(conflictHtml);
+        $('#conflictAlert').removeClass('d-none');
+        $('#validationSuccess').addClass('d-none');
+      } else {
+        $('#conflictAlert').addClass('d-none');
+        $('#validationSuccess').removeClass('d-none');
+      }
+    },
+    error: function () {
+      $('#loadingModal').modal('hide');
+      alert('Error checking conflicts');
+    }
+  });
+    }
+
+  function displayFormErrors(response) {
+    // Clear previous errors
+    $('.invalid-feedback').remove();
+    $('.is-invalid').removeClass('is-invalid');
+
+    if (response.errors) {
+      $.each(response.errors, function (field, errors) {
+        var $field = $('#id_' + field);
+        $field.addClass('is-invalid');
+        $field.after('<div class="invalid-feedback">' + errors[0] + '</div>');
+      });
+    }
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,628 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ teacher.user.get_full_name }} - Timetable{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.css" rel="stylesheet">
+<style>
+  .teacher-schedule-grid {
+    display: grid;
+    grid-template-columns: 100px repeat(5, 1fr);
+    gap: 1px;
+    background-color: #dee2e6;
+    border: 1px solid #dee2e6;
+  }
+
+  .schedule-cell {
+    background: white;
+    padding: 8px;
+    min-height: 70px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .schedule-header {
+    background: #f8f9fa;
+    font-weight: bold;
+    text-align: center;
+    padding: 12px 8px;
+  }
+
+  .schedule-time {
+    background: #e9ecef;
+    font-weight: 500;
+    text-align: center;
+    font-size: 0.85rem;
+  }
+
+  .class-block {
+    background: #fff;
+    border-left: 4px solid #28a745;
+    padding: 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .class-block:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+  }
+
+  .class-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 2px;
+  }
+
+  .subject-name {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-bottom: 1px;
+  }
+
+  .room-info {
+    font-size: 0.7rem;
+    color: #495057;
+  }
+
+  .free-period {
+    background: #f8f9fa;
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+    border: 2px dashed #dee2e6;
+  }
+
+  .workload-indicator {
+    height: 4px;
+    border-radius: 2px;
+    margin-top: 4px;
+  }
+
+  @media (max-width: 768px) {
+    .teacher-schedule-grid {
+      grid-template-columns: 80px repeat(5, 1fr);
+    }
+
+    .schedule-cell {
+      min-height: 50px;
+      padding: 4px;
+    }
+
+    .class-name {
+      font-size: 0.75rem;
+    }
+
+    .subject-name,
+    .room-info {
+      font-size: 0.65rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+          <h1 class="h3 mb-0">
+            <i class="fas fa-user-tie"></i> {{ teacher.user.get_full_name }}
+          </h1>
+          <p class="text-muted mb-0">
+            {{ teacher.employee_id }} • {{ teacher.department.name }} •
+            {% if term %}{{ term.name }}{% else %}No term selected{% endif %}
+          </p>
+        </div>
+        <div class="btn-group">
+          <a href="{% url 'teachers:teacher_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Teachers
+          </a>
+          <div class="btn-group">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="fas fa-download"></i> Export
+            </button>
+            <ul class="dropdown-menu">
+              <li>
+                <a class="dropdown-item"
+                  href="{% url 'scheduling:export_teacher_schedule' teacher.pk %}?term_id={{ term.id }}">
+                  <i class="fas fa-file-csv"></i> Download CSV
+                </a>
+              </li>
+              <li><a class="dropdown-item" href="#" onclick="window.print()"><i class="fas fa-print"></i> Print
+                  Schedule</a></li>
+            </ul>
+          </div>
+          <a href="{% url 'scheduling:substitute_create' %}?teacher_id={{ teacher.pk }}" class="btn btn-warning">
+            <i class="fas fa-user-clock"></i> Assign Substitute
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Term Selector -->
+  {% if available_terms %}
+  <div class="row mb-3">
+    <div class="col-md-4">
+      <select id="termSelector" class="form-select">
+        {% for available_term in available_terms %}
+        <option value="{{ available_term.id }}" {% if available_term == term %}selected{% endif %}>
+          {{ available_term.name }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if term %}
+  <!-- Teacher Workload Overview -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="row">
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <h4 class="card-title text-primary">{{ workload_data.total_periods }}</h4>
+              <p class="card-text">Total Periods</p>
+              <small class="text-muted">per week</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <h4 class="card-title text-success">{{ workload_data.classes_taught }}</h4>
+              <p class="card-text">Classes</p>
+              <small class="text-muted">assigned</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <h4 class="card-title text-info">{{ workload_data.subjects_taught }}</h4>
+              <p class="card-text">Subjects</p>
+              <small class="text-muted">taught</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <h4 class="card-title text-warning">{{ workload_data.average_periods_per_day|floatformat:1 }}</h4>
+              <p class="card-text">Avg per Day</p>
+              <small class="text-muted">periods</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card h-100">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-chart-pie"></i> Daily Distribution
+          </h6>
+        </div>
+        <div class="card-body">
+          <canvas id="dailyWorkloadChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Weekly Timetable -->
+  {% if timetable_data %}
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-calendar-week"></i> Weekly Schedule
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="teacher-schedule-grid">
+            <!-- Header Row -->
+            <div class="schedule-header">Time</div>
+            <div class="schedule-header">Monday</div>
+            <div class="schedule-header">Tuesday</div>
+            <div class="schedule-header">Wednesday</div>
+            <div class="schedule-header">Thursday</div>
+            <div class="schedule-header">Friday</div>
+
+            <!-- Time Slots -->
+            {% for period in 1|range:9 %}
+            <div class="schedule-cell schedule-time">
+              Period {{ period }}
+              <small class="d-block">{{ period|time_slot_time }}</small>
+            </div>
+
+            <!-- Days Monday to Friday -->
+            {% for day_num in 0|range:5 %}
+            <div class="schedule-cell">
+              {% for day_name, entries in timetable_data.items %}
+              {% if forloop.counter0 == day_num %}
+              {% for entry in entries %}
+              {% if entry.time_slot.period_number == period %}
+              <div class="class-block" data-bs-toggle="modal" data-bs-target="#periodModal"
+                data-entry-id="{{ entry.id }}">
+                <div class="class-name">{{ entry.class_assigned.grade.name }} {{ entry.class_assigned.name }}</div>
+                <div class="subject-name">{{ entry.subject.name }}</div>
+                {% if entry.room %}
+                <div class="room-info">
+                  <i class="fas fa-map-marker-alt"></i> {{ entry.room.number }}
+                </div>
+                {% else %}
+                <div class="room-info text-warning">
+                  <i class="fas fa-exclamation-triangle"></i> No room
+                </div>
+                {% endif %}
+                <div class="workload-indicator bg-success"></div>
+              </div>
+              {% endif %}
+              {% endfor %}
+
+              <!-- Check if this period is free -->
+              {% if not entries or not entry or entry.time_slot.period_number != period %}
+              <div class="free-period">
+                <i class="fas fa-coffee"></i>
+                <div>Free Period</div>
+              </div>
+              {% endif %}
+              {% endif %}
+              {% endfor %}
+            </div>
+            {% endfor %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subject-wise Analysis -->
+  <div class="row">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-book"></i> Subject Analysis
+          </h5>
+        </div>
+        <div class="card-body">
+          {% regroup timetable_data.values|flatten:"" by subject as subjects_grouped %}
+          {% if subjects_grouped %}
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Subject</th>
+                  <th>Classes</th>
+                  <th>Periods/Week</th>
+                  <th>Workload</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for subject_group in subjects_grouped %}
+                <tr>
+                  <td>
+                    <strong>{{ subject_group.grouper.name }}</strong>
+                    <br>
+                    <small class="text-muted">{{ subject_group.grouper.code }}</small>
+                  </td>
+                  <td>
+                    {% regroup subject_group.list by class_assigned as classes_by_subject %}
+                    {{ classes_by_subject|length }}
+                  </td>
+                  <td>
+                    <span class="badge bg-primary">{{ subject_group.list|length }}</span>
+                  </td>
+                  <td>
+                    <div class="progress" style="height: 15px;">
+                      {% with percentage=subject_group.list|length|mul:100|div:workload_data.total_periods %}
+                      <div class="progress-bar" style="width: {{ percentage }}%">
+                        {{ percentage|floatformat:0 }}%
+                      </div>
+                      {% endwith %}
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center text-muted py-3">
+            <i class="fas fa-book fa-2x mb-2"></i>
+            <p>No subjects assigned</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-users"></i> Class Distribution
+          </h5>
+        </div>
+        <div class="card-body">
+          {% regroup timetable_data.values|flatten:"" by class_assigned as classes_grouped %}
+          {% if classes_grouped %}
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Class</th>
+                  <th>Section</th>
+                  <th>Periods/Week</th>
+                  <th>Subjects</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for class_group in classes_grouped %}
+                <tr>
+                  <td>
+                    <strong>{{ class_group.grouper.grade.name }} {{ class_group.grouper.name }}</strong>
+                  </td>
+                  <td>
+                    <span class="badge bg-secondary">{{ class_group.grouper.grade.section.name }}</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-info">{{ class_group.list|length }}</span>
+                  </td>
+                  <td>
+                    {% regroup class_group.list by subject as subjects_by_class %}
+                    {{ subjects_by_class|length }} subject{{ subjects_by_class|length|pluralize }}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center text-muted py-3">
+            <i class="fas fa-users fa-2x mb-2"></i>
+            <p>No classes assigned</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <!-- No Timetable Data -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+          <h4 class="text-muted">No Schedule Data</h4>
+          <p class="text-muted">
+            {% if not term %}
+            No term selected. Please select a term to view the teacher's schedule.
+            {% else %}
+            No timetable entries found for {{ teacher.user.get_full_name }} in {{ term.name }}.
+            {% endif %}
+          </p>
+          {% if term %}
+          <a href="{% url 'scheduling:timetable_create' %}?teacher_id={{ teacher.pk }}&term_id={{ term.id }}"
+            class="btn btn-primary">
+            <i class="fas fa-plus"></i> Assign Classes
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <!-- No Term Available -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+          <h4 class="text-muted">No Active Term</h4>
+          <p class="text-muted">Please set up an active academic term to view teacher schedules.</p>
+          <a href="{% url 'academics:term_list' %}" class="btn btn-primary">
+            <i class="fas fa-calendar-plus"></i> Manage Terms
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Period Detail Modal -->
+<div class="modal fade" id="periodModal" tabindex="-1" aria-labelledby="periodModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="periodModalLabel">Class Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="periodModalBody">
+        <!-- Content will be loaded dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <a href="#" id="editPeriodBtn" class="btn btn-primary">
+          <i class="fas fa-edit"></i> Edit
+        </a>
+        <button type="button" class="btn btn-warning" id="addSubstituteBtn">
+          <i class="fas fa-user-clock"></i> Add Substitute
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.js"></script>
+<script>
+  $(document).ready(function () {
+    // Term selector change
+    $('#termSelector').change(function () {
+      var termId = $(this).val();
+      var currentUrl = new URL(window.location);
+      currentUrl.searchParams.set('term_id', termId);
+      window.location.href = currentUrl.toString();
+    });
+
+    {% if workload_data and term %}
+    // Daily Workload Chart
+    var dailyData = [
+      {% for day, periods in workload_data.periods_per_day.items %}
+        {{ periods }},
+    {% endfor %}
+    ];
+
+  var dailyLabels = [
+    {% for day, periods in workload_data.periods_per_day.items %}
+  '{{ day }}',
+    {% endfor %}
+    ];
+
+  var dailyWorkloadOptions = {
+    series: dailyData,
+    chart: {
+      type: 'donut',
+      height: 200
+    },
+    labels: dailyLabels,
+    colors: ['#007bff', '#28a745', '#ffc107', '#dc3545', '#6f42c1'],
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '60%'
+        }
+      }
+    },
+    dataLabels: {
+      formatter: function (val, opts) {
+        return opts.w.config.series[opts.seriesIndex] + ' periods';
+      }
+    },
+    legend: {
+      position: 'bottom',
+      fontSize: '12px'
+    }
+  };
+
+  var dailyWorkloadChart = new ApexCharts(document.querySelector("#dailyWorkloadChart"), dailyWorkloadOptions);
+  dailyWorkloadChart.render();
+  {% endif %}
+
+  // Period modal
+  $('#periodModal').on('show.bs.modal', function (event) {
+    var button = $(event.relatedTarget);
+    var entryId = button.data('entry-id');
+
+    $('#periodModalBody').html(`
+            <div class="text-center py-4">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading class details...</p>
+            </div>
+        `);
+
+    // Load period details
+    $.ajax({
+      url: '{% url "scheduling:timetable_detail" "dummy" %}'.replace('dummy', entryId),
+      success: function (data) {
+        // Extract relevant information
+        var content = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Class Information</h6>
+                            <p><strong>Class:</strong> Grade 5 A</p>
+                            <p><strong>Subject:</strong> Mathematics</p>
+                            <p><strong>Room:</strong> R-205</p>
+                            <p><strong>Time:</strong> 09:00 - 09:45</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Additional Details</h6>
+                            <p><strong>Students:</strong> 28</p>
+                            <p><strong>Term:</strong> First Term 2024</p>
+                            <p><strong>Notes:</strong> Regular class</p>
+                        </div>
+                    </div>
+                `;
+
+        $('#periodModalBody').html(content);
+        $('#editPeriodBtn').attr('href', '{% url "scheduling:timetable_edit" "dummy" %}'.replace('dummy', entryId));
+        $('#addSubstituteBtn').data('timetable-id', entryId);
+      },
+      error: function () {
+        $('#periodModalBody').html('<div class="alert alert-danger">Error loading class details</div>');
+      }
+    });
+  });
+
+  // Add substitute functionality
+  $('#addSubstituteBtn').click(function () {
+    var timetableId = $(this).data('timetable-id');
+    var url = '{% url "scheduling:substitute_create" %}?timetable_id=' + timetableId;
+    window.location.href = url;
+  });
+
+  // Subject color coding
+  var subjectColors = {
+    'Mathematics': '#dc3545',
+    'English': '#28a745',
+    'Science': '#007bff',
+    'Physics': '#6f42c1',
+    'Chemistry': '#fd7e14',
+    'Biology': '#20c997',
+    'History': '#6c757d',
+    'Geography': '#17a2b8',
+    'Computer': '#343a40',
+    'Physical Education': '#ffc107',
+    'Art': '#e83e8c',
+    'Music': '#fd7e14'
+  };
+
+  // Apply subject colors
+  $('.class-block').each(function () {
+    var subjectName = $(this).find('.subject-name').text().trim();
+    var color = subjectColors[subjectName] || '#28a745';
+    $(this).css('border-left-color', color);
+    $(this).find('.workload-indicator').css('background-color', color);
+  });
+
+  // Print styling
+  $('<style>@media print { .btn, .dropdown, .modal { display: none !important; } }</style>').appendTo('head');
+});
+
+  // Custom filters for template
+  function range(start, end) {
+    var result = [];
+    for (var i = start; i <= end; i++) {
+      result.push(i);
+    }
+    return result;
+  }
+
+  function timeSlotTime(period) {
+    var startHour = 8 + Math.floor((period - 1) * 0.75);
+    var startMinute = ((period - 1) * 45) % 60;
+    return String(startHour).padStart(2, '0') + ':' + String(startMinute).padStart(2, '0');
+  }
+</script>
+{% endblock %}

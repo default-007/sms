@@ -1,0 +1,666 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Substitute Teachers{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/css/dataTables.bootstrap5.min.css"
+  rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/css/buttons.bootstrap5.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">Substitute Teacher Management</h1>
+          <p class="text-muted">Manage substitute teacher assignments and approvals</p>
+        </div>
+        <div class="btn-group">
+          <a href="{% url 'scheduling:substitute_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Assign Substitute
+          </a>
+          <a href="{% url 'scheduling:substitute_suggestions' %}" class="btn btn-outline-info">
+            <i class="fas fa-lightbulb"></i> Get Suggestions
+          </a>
+          <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="fas fa-download"></i> Export
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#" id="exportCSV"><i class="fas fa-file-csv"></i> CSV</a></li>
+              <li><a class="dropdown-item" href="#" id="exportPDF"><i class="fas fa-file-pdf"></i> PDF</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h4 class="card-title text-primary">{{ substitutes|length }}</h4>
+          <p class="card-text">Total Substitutes</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h4 class="card-title text-warning">
+            {% for substitute in substitutes %}{% if not substitute.approved_by %}1{% endif %}{% endfor %}
+          </h4>
+          <p class="card-text">Pending Approval</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h4 class="card-title text-success">
+            {% for substitute in substitutes %}{% if substitute.approved_by %}1{% endif %}{% endfor %}
+          </h4>
+          <p class="card-text">Approved</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h4 class="card-title text-info">
+            {% for substitute in substitutes %}{% if substitute.date == today %}1{% endif %}{% endfor %}
+          </h4>
+          <p class="card-text">Today's Substitutes</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <form method="get" id="filterForm">
+            <div class="row">
+              <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                  <option value="">All Status</option>
+                  <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                  <option value="approved" {% if request.GET.status == 'approved' %}selected{% endif %}>Approved
+                  </option>
+                </select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">Start Date</label>
+                <input type="date" name="start_date" class="form-control" value="{{ request.GET.start_date }}">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">End Date</label>
+                <input type="date" name="end_date" class="form-control" value="{{ request.GET.end_date }}">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">Subject</label>
+                <select name="subject" class="form-select">
+                  <option value="">All Subjects</option>
+                  {% for subject in subjects %}
+                  <option value="{{ subject.id }}"
+                    {% if request.GET.subject == subject.id|stringformat:"s" %}selected{% endif %}>
+                    {{ subject.name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">Class</label>
+                <select name="class" class="form-select">
+                  <option value="">All Classes</option>
+                  {% for class in classes %}
+                  <option value="{{ class.id }}"
+                    {% if request.GET.class == class.id|stringformat:"s" %}selected{% endif %}>
+                    {{ class.grade.name }} {{ class.name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                  <i class="fas fa-filter"></i> Filter
+                </button>
+                <a href="{% url 'scheduling:substitute_list' %}" class="btn btn-outline-secondary">
+                  <i class="fas fa-times"></i> Clear
+                </a>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions Bar -->
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="btn-group btn-group-sm" role="group">
+        <input type="radio" class="btn-check" name="quickFilter" id="all" checked>
+        <label class="btn btn-outline-primary" for="all">All</label>
+
+        <input type="radio" class="btn-check" name="quickFilter" id="today">
+        <label class="btn btn-outline-primary" for="today">Today</label>
+
+        <input type="radio" class="btn-check" name="quickFilter" id="thisWeek">
+        <label class="btn btn-outline-primary" for="thisWeek">This Week</label>
+
+        <input type="radio" class="btn-check" name="quickFilter" id="pending">
+        <label class="btn btn-outline-warning" for="pending">Pending Approval</label>
+
+        <input type="radio" class="btn-check" name="quickFilter" id="approved">
+        <label class="btn btn-outline-success" for="approved">Approved</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Substitutes Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="substitutesTable" class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Original Teacher</th>
+                  <th>Substitute Teacher</th>
+                  <th>Class & Subject</th>
+                  <th>Time</th>
+                  <th>Reason</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for substitute in substitutes %}
+                <tr data-date="{{ substitute.date|date:'Y-m-d' }}"
+                  data-status="{% if substitute.approved_by %}approved{% else %}pending{% endif %}"
+                  class="substitute-row">
+                  <td>
+                    <strong>{{ substitute.date|date:"M d, Y" }}</strong>
+                    <br>
+                    <small class="text-muted">{{ substitute.date|date:"l" }}</small>
+                    {% if substitute.date == today %}
+                    <span class="badge bg-info ms-1">Today</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div
+                        class="avatar-sm bg-secondary rounded-circle d-flex align-items-center justify-content-center me-2">
+                        <i class="fas fa-user text-white"></i>
+                      </div>
+                      <div>
+                        <div class="fw-medium">{{ substitute.original_timetable.teacher.user.get_full_name }}</div>
+                        <small class="text-muted">{{ substitute.original_timetable.teacher.employee_id }}</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div
+                        class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center me-2">
+                        <i class="fas fa-user-tie text-white"></i>
+                      </div>
+                      <div>
+                        <div class="fw-medium">{{ substitute.substitute_teacher.user.get_full_name }}</div>
+                        <small class="text-muted">{{ substitute.substitute_teacher.employee_id }}</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div>
+                      <strong>{{ substitute.original_timetable.class_assigned.grade.name }}
+                        {{ substitute.original_timetable.class_assigned.name }}</strong>
+                      <br>
+                      <span class="badge bg-light text-dark">{{ substitute.original_timetable.subject.name }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span
+                      class="badge bg-info">{{ substitute.original_timetable.time_slot.get_day_of_week_display }}</span>
+                    <br>
+                    <small>{{ substitute.original_timetable.time_slot.start_time|time:"H:i" }} -
+                      {{ substitute.original_timetable.time_slot.end_time|time:"H:i" }}</small>
+                  </td>
+                  <td>
+                    <span class="fw-medium">{{ substitute.reason }}</span>
+                    {% if substitute.notes %}
+                    <br>
+                    <small class="text-muted">{{ substitute.notes|truncatechars:50 }}</small>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if substitute.approved_by %}
+                    <span class="badge bg-success">
+                      <i class="fas fa-check"></i> Approved
+                    </span>
+                    <br>
+                    <small class="text-muted">by {{ substitute.approved_by.get_full_name }}</small>
+                    {% else %}
+                    <span class="badge bg-warning text-dark">
+                      <i class="fas fa-clock"></i> Pending
+                    </span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <a href="{% url 'scheduling:substitute_detail' substitute.pk %}" class="btn btn-outline-primary"
+                        data-bs-toggle="tooltip" title="View Details">
+                        <i class="fas fa-eye"></i>
+                      </a>
+
+                      {% if not substitute.approved_by %}
+                      <button type="button" class="btn btn-outline-success approve-btn"
+                        data-substitute-id="{{ substitute.pk }}" data-bs-toggle="tooltip" title="Approve">
+                        <i class="fas fa-check"></i>
+                      </button>
+                      {% endif %}
+
+                      <a href="{% url 'scheduling:substitute_edit' substitute.pk %}" class="btn btn-outline-warning"
+                        data-bs-toggle="tooltip" title="Edit">
+                        <i class="fas fa-edit"></i>
+                      </a>
+
+                      <button type="button" class="btn btn-outline-info notify-btn"
+                        data-substitute-id="{{ substitute.pk }}" data-bs-toggle="tooltip" title="Send Notification">
+                        <i class="fas fa-bell"></i>
+                      </button>
+
+                      <a href="{% url 'scheduling:substitute_delete' substitute.pk %}" class="btn btn-outline-danger"
+                        data-bs-toggle="tooltip" title="Delete"
+                        onclick="return confirm('Are you sure you want to delete this substitute assignment?')">
+                        <i class="fas fa-trash"></i>
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="8" class="text-center text-muted py-4">
+                    <i class="fas fa-user-clock fa-3x mb-3"></i>
+                    <p>No substitute assignments found</p>
+                    <a href="{% url 'scheduling:substitute_create' %}" class="btn btn-primary">
+                      <i class="fas fa-plus"></i> Create First Substitute Assignment
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Approve Modal -->
+<div class="modal fade" id="bulkApproveModal" tabindex="-1" aria-labelledby="bulkApproveModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="bulkApproveModalLabel">
+          <i class="fas fa-check-double"></i> Bulk Approve Substitutes
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to approve all selected substitute assignments?</p>
+        <div id="selectedSubstitutes" class="alert alert-info">
+          <!-- Selected substitutes will be listed here -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" id="confirmBulkApprove">
+          <i class="fas fa-check"></i> Approve Selected
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Notification Modal -->
+<div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="notificationModalLabel">
+          <i class="fas fa-bell"></i> Send Notification
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="notificationForm">
+          <div class="mb-3">
+            <label class="form-label">Recipients</label>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="notifyOriginal" checked>
+              <label class="form-check-label" for="notifyOriginal">
+                Original Teacher
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="notifySubstitute" checked>
+              <label class="form-check-label" for="notifySubstitute">
+                Substitute Teacher
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="notifyStudents">
+              <label class="form-check-label" for="notifyStudents">
+                Students/Parents
+              </label>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="notificationMessage" class="form-label">Message (Optional)</label>
+            <textarea class="form-control" id="notificationMessage" rows="3"
+              placeholder="Add custom message..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="sendNotification">
+          <i class="fas fa-paper-plane"></i> Send Notification
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Floating Action Button -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
+  <div class="btn-group-vertical">
+    <button type="button" class="btn btn-primary btn-lg rounded-circle mb-2" data-bs-toggle="modal"
+      data-bs-target="#bulkApproveModal" data-bs-toggle="tooltip" title="Bulk Actions" id="bulkActionsBtn"
+      style="display: none;">
+      <i class="fas fa-check-double"></i>
+    </button>
+    <a href="{% url 'scheduling:substitute_create' %}" class="btn btn-success btn-lg rounded-circle"
+      data-bs-toggle="tooltip" title="Add Substitute">
+      <i class="fas fa-plus"></i>
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/dataTables.buttons.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/buttons.html5.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    let selectedSubstitutes = [];
+
+    // Initialize DataTable
+    var table = $('#substitutesTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[0, 'desc']], // Sort by date descending
+      columnDefs: [
+        { orderable: false, targets: [7] }, // Actions column
+        { className: "text-center", targets: [6, 7] }
+      ],
+      dom: 'Bfrtip',
+      buttons: [
+        {
+          extend: 'csv',
+          text: '<i class="fas fa-file-csv"></i> CSV',
+          className: 'btn btn-outline-secondary btn-sm d-none'
+        },
+        {
+          extend: 'pdf',
+          text: '<i class="fas fa-file-pdf"></i> PDF',
+          className: 'btn btn-outline-secondary btn-sm d-none'
+        }
+      ]
+    });
+
+    // Quick filters
+    $('input[name="quickFilter"]').change(function () {
+      var filter = $(this).attr('id');
+      applyQuickFilter(filter);
+    });
+
+    function applyQuickFilter(filter) {
+      table.search('').columns().search('').draw();
+
+      switch (filter) {
+        case 'today':
+          var today = new Date().toISOString().split('T')[0];
+          table.column(0).search(today).draw();
+          break;
+        case 'thisWeek':
+          // Filter for this week's dates
+          var startOfWeek = new Date();
+          startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+          filterByDateRange(startOfWeek, new Date(startOfWeek.getTime() + 6 * 24 * 60 * 60 * 1000));
+          break;
+        case 'pending':
+          table.column(6).search('Pending').draw();
+          break;
+        case 'approved':
+          table.column(6).search('Approved').draw();
+          break;
+        default:
+          // Show all
+          table.search('').columns().search('').draw();
+      }
+    }
+
+    function filterByDateRange(startDate, endDate) {
+      $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+        var dateStr = $(table.row(dataIndex).node()).data('date');
+        var date = new Date(dateStr);
+        return date >= startDate && date <= endDate;
+      });
+      table.draw();
+      $.fn.dataTable.ext.search.pop();
+    }
+
+    // Export functions
+    $('#exportCSV').click(function () {
+      table.button('.buttons-csv').trigger();
+    });
+
+    $('#exportPDF').click(function () {
+      table.button('.buttons-pdf').trigger();
+    });
+
+    // Row selection for bulk operations
+    $('#substitutesTable tbody').on('click', 'tr', function (e) {
+      if (e.target.tagName.toLowerCase() !== 'button' && e.target.tagName.toLowerCase() !== 'a' && !$(e.target).parent().is('button') && !$(e.target).parent().is('a')) {
+        $(this).toggleClass('table-active');
+        updateSelectedSubstitutes();
+      }
+    });
+
+    function updateSelectedSubstitutes() {
+      selectedSubstitutes = [];
+      $('#substitutesTable tbody tr.table-active').each(function () {
+        var substituteId = $(this).find('.approve-btn').data('substitute-id');
+        var substituteInfo = {
+          id: substituteId,
+          date: $(this).data('date'),
+          originalTeacher: $(this).find('td:nth-child(2) .fw-medium').text(),
+          substituteTeacher: $(this).find('td:nth-child(3) .fw-medium').text()
+        };
+        selectedSubstitutes.push(substituteInfo);
+      });
+
+      if (selectedSubstitutes.length > 0) {
+        $('#bulkActionsBtn').show();
+      } else {
+        $('#bulkActionsBtn').hide();
+      }
+    }
+
+    // Individual approve
+    $('.approve-btn').click(function () {
+      var substituteId = $(this).data('substitute-id');
+      var $btn = $(this);
+
+      if (confirm('Approve this substitute assignment?')) {
+        approveSubstitute(substituteId, $btn);
+      }
+    });
+
+    function approveSubstitute(substituteId, $btn) {
+      // Disable button and show loading
+      $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+      $.ajax({
+        url: '{% url "scheduling:approve_substitute" "dummy" %}'.replace('dummy', substituteId),
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+        },
+        success: function (response) {
+          // Update UI
+          var $row = $btn.closest('tr');
+          $row.find('td:nth-child(7)').html(`
+                    <span class="badge bg-success">
+                        <i class="fas fa-check"></i> Approved
+                    </span>
+                    <br>
+                    <small class="text-muted">by You</small>
+                `);
+          $btn.remove();
+
+          // Show success message
+          showAlert('success', 'Substitute assignment approved successfully');
+        },
+        error: function () {
+          $btn.prop('disabled', false).html('<i class="fas fa-check"></i>');
+          showAlert('danger', 'Error approving substitute assignment');
+        }
+      });
+    }
+
+    // Bulk approve
+    $('#bulkApproveModal').on('show.bs.modal', function () {
+      var html = '<strong>Selected Substitutes:</strong><ul class="list-unstyled mt-2">';
+      selectedSubstitutes.forEach(function (sub) {
+        html += `<li><i class="fas fa-user me-2"></i>${sub.originalTeacher} → ${sub.substituteTeacher} (${sub.date})</li>`;
+      });
+      html += '</ul>';
+      $('#selectedSubstitutes').html(html);
+    });
+
+    $('#confirmBulkApprove').click(function () {
+      var $btn = $(this);
+      $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Approving...');
+
+      // Simulate bulk approval
+      setTimeout(function () {
+        selectedSubstitutes.forEach(function (sub) {
+          var $row = $(`tr:has(.approve-btn[data-substitute-id="${sub.id}"])`);
+          $row.find('td:nth-child(7)').html(`
+                    <span class="badge bg-success">
+                        <i class="fas fa-check"></i> Approved
+                    </span>
+                    <br>
+                    <small class="text-muted">by You</small>
+                `);
+          $row.find('.approve-btn').remove();
+        });
+
+        $('#bulkApproveModal').modal('hide');
+        $btn.prop('disabled', false).html('<i class="fas fa-check"></i> Approve Selected');
+        showAlert('success', `${selectedSubstitutes.length} substitute assignments approved`);
+
+        selectedSubstitutes = [];
+        $('#substitutesTable tbody tr').removeClass('table-active');
+        $('#bulkActionsBtn').hide();
+      }, 2000);
+    });
+
+    // Notification functionality
+    $('.notify-btn').click(function () {
+      var substituteId = $(this).data('substitute-id');
+      $('#notificationModal').data('substitute-id', substituteId).modal('show');
+    });
+
+    $('#sendNotification').click(function () {
+      var substituteId = $('#notificationModal').data('substitute-id');
+      var message = $('#notificationMessage').val();
+      var recipients = [];
+
+      if ($('#notifyOriginal').is(':checked')) recipients.push('original');
+      if ($('#notifySubstitute').is(':checked')) recipients.push('substitute');
+      if ($('#notifyStudents').is(':checked')) recipients.push('students');
+
+      var $btn = $(this);
+      $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Sending...');
+
+      // Simulate sending notification
+      setTimeout(function () {
+        $('#notificationModal').modal('hide');
+        $btn.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Send Notification');
+        showAlert('success', 'Notifications sent successfully');
+
+        // Reset form
+        $('#notificationMessage').val('');
+        $('#notifyOriginal, #notifySubstitute').prop('checked', true);
+        $('#notifyStudents').prop('checked', false);
+      }, 1500);
+    });
+
+    function showAlert(type, message) {
+      var alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+
+      $('body').append(`
+            <div class="position-fixed top-0 end-0 p-3" style="z-index: 1055;">
+                ${alertHtml}
+            </div>
+        `);
+
+      // Auto-remove after 5 seconds
+      setTimeout(function () {
+        $('.alert').alert('close');
+      }, 5000);
+    }
+
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Auto-refresh for today's view
+    if ($('#today').is(':checked')) {
+      setInterval(function () {
+        // Auto-refresh every 5 minutes for today's view
+        location.reload();
+      }, 300000);
+    }
+  });
+</script>
+{% endblock %}

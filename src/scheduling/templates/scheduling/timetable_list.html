@@ -1,0 +1,394 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Timetables{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/css/dataTables.bootstrap5.min.css"
+  rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/css/buttons.bootstrap5.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">Timetables</h1>
+          <p class="text-muted">Manage and view all timetable entries</p>
+        </div>
+        <div class="btn-group">
+          <a href="{% url 'scheduling:timetable_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Timetable
+          </a>
+          <a href="{% url 'scheduling:bulk_timetable_create' %}" class="btn btn-outline-primary">
+            <i class="fas fa-upload"></i> Bulk Create
+          </a>
+          <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="fas fa-download"></i> Export
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#" id="exportCSV"><i class="fas fa-file-csv"></i> CSV</a></li>
+              <li><a class="dropdown-item" href="#" id="exportExcel"><i class="fas fa-file-excel"></i> Excel</a></li>
+              <li><a class="dropdown-item" href="#" id="exportPDF"><i class="fas fa-file-pdf"></i> PDF</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <form method="get" id="filterForm">
+            <div class="row">
+              <div class="col-md-2">
+                {{ filter_form.term.label_tag }}
+                {{ filter_form.term }}
+              </div>
+              <div class="col-md-2">
+                {{ filter_form.grade.label_tag }}
+                {{ filter_form.grade }}
+              </div>
+              <div class="col-md-2">
+                {{ filter_form.class_assigned.label_tag }}
+                {{ filter_form.class_assigned }}
+              </div>
+              <div class="col-md-2">
+                {{ filter_form.teacher.label_tag }}
+                {{ filter_form.teacher }}
+              </div>
+              <div class="col-md-2">
+                {{ filter_form.subject.label_tag }}
+                {{ filter_form.subject }}
+              </div>
+              <div class="col-md-2">
+                {{ filter_form.day_of_week.label_tag }}
+                {{ filter_form.day_of_week }}
+              </div>
+            </div>
+            <div class="row mt-3">
+              <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-filter"></i> Apply Filters
+                </button>
+                <a href="{% url 'scheduling:timetable_list' %}" class="btn btn-outline-secondary">
+                  <i class="fas fa-times"></i> Clear
+                </a>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timetable Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="timetableTable" class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Class</th>
+                  <th>Subject</th>
+                  <th>Teacher</th>
+                  <th>Day</th>
+                  <th>Period</th>
+                  <th>Time</th>
+                  <th>Room</th>
+                  <th>Term</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for timetable in timetables %}
+                <tr>
+                  <td>
+                    <strong>{{ timetable.class_assigned.grade.name }} {{ timetable.class_assigned.name }}</strong>
+                    <br>
+                    <small class="text-muted">{{ timetable.class_assigned.grade.section.name }}</small>
+                  </td>
+                  <td>
+                    <span class="fw-medium">{{ timetable.subject.name }}</span>
+                    {% if timetable.subject.code %}
+                    <br>
+                    <small class="text-muted">{{ timetable.subject.code }}</small>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {{ timetable.teacher.user.get_full_name }}
+                    <br>
+                    <small class="text-muted">{{ timetable.teacher.employee_id }}</small>
+                  </td>
+                  <td>
+                    <span class="badge badge-light">{{ timetable.time_slot.get_day_of_week_display }}</span>
+                  </td>
+                  <td>
+                    <span class="badge badge-primary">Period {{ timetable.time_slot.period_number }}</span>
+                  </td>
+                  <td>
+                    <small>{{ timetable.time_slot.start_time|time:"H:i" }} -
+                      {{ timetable.time_slot.end_time|time:"H:i" }}</small>
+                  </td>
+                  <td>
+                    {% if timetable.room %}
+                    <span class="badge badge-info">{{ timetable.room.number }}</span>
+                    <br>
+                    <small class="text-muted">{{ timetable.room.name }}</small>
+                    {% else %}
+                    <span class="badge badge-warning">Unassigned</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <small>{{ timetable.term.name }}</small>
+                  </td>
+                  <td>
+                    {% if timetable.is_active %}
+                    <span class="badge badge-success">Active</span>
+                    {% else %}
+                    <span class="badge badge-secondary">Inactive</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <a href="{% url 'scheduling:timetable_detail' timetable.pk %}" class="btn btn-outline-primary"
+                        data-bs-toggle="tooltip" title="View Details">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      <a href="{% url 'scheduling:timetable_edit' timetable.pk %}" class="btn btn-outline-warning"
+                        data-bs-toggle="tooltip" title="Edit">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                      <button type="button" class="btn btn-outline-info" data-bs-toggle="modal"
+                        data-bs-target="#conflictModal" data-timetable-id="{{ timetable.pk }}" title="Check Conflicts">
+                        <i class="fas fa-exclamation-triangle"></i>
+                      </button>
+                      <a href="{% url 'scheduling:timetable_delete' timetable.pk %}" class="btn btn-outline-danger"
+                        data-bs-toggle="tooltip" title="Delete"
+                        onclick="return confirm('Are you sure you want to delete this timetable entry?')">
+                        <i class="fas fa-trash"></i>
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="10" class="text-center text-muted py-4">
+                    <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                    <p>No timetable entries found</p>
+                    <a href="{% url 'scheduling:timetable_create' %}" class="btn btn-primary">
+                      <i class="fas fa-plus"></i> Create First Timetable
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Conflict Check Modal -->
+<div class="modal fade" id="conflictModal" tabindex="-1" aria-labelledby="conflictModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="conflictModalLabel">
+          <i class="fas fa-exclamation-triangle"></i> Conflict Check
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="conflictContent">
+        <div class="text-center">
+          <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p>Checking for conflicts...</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Actions Modal -->
+<div class="modal fade" id="quickActionsModal" tabindex="-1" aria-labelledby="quickActionsModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="quickActionsModalLabel">
+          <i class="fas fa-bolt"></i> Quick Actions
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="d-grid gap-2">
+          <a href="{% url 'scheduling:timetable_generation' %}" class="btn btn-primary">
+            <i class="fas fa-magic"></i> Generate Timetable
+          </a>
+          <a href="{% url 'scheduling:optimization' %}" class="btn btn-info">
+            <i class="fas fa-cogs"></i> Optimize Schedule
+          </a>
+          <a href="{% url 'scheduling:conflict_management' %}" class="btn btn-warning">
+            <i class="fas fa-tools"></i> Resolve Conflicts
+          </a>
+          <a href="{% url 'scheduling:analytics' %}" class="btn btn-success">
+            <i class="fas fa-chart-bar"></i> View Analytics
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/dataTables.buttons.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/buttons.html5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/buttons.print.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    var table = $('#timetableTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[3, 'asc'], [4, 'asc']], // Sort by day, then period
+      columnDefs: [
+        { orderable: false, targets: [9] }, // Actions column not sortable
+        { className: "text-center", targets: [3, 4, 8, 9] } // Center align specific columns
+      ],
+      dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+        '<"row"<"col-sm-12"tr>>' +
+        '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+      language: {
+        search: "Search timetables:",
+        lengthMenu: "Show _MENU_ entries per page",
+        info: "Showing _START_ to _END_ of _TOTAL_ timetables",
+        emptyTable: "No timetable entries available"
+      }
+    });
+
+    // Export functions
+    $('#exportCSV').click(function () {
+      table.button('.buttons-csv').trigger();
+    });
+
+    $('#exportExcel').click(function () {
+      table.button('.buttons-excel').trigger();
+    });
+
+    $('#exportPDF').click(function () {
+      table.button('.buttons-pdf').trigger();
+    });
+
+    // Filter form styling
+    $('#filterForm select').addClass('form-select form-select-sm');
+
+    // Dynamic class dropdown based on grade selection
+    $('#id_grade').change(function () {
+      var gradeId = $(this).val();
+      var classSelect = $('#id_class_assigned');
+
+      if (gradeId) {
+        $.ajax({
+          url: '{% url "academics:ajax_classes_by_grade" %}',
+          data: { 'grade_id': gradeId },
+          success: function (data) {
+            classSelect.empty();
+            classSelect.append('<option value="">All Classes</option>');
+            $.each(data.classes, function (index, classObj) {
+              classSelect.append('<option value="' + classObj.id + '">' + classObj.name + '</option>');
+            });
+          }
+        });
+      } else {
+        classSelect.empty();
+        classSelect.append('<option value="">All Classes</option>');
+      }
+    });
+
+    // Conflict check modal
+    $('#conflictModal').on('show.bs.modal', function (event) {
+      var button = $(event.relatedTarget);
+      var timetableId = button.data('timetable-id');
+
+      $('#conflictContent').html(`
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p>Checking for conflicts...</p>
+            </div>
+        `);
+
+      // AJAX call to check conflicts
+      $.ajax({
+        url: '{% url "scheduling:ajax_check_conflicts" %}',
+        method: 'POST',
+        data: {
+          'timetable_id': timetableId,
+          'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+        },
+        success: function (data) {
+          var content = '';
+          if (data.conflicts && data.conflicts.length > 0) {
+            content = '<div class="alert alert-warning"><h6>Conflicts Found:</h6><ul class="mb-0">';
+            $.each(data.conflicts, function (index, conflict) {
+              content += '<li>' + conflict.message + '</li>';
+            });
+            content += '</ul></div>';
+          } else {
+            content = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> No conflicts detected</div>';
+          }
+          $('#conflictContent').html(content);
+        },
+        error: function () {
+          $('#conflictContent').html('<div class="alert alert-danger">Error checking conflicts</div>');
+        }
+      });
+    });
+
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Quick Actions button
+    $('body').append(`
+        <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
+            <button type="button" class="btn btn-primary btn-lg rounded-circle" 
+                    data-bs-toggle="modal" 
+                    data-bs-target="#quickActionsModal"
+                    data-bs-toggle="tooltip" 
+                    title="Quick Actions">
+                <i class="fas fa-bolt"></i>
+            </button>
+        </div>
+    `);
+  });
+</script>
+{% endblock %}

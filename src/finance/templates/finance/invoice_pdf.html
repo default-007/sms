@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Invoice {{ invoice.invoice_number }}</title>
+    <style>
+      @page {
+        margin: 1cm;
+
+        @bottom-center {
+          content: "Page " counter(page) " of " counter(pages);
+        }
+      }
+
+      body {
+        font-family: 'Arial', sans-serif;
+        font-size: 12px;
+        line-height: 1.4;
+        color: #333;
+        margin: 0;
+        padding: 0;
+      }
+
+      .invoice-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #0d6efd;
+      }
+
+      .school-info {
+        flex: 1;
+      }
+
+      .school-name {
+        font-size: 24px;
+        font-weight: bold;
+        color: #0d6efd;
+        margin-bottom: 5px;
+      }
+
+      .school-address {
+        color: #666;
+        font-size: 11px;
+        line-height: 1.3;
+      }
+
+      .invoice-title {
+        text-align: right;
+        flex: 1;
+      }
+
+      .invoice-number {
+        font-size: 28px;
+        font-weight: bold;
+        color: #0d6efd;
+        margin-bottom: 5px;
+      }
+
+      .invoice-date {
+        color: #666;
+      }
+
+      .student-billing-info {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 30px;
+      }
+
+      .student-info,
+      .billing-info {
+        flex: 1;
+        margin-right: 20px;
+      }
+
+      .student-info h3,
+      .billing-info h3 {
+        color: #0d6efd;
+        font-size: 14px;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
+      }
+
+      .info-row {
+        display: flex;
+        margin-bottom: 5px;
+      }
+
+      .info-label {
+        font-weight: bold;
+        min-width: 120px;
+        color: #555;
+      }
+
+      .info-value {
+        flex: 1;
+      }
+
+      .invoice-items {
+        margin-bottom: 30px;
+      }
+
+      .items-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+
+      .items-table th {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        padding: 12px 8px;
+        text-align: left;
+        font-weight: bold;
+        color: #495057;
+      }
+
+      .items-table td {
+        border: 1px solid #dee2e6;
+        padding: 10px 8px;
+        vertical-align: top;
+      }
+
+      .items-table tr:nth-child(even) {
+        background: #f8f9fa;
+      }
+
+      .text-right {
+        text-align: right;
+      }
+
+      .text-center {
+        text-align: center;
+      }
+
+      .amount {
+        font-weight: bold;
+      }
+
+      .totals-section {
+        float: right;
+        width: 300px;
+        margin-bottom: 30px;
+      }
+
+      .totals-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .totals-table td {
+        padding: 8px 12px;
+        border-bottom: 1px solid #eee;
+      }
+
+      .totals-table .label {
+        font-weight: bold;
+        color: #555;
+      }
+
+      .totals-table .amount {
+        text-align: right;
+        font-weight: bold;
+      }
+
+      .total-row {
+        background: #f8f9fa;
+        border-top: 2px solid #0d6efd !important;
+      }
+
+      .total-row .amount {
+        color: #0d6efd;
+        font-size: 16px;
+      }
+
+      .payment-info {
+        clear: both;
+        margin-bottom: 30px;
+      }
+
+      .payment-info h3 {
+        color: #0d6efd;
+        font-size: 14px;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
+      }
+
+      .payment-methods {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 20px;
+      }
+
+      .payment-method {
+        flex: 1;
+        margin-right: 20px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 5px;
+      }
+
+      .payment-method h4 {
+        margin: 0 0 10px 0;
+        color: #0d6efd;
+        font-size: 13px;
+      }
+
+      .payment-method p {
+        margin: 3px 0;
+        font-size: 11px;
+      }
+
+      .footer {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+        text-align: center;
+        color: #666;
+        font-size: 11px;
+      }
+
+      .footer p {
+        margin: 5px 0;
+      }
+
+      .status-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: bold;
+        text-transform: uppercase;
+      }
+
+      .status-unpaid {
+        background: #dc3545;
+        color: white;
+      }
+
+      .status-paid {
+        background: #198754;
+        color: white;
+      }
+
+      .status-partially-paid {
+        background: #ffc107;
+        color: #333;
+      }
+
+      .status-overdue {
+        background: #fd7e14;
+        color: white;
+      }
+
+      .due-date-warning {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+
+      .due-date-warning.overdue {
+        background: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+      }
+
+      @media print {
+        .no-print {
+          display: none;
+        }
+
+        body {
+          font-size: 11px;
+        }
+
+        .header {
+          margin-bottom: 20px;
+          padding-bottom: 15px;
+        }
+
+        .student-billing-info {
+          margin-bottom: 20px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="invoice-container">
+      <!-- Header -->
+      <div class="header">
+        <div class="school-info">
+          <div class="school-name">{{ school.name|default:"School Name" }}</div>
+          <div class="school-address">
+            {{ school.address|default:"School Address" }}<br>
+            {{ school.city|default:"City" }}, {{ school.state|default:"State" }} {{ school.zip|default:"ZIP" }}<br>
+            Phone: {{ school.phone|default:"(000) 000-0000" }}<br>
+            Email: {{ school.email|default:"admin@school.edu" }}
+          </div>
+        </div>
+        <div class="invoice-title">
+          <div class="invoice-number">INVOICE</div>
+          <div class="invoice-number" style="font-size: 18px;">#{{ invoice.invoice_number }}</div>
+          <div class="invoice-date">
+            Date: {{ invoice.issue_date|date:"F d, Y" }}<br>
+            <span class="status-badge status-{{ invoice.status }}">{{ invoice.get_status_display }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Due Date Warning -->
+      {% if invoice.is_overdue %}
+      <div class="due-date-warning overdue">
+        <strong>⚠️ OVERDUE:</strong> This invoice was due on {{ invoice.due_date|date:"F d, Y" }}.
+        Please make payment immediately to avoid additional charges.
+      </div>
+      {% elif invoice.due_date %}
+      <div class="due-date-warning">
+        <strong>Due Date:</strong> {{ invoice.due_date|date:"F d, Y" }}
+        {% if days_until_due < 7 %}
+        - Payment due in {{ days_until_due }} day{{ days_until_due|pluralize }}
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Student and Billing Information -->
+      <div class="student-billing-info">
+        <div class="student-info">
+          <h3>Student Information</h3>
+          <div class="info-row">
+            <span class="info-label">Student Name:</span>
+            <span class="info-value">{{ invoice.student.user.get_full_name }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Admission No:</span>
+            <span class="info-value">{{ invoice.student.admission_number }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Class:</span>
+            <span class="info-value">{{ invoice.student.current_class }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Academic Year:</span>
+            <span class="info-value">{{ invoice.academic_year }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Term:</span>
+            <span class="info-value">{{ invoice.term }}</span>
+          </div>
+        </div>
+
+        <div class="billing-info">
+          <h3>Billing Information</h3>
+          {% with parent=invoice.student.studentparentrelation_set.first.parent %}
+          {% if parent %}
+          <div class="info-row">
+            <span class="info-label">Parent/Guardian:</span>
+            <span class="info-value">{{ parent.user.get_full_name }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Email:</span>
+            <span class="info-value">{{ parent.user.email }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Phone:</span>
+            <span class="info-value">{{ parent.user.phone_number|default:"N/A" }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Address:</span>
+            <span class="info-value">{{ parent.user.address|default:"N/A" }}</span>
+          </div>
+          {% endif %}
+          {% endwith %}
+        </div>
+      </div>
+
+      <!-- Invoice Items -->
+      <div class="invoice-items">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th style="width: 50%;">Description</th>
+              <th style="width: 15%;" class="text-center">Category</th>
+              <th style="width: 15%;" class="text-right">Amount</th>
+              <th style="width: 10%;" class="text-right">Discount</th>
+              <th style="width: 15%;" class="text-right">Net Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in invoice.items.all %}
+            <tr>
+              <td>
+                <strong>{{ item.description }}</strong>
+                {% if item.fee_structure %}
+                <br><small style="color: #666;">{{ item.fee_structure.fee_category.name }}</small>
+                {% elif item.special_fee %}
+                <br><small style="color: #666;">Special Fee</small>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if item.fee_structure %}
+                {{ item.fee_structure.fee_category.name }}
+                {% elif item.special_fee %}
+                {{ item.special_fee.fee_category.name }}
+                {% else %}
+                General
+                {% endif %}
+              </td>
+              <td class="text-right amount">${{ item.amount|floatformat:2 }}</td>
+              <td class="text-right">
+                {% if item.discount_amount > 0 %}
+                -${{ item.discount_amount|floatformat:2 }}
+                {% else %}
+                $0.00
+                {% endif %}
+              </td>
+              <td class="text-right amount">${{ item.net_amount|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-center" style="color: #666; padding: 20px;">
+                No items found for this invoice.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Totals -->
+      <div class="totals-section">
+        <table class="totals-table">
+          <tr>
+            <td class="label">Subtotal:</td>
+            <td class="amount">${{ invoice.total_amount|floatformat:2 }}</td>
+          </tr>
+          {% if invoice.discount_amount > 0 %}
+          <tr>
+            <td class="label">Total Discount:</td>
+            <td class="amount">-${{ invoice.discount_amount|floatformat:2 }}</td>
+          </tr>
+          {% endif %}
+          <tr class="total-row">
+            <td class="label">Net Total:</td>
+            <td class="amount">${{ invoice.net_amount|floatformat:2 }}</td>
+          </tr>
+          {% if invoice.paid_amount > 0 %}
+          <tr>
+            <td class="label">Paid Amount:</td>
+            <td class="amount">-${{ invoice.paid_amount|floatformat:2 }}</td>
+          </tr>
+          <tr style="background: #fff3cd;">
+            <td class="label">Outstanding:</td>
+            <td class="amount">${{ invoice.outstanding_amount|floatformat:2 }}</td>
+          </tr>
+          {% endif %}
+        </table>
+      </div>
+
+      <!-- Payment Information -->
+      <div class="payment-info">
+        <h3>Payment Information</h3>
+
+        {% if invoice.payments.exists %}
+        <div style="margin-bottom: 20px;">
+          <h4 style="color: #198754; margin-bottom: 10px;">Payment History:</h4>
+          <table class="items-table" style="margin-bottom: 0;">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Receipt #</th>
+                <th>Method</th>
+                <th class="text-right">Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for payment in invoice.payments.all %}
+              <tr>
+                <td>{{ payment.payment_date|date:"M d, Y" }}</td>
+                <td>{{ payment.receipt_number }}</td>
+                <td>{{ payment.get_payment_method_display }}</td>
+                <td class="text-right">${{ payment.amount|floatformat:2 }}</td>
+                <td><span class="status-badge status-{{ payment.status }}">{{ payment.get_status_display }}</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+
+        <div class="payment-methods">
+          <div class="payment-method">
+            <h4>🏦 Bank Transfer</h4>
+            <p><strong>Account Name:</strong> {{ school.name|default:"School Name" }}</p>
+            <p><strong>Account No:</strong> {{ school.bank_account|default:"1234567890" }}</p>
+            <p><strong>Bank:</strong> {{ school.bank_name|default:"Bank Name" }}</p>
+            <p><strong>Reference:</strong> {{ invoice.invoice_number }}</p>
+          </div>
+
+          <div class="payment-method">
+            <h4>💳 Online Payment</h4>
+            <p><strong>Student Portal:</strong></p>
+            <p>{{ school.website|default:"www.school.edu" }}/student-portal</p>
+            <p><strong>Payment ID:</strong> {{ invoice.invoice_number }}</p>
+            <p>Credit/Debit cards accepted</p>
+          </div>
+
+          <div class="payment-method">
+            <h4>🏢 In-Person Payment</h4>
+            <p><strong>Finance Office:</strong></p>
+            <p>{{ school.address|default:"School Address" }}</p>
+            <p><strong>Hours:</strong> Mon-Fri 8AM-4PM</p>
+            <p>Cash, Card, Cheque accepted</p>
+          </div>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 20px;">
+          <h4 style="color: #0d6efd; margin: 0 0 10px 0;">Important Notes:</h4>
+          <ul style="margin: 0; padding-left: 20px; color: #555;">
+            <li>Please include invoice number {{ invoice.invoice_number }} with all payments</li>
+            <li>Late fee of {{ late_fee_percentage|default:"5" }}% applies after due date</li>
+            <li>For payment queries, contact finance office at {{ school.phone|default:"(000) 000-0000" }}</li>
+            <li>Keep receipt as proof of payment</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <p><strong>{{ school.name|default:"School Name" }}</strong></p>
+        <p>This is a computer-generated invoice. For any discrepancies, please contact the finance office.</p>
+        <p>Generated on {{ "now"|date:"F d, Y \a\\t g:i A" }}</p>
+      </div>
+    </div>
+  </body>
+
+</html>

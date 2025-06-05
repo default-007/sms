@@ -1,0 +1,991 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Fee Calculator - Finance{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Fee Calculator</h2>
+          <p class="text-muted mb-0">Calculate fees for students and preview fee structures</p>
+        </div>
+        <div>
+          <button class="btn btn-outline-primary me-2" id="clearCalculator">
+            <i class="fas fa-eraser"></i> Clear
+          </button>
+          <button class="btn btn-success" id="saveCalculation">
+            <i class="fas fa-save"></i> Save Calculation
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Calculator Form -->
+    <div class="col-lg-4">
+      <div class="card sticky-top" style="top: 1rem;">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-calculator"></i> Fee Calculator
+          </h5>
+        </div>
+        <div class="card-body">
+          <form id="feeCalculatorForm">
+            <!-- Student Selection -->
+            <div class="mb-3">
+              <label for="calculationMode" class="form-label">Calculation Mode</label>
+              <select class="form-select" id="calculationMode" name="mode">
+                <option value="student">For Specific Student</option>
+                <option value="class">For Entire Class</option>
+                <option value="preview">Preview Fee Structure</option>
+              </select>
+            </div>
+
+            <!-- Student Selection (when mode is student) -->
+            <div class="mb-3" id="studentSelection">
+              <label for="studentSelect" class="form-label">Select Student</label>
+              <select class="form-select" id="studentSelect" name="student">
+                <option value="">Search and select student...</option>
+              </select>
+              <div class="form-text">Type to search by name or admission number</div>
+            </div>
+
+            <!-- Class Selection (when mode is class or preview) -->
+            <div class="mb-3" id="classSelection" style="display: none;">
+              <label for="sectionSelect" class="form-label">Section</label>
+              <select class="form-select" id="sectionSelect" name="section">
+                <option value="">Select Section</option>
+                <!-- Populated via JavaScript -->
+              </select>
+            </div>
+
+            <div class="mb-3" id="gradeSelection" style="display: none;">
+              <label for="gradeSelect" class="form-label">Grade</label>
+              <select class="form-select" id="gradeSelect" name="grade">
+                <option value="">Select Grade</option>
+                <!-- Populated via JavaScript -->
+              </select>
+            </div>
+
+            <div class="mb-3" id="classSelectDiv" style="display: none;">
+              <label for="classSelect" class="form-label">Class</label>
+              <select class="form-select" id="classSelect" name="class">
+                <option value="">Select Class</option>
+                <!-- Populated via JavaScript -->
+              </select>
+            </div>
+
+            <!-- Academic Period -->
+            <div class="mb-3">
+              <label for="academicYearSelect" class="form-label">Academic Year</label>
+              <select class="form-select" id="academicYearSelect" name="academic_year" required>
+                <option value="">Select Academic Year</option>
+                <!-- Populated via JavaScript -->
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="termSelect" class="form-label">Term</label>
+              <select class="form-select" id="termSelect" name="term" required>
+                <option value="">Select Term</option>
+                <!-- Populated via JavaScript -->
+              </select>
+            </div>
+
+            <!-- Scholarship Simulation -->
+            <div class="mb-3">
+              <label class="form-label">Scholarship Simulation</label>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="includeScholarships" name="include_scholarships"
+                  checked>
+                <label class="form-check-label" for="includeScholarships">
+                  Include existing scholarships
+                </label>
+              </div>
+            </div>
+
+            <!-- Custom Scholarship -->
+            <div class="mb-3">
+              <label class="form-label">Add Custom Scholarship</label>
+              <div class="row g-2">
+                <div class="col-6">
+                  <select class="form-select form-select-sm" id="customScholarshipType">
+                    <option value="percentage">Percentage</option>
+                    <option value="fixed">Fixed Amount</option>
+                  </select>
+                </div>
+                <div class="col-6">
+                  <input type="number" class="form-control form-control-sm" id="customScholarshipValue"
+                    placeholder="Value" step="0.01" min="0">
+                </div>
+              </div>
+              <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="addCustomScholarship()">
+                <i class="fas fa-plus"></i> Add
+              </button>
+            </div>
+
+            <!-- Special Fees -->
+            <div class="mb-3">
+              <label class="form-label">Add Special Fee</label>
+              <div class="row g-2">
+                <div class="col-8">
+                  <input type="text" class="form-control form-control-sm" id="specialFeeName" placeholder="Fee name">
+                </div>
+                <div class="col-4">
+                  <input type="number" class="form-control form-control-sm" id="specialFeeAmount" placeholder="Amount"
+                    step="0.01" min="0">
+                </div>
+              </div>
+              <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="addSpecialFee()">
+                <i class="fas fa-plus"></i> Add
+              </button>
+            </div>
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-calculator"></i> Calculate Fees
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <div class="col-lg-8">
+      <!-- Student Info Card -->
+      <div class="card mb-4" id="studentInfoCard" style="display: none;">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-user"></i> Student Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="info-item">
+                <span class="label">Name:</span>
+                <span class="value" id="studentName"></span>
+              </div>
+              <div class="info-item">
+                <span class="label">Admission No:</span>
+                <span class="value" id="studentAdmission"></span>
+              </div>
+              <div class="info-item">
+                <span class="label">Class:</span>
+                <span class="value" id="studentClass"></span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="info-item">
+                <span class="label">Current Outstanding:</span>
+                <span class="value text-warning" id="currentOutstanding">$0.00</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Active Scholarships:</span>
+                <span class="value text-success" id="activeScholarships">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calculation Results -->
+      <div class="card mb-4" id="calculationResults" style="display: none;">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-file-invoice-dollar"></i> Fee Calculation Results
+          </h5>
+          <button class="btn btn-outline-primary btn-sm" onclick="generateInvoice()">
+            <i class="fas fa-file-invoice"></i> Generate Invoice
+          </button>
+        </div>
+        <div class="card-body">
+          <!-- Summary Cards -->
+          <div class="row mb-4">
+            <div class="col-md-3">
+              <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                  <h6 class="card-title">Total Fees</h6>
+                  <h4 id="totalFeesAmount">$0.00</h4>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                  <h6 class="card-title">Scholarships</h6>
+                  <h4 id="totalScholarships">$0.00</h4>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                  <h6 class="card-title">Special Fees</h6>
+                  <h4 id="totalSpecialFees">$0.00</h4>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                  <h6 class="card-title">Net Amount</h6>
+                  <h4 id="netAmount">$0.00</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detailed Breakdown -->
+          <div class="row">
+            <div class="col-md-6">
+              <h6>Base Fees</h6>
+              <div class="table-responsive">
+                <table class="table table-sm" id="baseFeesTable">
+                  <thead>
+                    <tr>
+                      <th>Category</th>
+                      <th>Type</th>
+                      <th class="text-end">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- Populated via JavaScript -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <h6>Scholarships & Discounts</h6>
+              <div class="table-responsive">
+                <table class="table table-sm" id="scholarshipsTable">
+                  <thead>
+                    <tr>
+                      <th>Scholarship</th>
+                      <th>Type</th>
+                      <th class="text-end">Discount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- Populated via JavaScript -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Special Fees -->
+          <div class="row mt-3" id="specialFeesSection" style="display: none;">
+            <div class="col-12">
+              <h6>Special Fees</h6>
+              <div class="table-responsive">
+                <table class="table table-sm" id="specialFeesTable">
+                  <thead>
+                    <tr>
+                      <th>Description</th>
+                      <th>Category</th>
+                      <th class="text-end">Amount</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- Populated via JavaScript -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Class Results (for class mode) -->
+      <div class="card mb-4" id="classResults" style="display: none;">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-users"></i> Class Fee Summary
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="classResultsContent">
+            <!-- Populated via JavaScript -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Fee Structure Preview -->
+      <div class="card mb-4" id="feeStructurePreview" style="display: none;">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-list"></i> Fee Structure Preview
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="feeStructureContent">
+            <!-- Populated via JavaScript -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Comparison Tool -->
+      <div class="card" id="comparisonTool" style="display: none;">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-balance-scale"></i> Fee Comparison
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h6>Current Calculation</h6>
+              <div id="currentComparison"></div>
+            </div>
+            <div class="col-md-6">
+              <h6>Previous Term/Year</h6>
+              <div id="previousComparison"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+<script>
+  let calculationData = {};
+  let customScholarships = [];
+  let customSpecialFees = [];
+
+  $(document).ready(function () {
+    initializeForm();
+    setupEventHandlers();
+    loadFormData();
+  });
+
+  function initializeForm() {
+    // Initialize select2 for student search
+    $('#studentSelect').on('input', function () {
+      searchStudents($(this).val());
+    });
+  }
+
+  function setupEventHandlers() {
+    // Mode change handler
+    $('#calculationMode').on('change', function () {
+      const mode = $(this).val();
+      toggleSections(mode);
+    });
+
+    // Form submission
+    $('#feeCalculatorForm').on('submit', function (e) {
+      e.preventDefault();
+      calculateFees();
+    });
+
+    // Academic year change
+    $('#academicYearSelect').on('change', function () {
+      loadTerms($(this).val());
+    });
+
+    // Section change
+    $('#sectionSelect').on('change', function () {
+      loadGrades($(this).val());
+    });
+
+    // Grade change
+    $('#gradeSelect').on('change', function () {
+      loadClasses($(this).val());
+    });
+
+    // Clear calculator
+    $('#clearCalculator').on('click', function () {
+      clearCalculator();
+    });
+  }
+
+  function toggleSections(mode) {
+    if (mode === 'student') {
+      $('#studentSelection').show();
+      $('#classSelection, #gradeSelection, #classSelectDiv').hide();
+    } else if (mode === 'class') {
+      $('#studentSelection').hide();
+      $('#classSelection, #gradeSelection, #classSelectDiv').show();
+    } else if (mode === 'preview') {
+      $('#studentSelection').hide();
+      $('#classSelection, #gradeSelection').show();
+      $('#classSelectDiv').hide();
+    }
+  }
+
+  function loadFormData() {
+    // Load academic years
+    $.get('/api/academics/academic-years/', function (data) {
+      const select = $('#academicYearSelect');
+      select.empty().append('<option value="">Select Academic Year</option>');
+      data.forEach(year => {
+        select.append(`<option value="${year.id}" ${year.is_current ? 'selected' : ''}>${year.name}</option>`);
+      });
+
+      if (data.find(y => y.is_current)) {
+        loadTerms(data.find(y => y.is_current).id);
+      }
+    });
+
+    // Load sections
+    $.get('/api/academics/sections/', function (data) {
+      const select = $('#sectionSelect');
+      select.empty().append('<option value="">Select Section</option>');
+      data.forEach(section => {
+        select.append(`<option value="${section.id}">${section.name}</option>`);
+      });
+    });
+  }
+
+  function loadTerms(academicYearId) {
+    if (!academicYearId) return;
+
+    $.get(`/api/academics/terms/?academic_year=${academicYearId}`, function (data) {
+      const select = $('#termSelect');
+      select.empty().append('<option value="">Select Term</option>');
+      data.forEach(term => {
+        select.append(`<option value="${term.id}" ${term.is_current ? 'selected' : ''}>${term.name}</option>`);
+      });
+    });
+  }
+
+  function loadGrades(sectionId) {
+    if (!sectionId) return;
+
+    $.get(`/api/academics/grades/?section=${sectionId}`, function (data) {
+      const select = $('#gradeSelect');
+      select.empty().append('<option value="">Select Grade</option>');
+      data.forEach(grade => {
+        select.append(`<option value="${grade.id}">${grade.name}</option>`);
+      });
+    });
+  }
+
+  function loadClasses(gradeId) {
+    if (!gradeId) return;
+
+    const academicYear = $('#academicYearSelect').val();
+    $.get(`/api/academics/classes/?grade=${gradeId}&academic_year=${academicYear}`, function (data) {
+      const select = $('#classSelect');
+      select.empty().append('<option value="">Select Class</option>');
+      data.forEach(cls => {
+        select.append(`<option value="${cls.id}">${cls.name}</option>`);
+      });
+    });
+  }
+
+  function searchStudents(query) {
+    if (query.length < 2) return;
+
+    $.get(`/finance/search-students/?q=${query}`, function (data) {
+      const select = $('#studentSelect');
+      select.empty().append('<option value="">Search and select student...</option>');
+      data.students.forEach(student => {
+        select.append(`<option value="${student.id}">${student.name} (${student.admission_number}) - ${student.class}</option>`);
+      });
+    });
+  }
+
+  function calculateFees() {
+    const formData = new FormData($('#feeCalculatorForm')[0]);
+
+    // Add custom scholarships and special fees
+    formData.append('custom_scholarships', JSON.stringify(customScholarships));
+    formData.append('custom_special_fees', JSON.stringify(customSpecialFees));
+
+    showCalculationLoading();
+
+    $.ajax({
+      url: '/finance/calculate-fees/',
+      method: 'POST',
+      data: formData,
+      processData: false,
+      contentType: false,
+      success: function (data) {
+        calculationData = data;
+        displayResults(data);
+      },
+      error: function (xhr) {
+        showCalculationError(xhr.responseJSON?.error || 'Error calculating fees');
+      }
+    });
+  }
+
+  function showCalculationLoading() {
+    $('#calculationResults, #classResults, #feeStructurePreview').hide();
+    $('#calculationResults .card-body').html('<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Calculating fees...</p></div>');
+    $('#calculationResults').show();
+  }
+
+  function showCalculationError(message) {
+    $('#calculationResults .card-body').html(`<div class="alert alert-danger">${message}</div>`);
+  }
+
+  function displayResults(data) {
+    const mode = $('#calculationMode').val();
+
+    if (mode === 'student') {
+      displayStudentResults(data);
+    } else if (mode === 'class') {
+      displayClassResults(data);
+    } else if (mode === 'preview') {
+      displayFeeStructurePreview(data);
+    }
+  }
+
+  function displayStudentResults(data) {
+    // Show student info
+    if (data.student) {
+      $('#studentName').text(data.student.name);
+      $('#studentAdmission').text(data.student.admission_number);
+      $('#studentClass').text(data.student.class);
+      $('#currentOutstanding').text(`$${formatNumber(data.student.current_outstanding || 0)}`);
+      $('#activeScholarships').text(data.student.active_scholarships || 0);
+      $('#studentInfoCard').show();
+    }
+
+    // Update summary cards
+    $('#totalFeesAmount').text(`$${formatNumber(data.total_amount)}`);
+    $('#totalScholarships').text(`-$${formatNumber(data.discount_amount)}`);
+    $('#totalSpecialFees').text(`$${formatNumber(data.special_fees_total || 0)}`);
+    $('#netAmount').text(`$${formatNumber(data.net_amount)}`);
+
+    // Populate base fees table
+    const baseFeesTableBody = $('#baseFeesTable tbody');
+    baseFeesTableBody.empty();
+    data.base_fees.forEach(fee => {
+      baseFeesTableBody.append(`
+            <tr>
+                <td>${fee.category}</td>
+                <td><span class="badge bg-secondary">${fee.type}</span></td>
+                <td class="text-end">$${formatNumber(fee.amount)}</td>
+            </tr>
+        `);
+    });
+
+    // Populate scholarships table
+    const scholarshipsTableBody = $('#scholarshipsTable tbody');
+    scholarshipsTableBody.empty();
+    data.scholarships_applied.forEach(scholarship => {
+      const discountAmount = calculateScholarshipDiscount(scholarship, data.total_amount);
+      scholarshipsTableBody.append(`
+            <tr>
+                <td>${scholarship.name}</td>
+                <td><span class="badge bg-success">${scholarship.discount_type}</span></td>
+                <td class="text-end">-$${formatNumber(discountAmount)}</td>
+            </tr>
+        `);
+    });
+
+    // Show special fees if any
+    if (data.special_fees && data.special_fees.length > 0) {
+      const specialFeesTableBody = $('#specialFeesTable tbody');
+      specialFeesTableBody.empty();
+      data.special_fees.forEach(fee => {
+        specialFeesTableBody.append(`
+                <tr>
+                    <td>${fee.name}</td>
+                    <td>${fee.category}</td>
+                    <td class="text-end">$${formatNumber(fee.amount)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeSpecialFee('${fee.id}')">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </td>
+                </tr>
+            `);
+      });
+      $('#specialFeesSection').show();
+    }
+
+    // Restore card body content and show results
+    restoreCardBody();
+    $('#calculationResults').show();
+    $('#classResults, #feeStructurePreview').hide();
+  }
+
+  function displayClassResults(data) {
+    let content = `
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <h6>Total Students</h6>
+                        <h4>${data.total_students}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <h6>Total Fees</h6>
+                        <h4>$${formatNumber(data.total_class_fees)}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h6>Avg. per Student</h6>
+                        <h4>$${formatNumber(data.average_per_student)}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <h6>With Scholarships</h6>
+                        <h4>${data.students_with_scholarships}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Admission No</th>
+                        <th>Base Fees</th>
+                        <th>Scholarships</th>
+                        <th>Net Amount</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    data.student_calculations.forEach(student => {
+      content += `
+            <tr>
+                <td><strong>${student.name}</strong></td>
+                <td>${student.admission_number}</td>
+                <td>$${formatNumber(student.total_fees)}</td>
+                <td>-$${formatNumber(student.total_discounts)}</td>
+                <td><strong>$${formatNumber(student.net_amount)}</strong></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewStudentDetails('${student.id}')">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    content += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    $('#classResultsContent').html(content);
+    $('#classResults').show();
+    $('#calculationResults, #feeStructurePreview').hide();
+  }
+
+  function displayFeeStructurePreview(data) {
+    let content = `
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <h6>Total Categories</h6>
+                        <h4>${data.fee_categories_count}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h6>Base Amount</h6>
+                        <h4>$${formatNumber(data.total_base_amount)}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <h6>Special Fees</h6>
+                        <h4>${data.special_fees_count}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Fee Category</th>
+                        <th>Level</th>
+                        <th>Amount</th>
+                        <th>Due Date</th>
+                        <th>Late Fee %</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    data.fee_structures.forEach(fee => {
+      content += `
+            <tr>
+                <td><strong>${fee.category}</strong></td>
+                <td><span class="badge bg-secondary">${fee.level}</span></td>
+                <td>$${formatNumber(fee.amount)}</td>
+                <td>${formatDate(fee.due_date)}</td>
+                <td>${fee.late_fee_percentage}%</td>
+                <td><span class="badge bg-${fee.is_active ? 'success' : 'danger'}">${fee.is_active ? 'Active' : 'Inactive'}</span></td>
+            </tr>
+        `;
+    });
+
+    content += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    $('#feeStructureContent').html(content);
+    $('#feeStructurePreview').show();
+    $('#calculationResults, #classResults').hide();
+  }
+
+  function restoreCardBody() {
+    $('#calculationResults .card-body').html(`
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Total Fees</h6>
+                        <h4 id="totalFeesAmount">$0.00</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Scholarships</h6>
+                        <h4 id="totalScholarships">$0.00</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Special Fees</h6>
+                        <h4 id="totalSpecialFees">$0.00</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Net Amount</h6>
+                        <h4 id="netAmount">$0.00</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Breakdown -->
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Base Fees</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm" id="baseFeesTable">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Type</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <h6>Scholarships & Discounts</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm" id="scholarshipsTable">
+                        <thead>
+                            <tr>
+                                <th>Scholarship</th>
+                                <th>Type</th>
+                                <th class="text-end">Discount</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Special Fees -->
+        <div class="row mt-3" id="specialFeesSection" style="display: none;">
+            <div class="col-12">
+                <h6>Special Fees</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm" id="specialFeesTable">
+                        <thead>
+                            <tr>
+                                <th>Description</th>
+                                <th>Category</th>
+                                <th class="text-end">Amount</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `);
+  }
+
+  function addCustomScholarship() {
+    const type = $('#customScholarshipType').val();
+    const value = parseFloat($('#customScholarshipValue').val());
+
+    if (!value || value <= 0) {
+      alert('Please enter a valid scholarship value');
+      return;
+    }
+
+    customScholarships.push({
+      id: Date.now(),
+      name: `Custom ${type === 'percentage' ? 'Percentage' : 'Fixed'} Discount`,
+      discount_type: type,
+      discount_value: value
+    });
+
+    $('#customScholarshipValue').val('');
+    alert('Custom scholarship added');
+  }
+
+  function addSpecialFee() {
+    const name = $('#specialFeeName').val();
+    const amount = parseFloat($('#specialFeeAmount').val());
+
+    if (!name || !amount || amount <= 0) {
+      alert('Please enter valid fee name and amount');
+      return;
+    }
+
+    customSpecialFees.push({
+      id: Date.now(),
+      name: name,
+      amount: amount,
+      category: 'Custom'
+    });
+
+    $('#specialFeeName').val('');
+    $('#specialFeeAmount').val('');
+    alert('Special fee added');
+  }
+
+  function clearCalculator() {
+    $('#feeCalculatorForm')[0].reset();
+    $('#studentInfoCard, #calculationResults, #classResults, #feeStructurePreview').hide();
+    customScholarships = [];
+    customSpecialFees = [];
+    calculationData = {};
+  }
+
+  function generateInvoice() {
+    if (!calculationData || !calculationData.student) {
+      alert('Please calculate fees for a specific student first');
+      return;
+    }
+
+    const data = {
+      student_id: calculationData.student.id,
+      academic_year_id: $('#academicYearSelect').val(),
+      term_id: $('#termSelect').val(),
+      custom_scholarships: customScholarships,
+      custom_special_fees: customSpecialFees
+    };
+
+    $.post('/finance/invoices/generate/', data)
+      .done(function (response) {
+        if (response.success) {
+          alert('Invoice generated successfully!');
+          window.open(`/finance/invoices/${response.invoice_id}/`);
+        } else {
+          alert('Error generating invoice: ' + response.error);
+        }
+      })
+      .fail(function () {
+        alert('Error generating invoice');
+      });
+  }
+
+  // Utility functions
+  function formatNumber(num) {
+    return parseFloat(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function formatDate(dateStr) {
+    return new Date(dateStr).toLocaleDateString();
+  }
+
+  function calculateScholarshipDiscount(scholarship, totalAmount) {
+    if (scholarship.discount_type === 'percentage') {
+      return totalAmount * (scholarship.discount_value / 100);
+    } else {
+      return scholarship.discount_value;
+    }
+  }
+</script>
+
+<style>
+  .info-item {
+    margin-bottom: 8px;
+  }
+
+  .info-item .label {
+    font-weight: bold;
+    color: #666;
+    display: inline-block;
+    min-width: 120px;
+  }
+
+  .info-item .value {
+    color: #333;
+  }
+
+  .sticky-top {
+    position: sticky;
+    top: 1rem;
+    z-index: 1020;
+  }
+
+  .card-title {
+    font-weight: 600;
+  }
+
+  .table th {
+    font-weight: 600;
+    background-color: #f8f9fa;
+  }
+
+  .badge {
+    font-size: 0.75em;
+  }
+</style>
+{% endblock %}

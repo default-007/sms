@@ -1,0 +1,405 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}
+{% if object %}Edit Fee Structure{% else %}Create Fee Structure{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-sm-6">
+      <h1 class="h3 mb-3">
+        {% if object %}
+        Edit Fee Structure
+        <small class="text-muted">{{ object.fee_category.name }}</small>
+        {% else %}
+        Create Fee Structure
+        {% endif %}
+      </h1>
+    </div>
+    <div class="col-sm-6 text-end">
+      <a href="{% url 'finance:fee-structure-list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to List
+      </a>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-8">
+      <!-- Main Form -->
+      <div class="card">
+        <div class="card-body">
+          <form method="post" id="feeStructureForm">
+            {% csrf_token %}
+
+            <!-- Academic Context -->
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="{{ form.academic_year.id_for_label }}" class="form-label">
+                  Academic Year <span class="text-danger">*</span>
+                </label>
+                {{ form.academic_year }}
+                {% if form.academic_year.errors %}
+                <div class="text-danger small">
+                  {% for error in form.academic_year.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="{{ form.term.id_for_label }}" class="form-label">
+                  Term <span class="text-danger">*</span>
+                </label>
+                {{ form.term }}
+                {% if form.term.errors %}
+                <div class="text-danger small">
+                  {% for error in form.term.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Level Assignment -->
+            <div class="card mb-3">
+              <div class="card-header">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-sitemap me-2"></i>Level Assignment
+                </h6>
+                <small class="text-muted">Select either Section OR Grade (Grade takes precedence)</small>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <label for="{{ form.section.id_for_label }}" class="form-label">Section</label>
+                    {{ form.section }}
+                    {% if form.section.errors %}
+                    <div class="text-danger small">
+                      {% for error in form.section.errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+                    <small class="form-text text-muted">
+                      Applies to all grades in this section
+                    </small>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="{{ form.grade.id_for_label }}" class="form-label">Grade</label>
+                    {{ form.grade }}
+                    {% if form.grade.errors %}
+                    <div class="text-danger small">
+                      {% for error in form.grade.errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+                    <small class="form-text text-muted">
+                      More specific - overrides section setting
+                    </small>
+                  </div>
+                </div>
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger mt-2">
+                  {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Fee Details -->
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="{{ form.fee_category.id_for_label }}" class="form-label">
+                  Fee Category <span class="text-danger">*</span>
+                </label>
+                {{ form.fee_category }}
+                {% if form.fee_category.errors %}
+                <div class="text-danger small">
+                  {% for error in form.fee_category.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="{{ form.amount.id_for_label }}" class="form-label">
+                  Amount <span class="text-danger">*</span>
+                </label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  {{ form.amount }}
+                </div>
+                {% if form.amount.errors %}
+                <div class="text-danger small">
+                  {% for error in form.amount.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Payment Terms -->
+            <div class="card mb-3">
+              <div class="card-header">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-calendar-alt me-2"></i>Payment Terms
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-4">
+                    <label for="{{ form.due_date.id_for_label }}" class="form-label">
+                      Due Date <span class="text-danger">*</span>
+                    </label>
+                    {{ form.due_date }}
+                    {% if form.due_date.errors %}
+                    <div class="text-danger small">
+                      {% for error in form.due_date.errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+                  </div>
+                  <div class="col-md-4">
+                    <label for="{{ form.late_fee_percentage.id_for_label }}" class="form-label">
+                      Late Fee Percentage
+                    </label>
+                    <div class="input-group">
+                      {{ form.late_fee_percentage }}
+                      <span class="input-group-text">%</span>
+                    </div>
+                    {% if form.late_fee_percentage.errors %}
+                    <div class="text-danger small">
+                      {% for error in form.late_fee_percentage.errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+                    <small class="form-text text-muted">
+                      Percentage charged as late fee
+                    </small>
+                  </div>
+                  <div class="col-md-4">
+                    <label for="{{ form.grace_period_days.id_for_label }}" class="form-label">
+                      Grace Period (Days)
+                    </label>
+                    {{ form.grace_period_days }}
+                    {% if form.grace_period_days.errors %}
+                    <div class="text-danger small">
+                      {% for error in form.grace_period_days.errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+                    <small class="form-text text-muted">
+                      Days after due date before late fee applies
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Status -->
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <div class="form-check">
+                  {{ form.is_active }}
+                  <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                    Active Fee Structure
+                  </label>
+                </div>
+                <small class="form-text text-muted">
+                  Only active fee structures will be used for invoice generation
+                </small>
+                {% if form.is_active.errors %}
+                <div class="text-danger small">
+                  {% for error in form.is_active.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="d-flex justify-content-between">
+              <a href="{% url 'finance:fee-structure-list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-times me-2"></i>Cancel
+              </a>
+              <div>
+                <button type="button" class="btn btn-outline-primary me-2" onclick="previewCalculation()">
+                  <i class="fas fa-calculator me-2"></i>Preview
+                </button>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-save me-2"></i>
+                  {% if object %}Update{% else %}Create{% endif %} Fee Structure
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+      <!-- Help Card -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-info-circle me-2"></i>Help & Tips
+          </h6>
+        </div>
+        <div class="card-body">
+          <h6>Level Assignment</h6>
+          <ul class="small">
+            <li><strong>Section:</strong> Fee applies to all grades in the section</li>
+            <li><strong>Grade:</strong> Fee applies only to specific grade</li>
+            <li>Grade settings override section settings</li>
+          </ul>
+
+          <h6 class="mt-3">Late Fees</h6>
+          <ul class="small">
+            <li>Calculated as percentage of the fee amount</li>
+            <li>Applied after grace period expires</li>
+            <li>Set to 0% to disable late fees</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Preview Card -->
+      <div class="card" id="previewCard" style="display: none;">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-eye me-2"></i>Preview
+          </h6>
+        </div>
+        <div class="card-body" id="previewContent">
+          <!-- Preview content will be loaded here -->
+        </div>
+      </div>
+
+      <!-- Existing Structures (if editing) -->
+      {% if object %}
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-history me-2"></i>Related Information
+          </h6>
+        </div>
+        <div class="card-body">
+          <p><strong>Created:</strong> {{ object.created_at|date:"M d, Y H:i" }}</p>
+          {% if object.created_by %}
+          <p><strong>Created by:</strong> {{ object.created_by.get_full_name }}</p>
+          {% endif %}
+          <p><strong>Last updated:</strong> {{ object.updated_at|date:"M d, Y H:i" }}</p>
+
+          <hr>
+
+          <h6>Current Usage</h6>
+          <p class="small text-muted">
+            This fee structure is currently being used by active invoices.
+            Changes may affect future invoice generation.
+          </p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Load grades when section changes
+    $('#id_section').change(function () {
+      const sectionId = $(this).val();
+      loadGradesBySection(sectionId);
+    });
+
+    // Load terms when academic year changes
+    $('#id_academic_year').change(function () {
+      const academicYearId = $(this).val();
+      loadTermsByAcademicYear(academicYearId);
+    });
+
+    // Form validation
+    $('#feeStructureForm').on('submit', function (e) {
+      const section = $('#id_section').val();
+      const grade = $('#id_grade').val();
+
+      if (!section && !grade) {
+        e.preventDefault();
+        alert('Please select either a Section or Grade.');
+        return false;
+      }
+
+      return true;
+    });
+  });
+
+  function loadGradesBySection(sectionId) {
+    if (!sectionId) {
+      $('#id_grade').html('<option value="">Select Grade</option>');
+      return;
+    }
+
+    fetch(`{% url 'finance:ajax-grades-by-section' %}?section_id=${sectionId}`)
+      .then(response => response.json())
+      .then(data => {
+        const gradeSelect = $('#id_grade');
+        gradeSelect.html('<option value="">Select Grade</option>');
+
+        data.grades.forEach(grade => {
+          gradeSelect.append(`<option value="${grade.id}">${grade.name}</option>`);
+        });
+      })
+      .catch(error => {
+        console.error('Error loading grades:', error);
+      });
+  }
+
+  function loadTermsByAcademicYear(academicYearId) {
+    if (!academicYearId) {
+      $('#id_term').html('<option value="">Select Term</option>');
+      return;
+    }
+
+    // This would need an AJAX endpoint to load terms by academic year
+    // For now, we'll assume terms are already filtered in the template
+  }
+
+  function previewCalculation() {
+    const formData = new FormData(document.getElementById('feeStructureForm'));
+    const amount = formData.get('amount');
+    const lateFeePercentage = formData.get('late_fee_percentage') || 0;
+    const gracePeriod = formData.get('grace_period_days') || 0;
+
+    if (!amount) {
+      alert('Please enter an amount first.');
+      return;
+    }
+
+    const lateFeeAmount = (parseFloat(amount) * parseFloat(lateFeePercentage)) / 100;
+
+    const previewContent = `
+        <div class="row text-center">
+            <div class="col-12">
+                <h5 class="text-primary">$${parseFloat(amount).toFixed(2)}</h5>
+                <p class="small text-muted">Base Amount</p>
+            </div>
+        </div>
+        
+        ${lateFeePercentage > 0 ? `
+        <hr>
+        <div class="row text-center">
+            <div class="col-12">
+                <h6 class="text-warning">+$${lateFeeAmount.toFixed(2)}</h6>
+                <p class="small text-muted">
+                    Late Fee (${lateFeePercentage}%)<br>
+                    Applied after ${gracePeriod} day${gracePeriod !== '1' ? 's' : ''}
+                </p>
+            </div>
+        </div>
+        ` : ''}
+        
+        <hr>
+        <div class="text-center">
+            <p class="small text-muted">
+                Total with late fee: <strong>$${(parseFloat(amount) + lateFeeAmount).toFixed(2)}</strong>
+            </p>
+        </div>
+    `;
+
+    document.getElementById('previewContent').innerHTML = previewContent;
+    document.getElementById('previewCard').style.display = 'block';
+  }
+</script>
+{% endblock %}

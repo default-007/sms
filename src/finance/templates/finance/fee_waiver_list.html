@@ -1,0 +1,591 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Fee Waivers - Finance{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0 text-gray-800">Fee Waivers</h1>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'finance:dashboard' %}">Finance</a></li>
+          <li class="breadcrumb-item active">Fee Waivers</li>
+        </ol>
+      </nav>
+    </div>
+    <div>
+      <a href="{% url 'finance:fee-waiver-create' %}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Request Waiver
+      </a>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card border-left-warning">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                Pending Requests
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">0</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-clock fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-left-success">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                Approved Waivers
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">0</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-left-danger">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                Rejected Requests
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">0</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-left-info">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                Total Waived Amount
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">$0.00</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter and Quick Actions -->
+  <div class="row mb-4">
+    <div class="col-md-8">
+      <div class="card shadow">
+        <div class="card-body py-2">
+          <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+              <label class="form-label small">Academic Year</label>
+              <select class="form-select form-select-sm" name="academic_year">
+                <option value="">All Years</option>
+                <!-- Add academic years -->
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">Status</label>
+              <select class="form-select form-select-sm" name="status">
+                <option value="">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">Waiver Type</label>
+              <select class="form-select form-select-sm" name="waiver_type">
+                <option value="">All Types</option>
+                <option value="full">Full Waiver</option>
+                <option value="partial">Partial Waiver</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <button type="submit" class="btn btn-primary btn-sm w-100">
+                <i class="fas fa-filter me-1"></i>Filter
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow">
+        <div class="card-body py-2">
+          <div class="btn-group w-100" role="group">
+            <button class="btn btn-success btn-sm" onclick="bulkApprove()">
+              <i class="fas fa-check me-1"></i>Bulk Approve
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="bulkReject()">
+              <i class="fas fa-times me-1"></i>Bulk Reject
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fee Waivers Table -->
+  <div class="card shadow">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+      <h6 class="m-0 font-weight-bold text-primary">Fee Waiver Requests</h6>
+      <div class="dropdown">
+        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          <i class="fas fa-ellipsis-v"></i>
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="#" onclick="exportWaivers()">
+              <i class="fas fa-download me-2"></i>Export List
+            </a></li>
+          <li><a class="dropdown-item" href="#" onclick="printWaivers()">
+              <i class="fas fa-print me-2"></i>Print List
+            </a></li>
+          <li>
+            <hr class="dropdown-divider">
+          </li>
+          <li><a class="dropdown-item" href="#" onclick="waiverReport()">
+              <i class="fas fa-chart-bar me-2"></i>Waiver Report
+            </a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover" id="waiversTable">
+          <thead class="table-light">
+            <tr>
+              <th width="30">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="selectAll">
+                </div>
+              </th>
+              <th>Student</th>
+              <th>Invoice</th>
+              <th>Waiver Type</th>
+              <th>Amount</th>
+              <th>Reason</th>
+              <th>Requested By</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th width="150">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for waiver in waivers %}
+            <tr>
+              <td>
+                <div class="form-check">
+                  <input class="form-check-input row-select" type="checkbox" value="{{ waiver.id }}">
+                </div>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="flex-shrink-0">
+                    <div class="avatar avatar-sm rounded-circle bg-primary">
+                      <i class="fas fa-user-graduate text-white"></i>
+                    </div>
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="mb-0">{{ waiver.student.user.get_full_name }}</h6>
+                    <small class="text-muted">{{ waiver.student.admission_number }}</small>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div>
+                  <a href="{% url 'finance:invoice-detail' waiver.invoice.pk %}" class="text-decoration-none">
+                    <strong>{{ waiver.invoice.invoice_number }}</strong>
+                  </a>
+                  <br>
+                  <small class="text-muted">{{ waiver.invoice.term }}</small>
+                </div>
+              </td>
+              <td>
+                {% if waiver.waiver_type == 'full' %}
+                <span class="badge bg-danger">Full Waiver</span>
+                {% else %}
+                <span class="badge bg-warning">Partial Waiver</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="font-weight-bold text-success">${{ waiver.amount|floatformat:2 }}</span>
+              </td>
+              <td>
+                <div title="{{ waiver.reason }}">
+                  {{ waiver.reason|truncatechars:30 }}
+                  {% if waiver.reason|length > 30 %}
+                  <button class="btn btn-link btn-sm p-0" onclick="showFullReason('{{ waiver.reason|escapejs }}')"
+                    title="Read full reason">
+                    <i class="fas fa-expand-arrows-alt"></i>
+                  </button>
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                {% if waiver.requested_by %}
+                <div>
+                  <strong>{{ waiver.requested_by.get_full_name }}</strong>
+                  <br>
+                  <small class="text-muted">{{ waiver.requested_by.username }}</small>
+                </div>
+                {% else %}
+                <span class="text-muted">System</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if waiver.status == 'pending' %}
+                <span class="badge bg-warning">
+                  <i class="fas fa-clock me-1"></i>Pending
+                </span>
+                {% elif waiver.status == 'approved' %}
+                <span class="badge bg-success">
+                  <i class="fas fa-check me-1"></i>Approved
+                </span>
+                {% elif waiver.status == 'rejected' %}
+                <span class="badge bg-danger">
+                  <i class="fas fa-times me-1"></i>Rejected
+                </span>
+                {% endif %}
+              </td>
+              <td>
+                <div>
+                  <strong>{{ waiver.created_at|date:"M d, Y" }}</strong>
+                  <br>
+                  <small class="text-muted">{{ waiver.created_at|timesince }} ago</small>
+                </div>
+              </td>
+              <td>
+                <div class="btn-group" role="group">
+                  <a href="{% url 'finance:fee-waiver-detail' waiver.pk %}" class="btn btn-outline-info btn-sm"
+                    title="View Details">
+                    <i class="fas fa-eye"></i>
+                  </a>
+
+                  {% if waiver.status == 'pending' %}
+                  <button class="btn btn-outline-success btn-sm" onclick="approveWaiver({{ waiver.pk }})"
+                    title="Approve">
+                    <i class="fas fa-check"></i>
+                  </button>
+                  <button class="btn btn-outline-danger btn-sm" onclick="rejectWaiver({{ waiver.pk }})" title="Reject">
+                    <i class="fas fa-times"></i>
+                  </button>
+                  {% endif %}
+
+                  {% if waiver.status == 'approved' %}
+                  <span class="badge bg-success ms-2">
+                    <i class="fas fa-user me-1"></i>
+                    {{ waiver.approved_by.get_full_name|default:"System" }}
+                  </span>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="10" class="text-center py-4">
+                <div class="text-muted">
+                  <i class="fas fa-hand-holding-heart fa-3x mb-3"></i>
+                  <p>No fee waiver requests found.</p>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Full Reason Modal -->
+<div class="modal fade" id="reasonModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Waiver Reason</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p id="fullReason"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Approve/Reject Modal -->
+<div class="modal fade" id="actionModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="actionModalTitle">Approve Waiver</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="actionForm">
+        <div class="modal-body">
+          <div class="alert" id="actionAlert">
+            <i class="fas fa-question-circle me-2"></i>
+            <span id="actionText">Are you sure you want to approve this waiver request?</span>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Comments (Optional)</label>
+            <textarea class="form-control" id="actionComments" rows="3"
+              placeholder="Add any comments or notes about this decision..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn" id="actionButton">Approve</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Action Modal -->
+<div class="modal fade" id="bulkActionModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Bulk Action</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to <span id="bulkActionText"></span> the selected waiver requests?</p>
+        <div id="selectedCount" class="alert alert-info"></div>
+
+        <div class="mb-3">
+          <label class="form-label">Comments (Optional)</label>
+          <textarea class="form-control" id="bulkComments" rows="3"
+            placeholder="Add comments for all selected waivers..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmBulkAction">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    var table = $('#waiversTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[8, 'desc']], // Sort by date descending
+      columnDefs: [
+        {
+          orderable: false,
+          targets: [0, 9]
+        }
+      ],
+      dom: 'Bfrtip',
+      buttons: [
+        {
+          extend: 'excel',
+          text: '<i class="fas fa-file-excel me-1"></i>Export Excel',
+          className: 'btn btn-success btn-sm',
+          exportOptions: {
+            columns: [1, 2, 3, 4, 5, 6, 7, 8]
+          }
+        },
+        {
+          extend: 'csv',
+          text: '<i class="fas fa-file-csv me-1"></i>Export CSV',
+          className: 'btn btn-info btn-sm',
+          exportOptions: {
+            columns: [1, 2, 3, 4, 5, 6, 7, 8]
+          }
+        }
+      ],
+      language: {
+        search: "_INPUT_",
+        searchPlaceholder: "Search waivers..."
+      }
+    });
+
+    // Select all functionality
+    $('#selectAll').on('change', function () {
+      $('.row-select').prop('checked', this.checked);
+      updateBulkButtons();
+    });
+
+    $('.row-select').on('change', function () {
+      updateBulkButtons();
+
+      var totalRows = $('.row-select').length;
+      var selectedRows = $('.row-select:checked').length;
+      $('#selectAll').prop('checked', selectedRows === totalRows);
+      $('#selectAll').prop('indeterminate', selectedRows > 0 && selectedRows < totalRows);
+    });
+
+    function updateBulkButtons() {
+      var selectedCount = $('.row-select:checked').length;
+      $('button[onclick*="bulk"]').prop('disabled', selectedCount === 0);
+    }
+
+    // Initialize bulk buttons state
+    updateBulkButtons();
+  });
+
+  function showFullReason(reason) {
+    $('#fullReason').text(reason);
+    new bootstrap.Modal(document.getElementById('reasonModal')).show();
+  }
+
+  var currentWaiverId = null;
+  var currentAction = null;
+
+  function approveWaiver(waiverId) {
+    currentWaiverId = waiverId;
+    currentAction = 'approve';
+
+    $('#actionModalTitle').text('Approve Waiver');
+    $('#actionText').text('Are you sure you want to approve this waiver request?');
+    $('#actionAlert').removeClass('alert-danger').addClass('alert-success');
+    $('#actionButton').removeClass('btn-danger').addClass('btn-success').text('Approve');
+
+    new bootstrap.Modal(document.getElementById('actionModal')).show();
+  }
+
+  function rejectWaiver(waiverId) {
+    currentWaiverId = waiverId;
+    currentAction = 'reject';
+
+    $('#actionModalTitle').text('Reject Waiver');
+    $('#actionText').text('Are you sure you want to reject this waiver request?');
+    $('#actionAlert').removeClass('alert-success').addClass('alert-danger');
+    $('#actionButton').removeClass('btn-success').addClass('btn-danger').text('Reject');
+
+    new bootstrap.Modal(document.getElementById('actionModal')).show();
+  }
+
+  $('#actionForm').on('submit', function (e) {
+    e.preventDefault();
+
+    var url = '/finance/fee-waivers/' + currentWaiverId + '/' + currentAction + '/';
+
+    $.post(url, {
+      'comments': $('#actionComments').val(),
+      'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+    }).done(function (response) {
+      bootstrap.Modal.getInstance(document.getElementById('actionModal')).hide();
+      location.reload();
+    }).fail(function () {
+      alert('Error processing waiver. Please try again.');
+    });
+  });
+
+  function bulkApprove() {
+    var selectedIds = $('.row-select:checked').map(function () {
+      return this.value;
+    }).get();
+
+    if (selectedIds.length === 0) {
+      alert('Please select at least one waiver request.');
+      return;
+    }
+
+    $('#bulkActionText').text('approve');
+    $('#selectedCount').text(selectedIds.length + ' waiver request(s) selected');
+
+    $('#confirmBulkAction').off('click').on('click', function () {
+      $.post('/finance/fee-waivers/bulk-approve/', {
+        'waiver_ids': selectedIds,
+        'comments': $('#bulkComments').val(),
+        'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+      }).done(function (response) {
+        bootstrap.Modal.getInstance(document.getElementById('bulkActionModal')).hide();
+        location.reload();
+      }).fail(function () {
+        alert('Error performing bulk approval. Please try again.');
+      });
+    });
+
+    new bootstrap.Modal(document.getElementById('bulkActionModal')).show();
+  }
+
+  function bulkReject() {
+    var selectedIds = $('.row-select:checked').map(function () {
+      return this.value;
+    }).get();
+
+    if (selectedIds.length === 0) {
+      alert('Please select at least one waiver request.');
+      return;
+    }
+
+    $('#bulkActionText').text('reject');
+    $('#selectedCount').text(selectedIds.length + ' waiver request(s) selected');
+
+    $('#confirmBulkAction').off('click').on('click', function () {
+      $.post('/finance/fee-waivers/bulk-reject/', {
+        'waiver_ids': selectedIds,
+        'comments': $('#bulkComments').val(),
+        'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+      }).done(function (response) {
+        bootstrap.Modal.getInstance(document.getElementById('bulkActionModal')).hide();
+        location.reload();
+      }).fail(function () {
+        alert('Error performing bulk rejection. Please try again.');
+      });
+    });
+
+    new bootstrap.Modal(document.getElementById('bulkActionModal')).show();
+  }
+
+  function exportWaivers() {
+    window.location.href = '/finance/fee-waivers/export/';
+  }
+
+  function printWaivers() {
+    window.print();
+  }
+
+  function waiverReport() {
+    window.open('/finance/reports/waivers/', '_blank');
+  }
+</script>
+{% endblock %}

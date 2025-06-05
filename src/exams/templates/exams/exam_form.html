@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'exams:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'exams:exam_list' %}">Exams</a></li>
+      <li class="breadcrumb-item active">{{ title }}</li>
+    </ol>
+  </nav>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title mb-0">
+            <i class="fas fa-clipboard-list me-2"></i>{{ title }}
+          </h3>
+        </div>
+
+        <form method="post" id="examForm" novalidate>
+          {% csrf_token %}
+          <div class="card-body">
+            <!-- Form Errors -->
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+              <h6><i class="fas fa-exclamation-triangle me-2"></i>Please correct the following errors:</h6>
+              <ul class="mb-0">
+                {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+
+            <div class="row">
+              <!-- Basic Information -->
+              <div class="col-md-12 mb-4">
+                <h5 class="border-bottom pb-2 mb-3">
+                  <i class="fas fa-info-circle me-2"></i>Basic Information
+                </h5>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.name.id_for_label }}" class="form-label">
+                      Exam Name <span class="text-danger">*</span>
+                    </label>
+                    {{ form.name }}
+                    {% if form.name.help_text %}
+                    <div class="form-text">{{ form.name.help_text }}</div>
+                    {% endif %}
+                    {% if form.name.errors %}
+                    <div class="invalid-feedback d-block">
+                      {% for error in form.name.errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.exam_type.id_for_label }}" class="form-label">
+                      Exam Type <span class="text-danger">*</span>
+                    </label>
+                    {{ form.exam_type }}
+                    {% if form.exam_type.help_text %}
+                    <div class="form-text">{{ form.exam_type.help_text }}</div>
+                    {% endif %}
+                    {% if form.exam_type.errors %}
+                    <div class="invalid-feedback d-block">
+                      {% for error in form.exam_type.errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.academic_year.id_for_label }}" class="form-label">
+                      Academic Year <span class="text-danger">*</span>
+                    </label>
+                    {{ form.academic_year }}
+                    {% if form.academic_year.help_text %}
+                    <div class="form-text">{{ form.academic_year.help_text }}</div>
+                    {% endif %}
+                    {% if form.academic_year.errors %}
+                    <div class="invalid-feedback d-block">
+                      {% for error in form.academic_year.errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.term.id_for_label }}" class="form-label">
+                      Term <span class="text-danger">*</span>
+                    </label>
+                    {{ form.term }}
+                    {% if form.term.help_text %}
+                    <div class="form-text">{{ form.term.help_text }}</div>
+                    {% endif %}
+                    {% if form.term.errors %}
+                    <div class="invalid-feedback d-block">
+                      {% for error in form.term.errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Schedule Information -->
+              <div class="col-md-12 mb-4">
+                <h5 class="border-bottom pb-2 mb-3">
+                  <i class="fas fa-calendar me-2"></i>Schedule
+                </h5>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.start_date.id_for_label }}" class="form-label">
+                      Start Date <span class="text-danger">*</span>
+                    </label>
+                    {{ form.start_date }}
+                    {% if form.start_date.help_text %}
+                    <div class="form-text">{{ form.start_date.help_text }}</div>
+                    {% endif %}
+                    {% if form.start_date.errors %}
+                    <div class="invalid-feedback d-block">
+                      {% for error in form.start_date.errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.end_date.id_for_label }}" class="form-label">
+                      End Date <span class="text-danger">*</span>
+                    </label>
+                    {{ form.end_date }}
+                    {% if form.end_date.help_text %}
+                    <div class="form-text">{{ form.end_date.help_text }}</div>
+                    {% endif %}
+                    {% if form.end_date.errors %}
+                    <div class="invalid-feedback d-block">
+                      {% for error in form.end_date.errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Content Information -->
+              <div class="col-md-12 mb-4">
+                <h5 class="border-bottom pb-2 mb-3">
+                  <i class="fas fa-file-alt me-2"></i>Content
+                </h5>
+
+                <div class="mb-3">
+                  <label for="{{ form.description.id_for_label }}" class="form-label">
+                    Description
+                  </label>
+                  {{ form.description }}
+                  {% if form.description.help_text %}
+                  <div class="form-text">{{ form.description.help_text }}</div>
+                  {% endif %}
+                  {% if form.description.errors %}
+                  <div class="invalid-feedback d-block">
+                    {% for error in form.description.errors %}{{ error }}{% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+
+                <div class="mb-3">
+                  <label for="{{ form.instructions.id_for_label }}" class="form-label">
+                    Instructions for Students
+                  </label>
+                  {{ form.instructions }}
+                  {% if form.instructions.help_text %}
+                  <div class="form-text">{{ form.instructions.help_text }}</div>
+                  {% endif %}
+                  {% if form.instructions.errors %}
+                  <div class="invalid-feedback d-block">
+                    {% for error in form.instructions.errors %}{{ error }}{% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- Grading Configuration -->
+              <div class="col-md-12 mb-4">
+                <h5 class="border-bottom pb-2 mb-3">
+                  <i class="fas fa-calculator me-2"></i>Grading Configuration
+                </h5>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.grading_system.id_for_label }}" class="form-label">
+                      Grading System
+                    </label>
+                    {{ form.grading_system }}
+                    {% if form.grading_system.help_text %}
+                    <div class="form-text">{{ form.grading_system.help_text }}</div>
+                    {% endif %}
+                    {% if form.grading_system.errors %}
+                    <div class="invalid-feedback d-block">
+                      {% for error in form.grading_system.errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.passing_percentage.id_for_label }}" class="form-label">
+                      Passing Percentage <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group">
+                      {{ form.passing_percentage }}
+                      <span class="input-group-text">%</span>
+                    </div>
+                    {% if form.passing_percentage.help_text %}
+                    <div class="form-text">{{ form.passing_percentage.help_text }}</div>
+                    {% endif %}
+                    {% if form.passing_percentage.errors %}
+                    <div class="invalid-feedback d-block">
+                      {% for error in form.passing_percentage.errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Preview Section -->
+            <div class="card bg-light">
+              <div class="card-header">
+                <h6 class="mb-0">
+                  <i class="fas fa-eye me-2"></i>Preview
+                </h6>
+              </div>
+              <div class="card-body" id="examPreview">
+                <div class="text-muted text-center py-3">
+                  Fill in the form to see the exam preview
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <div class="d-flex justify-content-between">
+              <a href="{% url 'exams:exam_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Cancel
+              </a>
+              <div>
+                <button type="button" class="btn btn-outline-primary me-2" id="previewBtn">
+                  <i class="fas fa-eye me-2"></i>Preview
+                </button>
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                  <i class="fas fa-save me-2"></i>Save Exam
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="examPreviewModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Exam Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="modalPreviewContent">
+        <!-- Preview content will be loaded here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" id="saveFromPreview">
+          <i class="fas fa-save me-2"></i>Save Exam
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Form validation
+    $('#examForm').on('submit', function (e) {
+      if (!this.checkValidity()) {
+        e.preventDefault();
+        e.stopPropagation();
+      } else {
+        // Show loading state
+        $('#submitBtn').html('<i class="fas fa-spinner fa-spin me-2"></i>Saving...').prop('disabled', true);
+      }
+
+      $(this).addClass('was-validated');
+    });
+
+    // Real-time preview update
+    function updatePreview() {
+      const name = $('#id_name').val();
+      const examType = $('#id_exam_type option:selected').text();
+      const academicYear = $('#id_academic_year option:selected').text();
+      const term = $('#id_term option:selected').text();
+      const startDate = $('#id_start_date').val();
+      const endDate = $('#id_end_date').val();
+      const description = $('#id_description').val();
+      const instructions = $('#id_instructions').val();
+      const passingPercentage = $('#id_passing_percentage').val();
+
+      if (name || examType || startDate || endDate) {
+        const previewHtml = `
+                <div class="exam-preview">
+                    <h5 class="mb-3">${name || 'Exam Name'}</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Type:</strong> ${examType || 'Not selected'}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Academic Year:</strong> ${academicYear || 'Not selected'}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Term:</strong> ${term || 'Not selected'}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Passing %:</strong> ${passingPercentage || '40'}%
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Start Date:</strong> ${startDate || 'Not set'}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>End Date:</strong> ${endDate || 'Not set'}
+                        </div>
+                    </div>
+                    ${description ? `<div class="mb-3"><strong>Description:</strong><br><p class="text-muted">${description}</p></div>` : ''}
+                    ${instructions ? `<div class="mb-3"><strong>Instructions:</strong><br><div class="alert alert-info">${instructions.replace(/\n/g, '<br>')}</div></div>` : ''}
+                </div>
+            `;
+        $('#examPreview').html(previewHtml);
+      } else {
+        $('#examPreview').html('<div class="text-muted text-center py-3">Fill in the form to see the exam preview</div>');
+      }
+    }
+
+    // Update preview on form changes
+    $('#examForm input, #examForm select, #examForm textarea').on('input change', function () {
+      updatePreview();
+    });
+
+    // Preview button
+    $('#previewBtn').on('click', function () {
+      updatePreview();
+      $('#modalPreviewContent').html($('#examPreview').html());
+      $('#examPreviewModal').modal('show');
+    });
+
+    // Save from preview modal
+    $('#saveFromPreview').on('click', function () {
+      $('#examPreviewModal').modal('hide');
+      $('#examForm').submit();
+    });
+
+    // Dynamic term loading based on academic year
+    $('#id_academic_year').on('change', function () {
+      const academicYearId = $(this).val();
+      if (academicYearId) {
+        // You can implement AJAX call to load terms for selected academic year
+        // For now, we'll just trigger preview update
+        updatePreview();
+      }
+    });
+
+    // Date validation
+    $('#id_start_date, #id_end_date').on('change', function () {
+      const startDate = new Date($('#id_start_date').val());
+      const endDate = new Date($('#id_end_date').val());
+
+      if (startDate && endDate && startDate > endDate) {
+        $('#id_end_date').addClass('is-invalid');
+        $('#id_end_date').after('<div class="invalid-feedback">End date must be after start date</div>');
+      } else {
+        $('#id_end_date').removeClass('is-invalid');
+        $('#id_end_date').next('.invalid-feedback').remove();
+      }
+
+      updatePreview();
+    });
+
+    // Add input validation classes
+    $('#examForm input, #examForm select, #examForm textarea').on('blur', function () {
+      if ($(this).prop('required') && !$(this).val()) {
+        $(this).addClass('is-invalid');
+      } else {
+        $(this).removeClass('is-invalid').addClass('is-valid');
+      }
+    });
+
+    // Initialize preview
+    updatePreview();
+
+    // Smooth scrolling for long forms
+    $('input, select, textarea').on('focus', function () {
+      $('html, body').animate({
+        scrollTop: $(this).offset().top - 100
+      }, 300);
+    });
+  });
+</script>
+
+<style>
+  .was-validated .form-control:valid,
+  .was-validated .form-select:valid {
+    border-color: #198754;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='m2.3 6.73.4.37 3.4-3.4-.37-.4L2.74 5.23l-.74-.74-.37.37z'/%3e%3c/svg%3e");
+  }
+
+  .was-validated .form-control:invalid,
+  .was-validated .form-select:invalid {
+    border-color: #dc3545;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='m5.8 3.6 2.4 2.4m0 2.4L5.8 10.8'/%3e%3c/svg%3e");
+  }
+
+  .exam-preview {
+    background: white;
+    padding: 1rem;
+    border-radius: 0.375rem;
+    border: 1px solid #dee2e6;
+  }
+
+  .form-floating>label {
+    opacity: 0.65;
+  }
+
+  .form-floating>.form-control:focus~label,
+  .form-floating>.form-control:not(:placeholder-shown)~label {
+    opacity: 1;
+    transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+  }
+</style>
+{% endblock %}

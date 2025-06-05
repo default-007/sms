@@ -1,0 +1,338 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Finance Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <h1 class="h3 mb-3">Finance Dashboard</h1>
+      {% if current_year and current_term %}
+      <p class="text-muted">{{ current_year }} - {{ current_term }}</p>
+      {% else %}
+      <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        No active academic year or term found. Please set up the academic structure first.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if current_year and current_term %}
+  <!-- Key Metrics Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title">Total Invoices</h6>
+              <h2 class="mb-0">{{ total_invoices|floatformat:0 }}</h2>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-file-invoice fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title">Total Collections</h6>
+              <h2 class="mb-0">${{ total_collections|floatformat:2 }}</h2>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-dollar-sign fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title">Pending Invoices</h6>
+              <h2 class="mb-0">{{ pending_invoices|floatformat:0 }}</h2>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-clock fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-danger text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title">Overdue Invoices</h6>
+              <h2 class="mb-0">{{ overdue_invoices|floatformat:0 }}</h2>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-exclamation-triangle fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Collection Trends (Last 30 Days)</h5>
+        </div>
+        <div class="card-body">
+          <div id="collectionTrendsChart"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Payment Methods</h5>
+        </div>
+        <div class="card-body">
+          <div id="paymentMethodsChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions & Recent Activity -->
+  <div class="row">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Quick Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <a href="{% url 'finance:payment-process' %}" class="btn btn-primary w-100">
+                <i class="fas fa-credit-card me-2"></i>
+                Process Payment
+              </a>
+            </div>
+            <div class="col-md-6">
+              <a href="{% url 'finance:invoice-generate' %}" class="btn btn-success w-100">
+                <i class="fas fa-file-invoice me-2"></i>
+                Generate Invoice
+              </a>
+            </div>
+            <div class="col-md-6">
+              <a href="{% url 'finance:bulk-invoice-generate' %}" class="btn btn-info w-100">
+                <i class="fas fa-file-invoice-dollar me-2"></i>
+                Bulk Generate
+              </a>
+            </div>
+            <div class="col-md-6">
+              <a href="{% url 'finance:collection-report' %}" class="btn btn-secondary w-100">
+                <i class="fas fa-chart-bar me-2"></i>
+                View Reports
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Recent Payments</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Receipt</th>
+                  <th>Student</th>
+                  <th>Amount</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody id="recentPayments">
+                <!-- Recent payments will be loaded via AJAX -->
+              </tbody>
+            </table>
+          </div>
+          <div class="text-center">
+            <a href="{% url 'finance:payment-list' %}" class="btn btn-outline-primary btn-sm">
+              View All Payments
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    {% if current_year and current_term %}
+    // Collection Trends Chart
+    const collectionTrendsOptions = {
+      series: [{
+        name: 'Collections',
+        data: []
+      }],
+      chart: {
+        type: 'area',
+        height: 300,
+        toolbar: {
+          show: false
+        }
+      },
+      dataLabels: {
+        enabled: false
+      },
+      stroke: {
+        curve: 'smooth',
+        width: 2
+      },
+      xaxis: {
+        type: 'datetime'
+      },
+      yaxis: {
+        labels: {
+          formatter: function (val) {
+            return '$' + val.toFixed(0);
+          }
+        }
+      },
+      colors: ['#28a745'],
+      fill: {
+        type: 'gradient',
+        gradient: {
+          shadeIntensity: 1,
+          opacityFrom: 0.7,
+          opacityTo: 0.9,
+          stops: [0, 90, 100]
+        }
+      }
+    };
+
+    const collectionTrendsChart = new ApexCharts(
+      document.querySelector("#collectionTrendsChart"),
+      collectionTrendsOptions
+    );
+    collectionTrendsChart.render();
+
+    // Payment Methods Chart
+    const paymentMethodsOptions = {
+      series: [],
+      chart: {
+        type: 'donut',
+        height: 300
+      },
+      labels: [],
+      colors: ['#007bff', '#28a745', '#ffc107', '#dc3545', '#6c757d'],
+      legend: {
+        position: 'bottom'
+      },
+      responsive: [{
+        breakpoint: 480,
+        options: {
+          chart: {
+            width: 200
+          },
+          legend: {
+            position: 'bottom'
+          }
+        }
+      }]
+    };
+
+    const paymentMethodsChart = new ApexCharts(
+      document.querySelector("#paymentMethodsChart"),
+      paymentMethodsOptions
+    );
+    paymentMethodsChart.render();
+
+    // Load dashboard data
+    loadDashboardData();
+
+    function loadDashboardData() {
+      // Load collection trends
+      fetch(`{% url 'finance:payment-trends' %}?academic_year={{ current_year.id }}&days=30`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.daily_trends) {
+            const chartData = data.daily_trends.map(item => ({
+              x: new Date(item.day).getTime(),
+              y: parseFloat(item.daily_amount || 0)
+            }));
+
+            collectionTrendsChart.updateSeries([{
+              name: 'Collections',
+              data: chartData
+            }]);
+          }
+
+          if (data.payment_methods) {
+            const methods = data.payment_methods.map(item => item.payment_method);
+            const amounts = data.payment_methods.map(item => parseFloat(item.total_amount));
+
+            paymentMethodsChart.updateOptions({
+              series: amounts,
+              labels: methods
+            });
+          }
+        })
+        .catch(error => console.error('Error loading dashboard data:', error));
+
+      // Load recent payments
+      loadRecentPayments();
+    }
+
+    function loadRecentPayments() {
+      fetch('{% url "finance:payment-list" %}?format=json&limit=5')
+        .then(response => response.json())
+        .then(data => {
+          const tbody = document.getElementById('recentPayments');
+          tbody.innerHTML = '';
+
+          if (data.results) {
+            data.results.forEach(payment => {
+              const row = document.createElement('tr');
+              row.innerHTML = `
+                            <td><small>${payment.receipt_number}</small></td>
+                            <td><small>${payment.student_name}</small></td>
+                            <td><small>$${parseFloat(payment.amount).toFixed(2)}</small></td>
+                            <td><small>${new Date(payment.payment_date).toLocaleDateString()}</small></td>
+                        `;
+              tbody.appendChild(row);
+            });
+          } else {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No recent payments</td></tr>';
+          }
+        })
+        .catch(error => {
+          console.error('Error loading recent payments:', error);
+          document.getElementById('recentPayments').innerHTML =
+            '<tr><td colspan="4" class="text-center text-danger">Error loading data</td></tr>';
+        });
+    }
+    {% endif %}
+  });
+</script>
+{% endblock %}

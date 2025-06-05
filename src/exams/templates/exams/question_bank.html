@@ -1,0 +1,753 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Question Bank{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/select/1.6.2/css/select.bootstrap5.min.css">
+<style>
+  .question-preview {
+    max-width: 300px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .difficulty-easy {
+    background-color: #d4edda !important;
+  }
+
+  .difficulty-medium {
+    background-color: #fff3cd !important;
+  }
+
+  .difficulty-hard {
+    background-color: #f8d7da !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Question Bank</h2>
+          <p class="text-muted">Manage exam questions and question database</p>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{% url 'exams:create_question' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Add Question
+          </a>
+          <button type="button" class="btn btn-outline-success" id="importQuestionsBtn">
+            <i class="fas fa-upload me-2"></i>Import Questions
+          </button>
+          <button type="button" class="btn btn-outline-info" id="bulkActionsBtn" disabled>
+            <i class="fas fa-tasks me-2"></i>Bulk Actions
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body text-center">
+          <h3 class="mb-1" id="totalQuestions">{{ page_obj.paginator.count }}</h3>
+          <small>Total Questions</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-success text-white">
+        <div class="card-body text-center">
+          <h3 class="mb-1" id="activeQuestions">-</h3>
+          <small>Active Questions</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-info text-white">
+        <div class="card-body text-center">
+          <h3 class="mb-1" id="subjectCount">-</h3>
+          <small>Subjects Covered</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-warning text-white">
+        <div class="card-body text-center">
+          <h3 class="mb-1" id="unusedQuestions">-</h3>
+          <small>Unused Questions</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="card-title mb-0">
+        <i class="fas fa-filter me-2"></i>Filters & Search
+      </h5>
+    </div>
+    <div class="card-body">
+      <form method="get" id="filterForm">
+        <div class="row g-3">
+          <div class="col-md-2">
+            <label for="subject" class="form-label">Subject</label>
+            <select name="subject" id="subject" class="form-select">
+              <option value="">All Subjects</option>
+              <!-- Subjects will be populated -->
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label for="grade" class="form-label">Grade</label>
+            <select name="grade" id="grade" class="form-select">
+              <option value="">All Grades</option>
+              <!-- Grades will be populated -->
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label for="question_type" class="form-label">Question Type</label>
+            <select name="question_type" id="question_type" class="form-select">
+              <option value="">All Types</option>
+              <option value="MCQ" {% if current_filters.question_type == 'MCQ' %}selected{% endif %}>Multiple Choice
+              </option>
+              <option value="TF" {% if current_filters.question_type == 'TF' %}selected{% endif %}>True/False</option>
+              <option value="SA" {% if current_filters.question_type == 'SA' %}selected{% endif %}>Short Answer</option>
+              <option value="LA" {% if current_filters.question_type == 'LA' %}selected{% endif %}>Long Answer</option>
+              <option value="FB" {% if current_filters.question_type == 'FB' %}selected{% endif %}>Fill in Blanks
+              </option>
+              <option value="ESSAY" {% if current_filters.question_type == 'ESSAY' %}selected{% endif %}>Essay</option>
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label for="difficulty" class="form-label">Difficulty</label>
+            <select name="difficulty" id="difficulty" class="form-select">
+              <option value="">All Difficulties</option>
+              <option value="EASY" {% if current_filters.difficulty == 'EASY' %}selected{% endif %}>Easy</option>
+              <option value="MEDIUM" {% if current_filters.difficulty == 'MEDIUM' %}selected{% endif %}>Medium</option>
+              <option value="HARD" {% if current_filters.difficulty == 'HARD' %}selected{% endif %}>Hard</option>
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label for="marks" class="form-label">Marks</label>
+            <select name="marks" id="marks" class="form-select">
+              <option value="">All Marks</option>
+              <option value="1">1 Mark</option>
+              <option value="2">2 Marks</option>
+              <option value="3">3 Marks</option>
+              <option value="4">4 Marks</option>
+              <option value="5">5 Marks</option>
+              <option value="10">10 Marks</option>
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label for="search" class="form-label">Search</label>
+            <div class="input-group">
+              <input type="text" name="search" id="search" class="form-control" placeholder="Search questions..."
+                value="{{ current_filters.search }}">
+              <button type="submit" class="btn btn-outline-secondary">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-12">
+            <button type="submit" class="btn btn-primary me-2">
+              <i class="fas fa-filter me-1"></i>Apply Filters
+            </button>
+            <a href="{% url 'exams:question_bank' %}" class="btn btn-outline-secondary">
+              <i class="fas fa-times me-1"></i>Clear Filters
+            </a>
+            <div class="form-check form-switch d-inline-block ms-3">
+              <input class="form-check-input" type="checkbox" id="showInactiveQuestions">
+              <label class="form-check-label" for="showInactiveQuestions">
+                Show inactive questions
+              </label>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Questions Table -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="card-title mb-0">Question Bank</h5>
+      <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-outline-primary" id="exportBtn">
+          <i class="fas fa-download me-1"></i>Export
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" id="refreshBtn">
+          <i class="fas fa-refresh me-1"></i>Refresh
+        </button>
+      </div>
+    </div>
+
+    <div class="card-body">
+      {% if page_obj.object_list %}
+      <div class="table-responsive">
+        <table id="questionsTable" class="table table-hover">
+          <thead class="table-dark">
+            <tr>
+              <th width="5%">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="selectAllQuestions">
+                </div>
+              </th>
+              <th width="40%">Question</th>
+              <th width="12%">Subject</th>
+              <th width="8%">Grade</th>
+              <th width="10%">Type</th>
+              <th width="8%">Difficulty</th>
+              <th width="5%">Marks</th>
+              <th width="7%">Usage</th>
+              <th width="5%">Status</th>
+              <th width="10%">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for question in page_obj.object_list %}
+            <tr
+              class="difficulty-{{ question.difficulty_level|lower }} {% if not question.is_active %}table-secondary{% endif %}"
+              data-question-id="{{ question.id }}">
+              <td>
+                <div class="form-check">
+                  <input class="form-check-input question-checkbox" type="checkbox" value="{{ question.id }}">
+                </div>
+              </td>
+              <td>
+                <div class="question-preview" title="{{ question.question_text }}">
+                  <strong>{{ question.question_text|truncatechars:60 }}</strong>
+                </div>
+                {% if question.topic %}
+                <small class="text-muted d-block">Topic: {{ question.topic }}</small>
+                {% endif %}
+                {% if question.learning_objective %}
+                <small class="text-info d-block">{{ question.learning_objective|truncatechars:40 }}</small>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge bg-secondary">{{ question.subject.name }}</span>
+                {% if question.subject.code %}
+                <small class="text-muted d-block">{{ question.subject.code }}</small>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge bg-info">{{ question.grade.name }}</span>
+              </td>
+              <td>
+                {% if question.question_type == 'MCQ' %}
+                <span class="badge bg-primary">MCQ</span>
+                {% elif question.question_type == 'TF' %}
+                <span class="badge bg-success">T/F</span>
+                {% elif question.question_type == 'SA' %}
+                <span class="badge bg-warning">Short</span>
+                {% elif question.question_type == 'LA' %}
+                <span class="badge bg-danger">Long</span>
+                {% elif question.question_type == 'FB' %}
+                <span class="badge bg-info">Fill</span>
+                {% else %}
+                <span class="badge bg-dark">Essay</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if question.difficulty_level == 'EASY' %}
+                <span class="badge bg-success">Easy</span>
+                {% elif question.difficulty_level == 'MEDIUM' %}
+                <span class="badge bg-warning">Medium</span>
+                {% else %}
+                <span class="badge bg-danger">Hard</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                <span class="badge bg-primary">{{ question.marks }}</span>
+              </td>
+              <td class="text-center">
+                <div>
+                  <strong>{{ question.usage_count }}</strong>
+                  {% if question.usage_count == 0 %}
+                  <i class="fas fa-exclamation-triangle text-warning ms-1" title="Never used"></i>
+                  {% elif question.usage_count > 10 %}
+                  <i class="fas fa-star text-success ms-1" title="Frequently used"></i>
+                  {% endif %}
+                </div>
+              </td>
+              <td class="text-center">
+                {% if question.is_active %}
+                <span class="badge bg-success">Active</span>
+                {% else %}
+                <span class="badge bg-secondary">Inactive</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="btn-group" role="group">
+                  <button type="button" class="btn btn-sm btn-outline-info view-question-btn"
+                    data-question-id="{{ question.id }}" data-bs-toggle="tooltip" title="View Details">
+                    <i class="fas fa-eye"></i>
+                  </button>
+
+                  {% if user.role == 'ADMIN' or question.created_by == user %}
+                  <button type="button" class="btn btn-sm btn-outline-primary edit-question-btn"
+                    data-question-id="{{ question.id }}" data-bs-toggle="tooltip" title="Edit Question">
+                    <i class="fas fa-edit"></i>
+                  </button>
+
+                  <button type="button" class="btn btn-sm btn-outline-success duplicate-question-btn"
+                    data-question-id="{{ question.id }}" data-bs-toggle="tooltip" title="Duplicate Question">
+                    <i class="fas fa-copy"></i>
+                  </button>
+
+                  <button type="button" class="btn btn-sm btn-outline-danger delete-question-btn"
+                    data-question-id="{{ question.id }}" data-bs-toggle="tooltip" title="Delete Question">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      {% if page_obj.has_other_pages %}
+      <nav aria-label="Questions pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+          {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link"
+              href="?page=1{% for key, value in current_filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">First</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link"
+              href="?page={{ page_obj.previous_page_number }}{% for key, value in current_filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Previous</a>
+          </li>
+          {% endif %}
+
+          {% for num in page_obj.paginator.page_range %}
+          {% if page_obj.number == num %}
+          <li class="page-item active">
+            <span class="page-link">{{ num }}</span>
+          </li>
+          {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+          <li class="page-item">
+            <a class="page-link"
+              href="?page={{ num }}{% for key, value in current_filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+          </li>
+          {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link"
+              href="?page={{ page_obj.next_page_number }}{% for key, value in current_filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link"
+              href="?page={{ page_obj.paginator.num_pages }}{% for key, value in current_filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Last</a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+
+      {% else %}
+      <div class="text-center py-5">
+        <i class="fas fa-question-circle fa-4x text-muted mb-3"></i>
+        <h4 class="text-muted">No Questions Found</h4>
+        <p class="text-muted">No questions match your current filter criteria.</p>
+        <a href="{% url 'exams:create_question' %}" class="btn btn-primary">
+          <i class="fas fa-plus me-2"></i>Create Your First Question
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Question Details Modal -->
+<div class="modal fade" id="questionDetailsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Question Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="questionDetailsContent">
+        <!-- Content will be loaded here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" id="editFromModal">
+          <i class="fas fa-edit me-2"></i>Edit Question
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Actions Modal -->
+<div class="modal fade" id="bulkActionsModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Bulk Actions</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Select an action to perform on <span id="selectedCount">0</span> selected question(s):</p>
+
+        <div class="d-grid gap-2">
+          <button type="button" class="btn btn-outline-success" id="bulkActivateBtn">
+            <i class="fas fa-check me-2"></i>Activate Selected Questions
+          </button>
+          <button type="button" class="btn btn-outline-warning" id="bulkDeactivateBtn">
+            <i class="fas fa-pause me-2"></i>Deactivate Selected Questions
+          </button>
+          <button type="button" class="btn btn-outline-info" id="bulkExportBtn">
+            <i class="fas fa-download me-2"></i>Export Selected Questions
+          </button>
+          <button type="button" class="btn btn-outline-danger" id="bulkDeleteBtn">
+            <i class="fas fa-trash me-2"></i>Delete Selected Questions
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Import Questions Modal -->
+<div class="modal fade" id="importQuestionsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Import Questions</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6">
+            <h6>Upload CSV File</h6>
+            <input type="file" class="form-control mb-3" id="csvFileInput" accept=".csv">
+            <div class="alert alert-info">
+              <strong>CSV Format:</strong><br>
+              question_text, subject, grade, type, difficulty, marks, correct_answer
+            </div>
+            <button type="button" class="btn btn-primary" id="uploadCsvBtn">
+              <i class="fas fa-upload me-2"></i>Upload CSV
+            </button>
+          </div>
+
+          <div class="col-md-6">
+            <h6>Sample CSV Template</h6>
+            <textarea class="form-control mb-3" rows="8"
+              readonly>question_text,subject,grade,type,difficulty,marks,correct_answer
+              "What is 2+2?",Mathematics,Grade 1,MCQ,EASY,1,"4"
+              "Explain photosynthesis",Science,Grade 5,LA,MEDIUM,5,"Process by which plants make food"</textarea>
+            <button type="button" class="btn btn-outline-info" id="downloadTemplateBtn">
+              <i class="fas fa-download me-2"></i>Download Template
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/select/1.6.2/js/dataTables.select.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    const table = $('#questionsTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[1, 'asc']],
+      columnDefs: [
+        { orderable: false, targets: [0, -1] },
+        { className: 'text-center', targets: [6, 7, 8] }
+      ],
+      dom: 'Bfrtip',
+      buttons: [
+        {
+          extend: 'excel',
+          text: '<i class="fas fa-file-excel me-1"></i>Excel',
+          className: 'btn btn-success btn-sm'
+        },
+        {
+          extend: 'csv',
+          text: '<i class="fas fa-file-csv me-1"></i>CSV',
+          className: 'btn btn-info btn-sm'
+        }
+      ]
+    });
+
+    // Initialize tooltips
+    $('[data-bs-toggle="tooltip"]').tooltip();
+
+    // Calculate and update statistics
+    function updateStatistics() {
+      const total = $('#questionsTable tbody tr').length;
+      const active = $('#questionsTable tbody tr:not(.table-secondary)').length;
+      const subjects = new Set();
+      const unused = $('#questionsTable tbody tr').filter(function () {
+        return $(this).find('td:eq(7) strong').text() === '0';
+      }).length;
+
+      $('#questionsTable tbody tr').each(function () {
+        const subject = $(this).find('td:eq(2) .badge').text();
+        if (subject) subjects.add(subject);
+      });
+
+      $('#totalQuestions').text(total);
+      $('#activeQuestions').text(active);
+      $('#subjectCount').text(subjects.size);
+      $('#unusedQuestions').text(unused);
+    }
+
+    updateStatistics();
+
+    // Select all questions
+    $('#selectAllQuestions').on('change', function () {
+      const isChecked = $(this).is(':checked');
+      $('.question-checkbox:visible').prop('checked', isChecked);
+      updateBulkActionsButton();
+    });
+
+    // Individual question selection
+    $('.question-checkbox').on('change', function () {
+      updateBulkActionsButton();
+
+      // Update select all checkbox
+      const totalVisible = $('.question-checkbox:visible').length;
+      const selectedVisible = $('.question-checkbox:visible:checked').length;
+
+      $('#selectAllQuestions').prop('checked', totalVisible === selectedVisible && totalVisible > 0);
+    });
+
+    function updateBulkActionsButton() {
+      const selectedCount = $('.question-checkbox:checked').length;
+      $('#bulkActionsBtn').prop('disabled', selectedCount === 0);
+      $('#selectedCount').text(selectedCount);
+    }
+
+    // View question details
+    $('.view-question-btn').on('click', function () {
+      const questionId = $(this).data('question-id');
+
+      $('#questionDetailsContent').html(`
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading question details...</p>
+            </div>
+        `);
+
+      $('#questionDetailsModal').modal('show');
+
+      // Simulate AJAX call
+      setTimeout(() => {
+        $('#questionDetailsContent').html(`
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Question details would be loaded here via AJAX call.
+                </div>
+                <p>Question ID: ${questionId}</p>
+            `);
+      }, 1000);
+    });
+
+    // Bulk actions
+    $('#bulkActionsBtn').on('click', function () {
+      updateBulkActionsButton();
+      $('#bulkActionsModal').modal('show');
+    });
+
+    // Import questions
+    $('#importQuestionsBtn').on('click', function () {
+      $('#importQuestionsModal').modal('show');
+    });
+
+    // Download template
+    $('#downloadTemplateBtn').on('click', function () {
+      const csvContent = "data:text/csv;charset=utf-8," +
+        "question_text,subject,grade,type,difficulty,marks,correct_answer\n" +
+        '"What is 2+2?",Mathematics,Grade 1,MCQ,EASY,1,"4"\n' +
+        '"Explain photosynthesis",Science,Grade 5,LA,MEDIUM,5,"Process by which plants make food"';
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "question_template.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    // CSV Upload
+    $('#uploadCsvBtn').on('click', function () {
+      const fileInput = $('#csvFileInput')[0];
+      if (fileInput.files.length === 0) {
+        alert('Please select a CSV file');
+        return;
+      }
+
+      const btn = $(this);
+      const originalText = btn.html();
+
+      btn.html('<i class="fas fa-spinner fa-spin me-2"></i>Uploading...').prop('disabled', true);
+
+      // Simulate upload
+      setTimeout(() => {
+        $('#importQuestionsModal').modal('hide');
+
+        const alertHtml = `
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>Questions imported successfully!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        $('.container-fluid').prepend(alertHtml);
+
+        btn.html(originalText).prop('disabled', false);
+
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      }, 2000);
+    });
+
+    // Bulk activate/deactivate
+    $('#bulkActivateBtn, #bulkDeactivateBtn').on('click', function () {
+      const isActivate = $(this).attr('id') === 'bulkActivateBtn';
+      const selectedIds = $('.question-checkbox:checked').map(function () {
+        return $(this).val();
+      }).get();
+
+      const action = isActivate ? 'activate' : 'deactivate';
+      if (confirm(`Are you sure you want to ${action} ${selectedIds.length} question(s)?`)) {
+        // Simulate bulk action
+        $('.question-checkbox:checked').each(function () {
+          const row = $(this).closest('tr');
+          const statusCell = row.find('td:eq(8)');
+
+          if (isActivate) {
+            row.removeClass('table-secondary');
+            statusCell.html('<span class="badge bg-success">Active</span>');
+          } else {
+            row.addClass('table-secondary');
+            statusCell.html('<span class="badge bg-secondary">Inactive</span>');
+          }
+        });
+
+        $('#bulkActionsModal').modal('hide');
+        updateStatistics();
+      }
+    });
+
+    // Delete questions
+    $('.delete-question-btn').on('click', function () {
+      const questionId = $(this).data('question-id');
+
+      if (confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
+        const row = $(this).closest('tr');
+        row.fadeOut(300, function () {
+          $(this).remove();
+          updateStatistics();
+        });
+      }
+    });
+
+    // Duplicate question
+    $('.duplicate-question-btn').on('click', function () {
+      const questionId = $(this).data('question-id');
+
+      if (confirm('Create a duplicate of this question?')) {
+        // Simulate duplication
+        const row = $(this).closest('tr');
+        const newRow = row.clone();
+
+        // Update question text to indicate it's a copy
+        const questionCell = newRow.find('td:eq(1) .question-preview strong');
+        questionCell.text('[COPY] ' + questionCell.text());
+
+        // Reset usage count
+        newRow.find('td:eq(7) strong').text('0');
+
+        row.after(newRow);
+        updateStatistics();
+
+        // Show success message
+        const alertHtml = `
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-copy me-2"></i>Question duplicated successfully!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        $('.container-fluid').prepend(alertHtml);
+      }
+    });
+
+    // Show/hide inactive questions
+    $('#showInactiveQuestions').on('change', function () {
+      if ($(this).is(':checked')) {
+        $('.table-secondary').show();
+      } else {
+        $('.table-secondary').hide();
+      }
+      updateStatistics();
+    });
+
+    // Filter form auto-submit
+    $('#subject, #grade, #question_type, #difficulty, #marks').on('change', function () {
+      $('#filterForm').submit();
+    });
+
+    // Search on Enter key
+    $('#search').on('keypress', function (e) {
+      if (e.which === 13) {
+        $('#filterForm').submit();
+      }
+    });
+
+    // Export functionality
+    $('#exportBtn').on('click', function () {
+      table.button(0).trigger();
+    });
+
+    // Refresh functionality
+    $('#refreshBtn').on('click', function () {
+      window.location.reload();
+    });
+  });
+</script>
+{% endblock %}

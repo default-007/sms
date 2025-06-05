@@ -1,0 +1,515 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if object %}Edit{% else %}Create{% endif %} Scholarship - Finance{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0 text-gray-800">
+        {% if object %}Edit{% else %}Create{% endif %} Scholarship
+      </h1>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'finance:dashboard' %}">Finance</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'finance:scholarship-list' %}">Scholarships</a></li>
+          <li class="breadcrumb-item active">{% if object %}Edit{% else %}Create{% endif %}</li>
+        </ol>
+      </nav>
+    </div>
+    <div>
+      <a href="{% url 'finance:scholarship-list' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to List
+      </a>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-8">
+      <!-- Main Form -->
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-graduation-cap me-2"></i>Scholarship Information
+          </h6>
+        </div>
+        <div class="card-body">
+          <form method="post" id="scholarshipForm">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+              {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <!-- Basic Information -->
+            <div class="row mb-3">
+              <div class="col-md-8">
+                <label for="{{ form.name.id_for_label }}" class="form-label required">
+                  Scholarship Name
+                </label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.name.errors.0 }}
+                </div>
+                {% endif %}
+                <div class="form-text">
+                  Enter a descriptive name for this scholarship program
+                </div>
+              </div>
+              <div class="col-md-4">
+                <label for="{{ form.criteria.id_for_label }}" class="form-label required">
+                  Criteria
+                </label>
+                {{ form.criteria }}
+                {% if form.criteria.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.criteria.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="{{ form.description.id_for_label }}" class="form-label required">
+                Description
+              </label>
+              {{ form.description }}
+              {% if form.description.errors %}
+              <div class="invalid-feedback d-block">
+                {{ form.description.errors.0 }}
+              </div>
+              {% endif %}
+              <div class="form-text">
+                Provide detailed description of scholarship eligibility and benefits
+              </div>
+            </div>
+
+            <!-- Discount Configuration -->
+            <div class="card bg-light mb-4">
+              <div class="card-header">
+                <h6 class="m-0 font-weight-bold">Discount Configuration</h6>
+              </div>
+              <div class="card-body">
+                <div class="row mb-3">
+                  <div class="col-md-4">
+                    <label for="{{ form.discount_type.id_for_label }}" class="form-label required">
+                      Discount Type
+                    </label>
+                    {{ form.discount_type }}
+                    {% if form.discount_type.errors %}
+                    <div class="invalid-feedback d-block">
+                      {{ form.discount_type.errors.0 }}
+                    </div>
+                    {% endif %}
+                  </div>
+                  <div class="col-md-4">
+                    <label for="{{ form.discount_value.id_for_label }}" class="form-label required">
+                      Discount Value
+                    </label>
+                    <div class="input-group">
+                      <span class="input-group-text" id="discountSymbol">%</span>
+                      {{ form.discount_value }}
+                    </div>
+                    {% if form.discount_value.errors %}
+                    <div class="invalid-feedback d-block">
+                      {{ form.discount_value.errors.0 }}
+                    </div>
+                    {% endif %}
+                  </div>
+                  <div class="col-md-4">
+                    <label for="{{ form.max_recipients.id_for_label }}" class="form-label">
+                      Max Recipients
+                    </label>
+                    {{ form.max_recipients }}
+                    {% if form.max_recipients.errors %}
+                    <div class="invalid-feedback d-block">
+                      {{ form.max_recipients.errors.0 }}
+                    </div>
+                    {% endif %}
+                    <div class="form-text">
+                      Leave blank for unlimited
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Discount Preview -->
+                <div class="alert alert-info" id="discountPreview">
+                  <i class="fas fa-calculator me-2"></i>
+                  <span id="previewText">Configure discount to see preview</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Academic Year and Terms -->
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="{{ form.academic_year.id_for_label }}" class="form-label required">
+                  Academic Year
+                </label>
+                {{ form.academic_year }}
+                {% if form.academic_year.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.academic_year.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="{{ form.applicable_terms.id_for_label }}" class="form-label">
+                  Applicable Terms
+                </label>
+                {{ form.applicable_terms }}
+                {% if form.applicable_terms.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.applicable_terms.errors.0 }}
+                </div>
+                {% endif %}
+                <div class="form-text">
+                  Enter term IDs separated by commas (leave blank for all terms)
+                </div>
+              </div>
+            </div>
+
+            <!-- Applicable Categories -->
+            <div class="mb-3">
+              <label class="form-label">Applicable Fee Categories</label>
+              <div class="card">
+                <div class="card-body">
+                  <div class="row">
+                    {% for category in fee_categories %}
+                    <div class="col-md-4 mb-2">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="applicable_categories"
+                          value="{{ category.id }}" id="category_{{ category.id }}"
+                          {% if category.id in form.applicable_categories.value %}checked{% endif %}>
+                        <label class="form-check-label" for="category_{{ category.id }}">
+                          {{ category.name }}
+                          {% if category.is_mandatory %}
+                          <span class="badge bg-danger ms-1">Mandatory</span>
+                          {% endif %}
+                        </label>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                  <div class="form-text">
+                    Select which fee categories this scholarship applies to (leave all unchecked for all categories)
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Status -->
+            <div class="mb-4">
+              <div class="form-check form-switch">
+                {{ form.is_active }}
+                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                  Active Scholarship
+                </label>
+              </div>
+              <div class="form-text">
+                Only active scholarships can be assigned to students
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-end">
+              <button type="button" class="btn btn-secondary me-2" onclick="history.back()">
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-2"></i>
+                {% if object %}Update{% else %}Create{% endif %} Scholarship
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <!-- Criteria Guide -->
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-info">
+            <i class="fas fa-info-circle me-2"></i>Scholarship Criteria Guide
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <h6 class="font-weight-bold text-success">
+              <i class="fas fa-trophy me-2"></i>Merit-based
+            </h6>
+            <p class="small">Based on academic performance, grades, and achievements.</p>
+          </div>
+
+          <div class="mb-3">
+            <h6 class="font-weight-bold text-warning">
+              <i class="fas fa-hand-holding-heart me-2"></i>Need-based
+            </h6>
+            <p class="small">Based on family income and financial circumstances.</p>
+          </div>
+
+          <div class="mb-3">
+            <h6 class="font-weight-bold text-primary">
+              <i class="fas fa-running me-2"></i>Sports Excellence
+            </h6>
+            <p class="small">For students excelling in sports and physical activities.</p>
+          </div>
+
+          <div class="mb-3">
+            <h6 class="font-weight-bold text-info">
+              <i class="fas fa-palette me-2"></i>Arts Excellence
+            </h6>
+            <p class="small">For students with exceptional artistic talents.</p>
+          </div>
+
+          <div class="mb-3">
+            <h6 class="font-weight-bold text-secondary">
+              <i class="fas fa-users me-2"></i>Sibling Discount
+            </h6>
+            <p class="small">Automatic discount for families with multiple children.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Discount Calculator -->
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-success">
+            <i class="fas fa-calculator me-2"></i>Discount Calculator
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label small">Sample Fee Amount</label>
+            <input type="number" class="form-control form-control-sm" id="sampleAmount" placeholder="1000.00"
+              step="0.01">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small">Discount Amount</label>
+            <input type="text" class="form-control form-control-sm" id="calculatedDiscount" readonly>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small">Final Amount</label>
+            <input type="text" class="form-control form-control-sm" id="finalAmount" readonly>
+          </div>
+
+          <button type="button" class="btn btn-sm btn-success w-100" onclick="calculateDiscount()">
+            <i class="fas fa-calculator me-1"></i>Calculate
+          </button>
+        </div>
+      </div>
+
+      <!-- Current Details (Edit Mode) -->
+      {% if object %}
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-eye me-2"></i>Current Details
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row text-center mb-3">
+            <div class="col-6">
+              <h5 class="font-weight-bold text-primary">{{ object.current_recipients }}</h5>
+              <small class="text-muted">Current Recipients</small>
+            </div>
+            <div class="col-6">
+              <h5 class="font-weight-bold text-success">
+                {% if object.max_recipients %}
+                {{ object.max_recipients|add:"-"|add:object.current_recipients }}
+                {% else %}
+                ∞
+                {% endif %}
+              </h5>
+              <small class="text-muted">Available Slots</small>
+            </div>
+          </div>
+
+          <hr>
+
+          <div class="small">
+            <strong>Created:</strong> {{ object.created_at|date:"M d, Y" }}<br>
+            <strong>Status:</strong>
+            {% if object.is_active %}
+            <span class="badge bg-success">Active</span>
+            {% else %}
+            <span class="badge bg-secondary">Inactive</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Update discount symbol based on type
+    updateDiscountSymbol();
+    updateDiscountPreview();
+
+    $('#id_discount_type').on('change', function () {
+      updateDiscountSymbol();
+      updateDiscountPreview();
+    });
+
+    $('#id_discount_value').on('input', function () {
+      updateDiscountPreview();
+      calculateDiscount();
+    });
+
+    // Form validation
+    $('#scholarshipForm').on('submit', function (e) {
+      var isValid = validateForm();
+      if (!isValid) {
+        e.preventDefault();
+        $('html, body').animate({
+          scrollTop: $('.is-invalid').first().offset().top - 100
+        }, 300);
+      }
+    });
+
+    // Auto-calculate when sample amount changes
+    $('#sampleAmount').on('input', calculateDiscount);
+
+    // Character counter for description
+    $('#id_description').on('input', function () {
+      var maxLength = 1000;
+      var currentLength = $(this).val().length;
+      var remaining = maxLength - currentLength;
+
+      if (!$(this).next('.char-counter').length) {
+        $(this).after('<div class="char-counter form-text"></div>');
+      }
+
+      $(this).next('.char-counter').text(remaining + ' characters remaining');
+
+      if (remaining < 0) {
+        $(this).addClass('is-invalid');
+      } else {
+        $(this).removeClass('is-invalid');
+      }
+    });
+  });
+
+  function updateDiscountSymbol() {
+    var discountType = $('#id_discount_type').val();
+    var symbol = discountType === 'percentage' ? '%' : '$';
+    $('#discountSymbol').text(symbol);
+  }
+
+  function updateDiscountPreview() {
+    var discountType = $('#id_discount_type').val();
+    var discountValue = $('#id_discount_value').val();
+
+    if (discountType && discountValue) {
+      var previewText = '';
+      if (discountType === 'percentage') {
+        previewText = `Students will receive ${discountValue}% discount on applicable fees`;
+      } else {
+        previewText = `Students will receive $${discountValue} discount on applicable fees`;
+      }
+      $('#previewText').text(previewText);
+    } else {
+      $('#previewText').text('Configure discount to see preview');
+    }
+  }
+
+  function calculateDiscount() {
+    var sampleAmount = parseFloat($('#sampleAmount').val()) || 0;
+    var discountType = $('#id_discount_type').val();
+    var discountValue = parseFloat($('#id_discount_value').val()) || 0;
+
+    if (sampleAmount > 0 && discountType && discountValue > 0) {
+      var discountAmount = 0;
+
+      if (discountType === 'percentage') {
+        discountAmount = sampleAmount * (discountValue / 100);
+      } else {
+        discountAmount = discountValue;
+      }
+
+      var finalAmount = sampleAmount - discountAmount;
+
+      $('#calculatedDiscount').val('$' + discountAmount.toFixed(2));
+      $('#finalAmount').val('$' + finalAmount.toFixed(2));
+    } else {
+      $('#calculatedDiscount').val('');
+      $('#finalAmount').val('');
+    }
+  }
+
+  function validateForm() {
+    var isValid = true;
+
+    // Clear previous validation states
+    $('.is-invalid').removeClass('is-invalid');
+
+    // Required field validation
+    var requiredFields = ['#id_name', '#id_description', '#id_criteria', '#id_discount_type', '#id_discount_value', '#id_academic_year'];
+
+    requiredFields.forEach(function (field) {
+      if ($(field).val() === '' || $(field).val() === null) {
+        $(field).addClass('is-invalid');
+        isValid = false;
+      }
+    });
+
+    // Discount value validation
+    var discountType = $('#id_discount_type').val();
+    var discountValue = parseFloat($('#id_discount_value').val());
+
+    if (discountType === 'percentage' && discountValue > 100) {
+      $('#id_discount_value').addClass('is-invalid');
+      isValid = false;
+    }
+
+    if (discountValue <= 0) {
+      $('#id_discount_value').addClass('is-invalid');
+      isValid = false;
+    }
+
+    // Max recipients validation
+    var maxRecipients = $('#id_max_recipients').val();
+    if (maxRecipients && parseInt(maxRecipients) <= 0) {
+      $('#id_max_recipients').addClass('is-invalid');
+      isValid = false;
+    }
+
+    return isValid;
+  }
+
+  // Real-time validation
+  $('#id_discount_value').on('blur', function () {
+    var discountType = $('#id_discount_type').val();
+    var value = parseFloat($(this).val());
+
+    if (discountType === 'percentage' && value > 100) {
+      $(this).addClass('is-invalid');
+    } else if (value <= 0) {
+      $(this).addClass('is-invalid');
+    } else {
+      $(this).removeClass('is-invalid');
+    }
+  });
+
+  $('#id_max_recipients').on('blur', function () {
+    var value = parseInt($(this).val());
+    if ($(this).val() !== '' && value <= 0) {
+      $(this).addClass('is-invalid');
+    } else {
+      $(this).removeClass('is-invalid');
+    }
+  });
+</script>
+{% endblock %}

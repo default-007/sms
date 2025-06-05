@@ -1,0 +1,466 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Exams{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Exams</h2>
+          <p class="text-muted">Manage and view all examinations</p>
+        </div>
+        {% if user.role == 'ADMIN' or user.role == 'PRINCIPAL' %}
+        <div>
+          <a href="{% url 'exams:create_exam' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Create New Exam
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="card-title mb-0">
+        <i class="fas fa-filter me-2"></i>Filters
+      </h5>
+    </div>
+    <div class="card-body">
+      <form method="get" id="filterForm">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label for="academic_year" class="form-label">Academic Year</label>
+            <select name="academic_year" id="academic_year" class="form-select">
+              <option value="">All Academic Years</option>
+              {% for year in academic_years %}
+              <option value="{{ year.id }}"
+                {% if current_filters.academic_year == year.id|stringformat:"s" %}selected{% endif %}>
+                {{ year.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label for="term" class="form-label">Term</label>
+            <select name="term" id="term" class="form-select">
+              <option value="">All Terms</option>
+              {% for term in terms %}
+              <option value="{{ term.id }}"
+                {% if current_filters.term == term.id|stringformat:"s" %}selected{% endif %}>
+                {{ term.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label for="exam_type" class="form-label">Exam Type</label>
+            <select name="exam_type" id="exam_type" class="form-select">
+              <option value="">All Types</option>
+              {% for type in exam_types %}
+              <option value="{{ type.id }}"
+                {% if current_filters.exam_type == type.id|stringformat:"s" %}selected{% endif %}>
+                {{ type.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label for="status" class="form-label">Status</label>
+            <select name="status" id="status" class="form-select">
+              <option value="">All Statuses</option>
+              <option value="DRAFT" {% if current_filters.status == 'DRAFT' %}selected{% endif %}>Draft</option>
+              <option value="SCHEDULED" {% if current_filters.status == 'SCHEDULED' %}selected{% endif %}>Scheduled
+              </option>
+              <option value="ONGOING" {% if current_filters.status == 'ONGOING' %}selected{% endif %}>Ongoing</option>
+              <option value="COMPLETED" {% if current_filters.status == 'COMPLETED' %}selected{% endif %}>Completed
+              </option>
+              <option value="CANCELLED" {% if current_filters.status == 'CANCELLED' %}selected{% endif %}>Cancelled
+              </option>
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label for="search" class="form-label">Search</label>
+            <div class="input-group">
+              <input type="text" name="search" id="search" class="form-control" placeholder="Search exams..."
+                value="{{ current_filters.search }}">
+              <button type="submit" class="btn btn-outline-secondary">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-12">
+            <button type="submit" class="btn btn-primary me-2">
+              <i class="fas fa-filter me-1"></i>Apply Filters
+            </button>
+            <a href="{% url 'exams:exam_list' %}" class="btn btn-outline-secondary">
+              <i class="fas fa-times me-1"></i>Clear Filters
+            </a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Exams Table -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="card-title mb-0">Exams List</h5>
+      <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-outline-primary" id="exportBtn">
+          <i class="fas fa-download me-1"></i>Export
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" id="refreshBtn">
+          <i class="fas fa-refresh me-1"></i>Refresh
+        </button>
+      </div>
+    </div>
+    <div class="card-body">
+      {% if page_obj.object_list %}
+      <div class="table-responsive">
+        <table id="examsTable" class="table table-hover table-striped">
+          <thead class="table-dark">
+            <tr>
+              <th>Exam Name</th>
+              <th>Type</th>
+              <th>Academic Year</th>
+              <th>Term</th>
+              <th>Date Range</th>
+              <th>Status</th>
+              <th>Published</th>
+              <th>Completion</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for exam in page_obj.object_list %}
+            <tr>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div>
+                    <a href="{% url 'exams:exam_detail' exam.id %}" class="text-decoration-none fw-bold">
+                      {{ exam.name }}
+                    </a>
+                    {% if exam.description %}
+                    <small class="text-muted d-block">{{ exam.description|truncatechars:50 }}</small>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge bg-secondary">{{ exam.exam_type.name }}</span>
+                <small class="text-muted d-block">{{ exam.exam_type.contribution_percentage }}%</small>
+              </td>
+              <td>{{ exam.academic_year.name }}</td>
+              <td>{{ exam.term.name }}</td>
+              <td>
+                <div>
+                  <i class="fas fa-calendar-alt me-1"></i>{{ exam.start_date|date:"M d" }}
+                </div>
+                <small class="text-muted">to {{ exam.end_date|date:"M d, Y" }}</small>
+              </td>
+              <td>
+                {% if exam.status == 'DRAFT' %}
+                <span class="badge bg-secondary">
+                  <i class="fas fa-edit me-1"></i>Draft
+                </span>
+                {% elif exam.status == 'SCHEDULED' %}
+                <span class="badge bg-primary">
+                  <i class="fas fa-clock me-1"></i>Scheduled
+                </span>
+                {% elif exam.status == 'ONGOING' %}
+                <span class="badge bg-warning">
+                  <i class="fas fa-play me-1"></i>Ongoing
+                </span>
+                {% elif exam.status == 'COMPLETED' %}
+                <span class="badge bg-success">
+                  <i class="fas fa-check me-1"></i>Completed
+                </span>
+                {% elif exam.status == 'CANCELLED' %}
+                <span class="badge bg-danger">
+                  <i class="fas fa-times me-1"></i>Cancelled
+                </span>
+                {% else %}
+                <span class="badge bg-info">{{ exam.status }}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if exam.is_published %}
+                <span class="badge bg-success">
+                  <i class="fas fa-eye me-1"></i>Published
+                </span>
+                {% else %}
+                <span class="badge bg-warning">
+                  <i class="fas fa-eye-slash me-1"></i>Draft
+                </span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="progress" style="height: 20px;">
+                  <div
+                    class="progress-bar bg-{% if exam.completion_rate >= 80 %}success{% elif exam.completion_rate >= 50 %}warning{% else %}danger{% endif %}"
+                    role="progressbar" style="width: {{ exam.completion_rate }}%"
+                    aria-valuenow="{{ exam.completion_rate }}" aria-valuemin="0" aria-valuemax="100">
+                    {{ exam.completion_rate|floatformat:0 }}%
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="btn-group" role="group">
+                  <a href="{% url 'exams:exam_detail' exam.id %}" class="btn btn-sm btn-outline-primary"
+                    data-bs-toggle="tooltip" title="View Details">
+                    <i class="fas fa-eye"></i>
+                  </a>
+
+                  {% if user.role == 'ADMIN' or user.role == 'PRINCIPAL' %}
+                  <a href="{% url 'exams:exam_schedules' exam.id %}" class="btn btn-sm btn-outline-secondary"
+                    data-bs-toggle="tooltip" title="Manage Schedules">
+                    <i class="fas fa-calendar"></i>
+                  </a>
+
+                  {% if not exam.is_published %}
+                  <button type="button" class="btn btn-sm btn-outline-success publish-exam-btn"
+                    data-exam-id="{{ exam.id }}" data-exam-name="{{ exam.name }}" data-bs-toggle="tooltip"
+                    title="Publish Exam">
+                    <i class="fas fa-paper-plane"></i>
+                  </button>
+                  {% endif %}
+                  {% endif %}
+
+                  {% if exam.status == 'COMPLETED' %}
+                  <a href="{% url 'exams:exam_analytics' exam.id %}" class="btn btn-sm btn-outline-info"
+                    data-bs-toggle="tooltip" title="View Analytics">
+                    <i class="fas fa-chart-line"></i>
+                  </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      {% if page_obj.has_other_pages %}
+      <nav aria-label="Exam pagination">
+        <ul class="pagination justify-content-center mt-4">
+          {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link"
+              href="?page=1{% for key, value in current_filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">First</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link"
+              href="?page={{ page_obj.previous_page_number }}{% for key, value in current_filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Previous</a>
+          </li>
+          {% endif %}
+
+          {% for num in page_obj.paginator.page_range %}
+          {% if page_obj.number == num %}
+          <li class="page-item active">
+            <span class="page-link">{{ num }}</span>
+          </li>
+          {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+          <li class="page-item">
+            <a class="page-link"
+              href="?page={{ num }}{% for key, value in current_filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+          </li>
+          {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link"
+              href="?page={{ page_obj.next_page_number }}{% for key, value in current_filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link"
+              href="?page={{ page_obj.paginator.num_pages }}{% for key, value in current_filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Last</a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+
+      {% else %}
+      <div class="text-center py-5">
+        <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+        <h4 class="text-muted">No Exams Found</h4>
+        <p class="text-muted">No exams match your current filter criteria.</p>
+        {% if user.role == 'ADMIN' or user.role == 'PRINCIPAL' %}
+        <a href="{% url 'exams:create_exam' %}" class="btn btn-primary">
+          <i class="fas fa-plus me-2"></i>Create Your First Exam
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Publish Exam Modal -->
+<div class="modal fade" id="publishExamModal" tabindex="-1" aria-labelledby="publishExamModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="publishExamModalLabel">Publish Exam</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to publish the exam "<span id="examNameToPublish"></span>"?</p>
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle me-2"></i>
+          Once published, the exam will be visible to students and cannot be unpublished.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" id="confirmPublishBtn">
+          <i class="fas fa-paper-plane me-2"></i>Publish Exam
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.4.1/js/responsive.bootstrap5.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    let table = $('#examsTable').DataTable({
+      responsive: true,
+      dom: 'Bfrtip',
+      buttons: [
+        {
+          extend: 'excel',
+          text: '<i class="fas fa-file-excel me-1"></i>Excel',
+          className: 'btn btn-success btn-sm'
+        },
+        {
+          extend: 'pdf',
+          text: '<i class="fas fa-file-pdf me-1"></i>PDF',
+          className: 'btn btn-danger btn-sm'
+        },
+        {
+          extend: 'csv',
+          text: '<i class="fas fa-file-csv me-1"></i>CSV',
+          className: 'btn btn-info btn-sm'
+        }
+      ],
+      pageLength: 25,
+      order: [[4, 'desc']], // Order by date range
+      columnDefs: [
+        { orderable: false, targets: [-1] }, // Disable ordering on Actions column
+        { className: 'text-center', targets: [6, 7] } // Center align Published and Completion columns
+      ]
+    });
+
+    // Initialize tooltips
+    $('[data-bs-toggle="tooltip"]').tooltip();
+
+    // Publish exam functionality
+    let examIdToPublish = null;
+
+    $('.publish-exam-btn').on('click', function () {
+      examIdToPublish = $(this).data('exam-id');
+      const examName = $(this).data('exam-name');
+      $('#examNameToPublish').text(examName);
+      $('#publishExamModal').modal('show');
+    });
+
+    $('#confirmPublishBtn').on('click', function () {
+      if (examIdToPublish) {
+        const btn = $(this);
+        const originalText = btn.html();
+
+        btn.html('<i class="fas fa-spinner fa-spin me-2"></i>Publishing...').prop('disabled', true);
+
+        $.ajax({
+          url: `/exams/ajax/publish-exam/${examIdToPublish}/`,
+          type: 'POST',
+          headers: {
+            'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+          },
+          success: function (response) {
+            if (response.success) {
+              $('#publishExamModal').modal('hide');
+
+              // Show success message
+              const alertHtml = `
+                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                <i class="fas fa-check-circle me-2"></i>${response.message}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        `;
+              $('.container-fluid').prepend(alertHtml);
+
+              // Refresh the page after a short delay
+              setTimeout(() => {
+                window.location.reload();
+              }, 1500);
+            }
+          },
+          error: function (xhr) {
+            const response = JSON.parse(xhr.responseText);
+            alert('Error: ' + response.error);
+          },
+          complete: function () {
+            btn.html(originalText).prop('disabled', false);
+          }
+        });
+      }
+    });
+
+    // Export functionality
+    $('#exportBtn').on('click', function () {
+      const button = table.button(0);
+      button.trigger();
+    });
+
+    // Refresh functionality
+    $('#refreshBtn').on('click', function () {
+      window.location.reload();
+    });
+
+    // Auto-filter on select change
+    $('#academic_year, #term, #exam_type, #status').on('change', function () {
+      $('#filterForm').submit();
+    });
+
+    // Search on Enter key
+    $('#search').on('keypress', function (e) {
+      if (e.which === 13) {
+        $('#filterForm').submit();
+      }
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,429 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Assign Scholarship - {{ scholarship.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/select/1.7.0/css/select.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-0">
+            <i class="fas fa-graduation-cap me-2"></i>Assign Scholarship
+          </h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'finance:dashboard' %}">Finance</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'finance:scholarship-list' %}">Scholarships</a></li>
+              <li class="breadcrumb-item"><a
+                  href="{% url 'finance:scholarship-detail' scholarship.pk %}">{{ scholarship.name }}</a></li>
+              <li class="breadcrumb-item active">Assign</li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <a href="{% url 'finance:scholarship-detail' scholarship.pk %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Scholarship
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Scholarship Information -->
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Scholarship Details</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label text-muted">Scholarship Name</label>
+            <div class="fw-bold">{{ scholarship.name }}</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted">Description</label>
+            <div>{{ scholarship.description|default:"No description provided" }}</div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-6">
+              <label class="form-label text-muted">Criteria</label>
+              <div>
+                <span class="badge bg-primary">{{ scholarship.get_criteria_display }}</span>
+              </div>
+            </div>
+            <div class="col-6">
+              <label class="form-label text-muted">Discount</label>
+              <div class="fw-bold text-success">
+                {% if scholarship.discount_type == 'percentage' %}
+                {{ scholarship.discount_value }}%
+                {% else %}
+                ${{ scholarship.discount_value }}
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-6">
+              <label class="form-label text-muted">Academic Year</label>
+              <div>{{ scholarship.academic_year.name }}</div>
+            </div>
+            <div class="col-6">
+              <label class="form-label text-muted">Terms</label>
+              <div>
+                {% if scholarship.applicable_terms %}
+                {% for term_id in scholarship.applicable_terms %}
+                <small class="badge bg-light text-dark me-1">Term {{ term_id }}</small>
+                {% endfor %}
+                {% else %}
+                <small class="text-muted">All Terms</small>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          {% if scholarship.max_recipients %}
+          <div class="mb-3">
+            <label class="form-label text-muted">Availability</label>
+            <div class="progress mb-2">
+              {% widthratio scholarship.current_recipients scholarship.max_recipients 100 as progress_width %}
+              <div class="progress-bar" role="progressbar" style="width: {{ progress_width }}%">
+                {{ scholarship.current_recipients }}/{{ scholarship.max_recipients }}
+              </div>
+            </div>
+            <small class="text-muted">
+              {{ scholarship.current_recipients }} of {{ scholarship.max_recipients }} slots used
+            </small>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Assignment Summary -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Assignment Summary</h5>
+        </div>
+        <div class="card-body">
+          <div class="text-center">
+            <h3 id="selectedCount" class="text-primary mb-1">0</h3>
+            <small class="text-muted">Students Selected</small>
+          </div>
+          <hr>
+          <button id="assignSelected" class="btn btn-success w-100" disabled>
+            <i class="fas fa-plus me-2"></i>Assign Selected Students
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Eligible Students -->
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Eligible Students</h5>
+          <div>
+            <span class="badge bg-info me-2">{{ eligible_students|length }} eligible</span>
+            <button class="btn btn-sm btn-outline-primary" id="selectAll">
+              <i class="fas fa-check-square me-1"></i>Select All
+            </button>
+            <button class="btn btn-sm btn-outline-secondary ms-1" id="clearAll">
+              <i class="fas fa-square me-1"></i>Clear All
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          {% if eligible_students %}
+          <div class="table-responsive">
+            <table id="studentsTable" class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th width="50">
+                    <input type="checkbox" id="masterCheckbox" class="form-check-input">
+                  </th>
+                  <th>Student</th>
+                  <th>Class</th>
+                  <th>Current GPA</th>
+                  <th>Previous Scholarships</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for student in eligible_students %}
+                <tr>
+                  <td>
+                    <input type="checkbox" class="form-check-input student-checkbox" value="{{ student.id }}"
+                      data-student-name="{{ student.user.get_full_name }}">
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="me-3">
+                        <i class="fas fa-user-circle fa-2x text-muted"></i>
+                      </div>
+                      <div>
+                        <strong>{{ student.user.get_full_name }}</strong>
+                        <br><small class="text-muted">{{ student.admission_number }}</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="fw-bold">{{ student.current_class }}</span>
+                  </td>
+                  <td>
+                    {% if student.current_gpa %}
+                    <span
+                      class="badge {% if student.current_gpa >= 3.5 %}bg-success{% elif student.current_gpa >= 3.0 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                      {{ student.current_gpa|floatformat:2 }}
+                    </span>
+                    {% else %}
+                    <span class="text-muted">N/A</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if student.previous_scholarships %}
+                    <small class="text-info">{{ student.previous_scholarships|length }} previous</small>
+                    {% else %}
+                    <small class="text-muted">None</small>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="badge bg-success">Eligible</span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-5">
+            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No Eligible Students</h5>
+            <p class="text-muted mb-0">
+              {% if scholarship.max_recipients and scholarship.current_recipients >= scholarship.max_recipients %}
+              This scholarship has reached its maximum number of recipients.
+              {% else %}
+              No students meet the eligibility criteria for this scholarship.
+              {% endif %}
+            </p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Assignment Confirmation Modal -->
+<div class="modal fade" id="assignmentModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm Scholarship Assignment</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle me-2"></i>
+          You are about to assign the scholarship "<strong>{{ scholarship.name }}</strong>" to the following students:
+        </div>
+
+        <div id="selectedStudentsList" class="mb-3"></div>
+
+        <form id="assignmentForm">
+          {% csrf_token %}
+          <input type="hidden" name="scholarship_id" value="{{ scholarship.id }}">
+          <input type="hidden" name="student_ids" id="studentIds">
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Start Date</label>
+              <input type="date" name="start_date" class="form-control" value="{{ today|date:'Y-m-d' }}" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">End Date (Optional)</label>
+              <input type="date" name="end_date" class="form-control">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Remarks</label>
+            <textarea name="remarks" class="form-control" rows="3"
+              placeholder="Additional notes about this assignment..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" id="confirmAssignment">
+          <i class="fas fa-check me-2"></i>Confirm Assignment
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/select/1.7.0/js/dataTables.select.min.js"></script>
+<script>
+  let studentsTable;
+  let selectedStudents = [];
+
+  $(document).ready(function () {
+    // Initialize DataTable
+    studentsTable = $('#studentsTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[1, 'asc']],
+      columnDefs: [
+        { orderable: false, targets: [0, 5] }
+      ]
+    });
+
+    // Master checkbox functionality
+    $('#masterCheckbox').on('change', function () {
+      const isChecked = $(this).is(':checked');
+      $('.student-checkbox:visible').prop('checked', isChecked).trigger('change');
+    });
+
+    // Individual checkbox functionality
+    $(document).on('change', '.student-checkbox', function () {
+      updateSelectedStudents();
+      updateUI();
+    });
+
+    // Select All button
+    $('#selectAll').on('click', function () {
+      $('.student-checkbox:visible').prop('checked', true).trigger('change');
+    });
+
+    // Clear All button
+    $('#clearAll').on('click', function () {
+      $('.student-checkbox').prop('checked', false).trigger('change');
+    });
+
+    // Assign Selected button
+    $('#assignSelected').on('click', function () {
+      if (selectedStudents.length > 0) {
+        showAssignmentModal();
+      }
+    });
+
+    // Confirm Assignment
+    $('#confirmAssignment').on('click', function () {
+      submitAssignment();
+    });
+
+    function updateSelectedStudents() {
+      selectedStudents = [];
+      $('.student-checkbox:checked').each(function () {
+        selectedStudents.push({
+          id: $(this).val(),
+          name: $(this).data('student-name')
+        });
+      });
+    }
+
+    function updateUI() {
+      const count = selectedStudents.length;
+      $('#selectedCount').text(count);
+      $('#assignSelected').prop('disabled', count === 0);
+
+      // Update master checkbox state
+      const totalVisible = $('.student-checkbox:visible').length;
+      const checkedVisible = $('.student-checkbox:visible:checked').length;
+
+      $('#masterCheckbox').prop('indeterminate', checkedVisible > 0 && checkedVisible < totalVisible);
+      $('#masterCheckbox').prop('checked', checkedVisible === totalVisible && totalVisible > 0);
+    }
+
+    function showAssignmentModal() {
+      // Populate selected students list
+      let studentsList = '<ul class="list-group">';
+      selectedStudents.forEach(student => {
+        studentsList += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                ${student.name}
+                <span class="badge bg-primary rounded-pill">${student.id}</span>
+            </li>`;
+      });
+      studentsList += '</ul>';
+
+      $('#selectedStudentsList').html(studentsList);
+      $('#studentIds').val(selectedStudents.map(s => s.id).join(','));
+      $('#assignmentModal').modal('show');
+    }
+
+    function submitAssignment() {
+      const formData = new FormData($('#assignmentForm')[0]);
+
+      $.ajax({
+        url: '{% url "finance:scholarship-assign" scholarship.pk %}',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (response) {
+          $('#assignmentModal').modal('hide');
+
+          if (response.success) {
+            // Show success message
+            showAlert('success', `Successfully assigned scholarship to ${selectedStudents.length} students.`);
+
+            // Remove assigned students from table
+            selectedStudents.forEach(student => {
+              $(`.student-checkbox[value="${student.id}"]`).closest('tr').remove();
+            });
+
+            // Reset selection
+            selectedStudents = [];
+            updateUI();
+
+            // Redraw table
+            studentsTable.draw();
+          } else {
+            showAlert('danger', 'Error assigning scholarship: ' + (response.message || 'Unknown error'));
+          }
+        },
+        error: function (xhr, status, error) {
+          $('#assignmentModal').modal('hide');
+          showAlert('danger', 'Error assigning scholarship. Please try again.');
+          console.error('Assignment error:', error);
+        }
+      });
+    }
+
+    function showAlert(type, message) {
+      const alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+
+      // Insert at top of page
+      $('.container-fluid').prepend(alertHtml);
+
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        $('.alert').alert('close');
+      }, 5000);
+    }
+
+    // Initial UI update
+    updateUI();
+  });
+</script>
+{% endblock %}

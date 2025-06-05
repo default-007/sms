@@ -1,0 +1,693 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ exam.name }} - Schedules{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'exams:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'exams:exam_list' %}">Exams</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'exams:exam_detail' exam.id %}">{{ exam.name }}</a></li>
+      <li class="breadcrumb-item active">Schedules</li>
+    </ol>
+  </nav>
+
+  <!-- Exam Header -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h3 class="mb-1">{{ exam.name }} - Schedules</h3>
+          <div class="text-muted">
+            <i class="fas fa-calendar me-2"></i>{{ exam.start_date|date:"M d" }} - {{ exam.end_date|date:"M d, Y" }} •
+            <i class="fas fa-tag me-2"></i>{{ exam.exam_type.name }} •
+            <i class="fas fa-graduation-cap me-2"></i>{{ exam.term.name }}
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          {% if can_edit %}
+          <a href="{% url 'exams:create_exam_schedule' exam.id %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Add Schedule
+          </a>
+          {% endif %}
+          <button type="button" class="btn btn-outline-info" id="viewCalendarBtn">
+            <i class="fas fa-calendar-week me-2"></i>Calendar View
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-8">
+          {% if exam.description %}
+          <p class="text-muted mb-2">{{ exam.description }}</p>
+          {% endif %}
+
+          {% if exam.instructions %}
+          <div class="alert alert-info mb-0">
+            <h6><i class="fas fa-info-circle me-2"></i>Instructions</h6>
+            {{ exam.instructions|linebreaks }}
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-4">
+          <div class="row text-center">
+            <div class="col-6">
+              <div class="h4 mb-0 text-primary">{{ schedules|length }}</div>
+              <small class="text-muted">Total Schedules</small>
+            </div>
+            <div class="col-6">
+              <div class="h4 mb-0 text-success">
+                {% with completed=schedules|length %}
+                {% for schedule in schedules %}
+                {% if schedule.is_completed %}{{ forloop.counter0|add:1 }}{% endif %}
+                {% endfor %}
+                {% endwith %}
+              </div>
+              <small class="text-muted">Completed</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <h6 class="card-title">Quick Actions</h6>
+          <div class="d-flex flex-wrap gap-2">
+            {% if can_edit %}
+            <button type="button" class="btn btn-sm btn-outline-primary" id="bulkCreateBtn">
+              <i class="fas fa-layer-group me-1"></i>Bulk Create Schedules
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-success" id="duplicateFromPreviousBtn">
+              <i class="fas fa-copy me-1"></i>Copy from Previous Exam
+            </button>
+            {% endif %}
+            <button type="button" class="btn btn-sm btn-outline-info" id="exportScheduleBtn">
+              <i class="fas fa-download me-1"></i>Export Schedule
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-warning" id="conflictCheckBtn">
+              <i class="fas fa-exclamation-triangle me-1"></i>Check Conflicts
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="printScheduleBtn">
+              <i class="fas fa-print me-1"></i>Print Schedule
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Schedules Table -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">
+        <i class="fas fa-list me-2"></i>Exam Schedules
+      </h5>
+      <div class="d-flex gap-2">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="showCompletedOnly">
+          <label class="form-check-label" for="showCompletedOnly">
+            Show completed only
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body">
+      {% if schedules %}
+      <div class="table-responsive">
+        <table id="schedulesTable" class="table table-hover">
+          <thead class="table-dark">
+            <tr>
+              <th>Date & Time</th>
+              <th>Class</th>
+              <th>Subject</th>
+              <th>Supervisor</th>
+              <th>Room</th>
+              <th>Duration</th>
+              <th>Marks</th>
+              <th>Results</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for schedule in schedules %}
+            <tr data-schedule-id="{{ schedule.id }}"
+              class="schedule-row {% if schedule.is_completed %}table-success{% endif %}">
+              <td>
+                <div class="fw-bold">{{ schedule.date|date:"D, M d, Y" }}</div>
+                <small class="text-muted">
+                  <i class="fas fa-clock me-1"></i>
+                  {{ schedule.start_time|time:"g:i A" }} - {{ schedule.end_time|time:"g:i A" }}
+                </small>
+              </td>
+              <td>
+                <span class="badge bg-primary fs-6">{{ schedule.class_obj }}</span>
+                <small class="text-muted d-block">
+                  {{ schedule.class_obj.students.count }} students
+                </small>
+              </td>
+              <td>
+                <div class="fw-bold">{{ schedule.subject.name }}</div>
+                {% if schedule.subject.code %}
+                <small class="text-muted">{{ schedule.subject.code }}</small>
+                {% endif %}
+              </td>
+              <td>
+                {% if schedule.supervisor %}
+                <div>{{ schedule.supervisor.user.get_full_name }}</div>
+                <small class="text-muted">{{ schedule.supervisor.employee_id }}</small>
+                {% if schedule.additional_supervisors.count > 0 %}
+                <div class="mt-1">
+                  {% for supervisor in schedule.additional_supervisors.all %}
+                  <span class="badge bg-secondary me-1">{{ supervisor.user.get_full_name }}</span>
+                  {% endfor %}
+                </div>
+                {% endif %}
+                {% else %}
+                <span class="text-danger">
+                  <i class="fas fa-exclamation-triangle me-1"></i>Not Assigned
+                </span>
+                {% endif %}
+              </td>
+              <td>
+                {% if schedule.room %}
+                <i class="fas fa-door-open me-1"></i>{{ schedule.room }}
+                {% else %}
+                <span class="text-muted">Not assigned</span>
+                {% endif %}
+              </td>
+              <td>
+                <div>{{ schedule.duration_minutes }} min</div>
+                <small class="text-muted">({{ schedule.duration_hours|floatformat:1 }}h)</small>
+              </td>
+              <td>
+                <div class="text-center">
+                  <div class="fw-bold">{{ schedule.total_marks }}</div>
+                  <small class="text-muted">Pass: {{ schedule.passing_marks }}</small>
+                  <div class="progress mt-1" style="height: 4px;">
+                    <div class="progress-bar bg-info" style="width: {{ schedule.passing_percentage }}%"
+                      title="Passing percentage: {{ schedule.passing_percentage|floatformat:1 }}%">
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="text-center">
+                {% if schedule.is_completed %}
+                {% with results_count=schedule.student_results.count %}
+                <span class="badge bg-success">{{ results_count }}</span>
+                <small class="text-muted d-block">Results entered</small>
+                {% endwith %}
+                {% else %}
+                <span class="badge bg-warning">Pending</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if schedule.is_completed %}
+                <span class="badge bg-success">
+                  <i class="fas fa-check me-1"></i>Completed
+                </span>
+                {% elif schedule.date < today %}
+                <span class="badge bg-danger">
+                  <i class="fas fa-exclamation me-1"></i>Overdue
+                </span>
+                {% elif schedule.date == today %}
+                <span class="badge bg-warning">
+                  <i class="fas fa-clock me-1"></i>Today
+                </span>
+                {% else %}
+                <span class="badge bg-primary">
+                  <i class="fas fa-calendar me-1"></i>Scheduled
+                </span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="btn-group" role="group">
+                  <button type="button" class="btn btn-sm btn-outline-info view-details-btn"
+                    data-schedule-id="{{ schedule.id }}" data-bs-toggle="tooltip" title="View Details">
+                    <i class="fas fa-eye"></i>
+                  </button>
+
+                  {% if can_edit %}
+                  <button type="button" class="btn btn-sm btn-outline-primary edit-schedule-btn"
+                    data-schedule-id="{{ schedule.id }}" data-bs-toggle="tooltip" title="Edit Schedule">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  {% endif %}
+
+                  {% if user.role == 'TEACHER' and schedule.supervisor.user == user and not schedule.is_completed %}
+                  <a href="{% url 'exams:result_entry' schedule.id %}" class="btn btn-sm btn-success"
+                    data-bs-toggle="tooltip" title="Enter Results">
+                    <i class="fas fa-plus"></i>
+                  </a>
+                  {% endif %}
+
+                  {% if schedule.is_completed %}
+                  <button type="button" class="btn btn-sm btn-outline-success view-results-btn"
+                    data-schedule-id="{{ schedule.id }}" data-bs-toggle="tooltip" title="View Results">
+                    <i class="fas fa-chart-bar"></i>
+                  </button>
+                  {% endif %}
+
+                  {% if can_edit %}
+                  <button type="button" class="btn btn-sm btn-outline-danger delete-schedule-btn"
+                    data-schedule-id="{{ schedule.id }}"
+                    data-schedule-name="{{ schedule.subject.name }} - {{ schedule.class_obj }}" data-bs-toggle="tooltip"
+                    title="Delete Schedule">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-5">
+        <i class="fas fa-calendar-plus fa-4x text-muted mb-3"></i>
+        <h4 class="text-muted">No Schedules Created</h4>
+        <p class="text-muted">Create exam schedules for different classes and subjects to begin the examination process.
+        </p>
+        {% if can_edit %}
+        <div class="d-flex justify-content-center gap-2">
+          <a href="{% url 'exams:create_exam_schedule' exam.id %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Create First Schedule
+          </a>
+          <button type="button" class="btn btn-outline-primary" id="bulkCreateBtn">
+            <i class="fas fa-layer-group me-2"></i>Bulk Create
+          </button>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Schedule Details Modal -->
+<div class="modal fade" id="scheduleDetailsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Schedule Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="scheduleDetailsContent">
+        <!-- Content will be loaded via AJAX -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Calendar View Modal -->
+<div class="modal fade" id="calendarModal" tabindex="-1">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Exam Schedule Calendar - {{ exam.name }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="examCalendar" style="height: 600px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Create Modal -->
+<div class="modal fade" id="bulkCreateModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Bulk Create Schedules</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="bulkCreateForm">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Select Classes</label>
+              <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                <!-- Classes will be loaded here -->
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" value="all" id="selectAllClasses">
+                  <label class="form-check-label fw-bold" for="selectAllClasses">
+                    Select All Classes
+                  </label>
+                </div>
+                <hr>
+                <!-- Individual class checkboxes would go here -->
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Select Subjects</label>
+              <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                <!-- Subjects will be loaded here -->
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" value="all" id="selectAllSubjects">
+                  <label class="form-check-label fw-bold" for="selectAllSubjects">
+                    Select All Subjects
+                  </label>
+                </div>
+                <hr>
+                <!-- Individual subject checkboxes would go here -->
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label class="form-label">Default Duration (minutes)</label>
+              <input type="number" class="form-control" id="defaultDuration" value="120" min="30" max="480">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Default Total Marks</label>
+              <input type="number" class="form-control" id="defaultTotalMarks" value="100" min="1">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Default Passing Marks</label>
+              <input type="number" class="form-control" id="defaultPassingMarks" value="40" min="1">
+            </div>
+          </div>
+
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            Schedules will be created with default settings. You can edit individual schedules after creation.
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="createBulkSchedules">
+          <i class="fas fa-plus me-2"></i>Create Schedules
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Conflict Check Modal -->
+<div class="modal fade" id="conflictModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Schedule Conflicts</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="conflictContent">
+        <div class="text-center">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Checking conflicts...</span>
+          </div>
+          <p class="mt-2">Analyzing schedule conflicts...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    const table = $('#schedulesTable').DataTable({
+      responsive: true,
+      pageLength: 15,
+      order: [[0, 'asc']], // Order by date
+      columnDefs: [
+        { orderable: false, targets: [-1] }, // Disable ordering on Actions column
+        { className: 'text-center', targets: [6, 7, 8] } // Center align certain columns
+      ],
+      dom: 'Bfrtip',
+      buttons: [
+        {
+          extend: 'excel',
+          text: '<i class="fas fa-file-excel me-1"></i>Excel',
+          className: 'btn btn-success btn-sm'
+        },
+        {
+          extend: 'pdf',
+          text: '<i class="fas fa-file-pdf me-1"></i>PDF',
+          className: 'btn btn-danger btn-sm',
+          orientation: 'landscape'
+        },
+        {
+          extend: 'print',
+          text: '<i class="fas fa-print me-1"></i>Print',
+          className: 'btn btn-info btn-sm'
+        }
+      ]
+    });
+
+    // Initialize tooltips
+    $('[data-bs-toggle="tooltip"]').tooltip();
+
+    // Show completed only filter
+    $('#showCompletedOnly').on('change', function () {
+      if ($(this).is(':checked')) {
+        table.rows().every(function () {
+          const row = this.node();
+          if (!$(row).hasClass('table-success')) {
+            $(row).hide();
+          }
+        });
+      } else {
+        table.rows().every(function () {
+          $(this.node()).show();
+        });
+      }
+      table.draw();
+    });
+
+    // View schedule details
+    $('.view-details-btn').on('click', function () {
+      const scheduleId = $(this).data('schedule-id');
+
+      $('#scheduleDetailsContent').html(`
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading schedule details...</p>
+            </div>
+        `);
+
+      $('#scheduleDetailsModal').modal('show');
+
+      // Simulate AJAX call for schedule details
+      setTimeout(() => {
+        $('#scheduleDetailsContent').html(`
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Schedule details would be loaded here via AJAX call to the backend.
+                </div>
+                <p>Schedule ID: ${scheduleId}</p>
+            `);
+      }, 1000);
+    });
+
+    // Calendar view
+    $('#viewCalendarBtn').on('click', function () {
+      $('#calendarModal').modal('show');
+
+      // Initialize calendar (this would require FullCalendar library)
+      setTimeout(() => {
+        $('#examCalendar').html(`
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-calendar-alt fa-3x mb-3"></i>
+                    <h5>Calendar Integration</h5>
+                    <p>Calendar view would be implemented using FullCalendar.js library to show exam schedules in a calendar format.</p>
+                </div>
+            `);
+      }, 500);
+    });
+
+    // Bulk create schedules
+    $('#bulkCreateBtn').on('click', function () {
+      $('#bulkCreateModal').modal('show');
+    });
+
+    // Select all classes/subjects
+    $('#selectAllClasses').on('change', function () {
+      const isChecked = $(this).is(':checked');
+      $(this).closest('.border').find('input[type="checkbox"]:not(#selectAllClasses)').prop('checked', isChecked);
+    });
+
+    $('#selectAllSubjects').on('change', function () {
+      const isChecked = $(this).is(':checked');
+      $(this).closest('.border').find('input[type="checkbox"]:not(#selectAllSubjects)').prop('checked', isChecked);
+    });
+
+    // Create bulk schedules
+    $('#createBulkSchedules').on('click', function () {
+      const btn = $(this);
+      const originalText = btn.html();
+
+      btn.html('<i class="fas fa-spinner fa-spin me-2"></i>Creating...').prop('disabled', true);
+
+      // Simulate bulk creation
+      setTimeout(() => {
+        $('#bulkCreateModal').modal('hide');
+
+        const alertHtml = `
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>Bulk schedules created successfully!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        $('.container-fluid').prepend(alertHtml);
+
+        btn.html(originalText).prop('disabled', false);
+
+        // Refresh page after delay
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      }, 2000);
+    });
+
+    // Conflict checker
+    $('#conflictCheckBtn').on('click', function () {
+      $('#conflictModal').modal('show');
+
+      // Simulate conflict checking
+      setTimeout(() => {
+        const conflicts = Math.floor(Math.random() * 3); // Random conflicts for demo
+
+        let conflictHtml = '';
+        if (conflicts === 0) {
+          conflictHtml = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>No Conflicts Found!</strong>
+                        <p class="mb-0">All schedules are properly arranged without any conflicts.</p>
+                    </div>
+                `;
+        } else {
+          conflictHtml = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>${conflicts} Conflicts Found</strong>
+                        <p class="mb-0">The following conflicts were detected in your exam schedules:</p>
+                    </div>
+                    <div class="list-group">
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Teacher Schedule Conflict</h6>
+                                <small>High Priority</small>
+                            </div>
+                            <p class="mb-1">Dr. Smith is assigned to supervise two exams at the same time on March 15, 2024.</p>
+                            <small>Affected schedules: Math Grade 5, Science Grade 6</small>
+                        </div>
+                    </div>
+                `;
+        }
+
+        $('#conflictContent').html(conflictHtml);
+      }, 2000);
+    });
+
+    // Export schedule
+    $('#exportScheduleBtn').on('click', function () {
+      // Trigger DataTable export
+      table.button(0).trigger();
+    });
+
+    // Print schedule
+    $('#printScheduleBtn').on('click', function () {
+      table.button(2).trigger();
+    });
+
+    // Delete schedule
+    $('.delete-schedule-btn').on('click', function () {
+      const scheduleId = $(this).data('schedule-id');
+      const scheduleName = $(this).data('schedule-name');
+
+      if (confirm(`Are you sure you want to delete the schedule for "${scheduleName}"? This action cannot be undone.`)) {
+        const row = $(this).closest('tr');
+
+        // Simulate deletion
+        row.fadeOut(300, function () {
+          $(this).remove();
+          table.row(this).remove().draw();
+        });
+
+        // Show success message
+        const alertHtml = `
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <i class="fas fa-trash me-2"></i>Schedule for "${scheduleName}" has been deleted.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        $('.container-fluid').prepend(alertHtml);
+      }
+    });
+
+    // View results
+    $('.view-results-btn').on('click', function () {
+      const scheduleId = $(this).data('schedule-id');
+      // Open results in new tab
+      window.open(`/exams/schedules/${scheduleId}/results/`, '_blank');
+    });
+
+    // Real-time updates for schedule status
+    function updateScheduleStatus() {
+      $('.schedule-row').each(function () {
+        const row = $(this);
+        const scheduleDate = new Date(row.find('td:first .fw-bold').text());
+        const today = new Date();
+
+        // Update status based on current date
+        if (!row.hasClass('table-success')) {
+          const statusBadge = row.find('.badge').last();
+
+          if (scheduleDate < today) {
+            statusBadge.removeClass('badge bg-primary bg-warning')
+              .addClass('bg-danger')
+              .html('<i class="fas fa-exclamation me-1"></i>Overdue');
+          } else if (scheduleDate.toDateString() === today.toDateString()) {
+            statusBadge.removeClass('badge bg-primary bg-danger')
+              .addClass('bg-warning')
+              .html('<i class="fas fa-clock me-1"></i>Today');
+          }
+        }
+      });
+    }
+
+    // Update status on page load
+    updateScheduleStatus();
+
+    // Auto-refresh every 5 minutes
+    setInterval(updateScheduleStatus, 300000);
+  });
+</script>
+{% endblock %}

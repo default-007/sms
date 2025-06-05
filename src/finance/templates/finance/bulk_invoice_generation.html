@@ -1,0 +1,744 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Bulk Invoice Generation{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2.min.css">
+<link rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2-bootstrap-5-theme.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-sm-6">
+      <h1 class="h3 mb-3">Bulk Invoice Generation</h1>
+      <p class="text-muted">Generate invoices for multiple students at once based on academic structure and fee
+        settings.</p>
+    </div>
+    <div class="col-sm-6 text-end">
+      <a href="{% url 'finance:invoice-list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-list me-2"></i>View All Invoices
+      </a>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-8">
+      <!-- Generation Form -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-cogs me-2"></i>Generation Parameters
+          </h5>
+        </div>
+        <div class="card-body">
+          <form id="bulkGenerationForm" method="post">
+            {% csrf_token %}
+
+            <!-- Academic Context -->
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <label for="{{ form.academic_year.id_for_label }}" class="form-label">
+                  Academic Year <span class="text-danger">*</span>
+                </label>
+                {{ form.academic_year }}
+                {% if form.academic_year.errors %}
+                <div class="text-danger small">
+                  {% for error in form.academic_year.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="{{ form.term.id_for_label }}" class="form-label">
+                  Term <span class="text-danger">*</span>
+                </label>
+                {{ form.term }}
+                {% if form.term.errors %}
+                <div class="text-danger small">
+                  {% for error in form.term.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Target Selection -->
+            <div class="card mb-4">
+              <div class="card-header">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-crosshairs me-2"></i>Target Selection
+                </h6>
+                <small class="text-muted">Choose the scope for invoice generation</small>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-4">
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="target_type" id="targetSection" value="section"
+                        checked>
+                      <label class="form-check-label" for="targetSection">
+                        <strong>By Section</strong><br>
+                        <small class="text-muted">All students in a section</small>
+                      </label>
+                    </div>
+                    <div class="mt-2" id="sectionSelect">
+                      <label for="{{ form.section.id_for_label }}" class="form-label">Section</label>
+                      {{ form.section }}
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="target_type" id="targetGrade" value="grade">
+                      <label class="form-check-label" for="targetGrade">
+                        <strong>By Grade</strong><br>
+                        <small class="text-muted">All students in a specific grade</small>
+                      </label>
+                    </div>
+                    <div class="mt-2" id="gradeSelect" style="display: none;">
+                      <label for="{{ form.grade.id_for_label }}" class="form-label">Grade</label>
+                      {{ form.grade }}
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="target_type" id="targetClass" value="class">
+                      <label class="form-check-label" for="targetClass">
+                        <strong>By Class</strong><br>
+                        <small class="text-muted">Students in a specific class</small>
+                      </label>
+                    </div>
+                    <div class="mt-2" id="classSelect" style="display: none;">
+                      <label for="{{ form.class_obj.id_for_label }}" class="form-label">Class</label>
+                      {{ form.class_obj }}
+                    </div>
+                  </div>
+                </div>
+
+                {% if form.section.errors or form.grade.errors or form.class_obj.errors %}
+                <div class="alert alert-danger mt-2">
+                  {% for error in form.section.errors %}{{ error }}{% endfor %}
+                  {% for error in form.grade.errors %}{{ error }}{% endfor %}
+                  {% for error in form.class_obj.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Generation Options -->
+            <div class="card mb-4">
+              <div class="card-header">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-sliders-h me-2"></i>Generation Options
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="skipExisting" name="skip_existing" checked>
+                      <label class="form-check-label" for="skipExisting">
+                        Skip students with existing invoices
+                      </label>
+                    </div>
+                    <small class="text-muted">Prevents duplicate invoice generation</small>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="sendNotifications" name="send_notifications">
+                      <label class="form-check-label" for="sendNotifications">
+                        Send email notifications
+                      </label>
+                    </div>
+                    <small class="text-muted">Notify parents/students via email</small>
+                  </div>
+                </div>
+                <div class="row mt-3">
+                  <div class="col-md-6">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="includeInactive" name="include_inactive">
+                      <label class="form-check-label" for="includeInactive">
+                        Include inactive students
+                      </label>
+                    </div>
+                    <small class="text-muted">Generate for students with inactive status</small>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="dryRun" name="dry_run">
+                      <label class="form-check-label" for="dryRun">
+                        Dry run (preview only)
+                      </label>
+                    </div>
+                    <small class="text-muted">Preview results without generating invoices</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Student Preview -->
+            <div id="studentPreview" class="card mb-4" style="display: none;">
+              <div class="card-header">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-users me-2"></i>Target Students
+                  <span class="badge bg-primary ms-2" id="studentCount">0</span>
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Student Name</th>
+                        <th>Admission No</th>
+                        <th>Class</th>
+                        <th>Status</th>
+                        <th>Existing Invoice</th>
+                      </tr>
+                    </thead>
+                    <tbody id="studentList">
+                      <!-- Students will be loaded here -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fee Preview -->
+            <div id="feePreview" class="card mb-4" style="display: none;">
+              <div class="card-header">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-calculator me-2"></i>Fee Structure Preview
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Fee Category</th>
+                        <th>Level</th>
+                        <th class="text-end">Amount</th>
+                        <th>Due Date</th>
+                      </tr>
+                    </thead>
+                    <tbody id="feeList">
+                      <!-- Fee structures will be loaded here -->
+                    </tbody>
+                  </table>
+                </div>
+                <div class="row mt-3">
+                  <div class="col-md-6">
+                    <h6>Total Estimated Revenue</h6>
+                    <h4 class="text-success" id="totalRevenue">$0.00</h4>
+                  </div>
+                  <div class="col-md-6">
+                    <h6>Average Per Student</h6>
+                    <h4 class="text-info" id="averagePerStudent">$0.00</h4>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="d-flex justify-content-between">
+              <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                <i class="fas fa-undo me-2"></i>Reset Form
+              </button>
+              <div>
+                <button type="button" class="btn btn-outline-primary me-2" onclick="previewGeneration()">
+                  <i class="fas fa-eye me-2"></i>Preview
+                </button>
+                <button type="submit" class="btn btn-success" id="generateBtn" disabled>
+                  <i class="fas fa-file-invoice-dollar me-2"></i>Generate Invoices
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+      <!-- Progress Card -->
+      <div class="card mb-3" id="progressCard" style="display: none;">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-progress me-2"></i>Generation Progress
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="progress mb-3" style="height: 25px;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"
+              id="progressBar">
+              0%
+            </div>
+          </div>
+          <div id="progressText" class="text-center">Ready to start...</div>
+          <div id="progressDetails" class="mt-3">
+            <small class="text-muted">
+              <div>Created: <span id="createdCount">0</span></div>
+              <div>Skipped: <span id="skippedCount">0</span></div>
+              <div>Errors: <span id="errorCount">0</span></div>
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Generations -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-history me-2"></i>Recent Generations
+          </h6>
+        </div>
+        <div class="card-body">
+          <div id="recentGenerations">
+            <!-- Recent generation history will be loaded here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Help & Tips -->
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-lightbulb me-2"></i>Tips & Guidelines
+          </h6>
+        </div>
+        <div class="card-body">
+          <h6>Before Generation:</h6>
+          <ul class="small">
+            <li>Ensure fee structures are properly configured</li>
+            <li>Verify academic year and term settings</li>
+            <li>Check student enrollment status</li>
+          </ul>
+
+          <h6 class="mt-3">Best Practices:</h6>
+          <ul class="small">
+            <li>Use dry run first to preview results</li>
+            <li>Generate by smaller groups if possible</li>
+            <li>Enable notifications for parent awareness</li>
+            <li>Review and validate before final generation</li>
+          </ul>
+
+          <h6 class="mt-3">After Generation:</h6>
+          <ul class="small">
+            <li>Review generated invoices for accuracy</li>
+            <li>Send payment reminders if needed</li>
+            <li>Monitor payment collection progress</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Results Modal -->
+<div class="modal fade" id="resultsModal" tabindex="-1" aria-labelledby="resultsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="resultsModalLabel">Generation Results</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="resultsContent">
+          <!-- Results will be displayed here -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="viewGeneratedInvoices()">
+          <i class="fas fa-list me-2"></i>View Invoices
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/select2.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize Select2
+    $('.form-select:not([multiple])').select2({
+      theme: 'bootstrap-5',
+      allowClear: true
+    });
+
+    // Target type change handlers
+    $('input[name="target_type"]').on('change', function () {
+      const targetType = $(this).val();
+
+      // Hide all selects
+      $('#sectionSelect, #gradeSelect, #classSelect').hide();
+
+      // Show relevant select
+      if (targetType === 'section') {
+        $('#sectionSelect').show();
+      } else if (targetType === 'grade') {
+        $('#gradeSelect').show();
+      } else if (targetType === 'class') {
+        $('#classSelect').show();
+      }
+
+      // Clear student preview
+      $('#studentPreview').hide();
+      $('#feePreview').hide();
+      $('#generateBtn').prop('disabled', true);
+    });
+
+    // Load dependent data when selections change
+    $('#id_academic_year').on('change', function () {
+      loadTerms();
+      clearPreviews();
+    });
+
+    $('#id_term').on('change', function () {
+      loadFeeStructures();
+      clearPreviews();
+    });
+
+    $('#id_section, #id_grade, #id_class_obj').on('change', function () {
+      if ($('#id_academic_year').val() && $('#id_term').val()) {
+        loadStudentPreview();
+      }
+    });
+
+    // Form submission
+    $('#bulkGenerationForm').on('submit', function (e) {
+      e.preventDefault();
+      generateInvoices();
+    });
+
+    // Load initial data
+    loadRecentGenerations();
+  });
+
+  function loadTerms() {
+    const academicYearId = $('#id_academic_year').val();
+    if (!academicYearId) return;
+
+    fetch(`/academics/terms/by-year/${academicYearId}/`)
+      .then(response => response.json())
+      .then(data => {
+        const termSelect = $('#id_term');
+        termSelect.empty().append('<option value="">Select Term</option>');
+
+        data.terms.forEach(term => {
+          termSelect.append(`<option value="${term.id}">${term.name}</option>`);
+        });
+      })
+      .catch(error => console.error('Error loading terms:', error));
+  }
+
+  function loadStudentPreview() {
+    const targetType = $('input[name="target_type"]:checked').val();
+    let targetId;
+
+    if (targetType === 'section') {
+      targetId = $('#id_section').val();
+    } else if (targetType === 'grade') {
+      targetId = $('#id_grade').val();
+    } else if (targetType === 'class') {
+      targetId = $('#id_class_obj').val();
+    }
+
+    if (!targetId) return;
+
+    const academicYearId = $('#id_academic_year').val();
+    const termId = $('#id_term').val();
+
+    fetch(`/finance/bulk-invoice/preview-students/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+      },
+      body: JSON.stringify({
+        target_type: targetType,
+        target_id: targetId,
+        academic_year_id: academicYearId,
+        term_id: termId,
+        include_inactive: $('#includeInactive').is(':checked')
+      })
+    })
+      .then(response => response.json())
+      .then(data => {
+        displayStudentPreview(data.students);
+        $('#generateBtn').prop('disabled', data.students.length === 0);
+      })
+      .catch(error => {
+        console.error('Error loading student preview:', error);
+      });
+  }
+
+  function displayStudentPreview(students) {
+    const tbody = $('#studentList');
+    tbody.empty();
+
+    let eligibleCount = 0;
+
+    students.forEach(student => {
+      const hasExisting = student.has_existing_invoice;
+      const isEligible = !hasExisting || !$('#skipExisting').is(':checked');
+
+      if (isEligible) eligibleCount++;
+
+      const row = `
+            <tr class="${hasExisting && $('#skipExisting').is(':checked') ? 'table-warning' : ''}">
+                <td>${student.name}</td>
+                <td>${student.admission_number}</td>
+                <td>${student.class_name}</td>
+                <td>
+                    <span class="badge ${student.status === 'active' ? 'bg-success' : 'bg-secondary'}">
+                        ${student.status.toUpperCase()}
+                    </span>
+                </td>
+                <td>
+                    ${hasExisting ?
+          '<span class="badge bg-warning">Exists</span>' :
+          '<span class="badge bg-success">None</span>'
+        }
+                </td>
+            </tr>
+        `;
+      tbody.append(row);
+    });
+
+    $('#studentCount').text(eligibleCount);
+    $('#studentPreview').show();
+  }
+
+  function loadFeeStructures() {
+    const academicYearId = $('#id_academic_year').val();
+    const termId = $('#id_term').val();
+
+    if (!academicYearId || !termId) return;
+
+    fetch(`/finance/fee-structures/preview/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+      },
+      body: JSON.stringify({
+        academic_year_id: academicYearId,
+        term_id: termId
+      })
+    })
+      .then(response => response.json())
+      .then(data => {
+        displayFeePreview(data.fee_structures);
+      })
+      .catch(error => {
+        console.error('Error loading fee structures:', error);
+      });
+  }
+
+  function displayFeePreview(feeStructures) {
+    const tbody = $('#feeList');
+    tbody.empty();
+
+    let totalAmount = 0;
+
+    feeStructures.forEach(fee => {
+      const row = `
+            <tr>
+                <td>${fee.category_name}</td>
+                <td>
+                    <span class="badge bg-secondary">${fee.level}</span>
+                </td>
+                <td class="text-end">$${parseFloat(fee.amount).toFixed(2)}</td>
+                <td>${fee.due_date}</td>
+            </tr>
+        `;
+      tbody.append(row);
+      totalAmount += parseFloat(fee.amount);
+    });
+
+    const studentCount = parseInt($('#studentCount').text()) || 0;
+    const totalRevenue = totalAmount * studentCount;
+    const averagePerStudent = studentCount > 0 ? totalRevenue / studentCount : 0;
+
+    $('#totalRevenue').text('$' + totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 }));
+    $('#averagePerStudent').text('$' + averagePerStudent.toFixed(2));
+    $('#feePreview').show();
+  }
+
+  function previewGeneration() {
+    loadStudentPreview();
+    loadFeeStructures();
+
+    // Scroll to preview sections
+    $('html, body').animate({
+      scrollTop: $('#studentPreview').offset().top - 100
+    }, 500);
+  }
+
+  function generateInvoices() {
+    const formData = new FormData(document.getElementById('bulkGenerationForm'));
+
+    // Add target type and ID
+    const targetType = $('input[name="target_type"]:checked').val();
+    formData.append('target_type', targetType);
+
+    // Show progress card
+    $('#progressCard').show();
+    updateProgress(0, 'Starting generation...');
+
+    // Disable form
+    $('#generateBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Generating...');
+
+    fetch('{% url "finance:bulk-invoice-generate" %}', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        updateProgress(100, 'Generation completed!');
+
+        $('#createdCount').text(data.results?.created?.length || 0);
+        $('#skippedCount').text(data.results?.skipped?.length || 0);
+        $('#errorCount').text(data.results?.errors?.length || 0);
+
+        showResults(data);
+        loadRecentGenerations();
+      })
+      .catch(error => {
+        console.error('Error generating invoices:', error);
+        updateProgress(100, 'Error occurred during generation', 'bg-danger');
+        alert('Error generating invoices');
+      })
+      .finally(() => {
+        $('#generateBtn').prop('disabled', false).html('<i class="fas fa-file-invoice-dollar me-2"></i>Generate Invoices');
+      });
+  }
+
+  function updateProgress(percentage, text, bgClass = 'bg-success') {
+    $('#progressBar').css('width', percentage + '%')
+      .attr('aria-valuenow', percentage)
+      .removeClass('bg-success bg-warning bg-danger')
+      .addClass(bgClass)
+      .text(percentage + '%');
+    $('#progressText').text(text);
+  }
+
+  function showResults(data) {
+    const results = data.results;
+    const isDryRun = data.dry_run;
+
+    let content = `
+        <div class="text-center mb-4">
+            <h4>${isDryRun ? 'Dry Run Results' : 'Generation Results'}</h4>
+        </div>
+        
+        <div class="row text-center mb-4">
+            <div class="col-md-4">
+                <h5 class="text-success">${results.created.length}</h5>
+                <p class="text-muted">${isDryRun ? 'Would Create' : 'Created'}</p>
+            </div>
+            <div class="col-md-4">
+                <h5 class="text-warning">${results.skipped.length}</h5>
+                <p class="text-muted">Skipped</p>
+            </div>
+            <div class="col-md-4">
+                <h5 class="text-danger">${results.errors.length}</h5>
+                <p class="text-muted">Errors</p>
+            </div>
+        </div>
+    `;
+
+    if (results.errors.length > 0) {
+      content += `
+            <div class="alert alert-danger">
+                <h6>Errors:</h6>
+                <ul class="mb-0">
+                    ${results.errors.map(error => `<li>${error.student} - ${error.error}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    }
+
+    if (results.skipped.length > 0) {
+      content += `
+            <div class="alert alert-warning">
+                <h6>Skipped Students:</h6>
+                <ul class="mb-0">
+                    ${results.skipped.map(skip => `<li>${skip.student} - ${skip.reason}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    }
+
+    $('#resultsContent').html(content);
+
+    const resultsModal = new bootstrap.Modal(document.getElementById('resultsModal'));
+    resultsModal.show();
+  }
+
+  function loadRecentGenerations() {
+    fetch('/finance/bulk-invoice/recent/')
+      .then(response => response.json())
+      .then(data => {
+        const container = $('#recentGenerations');
+        container.empty();
+
+        if (data.generations && data.generations.length > 0) {
+          data.generations.forEach(gen => {
+            const item = `
+                        <div class="border-bottom pb-2 mb-2">
+                            <div class="d-flex justify-content-between">
+                                <small><strong>${gen.target}</strong></small>
+                                <small class="text-muted">${new Date(gen.created_at).toLocaleDateString()}</small>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <small class="text-muted">${gen.academic_year} - ${gen.term}</small>
+                                <small class="text-success">${gen.count} invoices</small>
+                            </div>
+                        </div>
+                    `;
+            container.append(item);
+          });
+        } else {
+          container.html('<p class="text-muted text-center">No recent generations</p>');
+        }
+      })
+      .catch(error => {
+        console.error('Error loading recent generations:', error);
+      });
+  }
+
+  function resetForm() {
+    $('#bulkGenerationForm')[0].reset();
+    $('.form-select').val(null).trigger('change');
+    clearPreviews();
+    $('#progressCard').hide();
+    $('#generateBtn').prop('disabled', true);
+  }
+
+  function clearPreviews() {
+    $('#studentPreview, #feePreview').hide();
+    $('#generateBtn').prop('disabled', true);
+  }
+
+  function viewGeneratedInvoices() {
+    const academicYearId = $('#id_academic_year').val();
+    const termId = $('#id_term').val();
+
+    const url = new URL('{% url "finance:invoice-list" %}', window.location.origin);
+    if (academicYearId) url.searchParams.append('academic_year', academicYearId);
+    if (termId) url.searchParams.append('term', termId);
+
+    window.location.href = url.toString();
+  }
+</script>
+{% endblock %}

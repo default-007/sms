@@ -1,0 +1,489 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Fee Waiver Details - {{ object.student.user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-0">
+            <i class="fas fa-hand-holding-usd me-2"></i>Fee Waiver Details
+            {% if object.status == 'approved' %}
+            <span class="badge bg-success ms-2">Approved</span>
+            {% elif object.status == 'pending' %}
+            <span class="badge bg-warning text-dark ms-2">Pending</span>
+            {% elif object.status == 'rejected' %}
+            <span class="badge bg-danger ms-2">Rejected</span>
+            {% endif %}
+          </h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'finance:dashboard' %}">Finance</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'finance:fee-waiver-list' %}">Fee Waivers</a></li>
+              <li class="breadcrumb-item active">Waiver #{{ object.id }}</li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <a href="{% url 'finance:fee-waiver-list' %}" class="btn btn-secondary me-2">
+            <i class="fas fa-arrow-left me-2"></i>Back to List
+          </a>
+          {% if object.status == 'pending' and perms.finance.change_feewaiver %}
+          <div class="btn-group">
+            <button class="btn btn-success" onclick="approveWaiver()">
+              <i class="fas fa-check me-2"></i>Approve
+            </button>
+            <button class="btn btn-danger" onclick="rejectWaiver()">
+              <i class="fas fa-times me-2"></i>Reject
+            </button>
+          </div>
+          {% elif object.status == 'pending' and object.requested_by == request.user %}
+          <a href="#" class="btn btn-primary">
+            <i class="fas fa-edit me-2"></i>Edit Request
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Waiver Information -->
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Waiver Information</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label text-muted">Waiver Type</label>
+            <div>
+              {% if object.waiver_type == 'full' %}
+              <span class="badge bg-danger">Full Waiver</span>
+              {% else %}
+              <span class="badge bg-warning text-dark">Partial Waiver</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted">Waiver Amount</label>
+            <div class="fw-bold text-success fs-3">${{ object.amount }}</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted">Status</label>
+            <div>
+              {% if object.status == 'approved' %}
+              <span class="badge bg-success fs-6">
+                <i class="fas fa-check me-1"></i>Approved
+              </span>
+              {% elif object.status == 'pending' %}
+              <span class="badge bg-warning text-dark fs-6">
+                <i class="fas fa-clock me-1"></i>Pending Review
+              </span>
+              {% elif object.status == 'rejected' %}
+              <span class="badge bg-danger fs-6">
+                <i class="fas fa-times me-1"></i>Rejected
+              </span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-6">
+              <label class="form-label text-muted">Requested By</label>
+              <div>
+                <strong>{{ object.requested_by.get_full_name }}</strong>
+                <br><small class="text-muted">{{ object.created_at|date:"M d, Y" }}</small>
+              </div>
+            </div>
+            <div class="col-6">
+              <label class="form-label text-muted">Approved By</label>
+              <div>
+                {% if object.approved_by %}
+                <strong>{{ object.approved_by.get_full_name }}</strong>
+                <br><small class="text-muted">{{ object.updated_at|date:"M d, Y" }}</small>
+                {% else %}
+                <span class="text-muted">Not yet approved</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted">Request Date</label>
+            <div>{{ object.created_at|date:"F d, Y g:i A" }}</div>
+          </div>
+
+          {% if object.updated_at != object.created_at %}
+          <div class="mb-3">
+            <label class="form-label text-muted">Last Updated</label>
+            <div>{{ object.updated_at|date:"F d, Y g:i A" }}</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Student Information -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Student Information</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-3">
+            <div class="me-3">
+              <i class="fas fa-user-circle fa-3x text-muted"></i>
+            </div>
+            <div>
+              <h6 class="mb-1">{{ object.student.user.get_full_name }}</h6>
+              <div class="text-muted">{{ object.student.admission_number }}</div>
+              <div class="text-muted">{{ object.student.current_class }}</div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-6">
+              <label class="form-label text-muted">Email</label>
+              <div class="small">{{ object.student.user.email|default:"Not provided" }}</div>
+            </div>
+            <div class="col-6">
+              <label class="form-label text-muted">Phone</label>
+              <div class="small">{{ object.student.user.phone_number|default:"Not provided" }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Invoice and Financial Details -->
+    <div class="col-lg-8">
+      <!-- Invoice Information -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Related Invoice</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label text-muted">Invoice Number</label>
+                <div>
+                  <a href="{% url 'finance:invoice-detail' object.invoice.pk %}" class="text-decoration-none">
+                    <strong>{{ object.invoice.invoice_number }}</strong>
+                    <i class="fas fa-external-link-alt ms-1 small"></i>
+                  </a>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label text-muted">Academic Period</label>
+                <div>
+                  <strong>{{ object.invoice.term.name }}</strong>
+                  <br><small class="text-muted">{{ object.invoice.academic_year.name }}</small>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label text-muted">Invoice Status</label>
+                <div>
+                  {% if object.invoice.status == 'paid' %}
+                  <span class="badge bg-success">Paid</span>
+                  {% elif object.invoice.status == 'partially_paid' %}
+                  <span class="badge bg-warning text-dark">Partially Paid</span>
+                  {% elif object.invoice.status == 'overdue' %}
+                  <span class="badge bg-danger">Overdue</span>
+                  {% else %}
+                  <span class="badge bg-secondary">Unpaid</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <!-- Financial Summary -->
+              <div class="card border-light bg-light">
+                <div class="card-body">
+                  <h6 class="card-title">Financial Summary</h6>
+
+                  <div class="d-flex justify-content-between mb-2">
+                    <span>Original Amount:</span>
+                    <span class="fw-bold">${{ object.invoice.net_amount }}</span>
+                  </div>
+
+                  <div class="d-flex justify-content-between mb-2">
+                    <span>Paid Amount:</span>
+                    <span class="fw-bold text-success">${{ object.invoice.paid_amount }}</span>
+                  </div>
+
+                  {% if object.status == 'approved' %}
+                  <div class="d-flex justify-content-between mb-2">
+                    <span>Waiver Applied:</span>
+                    <span class="fw-bold text-info">-${{ object.amount }}</span>
+                  </div>
+                  {% endif %}
+
+                  <hr class="my-2">
+
+                  <div class="d-flex justify-content-between">
+                    <span class="fw-bold">Outstanding:</span>
+                    <span
+                      class="fw-bold {% if object.invoice.outstanding_amount > 0 %}text-danger{% else %}text-success{% endif %}">
+                      ${{ object.invoice.outstanding_amount }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reason and Justification -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Justification</h5>
+        </div>
+        <div class="card-body">
+          <div class="bg-light p-4 rounded">
+            <i class="fas fa-quote-left text-muted mb-2"></i>
+            <div class="mb-3">{{ object.reason|linebreaks }}</div>
+            <div class="text-end">
+              <small class="text-muted">— {{ object.requested_by.get_full_name }}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Remarks (if any) -->
+      {% if object.remarks %}
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            {% if object.status == 'approved' %}
+            Approval Remarks
+            {% elif object.status == 'rejected' %}
+            Rejection Remarks
+            {% else %}
+            Additional Remarks
+            {% endif %}
+          </h5>
+        </div>
+        <div class="card-body">
+          <div
+            class="alert {% if object.status == 'approved' %}alert-success{% elif object.status == 'rejected' %}alert-danger{% else %}alert-info{% endif %}">
+            {{ object.remarks|linebreaks }}
+            {% if object.approved_by %}
+            <hr>
+            <small class="mb-0">— {{ object.approved_by.get_full_name }}
+              ({{ object.updated_at|date:"M d, Y g:i A" }})</small>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Action History -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Action History</h5>
+        </div>
+        <div class="card-body">
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-marker bg-primary"></div>
+              <div class="timeline-content">
+                <div class="d-flex justify-content-between">
+                  <strong>Waiver Requested</strong>
+                  <small class="text-muted">{{ object.created_at|date:"M d, Y g:i A" }}</small>
+                </div>
+                <div class="text-muted">
+                  Requested by {{ object.requested_by.get_full_name }} for ${{ object.amount }}
+                </div>
+              </div>
+            </div>
+
+            {% if object.status == 'approved' %}
+            <div class="timeline-item">
+              <div class="timeline-marker bg-success"></div>
+              <div class="timeline-content">
+                <div class="d-flex justify-content-between">
+                  <strong>Waiver Approved</strong>
+                  <small class="text-muted">{{ object.updated_at|date:"M d, Y g:i A" }}</small>
+                </div>
+                <div class="text-muted">
+                  Approved by {{ object.approved_by.get_full_name }}
+                </div>
+              </div>
+            </div>
+            {% elif object.status == 'rejected' %}
+            <div class="timeline-item">
+              <div class="timeline-marker bg-danger"></div>
+              <div class="timeline-content">
+                <div class="d-flex justify-content-between">
+                  <strong>Waiver Rejected</strong>
+                  <small class="text-muted">{{ object.updated_at|date:"M d, Y g:i A" }}</small>
+                </div>
+                <div class="text-muted">
+                  Rejected by {{ object.approved_by.get_full_name }}
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Approval/Rejection Modal -->
+<div class="modal fade" id="actionModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="actionModalTitle">Approve Waiver</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="actionForm">
+          {% csrf_token %}
+          <input type="hidden" id="actionType" name="action">
+
+          <div class="alert" id="actionAlert">
+            <!-- Dynamic content will be added here -->
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Remarks</label>
+            <textarea name="remarks" class="form-control" rows="3"
+              placeholder="Add any additional comments..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn" id="confirmAction">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .timeline {
+    position: relative;
+    padding-left: 30px;
+  }
+
+  .timeline-item {
+    position: relative;
+    padding-bottom: 20px;
+  }
+
+  .timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: -21px;
+    top: 20px;
+    height: calc(100% - 10px);
+    width: 2px;
+    background-color: #e9ecef;
+  }
+
+  .timeline-marker {
+    position: absolute;
+    left: -25px;
+    top: 5px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .timeline-content {
+    margin-left: 10px;
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function approveWaiver() {
+    showActionModal('approve');
+  }
+
+  function rejectWaiver() {
+    showActionModal('reject');
+  }
+
+  function showActionModal(action) {
+    const modal = $('#actionModal');
+    const title = modal.find('#actionModalTitle');
+    const alert = modal.find('#actionAlert');
+    const confirmBtn = modal.find('#confirmAction');
+
+    $('#actionType').val(action);
+
+    if (action === 'approve') {
+      title.text('Approve Fee Waiver');
+      alert.removeClass('alert-danger').addClass('alert-success');
+      alert.html('<i class="fas fa-check-circle me-2"></i>You are about to approve this fee waiver of <strong>${{ object.amount }}</strong> for <strong>{{ object.student.user.get_full_name }}</strong>.');
+      confirmBtn.removeClass('btn-danger').addClass('btn-success').text('Approve Waiver');
+    } else {
+      title.text('Reject Fee Waiver');
+      alert.removeClass('alert-success').addClass('alert-danger');
+      alert.html('<i class="fas fa-times-circle me-2"></i>You are about to reject this fee waiver request. Please provide a reason for rejection.');
+      confirmBtn.removeClass('btn-success').addClass('btn-danger').text('Reject Waiver');
+    }
+
+    modal.modal('show');
+  }
+
+  $('#confirmAction').on('click', function () {
+    const formData = new FormData($('#actionForm')[0]);
+
+    $.ajax({
+      url: '{% url "finance:fee-waiver-approve" object.pk %}',
+      method: 'POST',
+      data: formData,
+      processData: false,
+      contentType: false,
+      success: function (response) {
+        $('#actionModal').modal('hide');
+
+        if (response.success) {
+          location.reload();
+        } else {
+          alert('Error processing waiver: ' + (response.message || 'Unknown error'));
+        }
+      },
+      error: function (xhr, status, error) {
+        $('#actionModal').modal('hide');
+        alert('Error processing waiver. Please try again.');
+        console.error('Action error:', error);
+      }
+    });
+  });
+
+  // CSRF token helper
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+</script>
+{% endblock %}

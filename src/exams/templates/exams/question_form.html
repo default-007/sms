@@ -1,0 +1,558 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{{ title }}</h3>
+          <div class="card-tools">
+            <a href="{% url 'exams:question_bank' %}" class="btn btn-secondary btn-sm">
+              <i class="fas fa-arrow-left"></i> Back to Question Bank
+            </a>
+          </div>
+        </div>
+
+        <div class="card-body">
+          {% if messages %}
+          {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          {% endfor %}
+          {% endif %}
+
+          <form method="post" id="questionForm">
+            {% csrf_token %}
+
+            <div class="row">
+              <div class="col-md-4">
+                <div class="card">
+                  <div class="card-header">
+                    <h5 class="card-title mb-0">Basic Information</h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="form-group">
+                      <label for="{{ form.subject.id_for_label }}">Subject *</label>
+                      {{ form.subject }}
+                      {% if form.subject.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.subject.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                      <label for="{{ form.grade.id_for_label }}">Grade *</label>
+                      {{ form.grade }}
+                      {% if form.grade.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.grade.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                      <label for="{{ form.question_type.id_for_label }}">Question Type *</label>
+                      {{ form.question_type }}
+                      {% if form.question_type.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.question_type.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                      <label for="{{ form.difficulty_level.id_for_label }}">Difficulty Level *</label>
+                      {{ form.difficulty_level }}
+                      {% if form.difficulty_level.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.difficulty_level.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                      <label for="{{ form.marks.id_for_label }}">Marks *</label>
+                      {{ form.marks }}
+                      {% if form.marks.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.marks.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card mt-3">
+                  <div class="card-header">
+                    <h5 class="card-title mb-0">Categorization</h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="form-group">
+                      <label for="{{ form.topic.id_for_label }}">Topic</label>
+                      {{ form.topic }}
+                      {% if form.topic.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.topic.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                      <label for="{{ form.learning_objective.id_for_label }}">Learning Objective</label>
+                      {{ form.learning_objective }}
+                      {% if form.learning_objective.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.learning_objective.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-8">
+                <div class="card">
+                  <div class="card-header">
+                    <h5 class="card-title mb-0">Question Content</h5>
+                    <div class="card-tools">
+                      <button type="button" class="btn btn-sm btn-outline-primary" id="previewBtn">
+                        <i class="fas fa-eye"></i> Preview
+                      </button>
+                    </div>
+                  </div>
+                  <div class="card-body">
+                    <div class="form-group">
+                      <label for="{{ form.question_text.id_for_label }}">Question Text *</label>
+                      {{ form.question_text }}
+                      <small class="form-text text-muted">
+                        You can use basic HTML tags for formatting (bold, italic, etc.)
+                      </small>
+                      {% if form.question_text.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.question_text.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+
+                    <!-- MCQ Options Section -->
+                    <div id="mcqSection" style="display: none;">
+                      <div class="form-group">
+                        <label for="{{ form.options_text.id_for_label }}">Answer Options *</label>
+                        {{ form.options_text }}
+                        <small class="form-text text-muted">
+                          Enter each option on a new line. For example:<br>
+                          Option A: First answer<br>
+                          Option B: Second answer<br>
+                          Option C: Third answer
+                        </small>
+                        {% if form.options_text.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.options_text.errors.0 }}
+                        </div>
+                        {% endif %}
+                      </div>
+
+                      <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>MCQ Tips:</strong>
+                        <ul class="mb-0 mt-2">
+                          <li>Provide 3-5 options for better assessment</li>
+                          <li>Make sure only one option is clearly correct</li>
+                          <li>Avoid "All of the above" or "None of the above"</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <!-- True/False Section -->
+                    <div id="tfSection" style="display: none;">
+                      <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>True/False Question:</strong> Students will choose between True and False options.
+                        Specify the correct answer below.
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <label for="{{ form.correct_answer.id_for_label }}">Correct Answer *</label>
+                      {{ form.correct_answer }}
+                      <small class="form-text text-muted" id="answerHelp">
+                        Provide the correct answer or answer key.
+                      </small>
+                      {% if form.correct_answer.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.correct_answer.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                      <label for="{{ form.explanation.id_for_label }}">Explanation</label>
+                      {{ form.explanation }}
+                      <small class="form-text text-muted">
+                        Optional explanation for the correct answer. This helps students learn.
+                      </small>
+                      {% if form.explanation.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.explanation.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Question Preview Card -->
+                <div class="card mt-3" id="previewCard" style="display: none;">
+                  <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Question Preview</h5>
+                  </div>
+                  <div class="card-body">
+                    <div id="previewContent">
+                      <!-- Preview content will be inserted here -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row mt-3">
+              <div class="col-12">
+                <div class="card">
+                  <div class="card-body">
+                    <button type="submit" class="btn btn-primary">
+                      <i class="fas fa-save"></i> Save Question
+                    </button>
+                    <button type="button" class="btn btn-success ml-2" id="saveAndAddBtn">
+                      <i class="fas fa-plus"></i> Save & Add Another
+                    </button>
+                    <a href="{% url 'exams:question_bank' %}" class="btn btn-secondary ml-2">
+                      <i class="fas fa-times"></i> Cancel
+                    </a>
+
+                    <div class="float-right">
+                      <button type="button" class="btn btn-outline-info" data-toggle="modal" data-target="#helpModal">
+                        <i class="fas fa-question-circle"></i> Help
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Help Modal -->
+<div class="modal fade" id="helpModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Question Creation Help</h5>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="accordion" id="helpAccordion">
+          <div class="card">
+            <div class="card-header" id="mcqHelp">
+              <h6 class="mb-0">
+                <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#mcqContent">
+                  Multiple Choice Questions (MCQ)
+                </button>
+              </h6>
+            </div>
+            <div id="mcqContent" class="collapse" data-parent="#helpAccordion">
+              <div class="card-body">
+                <ul>
+                  <li>Provide 3-5 answer options</li>
+                  <li>Enter each option on a new line</li>
+                  <li>The correct answer should exactly match one of the options</li>
+                  <li>Use clear and concise language</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header" id="tfHelp">
+              <h6 class="mb-0">
+                <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#tfContent">
+                  True/False Questions
+                </button>
+              </h6>
+            </div>
+            <div id="tfContent" class="collapse" data-parent="#helpAccordion">
+              <div class="card-body">
+                <ul>
+                  <li>Write statements that are clearly true or false</li>
+                  <li>Avoid ambiguous wording</li>
+                  <li>Enter "True" or "False" as the correct answer</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header" id="saHelp">
+              <h6 class="mb-0">
+                <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#saContent">
+                  Short Answer Questions
+                </button>
+              </h6>
+            </div>
+            <div id="saContent" class="collapse" data-parent="#helpAccordion">
+              <div class="card-body">
+                <ul>
+                  <li>Provide model answers or key points</li>
+                  <li>Use clear, specific questions</li>
+                  <li>Specify expected answer length if needed</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize CodeMirror for question text
+    var questionEditor = CodeMirror.fromTextArea(document.getElementById('id_question_text'), {
+      mode: 'xml',
+      lineNumbers: true,
+      lineWrapping: true,
+      theme: 'material'
+    });
+
+    // Handle question type changes
+    function handleQuestionTypeChange() {
+      const questionType = $('#id_question_type').val();
+      const mcqSection = $('#mcqSection');
+      const tfSection = $('#tfSection');
+      const answerHelp = $('#answerHelp');
+
+      // Hide all sections first
+      mcqSection.hide();
+      tfSection.hide();
+
+      // Show relevant sections based on question type
+      switch (questionType) {
+        case 'MCQ':
+          mcqSection.show();
+          answerHelp.text('Select the correct option from the choices above.');
+          break;
+        case 'TF':
+          tfSection.show();
+          answerHelp.text('Enter "True" or "False" as the correct answer.');
+          break;
+        case 'SA':
+          answerHelp.text('Provide the expected short answer or key points.');
+          break;
+        case 'LA':
+          answerHelp.text('Provide model answer or marking criteria for the long answer.');
+          break;
+        case 'FB':
+          answerHelp.text('Provide the words/phrases that should fill the blanks.');
+          break;
+        case 'ESSAY':
+          answerHelp.text('Provide essay outline or key points that should be covered.');
+          break;
+        default:
+          answerHelp.text('Provide the correct answer or answer key.');
+      }
+    }
+
+    $('#id_question_type').on('change', handleQuestionTypeChange);
+
+    // Initialize on page load
+    handleQuestionTypeChange();
+
+    // Preview functionality
+    $('#previewBtn').on('click', function () {
+      generatePreview();
+      $('#previewCard').toggle();
+    });
+
+    function generatePreview() {
+      const questionType = $('#id_question_type').val();
+      const questionText = questionEditor.getValue();
+      const optionsText = $('#id_options_text').val();
+      const marks = $('#id_marks').val();
+      const difficulty = $('#id_difficulty_level option:selected').text();
+
+      let previewHtml = '<div class="question-preview">';
+      previewHtml += '<div class="d-flex justify-content-between align-items-center mb-3">';
+      previewHtml += '<span class="badge badge-primary">' + questionType + '</span>';
+      previewHtml += '<span class="badge badge-info">' + difficulty + '</span>';
+      previewHtml += '<span class="badge badge-success">Marks: ' + (marks || '1') + '</span>';
+      previewHtml += '</div>';
+
+      previewHtml += '<div class="question-text mb-3">';
+      previewHtml += '<strong>Question:</strong><br>';
+      previewHtml += questionText || '<em>Enter question text...</em>';
+      previewHtml += '</div>';
+
+      if (questionType === 'MCQ' && optionsText) {
+        const options = optionsText.split('\n').filter(opt => opt.trim());
+        if (options.length > 0) {
+          previewHtml += '<div class="options">';
+          previewHtml += '<strong>Options:</strong><br>';
+          options.forEach((option, index) => {
+            previewHtml += '<label class="form-check-label d-block">';
+            previewHtml += '<input type="radio" name="preview_option" class="form-check-input"> ';
+            previewHtml += option.trim();
+            previewHtml += '</label>';
+          });
+          previewHtml += '</div>';
+        }
+      } else if (questionType === 'TF') {
+        previewHtml += '<div class="options">';
+        previewHtml += '<label class="form-check-label d-block">';
+        previewHtml += '<input type="radio" name="preview_tf" class="form-check-input"> True';
+        previewHtml += '</label>';
+        previewHtml += '<label class="form-check-label d-block">';
+        previewHtml += '<input type="radio" name="preview_tf" class="form-check-input"> False';
+        previewHtml += '</label>';
+        previewHtml += '</div>';
+      } else if (questionType === 'SA') {
+        previewHtml += '<div class="answer-area">';
+        previewHtml += '<textarea class="form-control" rows="3" placeholder="Student answer area..."></textarea>';
+        previewHtml += '</div>';
+      } else if (questionType === 'LA' || questionType === 'ESSAY') {
+        previewHtml += '<div class="answer-area">';
+        previewHtml += '<textarea class="form-control" rows="6" placeholder="Student essay/long answer area..."></textarea>';
+        previewHtml += '</div>';
+      } else if (questionType === 'FB') {
+        previewHtml += '<div class="answer-area">';
+        previewHtml += '<input type="text" class="form-control" placeholder="Fill in the blank answer...">';
+        previewHtml += '</div>';
+      }
+
+      previewHtml += '</div>';
+
+      $('#previewContent').html(previewHtml);
+    }
+
+    // Save and add another functionality
+    $('#saveAndAddBtn').on('click', function () {
+      const form = $('#questionForm');
+      const action = form.attr('action');
+
+      // Add a hidden field to indicate "save and add another"
+      $('<input>').attr({
+        type: 'hidden',
+        name: 'save_and_add',
+        value: '1'
+      }).appendTo(form);
+
+      form.submit();
+    });
+
+    // Form validation
+    $('#questionForm').on('submit', function (e) {
+      let isValid = true;
+      let errors = [];
+
+      const questionText = questionEditor.getValue().trim();
+      const questionType = $('#id_question_type').val();
+      const correctAnswer = $('#id_correct_answer').val().trim();
+      const optionsText = $('#id_options_text').val().trim();
+
+      // Validate question text
+      if (!questionText) {
+        isValid = false;
+        errors.push('Question text is required.');
+      }
+
+      // Validate MCQ specific fields
+      if (questionType === 'MCQ') {
+        if (!optionsText) {
+          isValid = false;
+          errors.push('Options are required for MCQ questions.');
+        } else {
+          const options = optionsText.split('\n').filter(opt => opt.trim());
+          if (options.length < 2) {
+            isValid = false;
+            errors.push('MCQ questions must have at least 2 options.');
+          }
+
+          if (correctAnswer && !options.some(opt => opt.trim() === correctAnswer)) {
+            isValid = false;
+            errors.push('Correct answer must match one of the provided options.');
+          }
+        }
+      }
+
+      // Validate True/False
+      if (questionType === 'TF' && correctAnswer) {
+        if (correctAnswer.toLowerCase() !== 'true' && correctAnswer.toLowerCase() !== 'false') {
+          isValid = false;
+          errors.push('True/False questions must have "True" or "False" as the correct answer.');
+        }
+      }
+
+      if (!isValid) {
+        e.preventDefault();
+        let errorHtml = '<div class="alert alert-danger alert-dismissible fade show"><ul class="mb-0">';
+        errors.forEach(function (error) {
+          errorHtml += '<li>' + error + '</li>';
+        });
+        errorHtml += '</ul><button type="button" class="close" data-dismiss="alert"><span>&times;</span></button></div>';
+
+        $('.card-body').first().prepend(errorHtml);
+        $('html, body').animate({ scrollTop: 0 }, 500);
+      }
+    });
+
+    // Auto-save draft functionality (optional)
+    let autoSaveTimeout;
+    function autoSaveDraft() {
+      clearTimeout(autoSaveTimeout);
+      autoSaveTimeout = setTimeout(function () {
+        const formData = {
+          'question_text': questionEditor.getValue(),
+          'question_type': $('#id_question_type').val(),
+          'subject': $('#id_subject').val(),
+          'grade': $('#id_grade').val(),
+          'draft': true,
+          'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+        };
+
+        // Save draft via AJAX (implement endpoint if needed)
+        console.log('Auto-saving draft...', formData);
+      }, 30000); // 30 seconds
+    }
+
+    // Trigger auto-save on content change
+    questionEditor.on('change', autoSaveDraft);
+    $('#questionForm input, #questionForm select, #questionForm textarea').on('change input', autoSaveDraft);
+  });
+</script>
+{% endblock %}

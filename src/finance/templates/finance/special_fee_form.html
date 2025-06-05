@@ -1,0 +1,456 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+{% if form.instance.pk %}Edit Special Fee{% else %}Create Special Fee{% endif %} - Finance
+{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+  rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-0">
+            {% if form.instance.pk %}
+            <i class="fas fa-edit me-2"></i>Edit Special Fee
+            {% else %}
+            <i class="fas fa-plus me-2"></i>Create Special Fee
+            {% endif %}
+          </h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'finance:dashboard' %}">Finance</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'finance:special-fee-list' %}">Special Fees</a></li>
+              <li class="breadcrumb-item active">
+                {% if form.instance.pk %}Edit Fee{% else %}Create Fee{% endif %}
+              </li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <a href="{% url 'finance:special-fee-list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to List
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-xl-10">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Special Fee Information</h5>
+        </div>
+        <div class="card-body">
+          <form method="post" id="specialFeeForm">
+            {% csrf_token %}
+
+            <!-- Display form errors -->
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger" role="alert">
+              {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <!-- Basic Information Section -->
+            <div class="row">
+              <div class="col-12">
+                <h6 class="text-primary border-bottom pb-2 mb-3">
+                  <i class="fas fa-info-circle me-2"></i>Basic Information
+                </h6>
+              </div>
+            </div>
+
+            <div class="row">
+              <!-- Fee Name -->
+              <div class="col-md-8 mb-3">
+                <label for="{{ form.name.id_for_label }}" class="form-label">
+                  Fee Name <span class="text-danger">*</span>
+                </label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.name.errors.0 }}
+                </div>
+                {% endif %}
+                <div class="form-text">
+                  A descriptive name for this special fee (e.g., "Lab Equipment Fee", "Field Trip Cost")
+                </div>
+              </div>
+
+              <!-- Fee Category -->
+              <div class="col-md-4 mb-3">
+                <label for="{{ form.fee_category.id_for_label }}" class="form-label">
+                  Category <span class="text-danger">*</span>
+                </label>
+                {{ form.fee_category }}
+                {% if form.fee_category.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.fee_category.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Description -->
+            <div class="row">
+              <div class="col-12 mb-3">
+                <label for="{{ form.description.id_for_label }}" class="form-label">
+                  Description
+                </label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.description.errors.0 }}
+                </div>
+                {% endif %}
+                <div class="form-text">
+                  Detailed description of what this fee covers
+                </div>
+              </div>
+            </div>
+
+            <!-- Fee Details Section -->
+            <div class="row mt-4">
+              <div class="col-12">
+                <h6 class="text-primary border-bottom pb-2 mb-3">
+                  <i class="fas fa-dollar-sign me-2"></i>Fee Details
+                </h6>
+              </div>
+            </div>
+
+            <div class="row">
+              <!-- Amount -->
+              <div class="col-md-4 mb-3">
+                <label for="{{ form.amount.id_for_label }}" class="form-label">
+                  Amount <span class="text-danger">*</span>
+                </label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  {{ form.amount }}
+                </div>
+                {% if form.amount.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.amount.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+
+              <!-- Due Date -->
+              <div class="col-md-4 mb-3">
+                <label for="{{ form.due_date.id_for_label }}" class="form-label">
+                  Due Date <span class="text-danger">*</span>
+                </label>
+                {{ form.due_date }}
+                {% if form.due_date.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.due_date.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+
+              <!-- Term -->
+              <div class="col-md-4 mb-3">
+                <label for="{{ form.term.id_for_label }}" class="form-label">
+                  Term <span class="text-danger">*</span>
+                </label>
+                {{ form.term }}
+                {% if form.term.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.term.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Target Assignment Section -->
+            <div class="row mt-4">
+              <div class="col-12">
+                <h6 class="text-primary border-bottom pb-2 mb-3">
+                  <i class="fas fa-bullseye me-2"></i>Target Assignment
+                </h6>
+              </div>
+            </div>
+
+            <div class="row">
+              <!-- Fee Type -->
+              <div class="col-md-4 mb-3">
+                <label for="{{ form.fee_type.id_for_label }}" class="form-label">
+                  Fee Type <span class="text-danger">*</span>
+                </label>
+                {{ form.fee_type }}
+                {% if form.fee_type.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.fee_type.errors.0 }}
+                </div>
+                {% endif %}
+                <div class="form-text">
+                  Choose who this fee applies to
+                </div>
+              </div>
+
+              <!-- Class Selection -->
+              <div class="col-md-4 mb-3" id="classField">
+                <label for="{{ form.class_obj.id_for_label }}" class="form-label">
+                  Class <span class="text-danger" id="classRequired">*</span>
+                </label>
+                {{ form.class_obj }}
+                {% if form.class_obj.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.class_obj.errors.0 }}
+                </div>
+                {% endif %}
+                <div class="form-text">
+                  Select the class this fee applies to
+                </div>
+              </div>
+
+              <!-- Student Selection -->
+              <div class="col-md-4 mb-3" id="studentField">
+                <label for="{{ form.student.id_for_label }}" class="form-label">
+                  Student <span class="text-danger" id="studentRequired">*</span>
+                </label>
+                {{ form.student }}
+                {% if form.student.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.student.errors.0 }}
+                </div>
+                {% endif %}
+                <div class="form-text">
+                  Search and select the specific student
+                </div>
+              </div>
+            </div>
+
+            <!-- Reason -->
+            <div class="row">
+              <div class="col-12 mb-3">
+                <label for="{{ form.reason.id_for_label }}" class="form-label">
+                  Reason <span class="text-danger">*</span>
+                </label>
+                {{ form.reason }}
+                {% if form.reason.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.reason.errors.0 }}
+                </div>
+                {% endif %}
+                <div class="form-text">
+                  Provide justification for this special fee
+                </div>
+              </div>
+            </div>
+
+            <!-- Status -->
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <div class="card border-light">
+                  <div class="card-body">
+                    <div class="form-check">
+                      {{ form.is_active }}
+                      <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                        <strong>Active Fee</strong>
+                      </label>
+                      <div class="form-text">
+                        Only active fees will be included in invoice generation
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <!-- Preview Card -->
+                <div class="card border-info">
+                  <div class="card-header bg-light">
+                    <h6 class="card-title mb-0">
+                      <i class="fas fa-eye me-2"></i>Fee Preview
+                    </h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="mb-2">
+                      <small class="text-muted">Type:</small>
+                      <div id="preview-type" class="fw-bold">Not selected</div>
+                    </div>
+                    <div class="mb-2">
+                      <small class="text-muted">Target:</small>
+                      <div id="preview-target" class="fw-bold">None</div>
+                    </div>
+                    <div class="mb-2">
+                      <small class="text-muted">Amount:</small>
+                      <div id="preview-amount" class="fw-bold text-success">$0.00</div>
+                    </div>
+                    <div>
+                      <small class="text-muted">Status:</small>
+                      <div id="preview-status">
+                        <span class="badge bg-success">Active</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="row">
+              <div class="col-12">
+                <hr>
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <a href="{% url 'finance:special-fee-list' %}" class="btn btn-outline-secondary">
+                      <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                  </div>
+                  <div>
+                    <button type="submit" class="btn btn-primary">
+                      <i class="fas fa-save me-2"></i>
+                      {% if form.instance.pk %}Update Special Fee{% else %}Create Special Fee{% endif %}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+  $(document).ready(function () {
+    // Initialize Select2 for better dropdowns
+    $('#id_student').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Search for a student...',
+      allowClear: true,
+      width: '100%'
+    });
+
+    $('#id_class_obj').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Select a class...',
+      allowClear: true,
+      width: '100%'
+    });
+
+    // Handle fee type changes
+    function handleFeeTypeChange() {
+      const feeType = $('#id_fee_type').val();
+
+      if (feeType === 'class_based') {
+        $('#classField').show();
+        $('#studentField').hide();
+        $('#classRequired').show();
+        $('#studentRequired').hide();
+        $('#id_student').prop('required', false);
+        $('#id_class_obj').prop('required', true);
+      } else if (feeType === 'student_specific') {
+        $('#classField').hide();
+        $('#studentField').show();
+        $('#classRequired').hide();
+        $('#studentRequired').show();
+        $('#id_student').prop('required', true);
+        $('#id_class_obj').prop('required', false);
+      } else {
+        $('#classField').hide();
+        $('#studentField').hide();
+        $('#classRequired').hide();
+        $('#studentRequired').hide();
+        $('#id_student').prop('required', false);
+        $('#id_class_obj').prop('required', false);
+      }
+
+      updatePreview();
+    }
+
+    // Real-time preview updates
+    function updatePreview() {
+      const feeType = $('#id_fee_type option:selected').text();
+      const amount = $('#id_amount').val() || '0.00';
+      const isActive = $('#id_is_active').is(':checked');
+
+      // Update type
+      $('#preview-type').text(feeType || 'Not selected');
+
+      // Update target
+      let target = 'None';
+      if ($('#id_fee_type').val() === 'class_based') {
+        const selectedClass = $('#id_class_obj option:selected').text();
+        target = selectedClass !== 'Select Class' ? selectedClass : 'No class selected';
+      } else if ($('#id_fee_type').val() === 'student_specific') {
+        const selectedStudent = $('#id_student option:selected').text();
+        target = selectedStudent !== 'Search for a student...' ? selectedStudent : 'No student selected';
+      }
+      $('#preview-target').text(target);
+
+      // Update amount
+      $('#preview-amount').text(`$${parseFloat(amount).toFixed(2)}`);
+
+      // Update status
+      const statusBadge = isActive ?
+        '<span class="badge bg-success">Active</span>' :
+        '<span class="badge bg-secondary">Inactive</span>';
+      $('#preview-status').html(statusBadge);
+    }
+
+    // Bind event handlers
+    $('#id_fee_type').on('change', handleFeeTypeChange);
+    $('#id_amount, #id_is_active, #id_class_obj, #id_student').on('change input', updatePreview);
+
+    // Initial setup
+    handleFeeTypeChange();
+    updatePreview();
+
+    // Form validation
+    $('#specialFeeForm').on('submit', function (e) {
+      let isValid = true;
+      const feeType = $('#id_fee_type').val();
+
+      // Clear previous validation
+      $('.is-invalid').removeClass('is-invalid');
+
+      // Check required fields
+      const requiredFields = ['#id_name', '#id_fee_category', '#id_amount', '#id_due_date', '#id_term', '#id_reason'];
+
+      requiredFields.forEach(field => {
+        if (!$(field).val()) {
+          $(field).addClass('is-invalid');
+          isValid = false;
+        }
+      });
+
+      // Check fee type specific requirements
+      if (feeType === 'class_based' && !$('#id_class_obj').val()) {
+        $('#id_class_obj').addClass('is-invalid');
+        isValid = false;
+      } else if (feeType === 'student_specific' && !$('#id_student').val()) {
+        $('#id_student').addClass('is-invalid');
+        isValid = false;
+      }
+
+      if (!isValid) {
+        e.preventDefault();
+        alert('Please fill in all required fields.');
+      }
+    });
+
+    // Auto-resize textareas
+    $('textarea').on('input', function () {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
+    });
+  });
+</script>
+{% endblock %}

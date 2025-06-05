@@ -1,0 +1,136 @@
+<!-- ================================ -->
+<!-- payment_receipt.html -->
+<!-- ================================ -->
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment Receipt - {{ object.receipt_number }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+
+    .container-fluid {
+      margin: 0;
+      padding: 0;
+    }
+
+    .card {
+      border: none;
+      box-shadow: none;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row no-print mb-3">
+    <div class="col-12 text-end">
+      <button onclick="window.print()" class="btn btn-primary me-2">
+        <i class="fas fa-print me-2"></i>Print Receipt
+      </button>
+      <a href="{% url 'finance:payment-detail' object.pk %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Details
+      </a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <!-- Receipt Header -->
+      <div class="text-center mb-4">
+        <h1 class="mb-1">School Management System</h1>
+        <p class="text-muted mb-0">Payment Receipt</p>
+        <hr class="my-3">
+      </div>
+
+      <!-- Receipt Details -->
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <h5>Receipt Information</h5>
+          <table class="table table-borderless">
+            <tr>
+              <td><strong>Receipt Number:</strong></td>
+              <td>{{ object.receipt_number }}</td>
+            </tr>
+            <tr>
+              <td><strong>Payment Date:</strong></td>
+              <td>{{ object.payment_date|date:"F d, Y g:i A" }}</td>
+            </tr>
+            <tr>
+              <td><strong>Payment Method:</strong></td>
+              <td>{{ object.get_payment_method_display }}</td>
+            </tr>
+            {% if object.transaction_id %}
+            <tr>
+              <td><strong>Transaction ID:</strong></td>
+              <td>{{ object.transaction_id }}</td>
+            </tr>
+            {% endif %}
+          </table>
+        </div>
+        <div class="col-md-6">
+          <h5>Student Information</h5>
+          <table class="table table-borderless">
+            <tr>
+              <td><strong>Student Name:</strong></td>
+              <td>{{ object.invoice.student.user.get_full_name }}</td>
+            </tr>
+            <tr>
+              <td><strong>Admission Number:</strong></td>
+              <td>{{ object.invoice.student.admission_number }}</td>
+            </tr>
+            <tr>
+              <td><strong>Class:</strong></td>
+              <td>{{ object.invoice.student.current_class }}</td>
+            </tr>
+            <tr>
+              <td><strong>Invoice Number:</strong></td>
+              <td>{{ object.invoice.invoice_number }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Payment Amount -->
+      <div class="text-center mb-4">
+        <div class="border p-4 bg-light">
+          <h2 class="text-success mb-0">Amount Paid: ${{ object.amount }}</h2>
+        </div>
+      </div>
+
+      <!-- Invoice Summary -->
+      <div class="row">
+        <div class="col-12">
+          <h5>Invoice Summary</h5>
+          <table class="table table-bordered">
+            <tr>
+              <td><strong>Invoice Total Amount:</strong></td>
+              <td class="text-end">${{ object.invoice.net_amount }}</td>
+            </tr>
+            <tr>
+              <td><strong>Total Amount Paid:</strong></td>
+              <td class="text-end">${{ object.invoice.paid_amount }}</td>
+            </tr>
+            <tr class="table-warning">
+              <td><strong>Outstanding Balance:</strong></td>
+              <td class="text-end"><strong>${{ object.invoice.outstanding_amount }}</strong></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="text-center mt-4 pt-4 border-top">
+        <p class="text-muted mb-0">Thank you for your payment!</p>
+        <small class="text-muted">This is a computer-generated receipt and does not require a signature.</small>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

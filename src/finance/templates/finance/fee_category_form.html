@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+{% if form.instance.pk %}Edit Fee Category{% else %}Create Fee Category{% endif %} - Finance
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-0">
+            {% if form.instance.pk %}
+            <i class="fas fa-edit me-2"></i>Edit Fee Category
+            {% else %}
+            <i class="fas fa-plus me-2"></i>Create Fee Category
+            {% endif %}
+          </h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'finance:dashboard' %}">Finance</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'finance:fee-category-list' %}">Fee Categories</a></li>
+              <li class="breadcrumb-item active">
+                {% if form.instance.pk %}Edit Category{% else %}Create Category{% endif %}
+              </li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <a href="{% url 'finance:fee-category-list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to List
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Category Information</h5>
+        </div>
+        <div class="card-body">
+          <form method="post" id="categoryForm">
+            {% csrf_token %}
+
+            <!-- Display form errors -->
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger" role="alert">
+              {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <div class="row">
+              <!-- Category Name -->
+              <div class="col-md-6 mb-3">
+                <label for="{{ form.name.id_for_label }}" class="form-label">
+                  Category Name <span class="text-danger">*</span>
+                </label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.name.errors.0 }}
+                </div>
+                {% endif %}
+                <div class="form-text">
+                  A unique name for this fee category (e.g., Tuition, Transport, Library)
+                </div>
+              </div>
+
+              <!-- Frequency -->
+              <div class="col-md-6 mb-3">
+                <label for="{{ form.frequency.id_for_label }}" class="form-label">
+                  Frequency <span class="text-danger">*</span>
+                </label>
+                {{ form.frequency }}
+                {% if form.frequency.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.frequency.errors.0 }}
+                </div>
+                {% endif %}
+                <div class="form-text">
+                  How often this fee is charged
+                </div>
+              </div>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-3">
+              <label for="{{ form.description.id_for_label }}" class="form-label">
+                Description
+              </label>
+              {{ form.description }}
+              {% if form.description.errors %}
+              <div class="invalid-feedback d-block">
+                {{ form.description.errors.0 }}
+              </div>
+              {% endif %}
+              <div class="form-text">
+                Detailed description of what this fee covers
+              </div>
+            </div>
+
+            <!-- Category Settings -->
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <div class="card border-light">
+                  <div class="card-body">
+                    <h6 class="card-title">Fee Properties</h6>
+
+                    <!-- Mandatory -->
+                    <div class="form-check mb-2">
+                      {{ form.is_mandatory }}
+                      <label class="form-check-label" for="{{ form.is_mandatory.id_for_label }}">
+                        Mandatory Fee
+                      </label>
+                      <div class="form-text small">
+                        Students must pay this fee to continue enrollment
+                      </div>
+                    </div>
+
+                    <!-- Recurring -->
+                    <div class="form-check">
+                      {{ form.is_recurring }}
+                      <label class="form-check-label" for="{{ form.is_recurring.id_for_label }}">
+                        Recurring Fee
+                      </label>
+                      <div class="form-text small">
+                        This fee is charged regularly based on frequency
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <!-- Preview Card -->
+                <div class="card border-info">
+                  <div class="card-header bg-light">
+                    <h6 class="card-title mb-0">
+                      <i class="fas fa-eye me-2"></i>Preview
+                    </h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="row">
+                      <div class="col-6">
+                        <small class="text-muted">Type:</small>
+                        <div id="preview-type" class="fw-bold">
+                          <span class="badge bg-secondary">Optional</span>
+                        </div>
+                      </div>
+                      <div class="col-6">
+                        <small class="text-muted">Schedule:</small>
+                        <div id="preview-schedule" class="fw-bold">
+                          <span class="badge bg-info">One Time</span>
+                        </div>
+                      </div>
+                    </div>
+                    <hr class="my-2">
+                    <small class="text-muted">Frequency:</small>
+                    <div id="preview-frequency" class="fw-bold">Not Selected</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="row">
+              <div class="col-12">
+                <hr>
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <a href="{% url 'finance:fee-category-list' %}" class="btn btn-outline-secondary">
+                      <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                  </div>
+                  <div>
+                    <button type="submit" class="btn btn-primary">
+                      <i class="fas fa-save me-2"></i>
+                      {% if form.instance.pk %}Update Category{% else %}Create Category{% endif %}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Form validation
+    $('#categoryForm').on('submit', function (e) {
+      let isValid = true;
+
+      // Check required fields
+      const nameField = $('#id_name');
+      const frequencyField = $('#id_frequency');
+
+      if (!nameField.val().trim()) {
+        nameField.addClass('is-invalid');
+        isValid = false;
+      } else {
+        nameField.removeClass('is-invalid').addClass('is-valid');
+      }
+
+      if (!frequencyField.val()) {
+        frequencyField.addClass('is-invalid');
+        isValid = false;
+      } else {
+        frequencyField.removeClass('is-invalid').addClass('is-valid');
+      }
+
+      if (!isValid) {
+        e.preventDefault();
+        alert('Please fill in all required fields.');
+      }
+    });
+
+    // Real-time preview updates
+    function updatePreview() {
+      const isMandatory = $('#id_is_mandatory').is(':checked');
+      const isRecurring = $('#id_is_recurring').is(':checked');
+      const frequency = $('#id_frequency option:selected').text();
+
+      // Update type badge
+      const typeBadge = isMandatory ?
+        '<span class="badge bg-danger">Mandatory</span>' :
+        '<span class="badge bg-secondary">Optional</span>';
+      $('#preview-type').html(typeBadge);
+
+      // Update schedule badge
+      const scheduleBadge = isRecurring ?
+        '<span class="badge bg-success">Recurring</span>' :
+        '<span class="badge bg-info">One Time</span>';
+      $('#preview-schedule').html(scheduleBadge);
+
+      // Update frequency
+      $('#preview-frequency').text(frequency || 'Not Selected');
+    }
+
+    // Bind preview updates to form changes
+    $('#id_is_mandatory, #id_is_recurring, #id_frequency').on('change', updatePreview);
+
+    // Initial preview update
+    updatePreview();
+
+    // Auto-resize textarea
+    $('textarea').on('input', function () {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
+    });
+  });
+</script>
+{% endblock %}

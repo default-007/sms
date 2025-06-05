@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Exam Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Dashboard Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Exam Dashboard</h2>
+          <p class="text-muted">
+            {% if current_year %}{{ current_year.name }}{% endif %}
+            {% if current_term %} - {{ current_term.name }}{% endif %}
+          </p>
+        </div>
+        {% if user.role == 'ADMIN' or user.role == 'PRINCIPAL' %}
+        <div>
+          <a href="{% url 'exams:create_exam' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Create New Exam
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+      <div class="card border-left-primary h-100">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                Total Exams
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {{ recent_exams|length }}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-3">
+      <div class="card border-left-success h-100">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                Upcoming Schedules
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {{ upcoming_schedules|length }}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-calendar fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-3">
+      <div class="card border-left-warning h-100">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                Pending Results
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {{ pending_results }}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-3">
+      <div class="card border-left-info h-100">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                Current Term
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {% if current_term %}{{ current_term.name }}{% else %}N/A{% endif %}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-clock fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Recent Exams -->
+    <div class="col-lg-8 mb-4">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Recent Exams</h5>
+          <a href="{% url 'exams:exam_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+        </div>
+        <div class="card-body">
+          {% if recent_exams %}
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Exam Name</th>
+                  <th>Type</th>
+                  <th>Term</th>
+                  <th>Date Range</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for exam in recent_exams %}
+                <tr>
+                  <td>
+                    <a href="{% url 'exams:exam_detail' exam.id %}" class="text-decoration-none">
+                      {{ exam.name }}
+                    </a>
+                  </td>
+                  <td>
+                    <span class="badge bg-secondary">{{ exam.exam_type.name }}</span>
+                  </td>
+                  <td>{{ exam.term.name }}</td>
+                  <td>{{ exam.start_date|date:"M d" }} - {{ exam.end_date|date:"M d, Y" }}</td>
+                  <td>
+                    {% if exam.status == 'DRAFT' %}
+                    <span class="badge bg-secondary">Draft</span>
+                    {% elif exam.status == 'SCHEDULED' %}
+                    <span class="badge bg-primary">Scheduled</span>
+                    {% elif exam.status == 'ONGOING' %}
+                    <span class="badge bg-warning">Ongoing</span>
+                    {% elif exam.status == 'COMPLETED' %}
+                    <span class="badge bg-success">Completed</span>
+                    {% else %}
+                    <span class="badge bg-danger">{{ exam.status }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <a href="{% url 'exams:exam_detail' exam.id %}" class="btn btn-sm btn-outline-primary">
+                      View
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-4">
+            <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+            <p class="text-muted">No recent exams found</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions & Upcoming -->
+    <div class="col-lg-4">
+      <!-- Quick Actions -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Quick Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            {% if user.role == 'ADMIN' or user.role == 'PRINCIPAL' %}
+            <a href="{% url 'exams:create_exam' %}" class="btn btn-primary">
+              <i class="fas fa-plus me-2"></i>Create Exam
+            </a>
+            {% endif %}
+
+            {% if user.role == 'TEACHER' %}
+            <a href="{% url 'exams:question_bank' %}" class="btn btn-info">
+              <i class="fas fa-question-circle me-2"></i>Question Bank
+            </a>
+            {% endif %}
+
+            {% if user.role == 'STUDENT' %}
+            <a href="{% url 'exams:my_results' %}" class="btn btn-success">
+              <i class="fas fa-chart-line me-2"></i>My Results
+            </a>
+            {% endif %}
+
+            <a href="{% url 'exams:exam_list' %}" class="btn btn-outline-secondary">
+              <i class="fas fa-list me-2"></i>All Exams
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upcoming Schedules -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Upcoming Exam Schedules</h5>
+        </div>
+        <div class="card-body">
+          {% if upcoming_schedules %}
+          <div class="list-group list-group-flush">
+            {% for schedule in upcoming_schedules %}
+            <div class="list-group-item px-0">
+              <div class="d-flex justify-content-between align-items-start">
+                <div class="ms-2 me-auto">
+                  <div class="fw-bold">{{ schedule.exam.name }}</div>
+                  <small class="text-muted">
+                    {{ schedule.subject.name }} - {{ schedule.class_obj }}
+                  </small>
+                </div>
+                <span class="badge bg-primary rounded-pill">
+                  {{ schedule.date|date:"M d" }}
+                </span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-center py-3">
+            <i class="fas fa-calendar-check fa-2x text-muted mb-2"></i>
+            <p class="text-muted mb-0">No upcoming schedules</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Role-specific sections -->
+  {% if user.role == 'TEACHER' and my_exams %}
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">My Supervised Exams</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Exam</th>
+                  <th>Subject</th>
+                  <th>Class</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for schedule in my_exams %}
+                <tr>
+                  <td>{{ schedule.exam.name }}</td>
+                  <td>{{ schedule.subject.name }}</td>
+                  <td>{{ schedule.class_obj }}</td>
+                  <td>{{ schedule.date|date:"M d, Y" }}</td>
+                  <td>
+                    {% if schedule.is_completed %}
+                    <span class="badge bg-success">Completed</span>
+                    {% else %}
+                    <span class="badge bg-warning">Pending</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if not schedule.is_completed %}
+                    <a href="{% url 'exams:result_entry' schedule.id %}" class="btn btn-sm btn-primary">
+                      Enter Results
+                    </a>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if user.role == 'STUDENT' and my_results %}
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Recent Results</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Subject</th>
+                  <th>Exam</th>
+                  <th>Marks</th>
+                  <th>Percentage</th>
+                  <th>Grade</th>
+                  <th>Rank</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for result in my_results %}
+                <tr>
+                  <td>{{ result.exam_schedule.subject.name }}</td>
+                  <td>{{ result.exam_schedule.exam.name }}</td>
+                  <td>{{ result.marks_obtained }}/{{ result.exam_schedule.total_marks }}</td>
+                  <td>{{ result.percentage|floatformat:1 }}%</td>
+                  <td>
+                    <span
+                      class="badge bg-{% if result.grade == 'A+' or result.grade == 'A' %}success{% elif result.grade == 'B+' or result.grade == 'B' %}primary{% elif result.grade == 'C+' or result.grade == 'C' %}warning{% else %}danger{% endif %}">
+                      {{ result.grade }}
+                    </span>
+                  </td>
+                  <td>{% if result.class_rank %}{{ result.class_rank }}{% else %}-{% endif %}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Initialize tooltips
+    $('[data-bs-toggle="tooltip"]').tooltip();
+
+    // Auto-refresh upcoming schedules every 5 minutes
+    setInterval(function () {
+      // You can implement AJAX refresh here if needed
+    }, 300000);
+  });
+</script>
+{% endblock %}

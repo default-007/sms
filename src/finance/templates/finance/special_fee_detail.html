@@ -1,0 +1,414 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ object.name }} - Special Fee Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-0">
+            <i class="fas fa-star me-2"></i>{{ object.name }}
+            {% if object.is_active %}
+            <span class="badge bg-success ms-2">Active</span>
+            {% else %}
+            <span class="badge bg-secondary ms-2">Inactive</span>
+            {% endif %}
+          </h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'finance:dashboard' %}">Finance</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'finance:special-fee-list' %}">Special Fees</a></li>
+              <li class="breadcrumb-item active">{{ object.name }}</li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <a href="{% url 'finance:special-fee-list' %}" class="btn btn-secondary me-2">
+            <i class="fas fa-arrow-left me-2"></i>Back to List
+          </a>
+          <div class="btn-group">
+            <button class="btn btn-outline-warning" onclick="toggleFeeStatus()">
+              {% if object.is_active %}
+              <i class="fas fa-pause me-2"></i>Deactivate
+              {% else %}
+              <i class="fas fa-play me-2"></i>Activate
+              {% endif %}
+            </button>
+            <a href="#" class="btn btn-primary">
+              <i class="fas fa-edit me-2"></i>Edit Fee
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Fee Information -->
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Fee Information</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label text-muted">Fee Name</label>
+            <div class="fw-bold">{{ object.name }}</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted">Description</label>
+            <div>{{ object.description|default:"No description provided" }}</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted">Category</label>
+            <div>
+              <span class="badge bg-light text-dark">{{ object.fee_category.name }}</span>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-6">
+              <label class="form-label text-muted">Amount</label>
+              <div class="fw-bold text-success fs-4">${{ object.amount }}</div>
+            </div>
+            <div class="col-6">
+              <label class="form-label text-muted">Due Date</label>
+              <div class="fw-bold">{{ object.due_date|date:"M d, Y" }}</div>
+              {% if object.due_date < today %}
+              <small class="text-danger">Overdue</small>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted">Academic Period</label>
+            <div>
+              <strong>{{ object.term.name }}</strong>
+              <br><small class="text-muted">{{ object.term.academic_year.name }}</small>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted">Fee Type</label>
+            <div>
+              {% if object.fee_type == 'class_based' %}
+              <span class="badge bg-info">
+                <i class="fas fa-users me-1"></i>Class-based
+              </span>
+              {% else %}
+              <span class="badge bg-warning text-dark">
+                <i class="fas fa-user me-1"></i>Student-specific
+              </span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted">Target</label>
+            <div>
+              {% if object.class_obj %}
+              <div class="d-flex align-items-center">
+                <i class="fas fa-users text-muted me-2"></i>
+                <div>
+                  <strong>{{ object.class_obj }}</strong>
+                  <br><small class="text-muted">Class-based fee</small>
+                </div>
+              </div>
+              {% elif object.student %}
+              <div class="d-flex align-items-center">
+                <i class="fas fa-user text-muted me-2"></i>
+                <div>
+                  <strong>{{ object.student.user.get_full_name }}</strong>
+                  <br><small class="text-muted">{{ object.student.admission_number }} •
+                    {{ object.student.current_class }}</small>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-6">
+              <label class="form-label text-muted">Created</label>
+              <div class="small">{{ object.created_at|date:"M d, Y" }}</div>
+            </div>
+            <div class="col-6">
+              <label class="form-label text-muted">Created By</label>
+              <div class="small">
+                {% if object.created_by %}
+                {{ object.created_by.get_full_name }}
+                {% else %}
+                System
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reason Card -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Justification</h5>
+        </div>
+        <div class="card-body">
+          <div class="bg-light p-3 rounded">
+            <i class="fas fa-quote-left text-muted"></i>
+            <div class="mt-2">{{ object.reason }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Invoice and Payment History -->
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Invoice History</h5>
+          <span class="badge bg-primary">
+            {{ related_invoices.count }} invoice{{ related_invoices.count|pluralize }}
+          </span>
+        </div>
+        <div class="card-body">
+          {% if related_invoices %}
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Invoice #</th>
+                  <th>Student</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Due Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for invoice_item in related_invoices %}
+                <tr>
+                  <td>
+                    <a href="{% url 'finance:invoice-detail' invoice_item.invoice.pk %}" class="text-decoration-none">
+                      {{ invoice_item.invoice.invoice_number }}
+                    </a>
+                  </td>
+                  <td>
+                    <div>
+                      <strong>{{ invoice_item.invoice.student.user.get_full_name }}</strong>
+                      <br><small class="text-muted">{{ invoice_item.invoice.student.admission_number }}</small>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="fw-bold">${{ invoice_item.net_amount }}</span>
+                    {% if invoice_item.discount_amount > 0 %}
+                    <br><small class="text-success">-${{ invoice_item.discount_amount }} discount</small>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if invoice_item.invoice.status == 'paid' %}
+                    <span class="badge bg-success">Paid</span>
+                    {% elif invoice_item.invoice.status == 'partially_paid' %}
+                    <span class="badge bg-warning text-dark">Partial</span>
+                    {% elif invoice_item.invoice.status == 'overdue' %}
+                    <span class="badge bg-danger">Overdue</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Unpaid</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <small>{{ invoice_item.invoice.due_date|date:"M d, Y" }}</small>
+                  </td>
+                  <td>
+                    <a href="{% url 'finance:invoice-detail' invoice_item.invoice.pk %}"
+                      class="btn btn-sm btn-outline-primary">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-4">
+            <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+            <p class="text-muted mb-0">No invoices generated for this special fee yet.</p>
+            {% if object.is_active %}
+            <small class="text-muted">Invoices will be created during the next billing cycle.</small>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Payment Summary -->
+      {% if related_invoices %}
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Payment Summary</h5>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-md-3">
+              <div class="border-end">
+                <h4 class="text-primary mb-1">${{ payment_summary.total_amount|default:"0.00" }}</h4>
+                <small class="text-muted">Total Billed</small>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="border-end">
+                <h4 class="text-success mb-1">${{ payment_summary.total_paid|default:"0.00" }}</h4>
+                <small class="text-muted">Total Paid</small>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="border-end">
+                <h4 class="text-warning mb-1">${{ payment_summary.total_outstanding|default:"0.00" }}</h4>
+                <small class="text-muted">Outstanding</small>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <h4 class="text-info mb-1">{{ payment_summary.collection_rate|default:"0" }}%</h4>
+              <small class="text-muted">Collection Rate</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Affected Students (for class-based fees) -->
+      {% if object.fee_type == 'class_based' and object.class_obj %}
+      <div class="card mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Affected Students</h5>
+          <span class="badge bg-info">{{ affected_students.count }}
+            student{{ affected_students.count|pluralize }}</span>
+        </div>
+        <div class="card-body">
+          {% if affected_students %}
+          <div class="row">
+            {% for student in affected_students|slice:":12" %}
+            <div class="col-md-6 col-lg-4 mb-2">
+              <div class="d-flex align-items-center">
+                <i class="fas fa-user-circle text-muted me-2"></i>
+                <div>
+                  <small class="fw-bold">{{ student.user.get_full_name }}</small>
+                  <br><small class="text-muted">{{ student.admission_number }}</small>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% if affected_students.count > 12 %}
+          <div class="text-center mt-3">
+            <small class="text-muted">Showing first 12 of {{ affected_students.count }} students</small>
+          </div>
+          {% endif %}
+          {% else %}
+          <div class="text-center py-3">
+            <i class="fas fa-users fa-2x text-muted mb-2"></i>
+            <p class="text-muted mb-0">No students found in the selected class.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function toggleFeeStatus() {
+    const currentStatus = {{ object.is_active| yesno: "true,false"
+  }};
+  const newStatus = !currentStatus;
+  const action = newStatus ? 'activate' : 'deactivate';
+
+  if (confirm(`Are you sure you want to ${action} this special fee?`)) {
+    fetch(`/api/finance/special-fees/{{ object.pk }}/toggle-status/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({ is_active: newStatus })
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          location.reload();
+        } else {
+          alert('Error updating fee status: ' + (data.message || 'Unknown error'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating fee status');
+      });
+  }
+}
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  $(document).ready(function () {
+    // Animate payment summary numbers
+    $('.card-body h4').each(function () {
+      const $this = $(this);
+      const text = $this.text();
+      const isPercentage = text.includes('%');
+      const isCurrency = text.includes('$');
+
+      if (isCurrency || isPercentage) {
+        const numericValue = parseFloat(text.replace(/[$%,]/g, ''));
+
+        if (!isNaN(numericValue)) {
+          $({ countNum: 0 }).animate({
+            countNum: numericValue
+          }, {
+            duration: 1500,
+            easing: 'linear',
+            step: function () {
+              let display = Math.floor(this.countNum);
+              if (isCurrency) {
+                display = '$' + display.toLocaleString();
+              } else if (isPercentage) {
+                display = Math.floor(this.countNum) + '%';
+              }
+              $this.text(display);
+            },
+            complete: function () {
+              let finalDisplay = numericValue;
+              if (isCurrency) {
+                finalDisplay = '$' + numericValue.toLocaleString();
+              } else if (isPercentage) {
+                finalDisplay = numericValue + '%';
+              }
+              $this.text(finalDisplay);
+            }
+          });
+        }
+      }
+    });
+  });
+</script>
+{% endblock %}

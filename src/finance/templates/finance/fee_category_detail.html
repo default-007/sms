@@ -1,0 +1,279 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ object.name }} - Fee Category Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-0">
+            <i class="fas fa-tag me-2"></i>{{ object.name }}
+          </h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'finance:dashboard' %}">Finance</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'finance:fee-category-list' %}">Fee Categories</a></li>
+              <li class="breadcrumb-item active">{{ object.name }}</li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <a href="{% url 'finance:fee-category-list' %}" class="btn btn-secondary me-2">
+            <i class="fas fa-arrow-left me-2"></i>Back to List
+          </a>
+          <a href="{% url 'finance:fee-category-edit' object.pk %}" class="btn btn-primary">
+            <i class="fas fa-edit me-2"></i>Edit Category
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Category Information -->
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Category Information</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label text-muted">Category Name</label>
+            <div class="fw-bold">{{ object.name }}</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted">Description</label>
+            <div>{{ object.description|default:"No description provided" }}</div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-6">
+              <label class="form-label text-muted">Type</label>
+              <div>
+                {% if object.is_mandatory %}
+                <span class="badge bg-danger">Mandatory</span>
+                {% else %}
+                <span class="badge bg-secondary">Optional</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-6">
+              <label class="form-label text-muted">Schedule</label>
+              <div>
+                {% if object.is_recurring %}
+                <span class="badge bg-success">Recurring</span>
+                {% else %}
+                <span class="badge bg-info">One Time</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          {% if object.frequency %}
+          <div class="mb-3">
+            <label class="form-label text-muted">Frequency</label>
+            <div>
+              <span class="badge bg-light text-dark">{{ object.get_frequency_display }}</span>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="row">
+            <div class="col-6">
+              <label class="form-label text-muted">Created</label>
+              <div class="small">{{ object.created_at|date:"M d, Y" }}</div>
+            </div>
+            <div class="col-6">
+              <label class="form-label text-muted">Last Updated</label>
+              <div class="small">{{ object.updated_at|date:"M d, Y" }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Usage Summary -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Usage Summary</h5>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-6">
+              <div class="border-end">
+                <h4 class="text-primary mb-1">{{ object.feestructure_set.count }}</h4>
+                <small class="text-muted">Fee Structures</small>
+              </div>
+            </div>
+            <div class="col-6">
+              <h4 class="text-success mb-1">{{ object.specialfee_set.count }}</h4>
+              <small class="text-muted">Special Fees</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Related Fee Structures -->
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Related Fee Structures</h5>
+          <span class="badge bg-primary">{{ object.feestructure_set.count }} structures</span>
+        </div>
+        <div class="card-body">
+          {% if object.feestructure_set.exists %}
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Academic Year</th>
+                  <th>Term</th>
+                  <th>Level</th>
+                  <th>Amount</th>
+                  <th>Due Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for fee_structure in object.feestructure_set.all|slice:":10" %}
+                <tr>
+                  <td>{{ fee_structure.academic_year.name }}</td>
+                  <td>{{ fee_structure.term.name }}</td>
+                  <td>
+                    <small class="text-muted">
+                      {{ fee_structure.grade|default:fee_structure.section }}
+                    </small>
+                  </td>
+                  <td>
+                    <span class="fw-bold text-success">${{ fee_structure.amount }}</span>
+                  </td>
+                  <td>
+                    <small>{{ fee_structure.due_date|date:"M d" }}</small>
+                  </td>
+                  <td>
+                    {% if fee_structure.is_active %}
+                    <span class="badge bg-success">Active</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Inactive</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% if object.feestructure_set.count > 10 %}
+          <div class="text-center mt-3">
+            <small class="text-muted">Showing first 10 of {{ object.feestructure_set.count }} fee structures</small>
+          </div>
+          {% endif %}
+          {% else %}
+          <div class="text-center py-4">
+            <i class="fas fa-list fa-3x text-muted mb-3"></i>
+            <p class="text-muted mb-0">No fee structures defined for this category yet.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Related Special Fees -->
+      <div class="card mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Related Special Fees</h5>
+          <span class="badge bg-warning text-dark">{{ object.specialfee_set.count }} special fees</span>
+        </div>
+        <div class="card-body">
+          {% if object.specialfee_set.exists %}
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Target</th>
+                  <th>Amount</th>
+                  <th>Due Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for special_fee in object.specialfee_set.all|slice:":10" %}
+                <tr>
+                  <td>
+                    <strong>{{ special_fee.name }}</strong>
+                    <br><small class="text-muted">{{ special_fee.description|truncatechars:30 }}</small>
+                  </td>
+                  <td>
+                    <span class="badge bg-light text-dark">{{ special_fee.get_fee_type_display }}</span>
+                  </td>
+                  <td>
+                    <small>{{ special_fee.class_obj|default:special_fee.student }}</small>
+                  </td>
+                  <td>
+                    <span class="fw-bold text-warning">${{ special_fee.amount }}</span>
+                  </td>
+                  <td>
+                    <small>{{ special_fee.due_date|date:"M d, Y" }}</small>
+                  </td>
+                  <td>
+                    {% if special_fee.is_active %}
+                    <span class="badge bg-success">Active</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Inactive</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% if object.specialfee_set.count > 10 %}
+          <div class="text-center mt-3">
+            <small class="text-muted">Showing first 10 of {{ object.specialfee_set.count }} special fees</small>
+          </div>
+          {% endif %}
+          {% else %}
+          <div class="text-center py-4">
+            <i class="fas fa-star fa-3x text-muted mb-3"></i>
+            <p class="text-muted mb-0">No special fees defined for this category yet.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Add tooltips to badges
+    $('[data-bs-toggle="tooltip"]').tooltip();
+
+    // Animate numbers on page load
+    $('.card-body h4').each(function () {
+      const $this = $(this);
+      const countTo = parseInt($this.text());
+
+      $({ countNum: 0 }).animate({
+        countNum: countTo
+      }, {
+        duration: 1000,
+        easing: 'linear',
+        step: function () {
+          $this.text(Math.floor(this.countNum));
+        },
+        complete: function () {
+          $this.text(countTo);
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}

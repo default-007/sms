@@ -1,0 +1,414 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.39.0/css/tempusdominus-bootstrap-4.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{{ title }}</h3>
+          <div class="card-tools">
+            <a href="{% url 'exams:exam_schedules' exam.id %}" class="btn btn-secondary btn-sm">
+              <i class="fas fa-arrow-left"></i> Back to Schedules
+            </a>
+          </div>
+        </div>
+
+        <div class="card-body">
+          {% if messages %}
+          {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          {% endfor %}
+          {% endif %}
+
+          <form method="post" id="scheduleForm">
+            {% csrf_token %}
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-header">
+                    <h5 class="card-title mb-0">Basic Information</h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="form-group">
+                      <label for="{{ form.class_obj.id_for_label }}">Class *</label>
+                      {{ form.class_obj }}
+                      {% if form.class_obj.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.class_obj.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                      <label for="{{ form.subject.id_for_label }}">Subject *</label>
+                      {{ form.subject }}
+                      {% if form.subject.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.subject.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                      <label for="{{ form.supervisor.id_for_label }}">Supervisor *</label>
+                      {{ form.supervisor }}
+                      {% if form.supervisor.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.supervisor.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                      <label for="{{ form.additional_supervisors.id_for_label }}">Additional Supervisors</label>
+                      <div class="border p-2 rounded" style="max-height: 150px; overflow-y: auto;">
+                        {{ form.additional_supervisors }}
+                      </div>
+                      {% if form.additional_supervisors.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.additional_supervisors.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-header">
+                    <h5 class="card-title mb-0">Schedule Details</h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="form-group">
+                      <label for="{{ form.date.id_for_label }}">Date *</label>
+                      {{ form.date }}
+                      {% if form.date.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.date.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label for="{{ form.start_time.id_for_label }}">Start Time *</label>
+                          {{ form.start_time }}
+                          {% if form.start_time.errors %}
+                          <div class="invalid-feedback d-block">
+                            {{ form.start_time.errors.0 }}
+                          </div>
+                          {% endif %}
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label for="{{ form.end_time.id_for_label }}">End Time *</label>
+                          {{ form.end_time }}
+                          {% if form.end_time.errors %}
+                          <div class="invalid-feedback d-block">
+                            {{ form.end_time.errors.0 }}
+                          </div>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label for="{{ form.duration_minutes.id_for_label }}">Duration (minutes)</label>
+                          {{ form.duration_minutes }}
+                          {% if form.duration_minutes.errors %}
+                          <div class="invalid-feedback d-block">
+                            {{ form.duration_minutes.errors.0 }}
+                          </div>
+                          {% endif %}
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label for="{{ form.room.id_for_label }}">Room</label>
+                          {{ form.room }}
+                          {% if form.room.errors %}
+                          <div class="invalid-feedback d-block">
+                            {{ form.room.errors.0 }}
+                          </div>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row mt-3">
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-header">
+                    <h5 class="card-title mb-0">Marking Scheme</h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label for="{{ form.total_marks.id_for_label }}">Total Marks *</label>
+                          {{ form.total_marks }}
+                          {% if form.total_marks.errors %}
+                          <div class="invalid-feedback d-block">
+                            {{ form.total_marks.errors.0 }}
+                          </div>
+                          {% endif %}
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label for="{{ form.passing_marks.id_for_label }}">Passing Marks *</label>
+                          {{ form.passing_marks }}
+                          {% if form.passing_marks.errors %}
+                          <div class="invalid-feedback d-block">
+                            {{ form.passing_marks.errors.0 }}
+                          </div>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </div>
+                    <div class="alert alert-info">
+                      <small>
+                        <i class="fas fa-info-circle"></i>
+                        Passing percentage will be calculated automatically based on total marks.
+                      </small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-header">
+                    <h5 class="card-title mb-0">Instructions</h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="form-group">
+                      <label for="{{ form.special_instructions.id_for_label }}">Special Instructions</label>
+                      {{ form.special_instructions }}
+                      {% if form.special_instructions.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.special_instructions.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                      <label for="{{ form.materials_allowed.id_for_label }}">Materials Allowed</label>
+                      {{ form.materials_allowed }}
+                      <small class="form-text text-muted">
+                        e.g., Calculator, Formula sheet, etc.
+                      </small>
+                      {% if form.materials_allowed.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.materials_allowed.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row mt-3">
+              <div class="col-12">
+                <div class="card">
+                  <div class="card-body">
+                    <button type="submit" class="btn btn-primary">
+                      <i class="fas fa-save"></i> Save Schedule
+                    </button>
+                    <a href="{% url 'exams:exam_schedules' exam.id %}" class="btn btn-secondary ml-2">
+                      <i class="fas fa-times"></i> Cancel
+                    </a>
+                    <button type="button" class="btn btn-info ml-2" id="validateBtn">
+                      <i class="fas fa-check-circle"></i> Validate Schedule
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Conflict Check Modal -->
+<div class="modal fade" id="conflictModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Schedule Conflicts</h5>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div id="conflictResults"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.39.0/js/tempusdominus-bootstrap-4.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Auto-calculate duration when times change
+    function calculateDuration() {
+      const startTime = $('#id_start_time').val();
+      const endTime = $('#id_end_time').val();
+
+      if (startTime && endTime) {
+        const start = moment(startTime, 'HH:mm');
+        const end = moment(endTime, 'HH:mm');
+
+        if (end.isAfter(start)) {
+          const duration = end.diff(start, 'minutes');
+          $('#id_duration_minutes').val(duration);
+        }
+      }
+    }
+
+    $('#id_start_time, #id_end_time').on('change', calculateDuration);
+
+    // Auto-calculate passing percentage
+    function calculatePassingPercentage() {
+      const totalMarks = parseFloat($('#id_total_marks').val()) || 0;
+      const passingMarks = parseFloat($('#id_passing_marks').val()) || 0;
+
+      if (totalMarks > 0) {
+        const percentage = ((passingMarks / totalMarks) * 100).toFixed(2);
+        $('#passingPercentage').text(percentage + '%');
+      }
+    }
+
+    $('#id_total_marks, #id_passing_marks').on('input', calculatePassingPercentage);
+
+    // Add passing percentage display
+    $('#id_passing_marks').after('<small class="form-text text-muted">Passing Percentage: <span id="passingPercentage">0%</span></small>');
+
+    // Validate schedule for conflicts
+    $('#validateBtn').on('click', function () {
+      const formData = {
+        'date': $('#id_date').val(),
+        'start_time': $('#id_start_time').val(),
+        'end_time': $('#id_end_time').val(),
+        'supervisor': $('#id_supervisor').val(),
+        'room': $('#id_room').val(),
+        'class_obj': $('#id_class_obj').val(),
+        'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+      };
+
+      if (!formData.date || !formData.start_time || !formData.end_time) {
+        alert('Please fill in date and time fields first.');
+        return;
+      }
+
+      $.ajax({
+        url: '/api/exams/validate-schedule/',
+        method: 'POST',
+        data: formData,
+        success: function (response) {
+          if (response.conflicts && response.conflicts.length > 0) {
+            let conflictHtml = '<div class="alert alert-warning"><h6>Schedule Conflicts Found:</h6><ul>';
+            response.conflicts.forEach(function (conflict) {
+              conflictHtml += '<li>' + conflict.message + '</li>';
+            });
+            conflictHtml += '</ul></div>';
+            $('#conflictResults').html(conflictHtml);
+          } else {
+            $('#conflictResults').html('<div class="alert alert-success"><i class="fas fa-check-circle"></i> No conflicts found. Schedule is valid.</div>');
+          }
+          $('#conflictModal').modal('show');
+        },
+        error: function () {
+          $('#conflictResults').html('<div class="alert alert-danger">Error checking for conflicts. Please try again.</div>');
+          $('#conflictModal').modal('show');
+        }
+      });
+    });
+
+    // Form validation
+    $('#scheduleForm').on('submit', function (e) {
+      let isValid = true;
+      let errors = [];
+
+      // Check required fields
+      const requiredFields = ['id_class_obj', 'id_subject', 'id_date', 'id_start_time', 'id_end_time', 'id_total_marks', 'id_passing_marks'];
+
+      requiredFields.forEach(function (fieldId) {
+        const field = $('#' + fieldId);
+        if (!field.val().trim()) {
+          isValid = false;
+          field.addClass('is-invalid');
+          errors.push(field.prev('label').text() + ' is required.');
+        } else {
+          field.removeClass('is-invalid');
+        }
+      });
+
+      // Check time logic
+      const startTime = $('#id_start_time').val();
+      const endTime = $('#id_end_time').val();
+      if (startTime && endTime && startTime >= endTime) {
+        isValid = false;
+        errors.push('End time must be after start time.');
+        $('#id_end_time').addClass('is-invalid');
+      }
+
+      // Check marks logic
+      const totalMarks = parseFloat($('#id_total_marks').val()) || 0;
+      const passingMarks = parseFloat($('#id_passing_marks').val()) || 0;
+      if (totalMarks > 0 && passingMarks > totalMarks) {
+        isValid = false;
+        errors.push('Passing marks cannot exceed total marks.');
+        $('#id_passing_marks').addClass('is-invalid');
+      }
+
+      if (!isValid) {
+        e.preventDefault();
+        let errorHtml = '<div class="alert alert-danger alert-dismissible fade show"><ul class="mb-0">';
+        errors.forEach(function (error) {
+          errorHtml += '<li>' + error + '</li>';
+        });
+        errorHtml += '</ul><button type="button" class="close" data-dismiss="alert"><span>&times;</span></button></div>';
+
+        $('.card-body').first().prepend(errorHtml);
+        $('html, body').animate({ scrollTop: 0 }, 500);
+      }
+    });
+  });
+</script>
+{% endblock %}

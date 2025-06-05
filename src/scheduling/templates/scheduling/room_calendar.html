@@ -1,0 +1,500 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Room Calendar - {{ room.number }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.css" rel="stylesheet">
+<style>
+  .fc-event {
+    border-radius: 3px;
+    border: none;
+    font-size: 0.75rem;
+  }
+
+  .fc-daygrid-event-dot {
+    display: none;
+  }
+
+  .booking-tooltip {
+    max-width: 300px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Room Calendar - {{ room.number }}</h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:dashboard' %}">Scheduling</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:room_list' %}">Rooms</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:room_detail' room.pk %}">{{ room.number }}</a>
+              </li>
+              <li class="breadcrumb-item active">Calendar</li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <!-- Term Selector -->
+          <div class="dropdown me-2">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-calendar me-1"></i>
+              {% if term %}{{ term }}{% else %}Select Term{% endif %}
+            </button>
+            <ul class="dropdown-menu">
+              {% for available_term in available_terms %}
+              <li>
+                <a class="dropdown-item" href="?term_id={{ available_term.pk }}">
+                  {{ available_term }}
+                </a>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          <a href="{% url 'scheduling:room_utilization' room.pk %}{% if term %}?term_id={{ term.pk }}{% endif %}"
+            class="btn btn-info me-2">
+            <i class="fas fa-chart-bar me-1"></i> Utilization
+          </a>
+          <a href="{% url 'scheduling:timetable_create' %}?room={{ room.pk }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Add Booking
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if not term %}
+  <!-- No Term Selected -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <i class="fas fa-calendar-alt fa-3x text-muted mb-3"></i>
+          <h5 class="text-muted">No Term Selected</h5>
+          <p class="text-muted">Please select a term to view the room calendar.</p>
+          <div class="dropdown">
+            <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              Select Term
+            </button>
+            <ul class="dropdown-menu">
+              {% for available_term in available_terms %}
+              <li>
+                <a class="dropdown-item" href="?term_id={{ available_term.pk }}">
+                  {{ available_term }}
+                </a>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+
+  <!-- Room Info Bar -->
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body py-2">
+          <div class="row align-items-center">
+            <div class="col-md-3">
+              <strong>{{ room.number }} - {{ room.name }}</strong>
+            </div>
+            <div class="col-md-2">
+              <span class="badge bg-info">{{ room.get_room_type_display }}</span>
+            </div>
+            <div class="col-md-2">
+              <i class="fas fa-users me-1"></i> {{ room.capacity }} students
+            </div>
+            <div class="col-md-2">
+              {% if room.building %}
+              <i class="fas fa-building me-1"></i> {{ room.building }}
+              {% endif %}
+            </div>
+            <div class="col-md-3">
+              {% if room.is_available %}
+              <span class="badge bg-success">Available</span>
+              {% else %}
+              <span class="badge bg-danger">Unavailable</span>
+              {% endif %}
+              <small class="text-muted ms-2">{{ term }}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calendar and Legend -->
+  <div class="row">
+    <div class="col-lg-9">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-calendar me-2"></i>Room Booking Calendar
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="roomCalendar"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3">
+      <!-- Legend -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-info-circle me-2"></i>Legend
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2">
+            <div class="bg-primary rounded me-2" style="width: 20px; height: 15px;"></div>
+            <small>Regular Classes</small>
+          </div>
+          <div class="d-flex align-items-center mb-2">
+            <div class="bg-success rounded me-2" style="width: 20px; height: 15px;"></div>
+            <small>Laboratory Sessions</small>
+          </div>
+          <div class="d-flex align-items-center mb-2">
+            <div class="bg-warning rounded me-2" style="width: 20px; height: 15px;"></div>
+            <small>Practical Classes</small>
+          </div>
+          <div class="d-flex align-items-center mb-2">
+            <div class="bg-info rounded me-2" style="width: 20px; height: 15px;"></div>
+            <small>Workshops</small>
+          </div>
+          <div class="d-flex align-items-center">
+            <div class="bg-secondary rounded me-2" style="width: 20px; height: 15px;"></div>
+            <small>Other Activities</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-chart-bar me-2"></i>Quick Stats
+          </h6>
+        </div>
+        <div class="card-body">
+          {% if calendar_data %}
+          <div class="text-center">
+            <div class="row">
+              <div class="col-6">
+                <div class="border rounded p-2 mb-2">
+                  <h5 class="text-primary mb-0" id="totalBookings">0</h5>
+                  <small class="text-muted">Total Bookings</small>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="border rounded p-2 mb-2">
+                  <h5 class="text-success mb-0" id="weeklyBookings">0</h5>
+                  <small class="text-muted">This Week</small>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-6">
+                <div class="border rounded p-2 mb-2">
+                  <h5 class="text-warning mb-0" id="activeClasses">0</h5>
+                  <small class="text-muted">Classes</small>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="border rounded p-2 mb-2">
+                  <h5 class="text-info mb-0" id="activeTeachers">0</h5>
+                  <small class="text-muted">Teachers</small>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="text-center text-muted">
+            <i class="fas fa-calendar-times fa-2x mb-2"></i>
+            <p class="mb-0">No bookings found for this term.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Upcoming Bookings -->
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-clock me-2"></i>Upcoming Bookings
+          </h6>
+        </div>
+        <div class="card-body">
+          <div id="upcomingBookings">
+            <div class="text-center text-muted">
+              <small>Loading...</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Booking Detail Modal -->
+<div class="modal fade" id="bookingModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="bookingModalTitle">Booking Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="bookingModalBody">
+        <!-- Content will be populated by JavaScript -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <a href="#" id="viewTimetableBtn" class="btn btn-primary">View Details</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    {% if term and calendar_data %}
+    var calendarEl = document.getElementById('roomCalendar');
+    var calendar;
+
+    // Prepare events data
+    var events = [];
+    var calendarData = {{ calendar_data| safe
+  }};
+  var totalBookings = 0;
+  var uniqueClasses = new Set();
+  var uniqueTeachers = new Set();
+
+  // Convert calendar data to FullCalendar events
+  Object.keys(calendarData).forEach(function (day) {
+    calendarData[day].forEach(function (booking) {
+      totalBookings++;
+      uniqueClasses.add(booking.class);
+      uniqueTeachers.add(booking.teacher);
+
+      // Calculate event time based on day and period
+      var eventDate = getDateForDay(day);
+      if (eventDate) {
+        events.push({
+          id: booking.timetable_id || 'booking_' + Math.random(),
+          title: booking.class + ' - ' + booking.subject,
+          start: eventDate + 'T' + booking.time_slot.start_time,
+          end: eventDate + 'T' + booking.time_slot.end_time,
+          backgroundColor: getSubjectColor(booking.subject),
+          borderColor: getSubjectColor(booking.subject),
+          extendedProps: {
+            class: booking.class,
+            subject: booking.subject,
+            teacher: booking.teacher,
+            period: booking.period,
+            time_slot: booking.time_slot
+          }
+        });
+      }
+    });
+  });
+
+  // Update stats
+  document.getElementById('totalBookings').textContent = totalBookings;
+  document.getElementById('activeClasses').textContent = uniqueClasses.size;
+  document.getElementById('activeTeachers').textContent = uniqueTeachers.size;
+
+  // Initialize calendar
+  calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'timeGridWeek',
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'dayGridMonth,timeGridWeek,timeGridDay'
+    },
+    slotMinTime: '07:00:00',
+    slotMaxTime: '18:00:00',
+    allDaySlot: false,
+    height: 'auto',
+    events: events,
+    eventClick: function (info) {
+      showBookingDetails(info.event);
+    },
+    eventMouseEnter: function (info) {
+      // Add tooltip on hover
+      var tooltip = document.createElement('div');
+      tooltip.className = 'booking-tooltip bg-dark text-white rounded p-2 position-absolute';
+      tooltip.style.zIndex = '9999';
+      tooltip.innerHTML =
+        '<strong>' + info.event.extendedProps.class + '</strong><br>' +
+        info.event.extendedProps.subject + '<br>' +
+        '<small>' + info.event.extendedProps.teacher + '</small>';
+      document.body.appendChild(tooltip);
+
+      // Position tooltip
+      var rect = info.el.getBoundingClientRect();
+      tooltip.style.left = (rect.left + window.scrollX) + 'px';
+      tooltip.style.top = (rect.top + window.scrollY - tooltip.offsetHeight - 5) + 'px';
+
+      info.el.addEventListener('mouseleave', function () {
+        if (tooltip && tooltip.parentNode) {
+          tooltip.parentNode.removeChild(tooltip);
+        }
+      });
+    },
+    businessHours: {
+      daysOfWeek: [1, 2, 3, 4, 5], // Monday - Friday
+      startTime: '08:00',
+      endTime: '16:00'
+    }
+  });
+
+  calendar.render();
+
+  // Update weekly bookings based on current view
+  updateWeeklyStats();
+
+  // Update upcoming bookings
+  updateUpcomingBookings();
+
+  // Listen for view changes
+  calendar.on('datesSet', function () {
+    updateWeeklyStats();
+  });
+
+  {% else %}
+  // No calendar data
+  document.getElementById('upcomingBookings').innerHTML =
+    '<div class="text-center text-muted"><small>No term selected</small></div>';
+  {% endif %}
+});
+
+  function getDateForDay(dayName) {
+    // Get a date for the given day name within the current week
+    var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    var today = new Date();
+    var currentDay = today.getDay();
+    var targetDay = days.indexOf(dayName);
+
+    if (targetDay === -1) return null;
+
+    var diff = targetDay - currentDay;
+    var targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + diff);
+
+    return targetDate.toISOString().split('T')[0];
+  }
+
+  function getSubjectColor(subject) {
+    var subjectColors = {
+      'Mathematics': '#007bff',
+      'English': '#28a745',
+      'Science': '#ffc107',
+      'Physics': '#17a2b8',
+      'Chemistry': '#fd7e14',
+      'Biology': '#20c997',
+      'History': '#6f42c1',
+      'Geography': '#e83e8c',
+      'Computer': '#6c757d',
+      'Physical Education': '#dc3545'
+    };
+
+    // Check if subject name contains any of the key words
+    for (var key in subjectColors) {
+      if (subject.toLowerCase().includes(key.toLowerCase())) {
+        return subjectColors[key];
+      }
+    }
+
+    return '#6c757d'; // Default gray
+  }
+
+  function showBookingDetails(event) {
+    var modal = document.getElementById('bookingModal');
+    var title = document.getElementById('bookingModalTitle');
+    var body = document.getElementById('bookingModalBody');
+    var viewBtn = document.getElementById('viewTimetableBtn');
+
+    title.textContent = event.extendedProps.class + ' - ' + event.extendedProps.subject;
+
+    body.innerHTML =
+      '<div class="row">' +
+      '<div class="col-sm-4 fw-bold">Class:</div>' +
+      '<div class="col-sm-8">' + event.extendedProps.class + '</div>' +
+      '</div>' +
+      '<div class="row">' +
+      '<div class="col-sm-4 fw-bold">Subject:</div>' +
+      '<div class="col-sm-8">' + event.extendedProps.subject + '</div>' +
+      '</div>' +
+      '<div class="row">' +
+      '<div class="col-sm-4 fw-bold">Teacher:</div>' +
+      '<div class="col-sm-8">' + event.extendedProps.teacher + '</div>' +
+      '</div>' +
+      '<div class="row">' +
+      '<div class="col-sm-4 fw-bold">Time:</div>' +
+      '<div class="col-sm-8">' + event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) +
+      ' - ' + event.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '</div>' +
+      '</div>' +
+      '<div class="row">' +
+      '<div class="col-sm-4 fw-bold">Period:</div>' +
+      '<div class="col-sm-8">Period ' + event.extendedProps.period + '</div>' +
+      '</div>';
+
+    if (event.id && event.id.startsWith('booking_') === false) {
+      viewBtn.href = '{% url "scheduling:timetable_detail" "PLACEHOLDER" %}'.replace('PLACEHOLDER', event.id);
+      viewBtn.style.display = 'inline-block';
+    } else {
+      viewBtn.style.display = 'none';
+    }
+
+    var bootstrapModal = new bootstrap.Modal(modal);
+    bootstrapModal.show();
+  }
+
+  function updateWeeklyStats() {
+    // This would calculate bookings for the current week view
+    // For now, just show a placeholder
+    document.getElementById('weeklyBookings').textContent = Math.floor(Math.random() * 20);
+  }
+
+  function updateUpcomingBookings() {
+    var upcomingDiv = document.getElementById('upcomingBookings');
+
+    // Get next few bookings (mock data for now)
+    var upcoming = [
+      { class: 'Grade 10 A', subject: 'Mathematics', time: '09:00', day: 'Tomorrow' },
+      { class: 'Grade 11 B', subject: 'Physics', time: '11:00', day: 'Tomorrow' },
+      { class: 'Grade 9 C', subject: 'Chemistry', time: '14:00', day: 'Friday' }
+    ];
+
+    if (upcoming.length > 0) {
+      var html = '';
+      upcoming.slice(0, 3).forEach(function (booking) {
+        html +=
+          '<div class="border-bottom pb-2 mb-2">' +
+          '<div class="fw-bold small">' + booking.class + '</div>' +
+          '<div class="text-muted small">' + booking.subject + '</div>' +
+          '<div class="text-primary small">' + booking.day + ' ' + booking.time + '</div>' +
+          '</div>';
+      });
+      upcomingDiv.innerHTML = html;
+    } else {
+      upcomingDiv.innerHTML = '<div class="text-center text-muted"><small>No upcoming bookings</small></div>';
+    }
+  }
+</script>
+{% endblock %}

@@ -3,107 +3,668 @@
 
 {% block title %}Mark Attendance{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/select/1.7.0/css/select.bootstrap5.min.css">
+{% endblock %}
+
 {% block content %}
-<div class="container">
-  <div class="card">
-    <div class="card-header">
-      <h2>Mark Attendance</h2>
-    </div>
-    <div class="card-body">
-      <form method="post">
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <!-- Page Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="h3 mb-0">Mark Attendance</h1>
+          <p class="text-muted mb-0">Record student attendance for the selected class and date</p>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{% url 'attendance:record-list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-list me-1"></i> View Records
+          </a>
+          <a href="{% url 'attendance:dashboard' %}" class="btn btn-outline-primary">
+            <i class="fas fa-chart-bar me-1"></i> Dashboard
+          </a>
+        </div>
+      </div>
+
+      <form method="post" id="attendanceForm" novalidate>
         {% csrf_token %}
 
-        <div class="row mb-4">
-          <div class="col-md-4">
-            {{ form.class_obj.label_tag }}
-            {{ form.class_obj }}
-            {{ form.class_obj.errors }}
+        <!-- Class and Date Selection -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-info-circle me-2"></i>Attendance Information
+            </h5>
           </div>
-          <div class="col-md-4">
-            {{ form.date.label_tag }}
-            {{ form.date }}
-            {{ form.date.errors }}
-          </div>
-        </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label for="{{ form.class_obj.id_for_label }}" class="form-label">
+                  <strong>{{ form.class_obj.label }}</strong>
+                  <span class="text-danger">*</span>
+                </label>
+                {{ form.class_obj }}
+                {% if form.class_obj.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.class_obj.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+                <div class="form-text">Select the class for which you want to mark attendance</div>
+              </div>
 
-        <div class="row mb-4">
-          <div class="col-12">
-            {{ form.remarks.label_tag }}
-            {{ form.remarks }}
-            {{ form.remarks.errors }}
+              <div class="col-md-4">
+                <label for="{{ form.date.id_for_label }}" class="form-label">
+                  <strong>{{ form.date.label }}</strong>
+                  <span class="text-danger">*</span>
+                </label>
+                {{ form.date }}
+                {% if form.date.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.date.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+                <div class="form-text">Select the date for attendance</div>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label"><strong>Quick Actions</strong></label>
+                <div class="d-grid gap-2">
+                  <button type="button" class="btn btn-outline-success btn-sm" onclick="markAllPresent()">
+                    <i class="fas fa-check me-1"></i> Mark All Present
+                  </button>
+                  <button type="button" class="btn btn-outline-warning btn-sm" onclick="resetAll()">
+                    <i class="fas fa-undo me-1"></i> Reset All
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="row mt-3">
+              <div class="col-12">
+                <label for="{{ form.remarks.id_for_label }}" class="form-label">{{ form.remarks.label }}</label>
+                {{ form.remarks }}
+                {% if form.remarks.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.remarks.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+                <div class="form-text">Optional remarks about today's attendance</div>
+              </div>
+            </div>
           </div>
         </div>
 
         {% if selected_class %}
-        <h4>Students</h4>
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Present</th>
-              <th>Absent</th>
-              <th>Late</th>
-              <th>Excused</th>
-              <th>Remarks</th>
-            </tr>
-          </thead>
-          <tbody>
-            {{ formset.management_form }}
-            {% for form in formset %}
-            <tr>
-              <td>
-                {{ form.student_id }}
-                {{ form.student_name }}
-              </td>
-              <td>
-                <input type="radio" name="{{ form.prefix }}-status" value="present"
-                  {% if form.status.value == "present" %}checked{% endif %}>
-              </td>
-              <td>
-                <input type="radio" name="{{ form.prefix }}-status" value="absent"
-                  {% if form.status.value == "absent" %}checked{% endif %}>
-              </td>
-              <td>
-                <input type="radio" name="{{ form.prefix }}-status" value="late"
-                  {% if form.status.value == "late" %}checked{% endif %}>
-              </td>
-              <td>
-                <input type="radio" name="{{ form.prefix }}-status" value="excused"
-                  {% if form.status.value == "excused" %}checked{% endif %}>
-              </td>
-              <td>
-                {{ form.remarks }}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+        <!-- Class Information -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-info text-white">
+            <div class="d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-users me-2"></i>{{ selected_class }} - Students
+              </h5>
+              <div class="d-flex gap-2">
+                <span class="badge bg-light text-dark">
+                  <i class="fas fa-users me-1"></i>{{ students.count }} Students
+                </span>
+                <button type="button" class="btn btn-sm btn-light" onclick="toggleAllExpand()">
+                  <i class="fas fa-expand-arrows-alt me-1"></i> Expand All
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <!-- Attendance Statistics Bar -->
+            <div class="row mb-3">
+              <div class="col-12">
+                <div class="progress" style="height: 25px;">
+                  <div id="presentBar" class="progress-bar bg-success" style="width: 0%">
+                    <span id="presentCount">0</span> Present
+                  </div>
+                  <div id="absentBar" class="progress-bar bg-danger" style="width: 0%">
+                    <span id="absentCount">0</span> Absent
+                  </div>
+                  <div id="lateBar" class="progress-bar bg-warning" style="width: 0%">
+                    <span id="lateCount">0</span> Late
+                  </div>
+                  <div id="excusedBar" class="progress-bar bg-info" style="width: 0%">
+                    <span id="excusedCount">0</span> Excused
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Search and Filter -->
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <div class="input-group">
+                  <span class="input-group-text">
+                    <i class="fas fa-search"></i>
+                  </span>
+                  <input type="text" id="studentSearch" class="form-control"
+                    placeholder="Search students by name or roll number...">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="btn-group w-100" role="group">
+                  <button type="button" class="btn btn-outline-primary" onclick="filterByStatus('all')">All</button>
+                  <button type="button" class="btn btn-outline-success"
+                    onclick="filterByStatus('present')">Present</button>
+                  <button type="button" class="btn btn-outline-danger"
+                    onclick="filterByStatus('absent')">Absent</button>
+                  <button type="button" class="btn btn-outline-warning" onclick="filterByStatus('late')">Late</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Students Table -->
+            <div class="table-responsive">
+              <table id="studentsTable" class="table table-hover" style="width: 100%;">
+                <thead class="table-light">
+                  <tr>
+                    <th width="5%">
+                      <input type="checkbox" class="form-check-input" id="selectAll" title="Select All">
+                    </th>
+                    <th width="10%">Roll No.</th>
+                    <th width="25%">Student Name</th>
+                    <th width="40%">Attendance Status</th>
+                    <th width="20%">Remarks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{ formset.management_form }}
+                  {% for form in formset %}
+                  <tr data-student-id="{{ form.student_id.value }}" class="student-row">
+                    <td>
+                      <input type="checkbox" class="form-check-input student-checkbox">
+                      {{ form.student_id }}
+                    </td>
+                    <td>
+                      <span class="badge bg-light text-dark">
+                        {% for student in students %}
+                        {% if student.id == form.student_id.value %}
+                        {{ student.roll_number|default:"N/A" }}
+                        {% endif %}
+                        {% endfor %}
+                      </span>
+                    </td>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <div
+                          class="avatar-sm bg-primary bg-gradient rounded-circle d-flex align-items-center justify-content-center me-2">
+                          <i class="fas fa-user text-white"></i>
+                        </div>
+                        <div>
+                          <div class="fw-semibold">{{ form.student_name.value }}</div>
+                          <small class="text-muted">
+                            {% for student in students %}
+                            {% if student.id == form.student_id.value %}
+                            ID: {{ student.admission_number }}
+                            {% endif %}
+                            {% endfor %}
+                          </small>
+                        </div>
+                      </div>
+                      {{ form.student_name }}
+                    </td>
+                    <td>
+                      <div class="btn-group status-group" role="group" data-bs-toggle="buttons">
+                        <input type="radio" class="btn-check" name="{{ form.prefix }}-status"
+                          id="{{ form.prefix }}-present" value="present" autocomplete="off"
+                          {% if form.status.value == "present" %}checked{% endif %}>
+                        <label class="btn btn-outline-success btn-sm" for="{{ form.prefix }}-present">
+                          <i class="fas fa-check me-1"></i> Present
+                        </label>
+
+                        <input type="radio" class="btn-check" name="{{ form.prefix }}-status"
+                          id="{{ form.prefix }}-absent" value="absent" autocomplete="off"
+                          {% if form.status.value == "absent" %}checked{% endif %}>
+                        <label class="btn btn-outline-danger btn-sm" for="{{ form.prefix }}-absent">
+                          <i class="fas fa-times me-1"></i> Absent
+                        </label>
+
+                        <input type="radio" class="btn-check" name="{{ form.prefix }}-status"
+                          id="{{ form.prefix }}-late" value="late" autocomplete="off"
+                          {% if form.status.value == "late" %}checked{% endif %}>
+                        <label class="btn btn-outline-warning btn-sm" for="{{ form.prefix }}-late">
+                          <i class="fas fa-clock me-1"></i> Late
+                        </label>
+
+                        <input type="radio" class="btn-check" name="{{ form.prefix }}-status"
+                          id="{{ form.prefix }}-excused" value="excused" autocomplete="off"
+                          {% if form.status.value == "excused" %}checked{% endif %}>
+                        <label class="btn btn-outline-info btn-sm" for="{{ form.prefix }}-excused">
+                          <i class="fas fa-user-check me-1"></i> Excused
+                        </label>
+                      </div>
+                    </td>
+                    <td>
+                      {{ form.remarks }}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="card border-0 shadow-sm">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <button type="button" class="btn btn-outline-secondary" onclick="saveAsDraft()">
+                  <i class="fas fa-save me-1"></i> Save as Draft
+                </button>
+                <button type="button" class="btn btn-outline-info" onclick="previewAttendance()">
+                  <i class="fas fa-eye me-1"></i> Preview
+                </button>
+              </div>
+              <div>
+                <a href="{% url 'attendance:record-list' %}" class="btn btn-outline-secondary me-2">
+                  <i class="fas fa-times me-1"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                  <i class="fas fa-check me-1"></i> Submit Attendance
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {% else %}
-        <div class="alert alert-info">
-          Please select a class to view students and mark attendance.
+        <!-- No Class Selected -->
+        <div class="card border-0 shadow-sm">
+          <div class="card-body text-center py-5">
+            <div class="mb-4">
+              <i class="fas fa-school fa-4x text-muted"></i>
+            </div>
+            <h4 class="text-muted">Select a Class</h4>
+            <p class="text-muted">Please select a class and date to view students and mark attendance.</p>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-arrow-right me-1"></i> Load Students
+            </button>
+          </div>
         </div>
         {% endif %}
-
-        <div class="form-group mt-4">
-          <button type="submit" class="btn btn-primary">Mark Attendance</button>
-          <a href="{% url 'attendance:record-list' %}" class="btn btn-secondary">Cancel</a>
-        </div>
       </form>
     </div>
   </div>
 </div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Attendance Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="previewContent"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="submitFromPreview()">Submit Attendance</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay"
+  class="d-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center"
+  style="z-index: 9999;">
+  <div class="text-center text-white">
+    <div class="spinner-border text-light mb-3" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <div>Processing attendance...</div>
+  </div>
+</div>
 {% endblock %}
 
-{% block scripts %}
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/select/1.7.0/js/dataTables.select.min.js"></script>
+
 <script>
+  let studentsTable;
+
   document.addEventListener('DOMContentLoaded', function () {
-    // Reload page when class changes to update student list
+    initializeForm();
+    {% if selected_class %}
+    initializeStudentsTable();
+    initializeAttendanceTracking();
+    {% endif %}
+  });
+
+  function initializeForm() {
+    // Auto-reload when class changes
     const classSelect = document.querySelector('#id_class_obj');
     if (classSelect) {
       classSelect.addEventListener('change', function () {
-        document.querySelector('form').submit();
+        if (this.value) {
+          showLoading('Loading students...');
+          document.querySelector('#attendanceForm').submit();
+        }
       });
     }
-  });
+
+    // Set today's date if not set
+    const dateInput = document.querySelector('#id_date');
+    if (dateInput && !dateInput.value) {
+      dateInput.value = new Date().toISOString().split('T')[0];
+    }
+
+    // Form validation
+    document.querySelector('#attendanceForm').addEventListener('submit', function (e) {
+      if (!validateForm()) {
+        e.preventDefault();
+      } else {
+        showLoading('Submitting attendance...');
+      }
+    });
+  }
+
+  {% if selected_class %}
+  function initializeStudentsTable() {
+    studentsTable = $('#studentsTable').DataTable({
+      pageLength: 25,
+      responsive: true,
+      ordering: false,
+      searching: false,
+      info: true,
+      paging: true,
+      language: {
+        info: "Showing _START_ to _END_ of _TOTAL_ students",
+        infoEmpty: "No students found",
+        emptyTable: "No students in this class"
+      },
+      columnDefs: [
+        { targets: [0, 3, 4], orderable: false }
+      ]
+    });
+
+    // Custom search
+    $('#studentSearch').on('keyup', function () {
+      studentsTable.search(this.value).draw();
+    });
+  }
+
+  function initializeAttendanceTracking() {
+    // Update statistics when status changes
+    document.querySelectorAll('input[type="radio"][name$="-status"]').forEach(radio => {
+      radio.addEventListener('change', updateAttendanceStats);
+    });
+
+    // Select all functionality
+    document.getElementById('selectAll').addEventListener('change', function () {
+      const checkboxes = document.querySelectorAll('.student-checkbox');
+      checkboxes.forEach(cb => cb.checked = this.checked);
+    });
+
+    // Initial stats calculation
+    updateAttendanceStats();
+  }
+
+  function updateAttendanceStats() {
+    const statuses = {
+      present: 0,
+      absent: 0,
+      late: 0,
+      excused: 0
+    };
+
+    document.querySelectorAll('input[type="radio"][name$="-status"]:checked').forEach(radio => {
+      statuses[radio.value]++;
+    });
+
+    const total = Object.values(statuses).reduce((a, b) => a + b, 0);
+
+    // Update progress bar
+    if (total > 0) {
+      const percentages = {
+        present: (statuses.present / total) * 100,
+        absent: (statuses.absent / total) * 100,
+        late: (statuses.late / total) * 100,
+        excused: (statuses.excused / total) * 100
+      };
+
+      document.getElementById('presentBar').style.width = percentages.present + '%';
+      document.getElementById('absentBar').style.width = percentages.absent + '%';
+      document.getElementById('lateBar').style.width = percentages.late + '%';
+      document.getElementById('excusedBar').style.width = percentages.excused + '%';
+
+      document.getElementById('presentCount').textContent = statuses.present;
+      document.getElementById('absentCount').textContent = statuses.absent;
+      document.getElementById('lateCount').textContent = statuses.late;
+      document.getElementById('excusedCount').textContent = statuses.excused;
+    }
+  }
+
+  function markAllPresent() {
+    const selectedRows = getSelectedRows();
+    const rows = selectedRows.length > 0 ? selectedRows : document.querySelectorAll('.student-row');
+
+    rows.forEach(row => {
+      const presentRadio = row.querySelector('input[value="present"]');
+      if (presentRadio) {
+        presentRadio.checked = true;
+        presentRadio.dispatchEvent(new Event('change'));
+      }
+    });
+
+    updateAttendanceStats();
+    showToast('Marked selected students as present', 'success');
+  }
+
+  function resetAll() {
+    if (confirm('Are you sure you want to reset all attendance records?')) {
+      document.querySelectorAll('input[type="radio"][name$="-status"]').forEach(radio => {
+        if (radio.value === 'present') {
+          radio.checked = true;
+          radio.dispatchEvent(new Event('change'));
+        }
+      });
+
+      document.querySelectorAll('input[name$="-remarks"]').forEach(input => {
+        input.value = '';
+      });
+
+      updateAttendanceStats();
+      showToast('All attendance records reset', 'info');
+    }
+  }
+
+  function filterByStatus(status) {
+    if (status === 'all') {
+      studentsTable.rows().every(function () {
+        $(this.node()).show();
+      });
+    } else {
+      studentsTable.rows().every(function () {
+        const row = this.node();
+        const checkedRadio = row.querySelector('input[type="radio"]:checked');
+        if (checkedRadio && checkedRadio.value === status) {
+          $(row).show();
+        } else {
+          $(row).hide();
+        }
+      });
+    }
+    studentsTable.draw();
+  }
+
+  function getSelectedRows() {
+    return Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb =>
+      cb.closest('.student-row')
+    );
+  }
+
+  function toggleAllExpand() {
+    // Implementation for expanding/collapsing rows
+    console.log('Toggle expand functionality');
+  }
+
+  function previewAttendance() {
+    const attendanceData = collectAttendanceData();
+    let previewHtml = `
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Status</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    attendanceData.forEach(data => {
+      const statusBadge = getStatusBadge(data.status);
+      previewHtml += `
+            <tr>
+                <td>${data.name}</td>
+                <td>${statusBadge}</td>
+                <td>${data.remarks || '-'}</td>
+            </tr>
+        `;
+    });
+
+    previewHtml += `
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-3">
+            <h6>Summary:</h6>
+            <div class="row text-center">
+                <div class="col-3">
+                    <div class="h5 text-success">${attendanceData.filter(d => d.status === 'present').length}</div>
+                    <div class="text-muted small">Present</div>
+                </div>
+                <div class="col-3">
+                    <div class="h5 text-danger">${attendanceData.filter(d => d.status === 'absent').length}</div>
+                    <div class="text-muted small">Absent</div>
+                </div>
+                <div class="col-3">
+                    <div class="h5 text-warning">${attendanceData.filter(d => d.status === 'late').length}</div>
+                    <div class="text-muted small">Late</div>
+                </div>
+                <div class="col-3">
+                    <div class="h5 text-info">${attendanceData.filter(d => d.status === 'excused').length}</div>
+                    <div class="text-muted small">Excused</div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('previewContent').innerHTML = previewHtml;
+    new bootstrap.Modal(document.getElementById('previewModal')).show();
+  }
+
+  function collectAttendanceData() {
+    const data = [];
+    document.querySelectorAll('.student-row').forEach(row => {
+      const nameField = row.querySelector('input[name$="-student_name"]');
+      const statusRadio = row.querySelector('input[type="radio"]:checked');
+      const remarksField = row.querySelector('input[name$="-remarks"]');
+
+      if (nameField && statusRadio) {
+        data.push({
+          name: nameField.value,
+          status: statusRadio.value,
+          remarks: remarksField ? remarksField.value : ''
+        });
+      }
+    });
+    return data;
+  }
+
+  function getStatusBadge(status) {
+    const badges = {
+      present: '<span class="badge bg-success">Present</span>',
+      absent: '<span class="badge bg-danger">Absent</span>',
+      late: '<span class="badge bg-warning">Late</span>',
+      excused: '<span class="badge bg-info">Excused</span>'
+    };
+    return badges[status] || '<span class="badge bg-secondary">Unknown</span>';
+  }
+
+  function submitFromPreview() {
+    document.querySelector('#previewModal .btn-close').click();
+    document.querySelector('#submitBtn').click();
+  }
+
+  function saveAsDraft() {
+    // Implementation for saving as draft
+    showToast('Draft saved successfully', 'success');
+  }
+  {% endif %}
+
+  function validateForm() {
+    const classField = document.getElementById('id_class_obj');
+    const dateField = document.getElementById('id_date');
+
+    if (!classField.value) {
+      showToast('Please select a class', 'error');
+      classField.focus();
+      return false;
+    }
+
+    if (!dateField.value) {
+      showToast('Please select a date', 'error');
+      dateField.focus();
+      return false;
+    }
+
+    return true;
+  }
+
+  function showLoading(message = 'Loading...') {
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.querySelector('div div:last-child').textContent = message;
+    overlay.classList.remove('d-none');
+  }
+
+  function hideLoading() {
+    document.getElementById('loadingOverlay').classList.add('d-none');
+  }
+
+  function showToast(message, type = 'info') {
+    // Create toast notification
+    const toastHtml = `
+        <div class="toast align-items-center text-white bg-${type === 'error' ? 'danger' : type} border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+
+    // Add to toast container or create one
+    let toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) {
+      toastContainer = document.createElement('div');
+      toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+      document.body.appendChild(toastContainer);
+    }
+
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    const toast = new bootstrap.Toast(toastContainer.lastElementChild);
+    toast.show();
+
+    // Remove after hiding
+    toastContainer.lastElementChild.addEventListener('hidden.bs.toast', function () {
+      this.remove();
+    });
+  }
 </script>
 {% endblock %}

@@ -1,0 +1,646 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Process Payment{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2.min.css">
+<link rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2-bootstrap-5-theme.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-sm-6">
+      <h1 class="h3 mb-3">Process Payment</h1>
+    </div>
+    <div class="col-sm-6 text-end">
+      <a href="{% url 'finance:payment-list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-list me-2"></i>View All Payments
+      </a>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-8">
+      <!-- Payment Form -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-credit-card me-2"></i>Payment Details
+          </h5>
+        </div>
+        <div class="card-body">
+          <form id="paymentForm" method="post">
+            {% csrf_token %}
+
+            <!-- Invoice Selection -->
+            <div class="row mb-4">
+              <div class="col-md-12">
+                <label for="{{ form.invoice.id_for_label }}" class="form-label">
+                  Select Invoice <span class="text-danger">*</span>
+                </label>
+                {{ form.invoice }}
+                {% if form.invoice.errors %}
+                <div class="text-danger small">
+                  {% for error in form.invoice.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+                <small class="form-text text-muted">
+                  Search by invoice number, student name, or admission number
+                </small>
+              </div>
+            </div>
+
+            <!-- Invoice Details Card (Hidden initially) -->
+            <div id="invoiceDetails" class="card mb-4" style="display: none;">
+              <div class="card-header bg-light">
+                <h6 class="card-title mb-0">Invoice Information</h6>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <p><strong>Student:</strong> <span id="studentName">-</span></p>
+                    <p><strong>Invoice Number:</strong> <span id="invoiceNumber">-</span></p>
+                    <p><strong>Due Date:</strong> <span id="dueDate">-</span></p>
+                  </div>
+                  <div class="col-md-6">
+                    <p><strong>Net Amount:</strong> <span id="netAmount" class="text-info">$0.00</span></p>
+                    <p><strong>Paid Amount:</strong> <span id="paidAmount" class="text-success">$0.00</span></p>
+                    <p><strong>Outstanding:</strong> <span id="outstandingAmount" class="text-danger">$0.00</span></p>
+                  </div>
+                </div>
+                <div id="overdueAlert" class="alert alert-warning" style="display: none;">
+                  <i class="fas fa-exclamation-triangle me-2"></i>
+                  This invoice is overdue. Late fees may apply.
+                </div>
+              </div>
+            </div>
+
+            <!-- Payment Information -->
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="{{ form.amount.id_for_label }}" class="form-label">
+                  Payment Amount <span class="text-danger">*</span>
+                </label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  {{ form.amount }}
+                  <button type="button" class="btn btn-outline-secondary" id="fullPaymentBtn" disabled>
+                    Full Payment
+                  </button>
+                </div>
+                {% if form.amount.errors %}
+                <div class="text-danger small">
+                  {% for error in form.amount.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="{{ form.payment_method.id_for_label }}" class="form-label">
+                  Payment Method <span class="text-danger">*</span>
+                </label>
+                {{ form.payment_method }}
+                {% if form.payment_method.errors %}
+                <div class="text-danger small">
+                  {% for error in form.payment_method.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Additional Payment Details -->
+            <div class="row mb-3" id="additionalFields">
+              <div class="col-md-6">
+                <label for="{{ form.transaction_id.id_for_label }}" class="form-label">
+                  Transaction ID
+                </label>
+                {{ form.transaction_id }}
+                {% if form.transaction_id.errors %}
+                <div class="text-danger small">
+                  {% for error in form.transaction_id.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+                <small class="form-text text-muted" id="transactionIdHelp">
+                  Required for card and online payments
+                </small>
+              </div>
+              <div class="col-md-6">
+                <label for="{{ form.reference_number.id_for_label }}" class="form-label">
+                  Reference Number
+                </label>
+                {{ form.reference_number }}
+                {% if form.reference_number.errors %}
+                <div class="text-danger small">
+                  {% for error in form.reference_number.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+                <small class="form-text text-muted" id="referenceHelp">
+                  Required for bank transfers and cheques
+                </small>
+              </div>
+            </div>
+
+            <!-- Remarks -->
+            <div class="mb-4">
+              <label for="{{ form.remarks.id_for_label }}" class="form-label">Remarks</label>
+              {{ form.remarks }}
+              {% if form.remarks.errors %}
+              <div class="text-danger small">
+                {% for error in form.remarks.errors %}{{ error }}{% endfor %}
+              </div>
+              {% endif %}
+            </div>
+
+            <!-- Payment Summary -->
+            <div id="paymentSummary" class="card bg-light mb-4" style="display: none;">
+              <div class="card-body">
+                <h6>Payment Summary</h6>
+                <div class="row">
+                  <div class="col-md-6">
+                    <p class="mb-1"><strong>Payment Amount:</strong> <span id="summaryAmount">$0.00</span></p>
+                    <p class="mb-1"><strong>Payment Method:</strong> <span id="summaryMethod">-</span></p>
+                  </div>
+                  <div class="col-md-6">
+                    <p class="mb-1"><strong>New Outstanding:</strong> <span id="newOutstanding">$0.00</span></p>
+                    <p class="mb-1"><strong>Status After Payment:</strong> <span id="newStatus" class="badge">-</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="d-flex justify-content-between">
+              <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                <i class="fas fa-undo me-2"></i>Reset Form
+              </button>
+              <div>
+                <button type="button" class="btn btn-outline-primary me-2" onclick="previewPayment()">
+                  <i class="fas fa-eye me-2"></i>Preview
+                </button>
+                <button type="submit" class="btn btn-success" id="submitBtn" disabled>
+                  <i class="fas fa-credit-card me-2"></i>Process Payment
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+      <!-- Recent Payments -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-history me-2"></i>Recent Payments
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush" id="recentPayments">
+            <!-- Recent payments will be loaded here -->
+          </div>
+          <div class="text-center mt-3">
+            <a href="{% url 'finance:payment-list' %}" class="btn btn-outline-primary btn-sm">
+              View All Payments
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Search -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-search me-2"></i>Quick Search
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="studentSearch" class="form-label">Search Student</label>
+            <input type="text" class="form-control" id="studentSearch"
+              placeholder="Enter student name or admission number">
+          </div>
+          <div id="studentResults" class="list-group" style="display: none;">
+            <!-- Search results will appear here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Statistics -->
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-chart-bar me-2"></i>Today's Collections
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="text-center">
+            <h4 class="text-primary" id="todayTotal">$0.00</h4>
+            <p class="text-muted mb-0" id="todayCount">0 payments</p>
+          </div>
+          <hr>
+          <div class="row text-center">
+            <div class="col-6">
+              <small class="text-muted">Cash</small>
+              <h6 id="todayCash">$0.00</h6>
+            </div>
+            <div class="col-6">
+              <small class="text-muted">Card/Online</small>
+              <h6 id="todayCard">$0.00</h6>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="successModalLabel">
+          <i class="fas fa-check-circle me-2"></i>Payment Processed Successfully
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-center">
+          <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+          <h5>Payment Confirmed</h5>
+          <p class="mb-3">Receipt Number: <strong id="receiptNumber">-</strong></p>
+          <p class="text-muted">The payment has been recorded and the invoice updated.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="printReceipt()">
+          <i class="fas fa-print me-2"></i>Print Receipt
+        </button>
+        <button type="button" class="btn btn-success" onclick="processAnother()">
+          <i class="fas fa-plus me-2"></i>Process Another
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/select2.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize Select2 for invoice selection
+    $('#id_invoice').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Search and select invoice...',
+      allowClear: true,
+      ajax: {
+        url: '{% url "finance:search-invoices" %}',
+        dataType: 'json',
+        delay: 250,
+        data: function (params) {
+          return {
+            q: params.term,
+            page: params.page
+          };
+        },
+        processResults: function (data, params) {
+          params.page = params.page || 1;
+          return {
+            results: data.invoices.map(function (invoice) {
+              return {
+                id: invoice.id,
+                text: `${invoice.invoice_number} - ${invoice.student_name} ($${invoice.outstanding_amount})`
+              };
+            }),
+            pagination: {
+              more: (params.page * 30) < data.total_count
+            }
+          };
+        },
+        cache: true
+      }
+    });
+
+    // Load invoice details when selected
+    $('#id_invoice').on('change', function () {
+      const invoiceId = $(this).val();
+      if (invoiceId) {
+        loadInvoiceDetails(invoiceId);
+      } else {
+        hideInvoiceDetails();
+      }
+    });
+
+    // Payment method change handler
+    $('#id_payment_method').on('change', function () {
+      updateRequiredFields();
+      updatePaymentSummary();
+    });
+
+    // Amount change handler
+    $('#id_amount').on('input', function () {
+      updatePaymentSummary();
+    });
+
+    // Full payment button
+    $('#fullPaymentBtn').on('click', function () {
+      const outstanding = parseFloat($('#outstandingAmount').text().replace('$', ''));
+      $('#id_amount').val(outstanding.toFixed(2));
+      updatePaymentSummary();
+    });
+
+    // Student search
+    $('#studentSearch').on('input', debounce(function () {
+      searchStudents($(this).val());
+    }, 300));
+
+    // Form submission
+    $('#paymentForm').on('submit', function (e) {
+      e.preventDefault();
+      submitPayment();
+    });
+
+    // Load initial data
+    loadRecentPayments();
+    loadTodayStats();
+  });
+
+  function loadInvoiceDetails(invoiceId) {
+    fetch(`{% url 'finance:ajax-invoice-details' %}?invoice_id=${invoiceId}`)
+      .then(response => response.json())
+      .then(data => {
+        $('#studentName').text(data.student_name);
+        $('#invoiceNumber').text(data.invoice_number || '-');
+        $('#dueDate').text(data.due_date || '-');
+        $('#netAmount').text(`$${parseFloat(data.net_amount).toFixed(2)}`);
+        $('#paidAmount').text(`$${parseFloat(data.paid_amount).toFixed(2)}`);
+        $('#outstandingAmount').text(`$${parseFloat(data.outstanding_amount).toFixed(2)}`);
+
+        // Set max amount and enable full payment button
+        $('#id_amount').attr('max', data.outstanding_amount);
+        $('#fullPaymentBtn').prop('disabled', false);
+
+        // Show overdue alert if applicable
+        if (data.status === 'overdue') {
+          $('#overdueAlert').show();
+        } else {
+          $('#overdueAlert').hide();
+        }
+
+        $('#invoiceDetails').show();
+        $('#submitBtn').prop('disabled', false);
+
+        updatePaymentSummary();
+      })
+      .catch(error => {
+        console.error('Error loading invoice details:', error);
+        alert('Error loading invoice details');
+      });
+  }
+
+  function hideInvoiceDetails() {
+    $('#invoiceDetails').hide();
+    $('#paymentSummary').hide();
+    $('#submitBtn').prop('disabled', true);
+    $('#fullPaymentBtn').prop('disabled', true);
+  }
+
+  function updateRequiredFields() {
+    const method = $('#id_payment_method').val();
+    const transactionField = $('#id_transaction_id');
+    const referenceField = $('#id_reference_number');
+
+    // Reset required attributes
+    transactionField.prop('required', false);
+    referenceField.prop('required', false);
+
+    // Set requirements based on payment method
+    if (['credit_card', 'debit_card', 'online', 'mobile_payment'].includes(method)) {
+      transactionField.prop('required', true);
+      $('#transactionIdHelp').show();
+    } else {
+      $('#transactionIdHelp').hide();
+    }
+
+    if (['bank_transfer', 'cheque'].includes(method)) {
+      referenceField.prop('required', true);
+      $('#referenceHelp').show();
+    } else {
+      $('#referenceHelp').hide();
+    }
+  }
+
+  function updatePaymentSummary() {
+    const amount = parseFloat($('#id_amount').val()) || 0;
+    const method = $('#id_payment_method option:selected').text();
+    const outstanding = parseFloat($('#outstandingAmount').text().replace('$', '')) || 0;
+
+    if (amount > 0 && outstanding > 0) {
+      const newOutstanding = Math.max(0, outstanding - amount);
+      let newStatus = 'Unpaid';
+      let statusClass = 'bg-primary';
+
+      if (newOutstanding === 0) {
+        newStatus = 'Paid';
+        statusClass = 'bg-success';
+      } else if (newOutstanding < outstanding) {
+        newStatus = 'Partially Paid';
+        statusClass = 'bg-warning';
+      }
+
+      $('#summaryAmount').text(`$${amount.toFixed(2)}`);
+      $('#summaryMethod').text(method);
+      $('#newOutstanding').text(`$${newOutstanding.toFixed(2)}`);
+      $('#newStatus').text(newStatus).attr('class', `badge ${statusClass}`);
+
+      $('#paymentSummary').show();
+    } else {
+      $('#paymentSummary').hide();
+    }
+  }
+
+  function previewPayment() {
+    updatePaymentSummary();
+    if ($('#paymentSummary').is(':visible')) {
+      $('html, body').animate({
+        scrollTop: $('#paymentSummary').offset().top - 100
+      }, 500);
+    }
+  }
+
+  function submitPayment() {
+    const formData = new FormData(document.getElementById('paymentForm'));
+
+    // Show loading state
+    $('#submitBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Processing...');
+
+    fetch('{% url "finance:payment-process" %}', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          $('#receiptNumber').text(data.receipt_number);
+          const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+          successModal.show();
+
+          // Reset form
+          resetForm();
+          loadRecentPayments();
+          loadTodayStats();
+        } else {
+          alert('Error processing payment: ' + (data.error || 'Unknown error'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error processing payment');
+      })
+      .finally(() => {
+        $('#submitBtn').prop('disabled', false).html('<i class="fas fa-credit-card me-2"></i>Process Payment');
+      });
+  }
+
+  function resetForm() {
+    $('#paymentForm')[0].reset();
+    $('#id_invoice').val(null).trigger('change');
+    hideInvoiceDetails();
+    $('#paymentSummary').hide();
+  }
+
+  function searchStudents(query) {
+    if (query.length < 2) {
+      $('#studentResults').hide();
+      return;
+    }
+
+    fetch(`{% url 'finance:search-students' %}?q=${encodeURIComponent(query)}`)
+      .then(response => response.json())
+      .then(data => {
+        const results = $('#studentResults');
+        results.empty();
+
+        if (data.students.length > 0) {
+          data.students.forEach(student => {
+            const item = $(`
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">${student.name}</h6>
+                                <small>${student.class}</small>
+                            </div>
+                            <small class="text-muted">${student.admission_number}</small>
+                        </a>
+                    `);
+
+            item.on('click', function (e) {
+              e.preventDefault();
+              // Load student's unpaid invoices
+              loadStudentInvoices(student.id);
+              results.hide();
+            });
+
+            results.append(item);
+          });
+          results.show();
+        } else {
+          results.hide();
+        }
+      });
+  }
+
+  function loadStudentInvoices(studentId) {
+    // This would load unpaid invoices for the selected student
+    // and populate the invoice dropdown
+  }
+
+  function loadRecentPayments() {
+    fetch('{% url "finance:payment-list" %}?format=json&limit=5')
+      .then(response => response.json())
+      .then(data => {
+        const container = $('#recentPayments');
+        container.empty();
+
+        if (data.results && data.results.length > 0) {
+          data.results.forEach(payment => {
+            const item = $(`
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">${payment.receipt_number}</h6>
+                                <small>$${parseFloat(payment.amount).toFixed(2)}</small>
+                            </div>
+                            <p class="mb-1">${payment.student_name}</p>
+                            <small class="text-muted">${new Date(payment.payment_date).toLocaleDateString()}</small>
+                        </div>
+                    `);
+            container.append(item);
+          });
+        } else {
+          container.html('<p class="text-muted text-center">No recent payments</p>');
+        }
+      });
+  }
+
+  function loadTodayStats() {
+    const today = new Date().toISOString().split('T')[0];
+    fetch(`{% url 'finance:collection-metrics' %}?date_from=${today}&date_to=${today}`)
+      .then(response => response.json())
+      .then(data => {
+        $('#todayTotal').text(`$${(data.total_amount || 0).toFixed(2)}`);
+        $('#todayCount').text(`${data.payment_count || 0} payments`);
+
+        // Update method breakdown
+        let cashTotal = 0;
+        let cardTotal = 0;
+
+        if (data.method_breakdown) {
+          data.method_breakdown.forEach(method => {
+            if (method.payment_method === 'cash') {
+              cashTotal = method.total_amount;
+            } else {
+              cardTotal += method.total_amount;
+            }
+          });
+        }
+
+        $('#todayCash').text(`$${cashTotal.toFixed(2)}`);
+        $('#todayCard').text(`$${cardTotal.toFixed(2)}`);
+      });
+  }
+
+  function processAnother() {
+    bootstrap.Modal.getInstance(document.getElementById('successModal')).hide();
+    resetForm();
+  }
+
+  function printReceipt() {
+    const receiptNumber = $('#receiptNumber').text();
+    window.open(`/finance/payments/receipt/${receiptNumber}/`, '_blank');
+  }
+
+  // Utility function for debouncing
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+</script>
+{% endblock %}

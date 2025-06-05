@@ -1,0 +1,509 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Scholarship Report - Finance{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Scholarship Report</h2>
+          <p class="text-muted mb-0">Scholarship utilization and impact analysis</p>
+        </div>
+        <div>
+          <button class="btn btn-outline-primary me-2" id="refreshData">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+          <button class="btn btn-success" id="exportReport">
+            <i class="fas fa-download"></i> Export
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <form id="filterForm" class="row g-3">
+            <div class="col-md-4">
+              <label for="academicYear" class="form-label">Academic Year</label>
+              <select class="form-select" id="academicYear" name="academic_year">
+                <option value="">Select Academic Year</option>
+                <!-- Options populated via JavaScript -->
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label for="term" class="form-label">Term</label>
+              <select class="form-select" id="term" name="term">
+                <option value="">All Terms</option>
+                <!-- Options populated via JavaScript -->
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label for="criteria" class="form-label">Scholarship Criteria</label>
+              <select class="form-select" id="criteria" name="criteria">
+                <option value="">All Criteria</option>
+                <option value="merit">Merit-based</option>
+                <option value="need">Need-based</option>
+                <option value="sports">Sports Excellence</option>
+                <option value="arts">Arts Excellence</option>
+                <option value="sibling">Sibling Discount</option>
+                <option value="staff">Staff Discount</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-filter"></i> Apply Filters
+              </button>
+              <button type="reset" class="btn btn-outline-secondary ms-2">
+                <i class="fas fa-times"></i> Clear
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h6 class="card-title mb-1">Total Scholarships</h6>
+              <h3 class="mb-0" id="totalScholarships">{{ report.total_scholarships|default:0 }}</h3>
+            </div>
+            <div class="fs-1 opacity-50">
+              <i class="fas fa-graduation-cap"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h6 class="card-title mb-1">Total Beneficiaries</h6>
+              <h3 class="mb-0" id="totalBeneficiaries">{{ report.summary.total_beneficiaries|default:0 }}</h3>
+            </div>
+            <div class="fs-1 opacity-50">
+              <i class="fas fa-users"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h6 class="card-title mb-1">Total Discount Amount</h6>
+              <h3 class="mb-0" id="totalDiscount">${{ report.summary.total_discount_amount|default:0|floatformat:2 }}
+              </h3>
+            </div>
+            <div class="fs-1 opacity-50">
+              <i class="fas fa-dollar-sign"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h6 class="card-title mb-1">Avg. per Student</h6>
+              <h3 class="mb-0" id="avgDiscount">
+                ${% if report.summary.total_beneficiaries > 0 %}
+                {{ report.summary.total_discount_amount|div:report.summary.total_beneficiaries|floatformat:2 }}
+                {% else %}0.00{% endif %}
+              </h3>
+            </div>
+            <div class="fs-1 opacity-50">
+              <i class="fas fa-chart-line"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Section -->
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Scholarships by Criteria</h5>
+        </div>
+        <div class="card-body">
+          <div id="criteriaPieChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Discount Distribution</h5>
+        </div>
+        <div class="card-body">
+          <div id="discountBarChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scholarship Details Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Scholarship Details</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="scholarshipTable" class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Scholarship Name</th>
+                  <th>Criteria</th>
+                  <th>Discount Type</th>
+                  <th>Discount Value</th>
+                  <th>Current Beneficiaries</th>
+                  <th>Max Recipients</th>
+                  <th>Total Discount</th>
+                  <th>Utilization Rate</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for scholarship in report.scholarship_details %}
+                <tr>
+                  <td>
+                    <strong>{{ scholarship.name }}</strong>
+                  </td>
+                  <td>
+                    <span class="badge bg-primary">{{ scholarship.criteria }}</span>
+                  </td>
+                  <td>{{ scholarship.discount_type }}</td>
+                  <td>
+                    {% if scholarship.discount_type == "Percentage" %}
+                    {{ scholarship.discount_value }}%
+                    {% else %}
+                    ${{ scholarship.discount_value }}
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="badge bg-success">{{ scholarship.current_recipients }}</span>
+                  </td>
+                  <td>
+                    {% if scholarship.max_recipients %}
+                    {{ scholarship.max_recipients }}
+                    {% else %}
+                    <span class="text-muted">Unlimited</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <strong class="text-info">${{ scholarship.total_discount|floatformat:2 }}</strong>
+                  </td>
+                  <td>
+                    {% if scholarship.max_recipients %}
+                    {% widthratio scholarship.current_recipients scholarship.max_recipients 100 as utilization %}
+                    <div class="progress" style="height: 20px;">
+                      <div class="progress-bar 
+                                                    {% if utilization >= 90 %}bg-danger
+                                                    {% elif utilization >= 70 %}bg-warning
+                                                    {% else %}bg-success{% endif %}" role="progressbar"
+                        style="width: {{ utilization }}%" aria-valuenow="{{ utilization }}" aria-valuemin="0"
+                        aria-valuemax="100">
+                        {{ utilization }}%
+                      </div>
+                    </div>
+                    {% else %}
+                    <span class="text-muted">N/A</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                      <button type="button" class="btn btn-outline-primary"
+                        onclick="viewBeneficiaries({{ scholarship.id }})">
+                        <i class="fas fa-users"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-info"
+                        onclick="exportScholarshipReport({{ scholarship.id }})">
+                        <i class="fas fa-download"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="9" class="text-center text-muted py-4">
+                    <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                    No scholarship data available for the selected criteria.
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Beneficiaries Modal -->
+  <div class="modal fade" id="beneficiariesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Scholarship Beneficiaries</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="table-responsive">
+            <table id="beneficiariesTable" class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Admission Number</th>
+                  <th>Class</th>
+                  <th>Approval Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Populated via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" onclick="exportBeneficiaries()">
+            <i class="fas fa-download"></i> Export List
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.41.0/apexcharts.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    const scholarshipTable = $('#scholarshipTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[6, 'desc']], // Sort by total discount
+      columnDefs: [
+        { targets: [8], orderable: false }, // Actions column
+      ],
+      language: {
+        search: "Search scholarships:",
+        lengthMenu: "Show _MENU_ scholarships per page",
+        info: "Showing _START_ to _END_ of _TOTAL_ scholarships",
+        infoEmpty: "No scholarships found",
+        emptyTable: "No scholarship data available"
+      }
+    });
+
+    // Initialize Charts
+    initializeCharts();
+
+    // Filter form handler
+    $('#filterForm').on('submit', function (e) {
+      e.preventDefault();
+      applyFilters();
+    });
+
+    // Export button handler
+    $('#exportReport').on('click', function () {
+      exportFullReport();
+    });
+
+    // Refresh button handler
+    $('#refreshData').on('click', function () {
+      location.reload();
+    });
+  });
+
+  function initializeCharts() {
+    // Criteria Pie Chart
+    const criteriaData = [
+      {% for criteria, data in report.summary.by_criteria.items %}
+  { name: "{{ criteria|title }}", value: { { data.beneficiaries } } },
+  {% endfor %}
+    ];
+
+  const criteriaPieOptions = {
+    series: criteriaData.map(item => item.value),
+    chart: {
+      type: 'pie',
+      height: 300
+    },
+    labels: criteriaData.map(item => item.name),
+    colors: ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6f42c1', '#fd7e14', '#20c997'],
+    responsive: [{
+      breakpoint: 480,
+      options: {
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }],
+    legend: {
+      position: 'bottom'
+    }
+  };
+
+  new ApexCharts(document.querySelector("#criteriaPieChart"), criteriaPieOptions).render();
+
+  // Discount Bar Chart
+  const discountData = [
+    {% for scholarship in report.scholarship_details %}
+  { name: "{{ scholarship.name|truncatechars:20 }}", discount: { { scholarship.total_discount } } },
+  {% endfor %}
+    ];
+
+  const discountBarOptions = {
+    series: [{
+      name: 'Total Discount ($)',
+      data: discountData.map(item => item.discount)
+    }],
+    chart: {
+      type: 'bar',
+      height: 300
+    },
+    xaxis: {
+      categories: discountData.map(item => item.name),
+      labels: {
+        rotate: -45
+      }
+    },
+    yaxis: {
+      labels: {
+        formatter: function (val) {
+          return '$' + val.toFixed(0);
+        }
+      }
+    },
+    colors: ['#0d6efd'],
+    dataLabels: {
+      enabled: false
+    }
+  };
+
+  new ApexCharts(document.querySelector("#discountBarChart"), discountBarOptions).render();
+}
+
+  function viewBeneficiaries(scholarshipId) {
+    // Show loading state
+    $('#beneficiariesModal .modal-body').html('<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Loading beneficiaries...</p></div>');
+    $('#beneficiariesModal').modal('show');
+
+    // Fetch beneficiaries data
+    fetch(`/finance/scholarships/${scholarshipId}/beneficiaries/`)
+      .then(response => response.json())
+      .then(data => {
+        let tbody = '';
+        data.beneficiaries.forEach(beneficiary => {
+          tbody += `
+                    <tr>
+                        <td>${beneficiary.student_name}</td>
+                        <td>${beneficiary.admission_number}</td>
+                        <td>${beneficiary.class}</td>
+                        <td>${new Date(beneficiary.approved_date).toLocaleDateString()}</td>
+                        <td><span class="badge bg-success">${beneficiary.status}</span></td>
+                    </tr>
+                `;
+        });
+
+        $('#beneficiariesModal .modal-body').html(`
+                <div class="table-responsive">
+                    <table id="beneficiariesTable" class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Student Name</th>
+                                <th>Admission Number</th>
+                                <th>Class</th>
+                                <th>Approval Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>${tbody}</tbody>
+                    </table>
+                </div>
+            `);
+
+        // Initialize DataTable for beneficiaries
+        $('#beneficiariesTable').DataTable({
+          pageLength: 10,
+          searching: true,
+          ordering: true
+        });
+      })
+      .catch(error => {
+        $('#beneficiariesModal .modal-body').html('<div class="alert alert-danger">Error loading beneficiaries data.</div>');
+      });
+  }
+
+  function applyFilters() {
+    const formData = new FormData($('#filterForm')[0]);
+    const params = new URLSearchParams(formData);
+    window.location.search = params.toString();
+  }
+
+  function exportFullReport() {
+    const params = new URLSearchParams(window.location.search);
+    params.set('export', 'excel');
+    window.open(`${window.location.pathname}?${params.toString()}`);
+  }
+
+  function exportScholarshipReport(scholarshipId) {
+    window.open(`/finance/scholarships/${scholarshipId}/export/`);
+  }
+
+  function exportBeneficiaries() {
+    // Get current scholarship ID from modal context
+    const scholarshipId = $('#beneficiariesModal').data('scholarship-id');
+    if (scholarshipId) {
+      window.open(`/finance/scholarships/${scholarshipId}/beneficiaries/export/`);
+    }
+  }
+</script>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.4/css/dataTables.bootstrap5.min.css"
+  rel="stylesheet">
+<style>
+  .progress {
+    background-color: #e9ecef;
+  }
+
+  .table td {
+    vertical-align: middle;
+  }
+
+  .card-title {
+    font-weight: 600;
+  }
+</style>
+{% endblock %}

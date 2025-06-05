@@ -383,7 +383,7 @@ class Class(models.Model):
     def clean(self):
         """Validate class data"""
         # Auto-set section from grade
-        if self.grade and not self.section:
+        if self.grade and not self.section_id:
             self.section = self.grade.section
 
         # Validate section matches grade's section

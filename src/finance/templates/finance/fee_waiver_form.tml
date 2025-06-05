@@ -1,0 +1,454 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if form.instance.pk %}Edit Fee Waiver{% else %}Request Fee Waiver{% endif %} - Finance
+{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-0">
+                        {% if form.instance.pk %}
+                            <i class="fas fa-edit me-2"></i>Edit Fee Waiver Request
+                        {% else %}
+                            <i class="fas fa-plus me-2"></i>Request Fee Waiver
+                        {% endif %}
+                    </h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'finance:dashboard' %}">Finance</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'finance:fee-waiver-list' %}">Fee Waivers</a></li>
+                            <li class="breadcrumb-item active">
+                                {% if form.instance.pk %}Edit Request{% else %}New Request{% endif %}
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    <a href="{% url 'finance:fee-waiver-list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to List
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-xl-10">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Fee Waiver Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="waiverForm">
+                        {% csrf_token %}
+                        
+                        <!-- Display form errors -->
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger" role="alert">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <!-- Student and Invoice Selection -->
+                        <div class="row">
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2 mb-3">
+                                    <i class="fas fa-user me-2"></i>Student & Invoice Information
+                                </h6>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Student Selection -->
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.student.id_for_label }}" class="form-label">
+                                    Student <span class="text-danger">*</span>
+                                </label>
+                                {{ form.student }}
+                                {% if form.student.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.student.errors.0 }}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Search and select the student for this waiver
+                                </div>
+                            </div>
+
+                            <!-- Invoice Selection -->
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.invoice.id_for_label }}" class="form-label">
+                                    Invoice <span class="text-danger">*</span>
+                                </label>
+                                {{ form.invoice }}
+                                {% if form.invoice.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.invoice.errors.0 }}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Select the invoice for which waiver is requested
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Invoice Details Card -->
+                        <div class="row">
+                            <div class="col-12 mb-4">
+                                <div class="card border-info" id="invoiceDetails" style="display: none;">
+                                    <div class="card-header bg-light">
+                                        <h6 class="card-title mb-0">
+                                            <i class="fas fa-file-invoice me-2"></i>Selected Invoice Details
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-3">
+                                                <small class="text-muted">Invoice Number:</small>
+                                                <div id="invoiceNumber" class="fw-bold">-</div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <small class="text-muted">Net Amount:</small>
+                                                <div id="invoiceAmount" class="fw-bold">$0.00</div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <small class="text-muted">Paid Amount:</small>
+                                                <div id="paidAmount" class="fw-bold">$0.00</div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <small class="text-muted">Outstanding:</small>
+                                                <div id="outstandingAmount" class="fw-bold text-danger">$0.00</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Waiver Details Section -->
+                        <div class="row">
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2 mb-3">
+                                    <i class="fas fa-hand-holding-usd me-2"></i>Waiver Details
+                                </h6>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Waiver Type -->
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.waiver_type.id_for_label }}" class="form-label">
+                                    Waiver Type <span class="text-danger">*</span>
+                                </label>
+                                {{ form.waiver_type }}
+                                {% if form.waiver_type.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.waiver_type.errors.0 }}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Select full or partial waiver
+                                </div>
+                            </div>
+
+                            <!-- Waiver Amount -->
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.amount.id_for_label }}" class="form-label">
+                                    Waiver Amount <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    {{ form.amount }}
+                                </div>
+                                {% if form.amount.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.amount.errors.0 }}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Enter the amount to be waived
+                                </div>
+                            </div>
+
+                            <!-- Quick Amount Buttons -->
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Quick Select</label>
+                                <div class="d-grid gap-2">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="fullWaiver">
+                                        Full Outstanding
+                                    </button>
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" data-percentage="25">25%</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" data-percentage="50">50%</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" data-percentage="75">75%</button>
+                                    </div>
+                                </div>
+                                <div class="form-text">
+                                    Quick amount selection
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Justification Section -->
+                        <div class="row">
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2 mb-3">
+                                    <i class="fas fa-clipboard-list me-2"></i>Justification
+                                </h6>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Reason -->
+                            <div class="col-12 mb-3">
+                                <label for="{{ form.reason.id_for_label }}" class="form-label">
+                                    Reason for Waiver <span class="text-danger">*</span>
+                                </label>
+                                {{ form.reason }}
+                                {% if form.reason.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.reason.errors.0 }}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Provide detailed justification for this fee waiver request. Include any supporting circumstances or documentation references.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preview Card -->
+                        <div class="row">
+                            <div class="col-12 mb-4">
+                                <div class="card border-warning">
+                                    <div class="card-header bg-light">
+                                        <h6 class="card-title mb-0">
+                                            <i class="fas fa-eye me-2"></i>Waiver Preview
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row text-center">
+                                            <div class="col-md-3">
+                                                <div class="border-end">
+                                                    <h5 id="previewType" class="text-muted">-</h5>
+                                                    <small class="text-muted">Waiver Type</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="border-end">
+                                                    <h5 id="previewAmount" class="text-warning">$0.00</h5>
+                                                    <small class="text-muted">Waiver Amount</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="border-end">
+                                                    <h5 id="previewPercentage" class="text-info">0%</h5>
+                                                    <small class="text-muted">Percentage</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <h5 id="previewRemaining" class="text-success">$0.00</h5>
+                                                <small class="text-muted">Remaining</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="row">
+                            <div class="col-12">
+                                <hr>
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <a href="{% url 'finance:fee-waiver-list' %}" class="btn btn-outline-secondary">
+                                            <i class="fas fa-times me-2"></i>Cancel
+                                        </a>
+                                    </div>
+                                    <div>
+                                        <button type="submit" class="btn btn-warning">
+                                            <i class="fas fa-paper-plane me-2"></i>
+                                            {% if form.instance.pk %}Update Waiver Request{% else %}Submit Waiver Request{% endif %}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+let currentOutstanding = 0;
+
+$(document).ready(function() {
+    // Initialize Select2
+    $('#id_student').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search for a student...',
+        allowClear: true,
+        width: '100%',
+        ajax: {
+            url: '{% url "finance:search-students" %}',
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return { q: params.term };
+            },
+            processResults: function (data) {
+                return {
+                    results: data.students.map(student => ({
+                        id: student.id,
+                        text: `${student.name} (${student.admission_number})`
+                    }))
+                };
+            }
+        }
+    });
+
+    $('#id_invoice').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Select an invoice...',
+        allowClear: true,
+        width: '100%'
+    });
+
+    // Handle student selection to load invoices
+    $('#id_student').on('change', function() {
+        const studentId = $(this).val();
+        const invoiceSelect = $('#id_invoice');
+        
+        invoiceSelect.empty().append('<option value="">Select an invoice...</option>');
+        $('#invoiceDetails').hide();
+        
+        if (studentId) {
+            $.get(`/api/finance/invoices/?student=${studentId}&status=unpaid,partially_paid`, function(data) {
+                data.results.forEach(invoice => {
+                    invoiceSelect.append(`<option value="${invoice.id}">${invoice.invoice_number} - $${invoice.outstanding_amount}</option>`);
+                });
+            });
+        }
+        
+        updatePreview();
+    });
+
+    // Handle invoice selection to show details
+    $('#id_invoice').on('change', function() {
+        const invoiceId = $(this).val();
+        
+        if (invoiceId) {
+            $.get(`{% url 'finance:ajax-invoice-details' %}?invoice_id=${invoiceId}`, function(data) {
+                $('#invoiceNumber').text(data.invoice_number || '-');
+                $('#invoiceAmount').text(`$${parseFloat(data.net_amount || 0).toFixed(2)}`);
+                $('#paidAmount').text(`$${parseFloat(data.paid_amount || 0).toFixed(2)}`);
+                $('#outstandingAmount').text(`$${parseFloat(data.outstanding_amount || 0).toFixed(2)}`);
+                
+                currentOutstanding = parseFloat(data.outstanding_amount || 0);
+                $('#invoiceDetails').show();
+                
+                updatePreview();
+            });
+        } else {
+            $('#invoiceDetails').hide();
+            currentOutstanding = 0;
+            updatePreview();
+        }
+    });
+
+    // Handle waiver type change
+    $('#id_waiver_type').on('change', function() {
+        const waiverType = $(this).val();
+        
+        if (waiverType === 'full') {
+            $('#id_amount').val(currentOutstanding.toFixed(2));
+        }
+        
+        updatePreview();
+    });
+
+    // Handle amount input
+    $('#id_amount').on('input', updatePreview);
+
+    // Quick amount buttons
+    $('#fullWaiver').on('click', function() {
+        $('#id_amount').val(currentOutstanding.toFixed(2));
+        $('#id_waiver_type').val('full');
+        updatePreview();
+    });
+
+    $('[data-percentage]').on('click', function() {
+        const percentage = parseInt($(this).data('percentage'));
+        const amount = (currentOutstanding * percentage / 100);
+        $('#id_amount').val(amount.toFixed(2));
+        $('#id_waiver_type').val('partial');
+        updatePreview();
+    });
+
+    function updatePreview() {
+        const waiverType = $('#id_waiver_type option:selected').text();
+        const amount = parseFloat($('#id_amount').val() || 0);
+        const percentage = currentOutstanding > 0 ? (amount / currentOutstanding * 100) : 0;
+        const remaining = currentOutstanding - amount;
+        
+        $('#previewType').text(waiverType || '-');
+        $('#previewAmount').text(`$${amount.toFixed(2)}`);
+        $('#previewPercentage').text(`${percentage.toFixed(1)}%`);
+        $('#previewRemaining').text(`$${Math.max(0, remaining).toFixed(2)}`);
+    }
+
+    // Form validation
+    $('#waiverForm').on('submit', function(e) {
+        let isValid = true;
+        
+        // Clear previous validation
+        $('.is-invalid').removeClass('is-invalid');
+        
+        // Validate required fields
+        const requiredFields = ['#id_student', '#id_invoice', '#id_waiver_type', '#id_amount', '#id_reason'];
+        
+        requiredFields.forEach(field => {
+            if (!$(field).val()) {
+                $(field).addClass('is-invalid');
+                isValid = false;
+            }
+        });
+        
+        // Validate amount
+        const amount = parseFloat($('#id_amount').val() || 0);
+        if (amount <= 0) {
+            $('#id_amount').addClass('is-invalid');
+            isValid = false;
+        } else if (amount > currentOutstanding) {
+            $('#id_amount').addClass('is-invalid');
+            alert('Waiver amount cannot exceed the outstanding balance.');
+            isValid = false;
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Please fill in all required fields and correct any errors.');
+        }
+    });
+
+    // Initial preview
+    updatePreview();
+});
+</script>
+{% endblock %}

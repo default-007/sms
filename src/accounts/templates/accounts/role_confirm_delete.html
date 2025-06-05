@@ -1,0 +1,512 @@
+{% extends "base.html" %}
+{% load static %}
+{% load accounts_tags %}
+
+{% block title %}Delete Role - {{ object.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .delete-warning {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    border: none;
+  }
+
+  .role-info-card {
+    border-left: 4px solid #6f42c1;
+    background: rgba(111, 66, 193, 0.1);
+  }
+
+  .impact-item {
+    border-left: 4px solid #dc3545;
+    background: rgba(220, 53, 69, 0.1);
+  }
+
+  .system-role-warning {
+    border-left: 4px solid #fd7e14;
+    background: rgba(253, 126, 20, 0.1);
+  }
+
+  .confirmation-input {
+    border: 2px solid #dc3545;
+  }
+
+  .confirmation-input:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+  }
+
+  .danger-animation {
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+
+    70% {
+      box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+    }
+
+    100% {
+      box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row justify-content-center">
+    <div class="col-xl-10 col-lg-12">
+      <!-- Warning Header -->
+      <div class="card delete-warning border-0 shadow-lg mb-4 danger-animation">
+        <div class="card-body text-center py-4">
+          <i class="fas fa-user-shield fa-4x text-white mb-3"></i>
+          <h2 class="text-white mb-2">Confirm Role Deletion</h2>
+          <p class="text-white-50 mb-0">This action will affect all users assigned to this role</p>
+        </div>
+      </div>
+
+      {% if object.is_system_role %}
+      <!-- System Role Warning -->
+      <div class="alert alert-warning border-0 shadow-sm mb-4 system-role-warning">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-exclamation-triangle fa-2x text-warning me-3"></i>
+          <div>
+            <h5 class="alert-heading mb-2">System Role Warning</h5>
+            <p class="mb-0">
+              <strong>{{ object.name }}</strong> is a system role. Deleting system roles may affect
+              core functionality and is generally not recommended. Please proceed with extreme caution.
+            </p>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="row">
+        <!-- Role Information -->
+        <div class="col-lg-6 mb-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header role-info-card">
+              <h5 class="mb-0">
+                <i class="fas fa-user-tag text-primary me-2"></i>
+                Role Information
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="text-center mb-4">
+                <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                  style="width: 80px; height: 80px;">
+                  <i class="fas fa-user-shield fa-2x text-white"></i>
+                </div>
+                <h4 class="mb-1">{{ object.name }}</h4>
+                <p class="text-muted">{{ object.description|default:"No description provided" }}</p>
+                {% if object.is_system_role %}
+                <span class="badge bg-info">System Role</span>
+                {% else %}
+                <span class="badge bg-secondary">Custom Role</span>
+                {% endif %}
+              </div>
+
+              <div class="row">
+                <div class="col-sm-6">
+                  <ul class="list-unstyled small">
+                    <li class="mb-2">
+                      <strong>Created:</strong><br>
+                      {{ object.created_at|date:"M d, Y" }}
+                    </li>
+                    <li class="mb-2">
+                      <strong>Status:</strong><br>
+                      {% if object.is_active %}
+                      <span class="badge bg-success">Active</span>
+                      {% else %}
+                      <span class="badge bg-secondary">Inactive</span>
+                      {% endif %}
+                    </li>
+                    <li class="mb-2">
+                      <strong>Type:</strong><br>
+                      {% if object.is_system_role %}
+                      <span class="text-info">System Role</span>
+                      {% else %}
+                      <span class="text-secondary">Custom Role</span>
+                      {% endif %}
+                    </li>
+                  </ul>
+                </div>
+                <div class="col-sm-6">
+                  <ul class="list-unstyled small">
+                    <li class="mb-2">
+                      <strong>Permissions:</strong><br>
+                      {{ object.get_permission_count }} permissions
+                    </li>
+                    <li class="mb-2">
+                      <strong>Parent Role:</strong><br>
+                      {% if object.parent_role %}
+                      {{ object.parent_role.name }}
+                      {% else %}
+                      None
+                      {% endif %}
+                    </li>
+                    <li class="mb-2">
+                      <strong>Child Roles:</strong><br>
+                      {{ object.child_roles.count }} roles
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Permissions Summary -->
+              {% if object.permissions %}
+              <div class="mt-3">
+                <strong class="small">Permissions Overview:</strong><br>
+                <div class="mt-2">
+                  {% for resource, actions in object.permissions.items %}
+                  <span class="badge bg-light text-dark me-1 mb-1">
+                    {{ resource }}: {{ actions|length }}
+                  </span>
+                  {% endfor %}
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Deletion Impact -->
+        <div class="col-lg-6 mb-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header impact-item">
+              <h5 class="mb-0">
+                <i class="fas fa-exclamation-circle text-danger me-2"></i>
+                Deletion Impact
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-danger border-0">
+                <h6><i class="fas fa-warning me-2"></i>Critical Impact</h6>
+                <p class="mb-0 small">
+                  Deleting this role will immediately remove all permissions and access
+                  from users assigned to this role.
+                </p>
+              </div>
+
+              <!-- User Assignments -->
+              <div class="mb-4">
+                <h6>Affected Users:</h6>
+                {% with user_count=object.user_assignments.active.count %}
+                {% if user_count > 0 %}
+                <div class="alert alert-warning border-0">
+                  <strong>{{ user_count }} user{{ user_count|pluralize }}</strong>
+                  currently assigned to this role will lose their permissions.
+                </div>
+
+                <!-- Show some affected users -->
+                <div class="list-group list-group-flush">
+                  {% for assignment in object.user_assignments.active|slice:":5" %}
+                  <div class="list-group-item px-0 py-2">
+                    <div class="d-flex align-items-center">
+                      <img src="{% user_avatar_url assignment.user 32 %}" class="rounded-circle me-2" width="32"
+                        height="32">
+                      <div class="flex-grow-1">
+                        <div class="fw-bold">{{ assignment.user.get_display_name }}</div>
+                        <small class="text-muted">{{ assignment.user.username }}</small>
+                      </div>
+                      <div class="text-end">
+                        <small class="text-muted">
+                          Assigned {{ assignment.assigned_date|date:"M d, Y" }}
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                  {% endfor %}
+
+                  {% if user_count > 5 %}
+                  <div class="text-center py-2">
+                    <small class="text-muted">
+                      ... and {{ user_count|add:"-5" }} more user{{ user_count|add:"-5"|pluralize }}
+                    </small>
+                  </div>
+                  {% endif %}
+                </div>
+                {% else %}
+                <div class="alert alert-info border-0">
+                  <i class="fas fa-info-circle me-2"></i>
+                  No users are currently assigned to this role.
+                </div>
+                {% endif %}
+                {% endwith %}
+              </div>
+
+              <!-- What will be affected -->
+              <h6 class="mb-3">What will be deleted:</h6>
+              <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                  <div>
+                    <i class="fas fa-user-shield text-danger me-2"></i>
+                    <strong>Role Definition</strong>
+                    <div class="small text-muted">Role name, description, and settings</div>
+                  </div>
+                  <span class="badge bg-danger">Deleted</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                  <div>
+                    <i class="fas fa-key text-danger me-2"></i>
+                    <strong>Permissions</strong>
+                    <div class="small text-muted">All permission assignments</div>
+                  </div>
+                  <span class="badge bg-danger">Deleted</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                  <div>
+                    <i class="fas fa-users text-danger me-2"></i>
+                    <strong>User Assignments</strong>
+                    <div class="small text-muted">All user-role relationships</div>
+                  </div>
+                  <span class="badge bg-danger">Removed</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                  <div>
+                    <i class="fas fa-history text-warning me-2"></i>
+                    <strong>Assignment History</strong>
+                    <div class="small text-muted">Historical role assignment records</div>
+                  </div>
+                  <span class="badge bg-warning">Preserved</span>
+                </li>
+              </ul>
+
+              <!-- Child Roles Warning -->
+              {% if object.child_roles.exists %}
+              <div class="alert alert-warning border-0 mt-3">
+                <h6><i class="fas fa-sitemap me-2"></i>Child Roles</h6>
+                <p class="mb-0 small">
+                  This role has {{ object.child_roles.count }} child role{{ object.child_roles.count|pluralize }}
+                  that inherit from it. They will lose their inherited permissions.
+                </p>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confirmation Form -->
+      <div class="card border-0 shadow-lg">
+        <div class="card-header bg-danger text-white">
+          <h5 class="mb-0">
+            <i class="fas fa-shield-alt me-2"></i>
+            Confirmation Required
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-lg-8 mx-auto">
+              <div class="alert alert-warning border-0 mb-4">
+                <div class="d-flex align-items-start">
+                  <i class="fas fa-exclamation-triangle text-warning me-3 mt-1"></i>
+                  <div>
+                    <strong>Final Warning:</strong><br>
+                    <small>
+                      This will permanently delete the role
+                      <strong>{{ object.name }}</strong>{% if object.is_system_role %} (System Role){% endif %}.
+                      {% with user_count=object.user_assignments.active.count %}
+                      {% if user_count > 0 %}
+                      {{ user_count }} user{{ user_count|pluralize }} will lose their permissions immediately.
+                      {% endif %}
+                      {% endwith %}
+                    </small>
+                  </div>
+                </div>
+              </div>
+
+              <form method="post" id="deleteForm">
+                {% csrf_token %}
+
+                <!-- Confirmation Input -->
+                <div class="mb-4">
+                  <label for="confirmationInput" class="form-label">
+                    <strong>Type "DELETE {{ object.name }}" to confirm:</strong>
+                  </label>
+                  <input type="text" class="form-control form-control-lg confirmation-input text-center"
+                    id="confirmationInput" placeholder="DELETE {{ object.name }}" autocomplete="off" required>
+                  <div class="form-text text-center">
+                    This confirmation is case-sensitive and must match exactly.
+                  </div>
+                </div>
+
+                <!-- Reason -->
+                <div class="mb-4">
+                  <label for="deletionReason" class="form-label">
+                    Reason for Deletion:
+                  </label>
+                  <textarea class="form-control" id="deletionReason" name="deletion_reason" rows="3"
+                    placeholder="Explain why this role is being deleted..." required></textarea>
+                  <div class="form-text">Required for audit purposes</div>
+                </div>
+
+                <!-- Additional Confirmations -->
+                <div class="mb-4">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="confirmUnderstand" required>
+                    <label class="form-check-label" for="confirmUnderstand">
+                      I understand that this action cannot be undone
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="confirmUsers" required>
+                    <label class="form-check-label" for="confirmUsers">
+                      I understand that affected users will lose permissions immediately
+                    </label>
+                  </div>
+                  {% if object.is_system_role %}
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="confirmSystem" required>
+                    <label class="form-check-label" for="confirmSystem">
+                      I understand that deleting this system role may affect core functionality
+                    </label>
+                  </div>
+                  {% endif %}
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="confirmAuthorized" required>
+                    <label class="form-check-label" for="confirmAuthorized">
+                      I am authorized to perform this deletion
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <div class="d-grid">
+                      <a href="{% url 'accounts:role_detail' object.pk %}" class="btn btn-outline-secondary btn-lg">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Cancel Deletion
+                      </a>
+                    </div>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <div class="d-grid">
+                      <button type="submit" class="btn btn-danger btn-lg" id="deleteBtn" disabled>
+                        <i class="fas fa-trash-alt me-2"></i>
+                        Delete Role Permanently
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Final Confirmation Modal -->
+<div class="modal fade" id="finalConfirmModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-danger">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          Final Confirmation
+        </h5>
+      </div>
+      <div class="modal-body text-center">
+        <i class="fas fa-user-shield fa-3x text-danger mb-3"></i>
+        <h5>Are you absolutely sure?</h5>
+        <p class="text-muted">
+          You are about to permanently delete the role
+          <strong>{{ object.name }}</strong>{% if object.is_system_role %} (System Role){% endif %}.
+        </p>
+        {% with user_count=object.user_assignments.active.count %}
+        {% if user_count > 0 %}
+        <div class="alert alert-warning">
+          <small>
+            <strong>{{ user_count }} user{{ user_count|pluralize }}</strong>
+            will immediately lose their permissions!
+          </small>
+        </div>
+        {% endif %}
+        {% endwith %}
+        <div class="alert alert-danger">
+          <small><strong>This action is irreversible!</strong></small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="cancelDeletion()">
+          <i class="fas fa-times me-2"></i>Cancel
+        </button>
+        <button type="button" class="btn btn-danger" onclick="confirmDeletion()">
+          <i class="fas fa-trash-alt me-2"></i>Yes, Delete Permanently
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const confirmationInput = document.getElementById('confirmationInput');
+    const deleteBtn = document.getElementById('deleteBtn');
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    const deleteForm = document.getElementById('deleteForm');
+    const deletionReason = document.getElementById('deletionReason');
+    const expectedText = 'DELETE {{ object.name }}';
+
+    function validateForm() {
+      const inputValid = confirmationInput.value === expectedText;
+      const checkboxesValid = Array.from(checkboxes).every(cb => cb.checked);
+      const reasonValid = deletionReason.value.trim().length > 0;
+
+      deleteBtn.disabled = !(inputValid && checkboxesValid && reasonValid);
+
+      // Update input styling
+      if (inputValid) {
+        confirmationInput.classList.remove('is-invalid');
+        confirmationInput.classList.add('is-valid');
+      } else if (confirmationInput.value.length > 0) {
+        confirmationInput.classList.remove('is-valid');
+        confirmationInput.classList.add('is-invalid');
+      } else {
+        confirmationInput.classList.remove('is-valid', 'is-invalid');
+      }
+    }
+
+    confirmationInput.addEventListener('input', validateForm);
+    deletionReason.addEventListener('input', validateForm);
+    checkboxes.forEach(cb => cb.addEventListener('change', validateForm));
+
+    deleteForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      // Show final confirmation modal
+      const modal = new bootstrap.Modal(document.getElementById('finalConfirmModal'));
+      modal.show();
+    });
+
+    // Warning when leaving page
+    window.addEventListener('beforeunload', function (e) {
+      if (confirmationInput.value.length > 0 || deletionReason.value.length > 0) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+  });
+
+  function cancelDeletion() {
+    bootstrap.Modal.getInstance(document.getElementById('finalConfirmModal')).hide();
+  }
+
+  function confirmDeletion() {
+    const deleteBtn = document.querySelector('#finalConfirmModal .btn-danger');
+    const originalText = deleteBtn.innerHTML;
+
+    deleteBtn.disabled = true;
+    deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Deleting...';
+
+    // Submit the form
+    document.getElementById('deleteForm').submit();
+  }
+</script>
+{% endblock %}

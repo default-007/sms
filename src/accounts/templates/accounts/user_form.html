@@ -1,730 +1,625 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load static %}
 {% load accounts_tags %}
 
-{% block title %}{{ form_action }} User{% endblock %}
-
-{% block page_title %}{{ form_action }} User{% endblock %}
-
-{% block breadcrumb_items %}
-<li class="breadcrumb-item">People</li>
-<li class="breadcrumb-item"><a href="{% url 'accounts:user_list' %}">Users</a></li>
-<li class="breadcrumb-item active">{{ form_action }}</li>
-{% endblock %}
+{% block title %}{{ form_action }} User - {{ block.super }}{% endblock %}
 
 {% block extra_css %}
 <style>
-  .form-wizard {
+  .form-section {
     background: white;
-    border-radius: 15px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+    margin-bottom: 2rem;
     overflow: hidden;
   }
 
-  .wizard-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 2rem;
-    text-align: center;
-  }
-
-  .wizard-steps {
-    display: flex;
-    justify-content: center;
-    padding: 1.5rem 2rem 0;
-    background: #f8f9fa;
+  .form-section-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 1.25rem 1.5rem;
     border-bottom: 1px solid #e9ecef;
   }
 
-  .step {
-    display: flex;
-    align-items: center;
-    padding: 1rem;
-    margin: 0 0.5rem;
-    border-radius: 10px;
-    transition: all 0.3s ease;
-    cursor: pointer;
-    flex: 1;
-    max-width: 200px;
-    text-align: center;
-  }
-
-  .step.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-  }
-
-  .step.completed {
-    background: #28a745;
-    color: white;
-  }
-
-  .step-number {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 0.75rem;
+  .form-section-title {
+    margin: 0;
+    font-size: 1.125rem;
     font-weight: 600;
-    font-size: 0.9rem;
-  }
-
-  .step.active .step-number,
-  .step.completed .step-number {
-    background: rgba(255, 255, 255, 0.3);
-  }
-
-  .step-title {
-    font-weight: 600;
-    font-size: 0.9rem;
-  }
-
-  .wizard-content {
-    padding: 2rem;
-    min-height: 500px;
-  }
-
-  .step-content {
-    display: none;
-  }
-
-  .step-content.active {
-    display: block;
-    animation: fadeInUp 0.5s ease;
-  }
-
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .form-group {
-    margin-bottom: 1.5rem;
-  }
-
-  .form-label {
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 0.5rem;
+    color: #495057;
     display: flex;
     align-items: center;
   }
 
-  .form-label .required {
-    color: #dc3545;
-    margin-left: 0.25rem;
+  .form-section-body {
+    padding: 1.5rem;
   }
 
-  .form-label i {
-    margin-right: 0.5rem;
-    color: #667eea;
-    width: 16px;
+  .form-floating>label {
+    color: #6c757d;
+    font-weight: 500;
   }
 
-  .form-control,
-  .form-select {
-    border: 2px solid #e1e5e9;
-    border-radius: 10px;
-    padding: 0.75rem;
-    transition: all 0.3s ease;
-    font-size: 0.95rem;
+  .form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
   }
 
-  .form-control:focus,
   .form-select:focus {
     border-color: #667eea;
     box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
   }
 
-  .form-text {
-    color: #6c757d;
-    font-size: 0.85rem;
-    margin-top: 0.25rem;
-  }
-
-  .invalid-feedback {
-    display: block;
-    color: #dc3545;
-    font-size: 0.85rem;
-    margin-top: 0.25rem;
-  }
-
-  .profile-picture-upload {
-    text-align: center;
-    margin-bottom: 2rem;
-  }
-
-  .avatar-preview {
+  .profile-picture-preview {
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    border: 4px solid #e9ecef;
-    margin: 0 auto 1rem;
-    overflow: hidden;
-    position: relative;
-    cursor: pointer;
+    object-fit: cover;
+    border: 3px dashed #dee2e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
     transition: all 0.3s ease;
+    cursor: pointer;
+    overflow: hidden;
   }
 
-  .avatar-preview:hover {
+  .profile-picture-preview:hover {
     border-color: #667eea;
-    transform: scale(1.05);
+    background: #f0f0ff;
   }
 
-  .avatar-preview img {
+  .profile-picture-preview img {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
 
-  .avatar-placeholder {
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 2rem;
-  }
-
-  .upload-text {
-    color: #667eea;
-    font-weight: 500;
-    cursor: pointer;
-  }
-
-  .upload-text:hover {
-    text-decoration: underline;
+  .profile-picture-upload {
+    position: relative;
+    text-align: center;
   }
 
   .role-selection {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
-  }
-
-  .role-card {
-    border: 2px solid #e9ecef;
-    border-radius: 10px;
-    padding: 1.25rem;
-    transition: all 0.3s ease;
-    cursor: pointer;
-    position: relative;
-  }
-
-  .role-card:hover {
-    border-color: #667eea;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-
-  .role-card.selected {
-    border-color: #667eea;
-    background: rgba(102, 126, 234, 0.05);
-  }
-
-  .role-card input[type="checkbox"] {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-  }
-
-  .role-name {
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 0.5rem;
-  }
-
-  .role-description {
-    color: #666;
-    font-size: 0.9rem;
-    line-height: 1.4;
-  }
-
-  .wizard-navigation {
-    display: flex;
-    justify-content: between;
-    align-items: center;
-    padding: 1.5rem 2rem;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
     background: #f8f9fa;
-    border-top: 1px solid #e9ecef;
   }
 
-  .btn-wizard {
-    padding: 0.75rem 2rem;
-    border-radius: 10px;
-    font-weight: 600;
-    transition: all 0.3s ease;
+  .role-item {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    background: white;
+    transition: all 0.2s;
   }
 
-  .btn-wizard:hover {
-    transform: translateY(-2px);
+  .role-item:hover {
+    border-color: #667eea;
+    background: #f0f0ff;
+  }
+
+  .role-item.selected {
+    border-color: #667eea;
+    background: #667eea;
+    color: white;
   }
 
   .password-strength {
-    margin-top: 0.5rem;
-  }
-
-  .strength-meter {
-    height: 6px;
+    height: 4px;
+    border-radius: 2px;
     background: #e9ecef;
-    border-radius: 3px;
+    margin-top: 0.5rem;
     overflow: hidden;
-    margin-bottom: 0.5rem;
   }
 
-  .strength-fill {
+  .password-strength-bar {
     height: 100%;
     width: 0%;
     transition: all 0.3s ease;
-    border-radius: 3px;
+    border-radius: 2px;
   }
 
   .strength-weak {
     background: #dc3545;
-    width: 25%;
   }
 
   .strength-fair {
     background: #fd7e14;
-    width: 50%;
   }
 
   .strength-good {
     background: #ffc107;
-    width: 75%;
   }
 
   .strength-strong {
     background: #28a745;
-    width: 100%;
   }
 
-  .strength-text {
-    font-size: 0.8rem;
-    font-weight: 500;
+  .form-actions {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-top: 1px solid #e9ecef;
+    margin: 0 -1.5rem -1.5rem;
+    text-align: right;
+  }
+
+  .required-indicator {
+    color: #dc3545;
+    margin-left: 3px;
+  }
+
+  .form-help {
+    background: #e7f3ff;
+    border: 1px solid #b8daff;
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
   }
 
   .preview-section {
     background: #f8f9fa;
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 1.5rem;
-    margin-top: 1rem;
+    text-align: center;
   }
 
-  .preview-item {
-    display: flex;
-    justify-content: between;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #e9ecef;
-  }
-
-  .preview-item:last-child {
-    border-bottom: none;
-  }
-
-  .preview-label {
-    font-weight: 600;
-    color: #666;
-  }
-
-  .preview-value {
-    color: #333;
-  }
-
-  .form-row {
-    display: flex;
-    gap: 1rem;
+  .error-summary {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    padding: 1rem;
+    border-radius: 8px;
     margin-bottom: 1.5rem;
-  }
-
-  .form-row .form-group {
-    flex: 1;
-    margin-bottom: 0;
-  }
-
-  @media (max-width: 768px) {
-    .wizard-steps {
-      flex-direction: column;
-      padding: 1rem;
-    }
-
-    .step {
-      margin-bottom: 0.5rem;
-    }
-
-    .form-row {
-      flex-direction: column;
-      gap: 0;
-    }
-
-    .form-row .form-group {
-      margin-bottom: 1.5rem;
-    }
-
-    .role-selection {
-      grid-template-columns: 1fr;
-    }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="form-wizard animate__animated animate__fadeInUp">
-  <!-- Wizard Header -->
-  <div class="wizard-header">
-    <h3><i class="fas fa-user-plus me-2"></i>{{ form_action }} User Account</h3>
-    <p class="mb-0">
-      {{ form_action == 'Create' and 'Add a new user to the system' or 'Update user information and settings' }}
-    </p>
-  </div>
-
-  <!-- Wizard Steps -->
-  <div class="wizard-steps">
-    <div class="step active" data-step="1">
-      <div class="step-number">1</div>
-      <div class="step-title">Basic Information</div>
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0">{{ form_action }} User</h1>
+      <p class="text-muted mb-0">
+        {% if form_action == "Create" %}
+        Add a new user to the system
+        {% else %}
+        Update user information and settings
+        {% endif %}
+      </p>
     </div>
-    <div class="step" data-step="2">
-      <div class="step-number">2</div>
-      <div class="step-title">Contact & Personal</div>
-    </div>
-    <div class="step" data-step="3">
-      <div class="step-number">3</div>
-      <div class="step-title">Security & Access</div>
-    </div>
-    <div class="step" data-step="4">
-      <div class="step-number">4</div>
-      <div class="step-title">Roles & Permissions</div>
-    </div>
-    <div class="step" data-step="5">
-      <div class="step-number">5</div>
-      <div class="step-title">Review & Confirm</div>
+    <div>
+      <a href="{% url 'accounts:user_list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Users
+      </a>
     </div>
   </div>
 
-  <!-- Form -->
-  <form method="post" enctype="multipart/form-data" id="userForm" novalidate>
+  <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate id="userForm">
     {% csrf_token %}
 
-    <!-- Wizard Content -->
-    <div class="wizard-content">
-      <!-- Step 1: Basic Information -->
-      <div class="step-content active" data-step="1">
-        <h4 class="mb-4"><i class="fas fa-user me-2"></i>Basic Information</h4>
+    <!-- Error Summary -->
+    {% if form.errors %}
+    <div class="error-summary">
+      <h6><i class="fas fa-exclamation-triangle me-2"></i>Please correct the following errors:</h6>
+      <ul class="mb-0">
+        {% for field, errors in form.errors.items %}
+        {% for error in errors %}
+        <li>
+          {% if field == '__all__' %}
+          {{ error }}
+          {% else %}
+          {{ form|field_verbose_name:field }}: {{ error }}
+          {% endif %}
+        </li>
+        {% endfor %}
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
 
-        <!-- Profile Picture Upload -->
-        <div class="profile-picture-upload">
-          <div class="avatar-preview" onclick="document.getElementById('id_profile_picture').click()">
-            <div class="avatar-placeholder" id="avatarPreview">
-              <i class="fas fa-camera"></i>
+    <div class="row">
+      <!-- Main Form -->
+      <div class="col-lg-8">
+        <!-- Basic Information -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <h5 class="form-section-title">
+              <i class="fas fa-user me-2 text-primary"></i>
+              Basic Information
+            </h5>
+          </div>
+          <div class="form-section-body">
+            <div class="form-help">
+              <i class="fas fa-info-circle me-2"></i>
+              Basic user information and contact details. Fields marked with <span class="required-indicator">*</span>
+              are required.
             </div>
-          </div>
-          <div class="upload-text" onclick="document.getElementById('id_profile_picture').click()">
-            <i class="fas fa-upload me-2"></i>Upload Profile Picture
-          </div>
-          <input type="file" id="id_profile_picture" name="profile_picture" accept="image/*" style="display: none;"
-            onchange="previewImage(this)">
-          <div class="form-text">Max 2MB, JPEG/PNG only</div>
-          {% if form.profile_picture.errors %}
-          <div class="invalid-feedback">{{ form.profile_picture.errors.0 }}</div>
-          {% endif %}
-        </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="id_first_name" class="form-label">
-              <i class="fas fa-user"></i>First Name<span class="required">*</span>
-            </label>
-            <input type="text" class="form-control {% if form.first_name.errors %}is-invalid{% endif %}"
-              id="id_first_name" name="first_name" value="{{ form.first_name.value|default:'' }}" required>
-            {% if form.first_name.errors %}
-            <div class="invalid-feedback">{{ form.first_name.errors.0 }}</div>
-            {% endif %}
-          </div>
-
-          <div class="form-group">
-            <label for="id_last_name" class="form-label">
-              <i class="fas fa-user"></i>Last Name<span class="required">*</span>
-            </label>
-            <input type="text" class="form-control {% if form.last_name.errors %}is-invalid{% endif %}"
-              id="id_last_name" name="last_name" value="{{ form.last_name.value|default:'' }}" required>
-            {% if form.last_name.errors %}
-            <div class="invalid-feedback">{{ form.last_name.errors.0 }}</div>
-            {% endif %}
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="id_username" class="form-label">
-            <i class="fas fa-at"></i>Username
-          </label>
-          <input type="text" class="form-control {% if form.username.errors %}is-invalid{% endif %}" id="id_username"
-            name="username" value="{{ form.username.value|default:'' }}">
-          <div class="form-text">Leave blank to auto-generate from name and email</div>
-          {% if form.username.errors %}
-          <div class="invalid-feedback">{{ form.username.errors.0 }}</div>
-          {% endif %}
-        </div>
-
-        <div class="form-group">
-          <label for="id_email" class="form-label">
-            <i class="fas fa-envelope"></i>Email Address<span class="required">*</span>
-          </label>
-          <input type="email" class="form-control {% if form.email.errors %}is-invalid{% endif %}" id="id_email"
-            name="email" value="{{ form.email.value|default:'' }}" required>
-          {% if form.email.errors %}
-          <div class="invalid-feedback">{{ form.email.errors.0 }}</div>
-          {% endif %}
-        </div>
-      </div>
-
-      <!-- Step 2: Contact & Personal -->
-      <div class="step-content" data-step="2">
-        <h4 class="mb-4"><i class="fas fa-address-card me-2"></i>Contact & Personal Information</h4>
-
-        <div class="form-group">
-          <label for="id_phone_number" class="form-label">
-            <i class="fas fa-phone"></i>Phone Number
-          </label>
-          <input type="tel" class="form-control {% if form.phone_number.errors %}is-invalid{% endif %}"
-            id="id_phone_number" name="phone_number" value="{{ form.phone_number.value|default:'' }}"
-            placeholder="+1234567890">
-          <div class="form-text">Include country code for international numbers</div>
-          {% if form.phone_number.errors %}
-          <div class="invalid-feedback">{{ form.phone_number.errors.0 }}</div>
-          {% endif %}
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="id_date_of_birth" class="form-label">
-              <i class="fas fa-calendar"></i>Date of Birth
-            </label>
-            <input type="date" class="form-control {% if form.date_of_birth.errors %}is-invalid{% endif %}"
-              id="id_date_of_birth" name="date_of_birth" value="{{ form.date_of_birth.value|default:'' }}">
-            {% if form.date_of_birth.errors %}
-            <div class="invalid-feedback">{{ form.date_of_birth.errors.0 }}</div>
-            {% endif %}
-          </div>
-
-          <div class="form-group">
-            <label for="id_gender" class="form-label">
-              <i class="fas fa-venus-mars"></i>Gender
-            </label>
-            <select class="form-select {% if form.gender.errors %}is-invalid{% endif %}" id="id_gender" name="gender">
-              <option value="">-- Select Gender --</option>
-              <option value="M" {% if form.gender.value == 'M' %}selected{% endif %}>Male</option>
-              <option value="F" {% if form.gender.value == 'F' %}selected{% endif %}>Female</option>
-              <option value="O" {% if form.gender.value == 'O' %}selected{% endif %}>Other</option>
-              <option value="P" {% if form.gender.value == 'P' %}selected{% endif %}>Prefer not to say</option>
-            </select>
-            {% if form.gender.errors %}
-            <div class="invalid-feedback">{{ form.gender.errors.0 }}</div>
-            {% endif %}
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="id_address" class="form-label">
-            <i class="fas fa-map-marker-alt"></i>Address
-          </label>
-          <textarea class="form-control {% if form.address.errors %}is-invalid{% endif %}" id="id_address"
-            name="address" rows="3">{{ form.address.value|default:'' }}</textarea>
-          {% if form.address.errors %}
-          <div class="invalid-feedback">{{ form.address.errors.0 }}</div>
-          {% endif %}
-        </div>
-      </div>
-
-      <!-- Step 3: Security & Access -->
-      <div class="step-content" data-step="3">
-        <h4 class="mb-4"><i class="fas fa-shield-alt me-2"></i>Security & Access Settings</h4>
-
-        {% if form_action == 'Create' %}
-        <div class="form-row">
-          <div class="form-group">
-            <label for="id_password1" class="form-label">
-              <i class="fas fa-key"></i>Password<span class="required">*</span>
-            </label>
-            <input type="password" class="form-control {% if form.password1.errors %}is-invalid{% endif %}"
-              id="id_password1" name="password1" required>
-            <div class="password-strength" id="passwordStrength">
-              <div class="strength-meter">
-                <div class="strength-fill" id="strengthFill"></div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-floating mb-3">
+                  {{ form.first_name }}
+                  <label for="{{ form.first_name.id_for_label }}">
+                    First Name <span class="required-indicator">*</span>
+                  </label>
+                  {% if form.first_name.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.first_name.errors.0 }}
+                  </div>
+                  {% endif %}
+                </div>
               </div>
-              <div class="strength-text" id="strengthText">Enter a password</div>
+              <div class="col-md-6">
+                <div class="form-floating mb-3">
+                  {{ form.last_name }}
+                  <label for="{{ form.last_name.id_for_label }}">
+                    Last Name <span class="required-indicator">*</span>
+                  </label>
+                  {% if form.last_name.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.last_name.errors.0 }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
             </div>
-            {% if form.password1.errors %}
-            <div class="invalid-feedback">{{ form.password1.errors.0 }}</div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-floating mb-3">
+                  {{ form.username }}
+                  <label for="{{ form.username.id_for_label }}">
+                    Username
+                  </label>
+                  {% if form.username.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.username.errors.0 }}
+                  </div>
+                  {% endif %}
+                  {% if form.username.help_text %}
+                  <div class="form-text">{{ form.username.help_text }}</div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-floating mb-3">
+                  {{ form.email }}
+                  <label for="{{ form.email.id_for_label }}">
+                    Email Address <span class="required-indicator">*</span>
+                  </label>
+                  {% if form.email.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.email.errors.0 }}
+                  </div>
+                  {% endif %}
+                  {% if form.email.help_text %}
+                  <div class="form-text">{{ form.email.help_text }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-floating mb-3">
+                  {{ form.phone_number }}
+                  <label for="{{ form.phone_number.id_for_label }}">
+                    Phone Number
+                  </label>
+                  {% if form.phone_number.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.phone_number.errors.0 }}
+                  </div>
+                  {% endif %}
+                  {% if form.phone_number.help_text %}
+                  <div class="form-text">{{ form.phone_number.help_text }}</div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-floating mb-3">
+                  {{ form.date_of_birth }}
+                  <label for="{{ form.date_of_birth.id_for_label }}">
+                    Date of Birth
+                  </label>
+                  {% if form.date_of_birth.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.date_of_birth.errors.0 }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-floating mb-3">
+                  {{ form.gender }}
+                  <label for="{{ form.gender.id_for_label }}">
+                    Gender
+                  </label>
+                  {% if form.gender.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.gender.errors.0 }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <!-- Address field if it exists -->
+                {% if form.address %}
+                <div class="form-floating mb-3">
+                  {{ form.address }}
+                  <label for="{{ form.address.id_for_label }}">
+                    Address
+                  </label>
+                  {% if form.address.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.address.errors.0 }}
+                  </div>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Password Section (for new users) -->
+        {% if form_action == "Create" %}
+        <div class="form-section">
+          <div class="form-section-header">
+            <h5 class="form-section-title">
+              <i class="fas fa-lock me-2 text-warning"></i>
+              Password & Security
+            </h5>
+          </div>
+          <div class="form-section-body">
+            <div class="form-help">
+              <i class="fas fa-info-circle me-2"></i>
+              Set a strong password for the user account. The user will be required to change it on first login.
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-floating mb-3">
+                  {{ form.password1 }}
+                  <label for="{{ form.password1.id_for_label }}">
+                    Password <span class="required-indicator">*</span>
+                  </label>
+                  {% if form.password1.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.password1.errors.0 }}
+                  </div>
+                  {% endif %}
+                  <div class="password-strength">
+                    <div class="password-strength-bar" id="passwordStrengthBar"></div>
+                  </div>
+                  <div class="form-text" id="passwordHelp">
+                    {{ form.password1.help_text|default:"Password must be at least 8 characters long." }}
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-floating mb-3">
+                  {{ form.password2 }}
+                  <label for="{{ form.password2.id_for_label }}">
+                    Confirm Password <span class="required-indicator">*</span>
+                  </label>
+                  {% if form.password2.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.password2.errors.0 }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                {% if form.requires_password_change %}
+                <div class="form-check">
+                  {{ form.requires_password_change }}
+                  <label class="form-check-label" for="{{ form.requires_password_change.id_for_label }}">
+                    {{ form.requires_password_change.label }}
+                  </label>
+                </div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                {% if form.send_welcome_email %}
+                <div class="form-check">
+                  {{ form.send_welcome_email }}
+                  <label class="form-check-label" for="{{ form.send_welcome_email.id_for_label }}">
+                    {{ form.send_welcome_email.label }}
+                  </label>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- User Preferences -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <h5 class="form-section-title">
+              <i class="fas fa-cog me-2 text-info"></i>
+              User Preferences
+            </h5>
+          </div>
+          <div class="form-section-body">
+            <div class="row">
+              {% if form.is_active %}
+              <div class="col-md-6">
+                <div class="form-check form-switch mb-3">
+                  {{ form.is_active }}
+                  <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                    {{ form.is_active.label }}
+                  </label>
+                </div>
+              </div>
+              {% endif %}
+              {% if form.email_notifications %}
+              <div class="col-md-6">
+                <div class="form-check form-switch mb-3">
+                  {{ form.email_notifications }}
+                  <label class="form-check-label" for="{{ form.email_notifications.id_for_label }}">
+                    {{ form.email_notifications.label }}
+                  </label>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="row">
+              {% if form.sms_notifications %}
+              <div class="col-md-6">
+                <div class="form-check form-switch mb-3">
+                  {{ form.sms_notifications }}
+                  <label class="form-check-label" for="{{ form.sms_notifications.id_for_label }}">
+                    {{ form.sms_notifications.label }}
+                  </label>
+                </div>
+              </div>
+              {% endif %}
+              {% if form.timezone_preference %}
+              <div class="col-md-6">
+                <div class="form-floating mb-3">
+                  {{ form.timezone_preference }}
+                  <label for="{{ form.timezone_preference.id_for_label }}">
+                    {{ form.timezone_preference.label }}
+                  </label>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+
+            {% if form.language_preference %}
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-floating mb-3">
+                  {{ form.language_preference }}
+                  <label for="{{ form.language_preference.id_for_label }}">
+                    {{ form.language_preference.label }}
+                  </label>
+                </div>
+              </div>
+            </div>
             {% endif %}
           </div>
-
-          <div class="form-group">
-            <label for="id_password2" class="form-label">
-              <i class="fas fa-key"></i>Confirm Password<span class="required">*</span>
-            </label>
-            <input type="password" class="form-control {% if form.password2.errors %}is-invalid{% endif %}"
-              id="id_password2" name="password2" required>
-            <div id="passwordMatch" class="form-text"></div>
-            {% if form.password2.errors %}
-            <div class="invalid-feedback">{{ form.password2.errors.0 }}</div>
-            {% endif %}
-          </div>
         </div>
-        {% endif %}
+      </div>
 
-        <div class="form-group">
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="id_requires_password_change"
-              name="requires_password_change" {% if form.requires_password_change.value %}checked{% endif %}>
-            <label class="form-check-label" for="id_requires_password_change">
-              Require password change on first login
-            </label>
+      <!-- Sidebar -->
+      <div class="col-lg-4">
+        <!-- Profile Picture -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <h5 class="form-section-title">
+              <i class="fas fa-camera me-2 text-success"></i>
+              Profile Picture
+            </h5>
           </div>
-        </div>
-
-        <div class="form-group">
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="id_is_active" name="is_active"
-              {% if form.is_active.value %}checked{% endif %}>
-            <label class="form-check-label" for="id_is_active">
-              Account is active
-            </label>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" id="id_email_notifications" name="email_notifications"
-                {% if form.email_notifications.value %}checked{% endif %}>
-              <label class="form-check-label" for="id_email_notifications">
-                Enable email notifications
-              </label>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" id="id_sms_notifications" name="sms_notifications"
-                {% if form.sms_notifications.value %}checked{% endif %}>
-              <label class="form-check-label" for="id_sms_notifications">
-                Enable SMS notifications
-              </label>
+          <div class="form-section-body">
+            <div class="profile-picture-upload">
+              <div class="profile-picture-preview" onclick="triggerFileInput()">
+                <img id="profilePreview"
+                  src="{% if object.profile_picture %}{{ object.profile_picture.url }}{% else %}{% user_avatar_url object 120 %}{% endif %}"
+                  alt="Profile Picture" style="{% if not object.profile_picture %}display: none;{% endif %}">
+                <div id="profilePlaceholder" style="{% if object.profile_picture %}display: none;{% endif %}">
+                  <i class="fas fa-camera fa-2x text-muted mb-2"></i>
+                  <div class="text-muted">Click to upload</div>
+                </div>
+              </div>
+              {{ form.profile_picture }}
+              {% if form.profile_picture.errors %}
+              <div class="invalid-feedback d-block text-center">
+                {{ form.profile_picture.errors.0 }}
+              </div>
+              {% endif %}
+              {% if form.profile_picture.help_text %}
+              <div class="form-text text-center">{{ form.profile_picture.help_text }}</div>
+              {% endif %}
             </div>
           </div>
         </div>
 
-        {% if form_action == 'Create' %}
-        <div class="form-group">
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="id_send_welcome_email" name="send_welcome_email"
-              {% if form.send_welcome_email.value %}checked{% endif %}>
-            <label class="form-check-label" for="id_send_welcome_email">
-              Send welcome email with login credentials
-            </label>
+        <!-- Role Assignment -->
+        {% if form.roles %}
+        <div class="form-section">
+          <div class="form-section-header">
+            <h5 class="form-section-title">
+              <i class="fas fa-users-cog me-2 text-primary"></i>
+              Role Assignment
+            </h5>
+          </div>
+          <div class="form-section-body">
+            <div class="form-help">
+              <i class="fas fa-info-circle me-2"></i>
+              Select the roles for this user. Roles determine what actions the user can perform.
+            </div>
+
+            <div class="role-selection">
+              {{ form.roles }}
+              {% if form.roles.errors %}
+              <div class="invalid-feedback d-block">
+                {{ form.roles.errors.0 }}
+              </div>
+              {% endif %}
+            </div>
           </div>
         </div>
         {% endif %}
-      </div>
 
-      <!-- Step 4: Roles & Permissions -->
-      <div class="step-content" data-step="4">
-        <h4 class="mb-4"><i class="fas fa-user-tag me-2"></i>Roles & Permissions</h4>
-
-        <p class="text-muted mb-4">Select the roles to assign to this user. Each role comes with specific permissions
-          and access levels.</p>
-
-        <div class="role-selection">
-          {% for role in form.roles.queryset %}
-          <div class="role-card" onclick="toggleRole(this, '{{ role.id }}')">
-            <input type="checkbox" name="roles" value="{{ role.id }}" id="role_{{ role.id }}"
-              {% if role.id in form.roles.value %}checked{% endif %}>
-            <div class="role-name">{{ role.name }}</div>
-            <div class="role-description">{{ role.description|default:"No description available" }}</div>
+        <!-- Preview Section -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <h5 class="form-section-title">
+              <i class="fas fa-eye me-2 text-info"></i>
+              Preview
+            </h5>
           </div>
-          {% endfor %}
-        </div>
-
-        {% if form.roles.errors %}
-        <div class="invalid-feedback d-block mt-3">{{ form.roles.errors.0 }}</div>
-        {% endif %}
-      </div>
-
-      <!-- Step 5: Review & Confirm -->
-      <div class="step-content" data-step="5">
-        <h4 class="mb-4"><i class="fas fa-check-circle me-2"></i>Review & Confirm</h4>
-
-        <p class="text-muted mb-4">Please review the information below before
-          {{ form_action == 'Create' and 'creating' or 'updating' }} the user account.
-        </p>
-
-        <div class="preview-section">
-          <h5 class="mb-3">User Information</h5>
-          <div class="preview-item">
-            <span class="preview-label">Full Name:</span>
-            <span class="preview-value" id="preview-name">-</span>
-          </div>
-          <div class="preview-item">
-            <span class="preview-label">Username:</span>
-            <span class="preview-value" id="preview-username">-</span>
-          </div>
-          <div class="preview-item">
-            <span class="preview-label">Email:</span>
-            <span class="preview-value" id="preview-email">-</span>
-          </div>
-          <div class="preview-item">
-            <span class="preview-label">Phone:</span>
-            <span class="preview-value" id="preview-phone">-</span>
-          </div>
-          <div class="preview-item">
-            <span class="preview-label">Date of Birth:</span>
-            <span class="preview-value" id="preview-dob">-</span>
-          </div>
-          <div class="preview-item">
-            <span class="preview-label">Gender:</span>
-            <span class="preview-value" id="preview-gender">-</span>
-          </div>
-          <div class="preview-item">
-            <span class="preview-label">Active:</span>
-            <span class="preview-value" id="preview-active">-</span>
-          </div>
-          <div class="preview-item">
-            <span class="preview-label">Roles:</span>
-            <span class="preview-value" id="preview-roles">-</span>
+          <div class="form-section-body">
+            <div class="preview-section">
+              <div class="mb-3">
+                <img id="previewAvatar"
+                  src="{% if object.profile_picture %}{{ object.profile_picture.url }}{% else %}{% user_avatar_url object 60 %}{% endif %}"
+                  alt="Preview" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
+              </div>
+              <div class="fw-bold" id="previewName">
+                {% if object %}{{ object.get_display_name }}{% else %}User Name{% endif %}
+              </div>
+              <div class="text-muted" id="previewEmail">
+                {% if object %}{{ object.email }}{% else %}user@example.com{% endif %}
+              </div>
+              <div class="mt-2" id="previewRoles">
+                {% if object %}
+                {% user_roles_badges object %}
+                {% else %}
+                <span class="badge bg-secondary">No roles assigned</span>
+                {% endif %}
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Wizard Navigation -->
-    <div class="wizard-navigation">
-      <button type="button" class="btn btn-outline-secondary btn-wizard" id="prevBtn" onclick="changeStep(-1)">
-        <i class="fas fa-chevron-left me-2"></i>Previous
-      </button>
-
-      <div class="step-indicator">
-        Step <span id="currentStep">1</span> of 5
+    <!-- Form Actions -->
+    <div class="form-section">
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline-secondary me-2" onclick="history.back()">
+          <i class="fas fa-times me-2"></i>Cancel
+        </button>
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+          <i class="fas fa-save me-2"></i>{{ form_action }} User
+        </button>
       </div>
-
-      <button type="button" class="btn btn-primary btn-wizard" id="nextBtn" onclick="changeStep(1)">
-        Next<i class="fas fa-chevron-right ms-2"></i>
-      </button>
     </div>
   </form>
 </div>
@@ -732,154 +627,84 @@
 
 {% block extra_js %}
 <script>
-  let currentStepIndex = 1;
-  const totalSteps = 5;
-
   $(document).ready(function () {
-    updateStepButtons();
-    updatePreview();
+    // Form validation
+    const form = document.getElementById('userForm');
 
-    // Auto-generate username when name or email changes
-    $('#id_first_name, #id_last_name, #id_email').on('input', function () {
-      autoGenerateUsername();
+    form.addEventListener('submit', function (event) {
+      if (!form.checkValidity()) {
+        event.preventDefault();
+        event.stopPropagation();
+      } else {
+        // Show loading state
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+        submitBtn.disabled = true;
+      }
+      form.classList.add('was-validated');
     });
 
-    // Password strength checker
-    $('#id_password1').on('input', function () {
-      checkPasswordStrength(this.value);
-    });
-
-    // Password confirmation checker
-    $('#id_password2').on('input', function () {
-      checkPasswordMatch();
+    // Profile picture preview
+    document.getElementById('{{ form.profile_picture.id_for_label }}').addEventListener('change', function (event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          document.getElementById('profilePreview').src = e.target.result;
+          document.getElementById('profilePreview').style.display = 'block';
+          document.getElementById('profilePlaceholder').style.display = 'none';
+          document.getElementById('previewAvatar').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
     });
 
     // Real-time preview updates
-    $('input, select, textarea').on('input change', function () {
-      updatePreview();
+    updatePreview();
+
+    // Update preview when fields change
+    $('#{{ form.first_name.id_for_label }}, #{{ form.last_name.id_for_label }}').on('input', updatePreview);
+    $('#{{ form.email.id_for_label }}').on('input', updatePreview);
+
+    // Password strength checker
+    {% if form_action == "Create" %}
+    $('#{{ form.password1.id_for_label }}').on('input', function () {
+      checkPasswordStrength(this.value);
+    });
+    {% endif %}
+
+    // Auto-generate username
+    $('#{{ form.first_name.id_for_label }}, #{{ form.last_name.id_for_label }}').on('input', function () {
+      const firstName = $('#{{ form.first_name.id_for_label }}').val().toLowerCase();
+      const lastName = $('#{{ form.last_name.id_for_label }}').val().toLowerCase();
+
+      if (firstName && lastName && !$('#{{ form.username.id_for_label }}').val()) {
+        const username = firstName + '.' + lastName;
+        $('#{{ form.username.id_for_label }}').val(username);
+      }
     });
   });
 
-  function changeStep(direction) {
-    const newStep = currentStepIndex + direction;
+  function updatePreview() {
+    const firstName = $('#{{ form.first_name.id_for_label }}').val();
+    const lastName = $('#{{ form.last_name.id_for_label }}').val();
+    const email = $('#{{ form.email.id_for_label }}').val();
 
-    if (newStep < 1 || newStep > totalSteps) return;
+    const displayName = (firstName + ' ' + lastName).trim() || 'User Name';
+    const displayEmail = email || 'user@example.com';
 
-    if (direction === 1 && !validateCurrentStep()) {
-      return;
-    }
-
-    // Hide current step
-    $(`.step-content[data-step="${currentStepIndex}"]`).removeClass('active');
-    $(`.step[data-step="${currentStepIndex}"]`).removeClass('active').addClass('completed');
-
-    // Show new step
-    currentStepIndex = newStep;
-    $(`.step-content[data-step="${currentStepIndex}"]`).addClass('active');
-    $(`.step[data-step="${currentStepIndex}"]`).addClass('active');
-
-    updateStepButtons();
-    updatePreview();
+    document.getElementById('previewName').textContent = displayName;
+    document.getElementById('previewEmail').textContent = displayEmail;
   }
 
-  function updateStepButtons() {
-    $('#currentStep').text(currentStepIndex);
-
-    // Previous button
-    if (currentStepIndex === 1) {
-      $('#prevBtn').hide();
-    } else {
-      $('#prevBtn').show();
-    }
-
-    // Next/Submit button
-    if (currentStepIndex === totalSteps) {
-      $('#nextBtn').html('<i class="fas fa-save me-2"></i>{{ form_action }} User').attr('onclick', 'submitForm()');
-    } else {
-      $('#nextBtn').html('Next<i class="fas fa-chevron-right ms-2"></i>').attr('onclick', 'changeStep(1)');
-    }
+  function triggerFileInput() {
+    document.getElementById('{{ form.profile_picture.id_for_label }}').click();
   }
 
-  function validateCurrentStep() {
-    let isValid = true;
-    const currentStepContent = $(`.step-content[data-step="${currentStepIndex}"]`);
-
-    // Clear previous errors
-    currentStepContent.find('.is-invalid').removeClass('is-invalid');
-
-    // Validate required fields in current step
-    currentStepContent.find('input[required], select[required], textarea[required]').each(function () {
-      if (!this.value.trim()) {
-        $(this).addClass('is-invalid');
-        isValid = false;
-      }
-    });
-
-    // Step-specific validations
-    if (currentStepIndex === 1) {
-      // Email validation
-      const email = $('#id_email').val();
-      if (email && !isValidEmail(email)) {
-        $('#id_email').addClass('is-invalid');
-        isValid = false;
-      }
-    }
-
-    if (currentStepIndex === 3 && '{{ form_action }}' === 'Create') {
-      // Password validation
-      const password1 = $('#id_password1').val();
-      const password2 = $('#id_password2').val();
-
-      if (password1 !== password2) {
-        $('#id_password2').addClass('is-invalid');
-        isValid = false;
-      }
-    }
-
-    if (!isValid) {
-      showToast('Please fill in all required fields correctly', 'error');
-    }
-
-    return isValid;
-  }
-
-  function isValidEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  }
-
-  function autoGenerateUsername() {
-    const firstName = $('#id_first_name').val().trim();
-    const lastName = $('#id_last_name').val().trim();
-    const email = $('#id_email').val().trim();
-    const currentUsername = $('#id_username').val().trim();
-
-    // Only auto-generate if username field is empty
-    if (currentUsername) return;
-
-    let username = '';
-
-    if (firstName && lastName) {
-      username = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`;
-    } else if (email) {
-      username = email.split('@')[0].toLowerCase();
-    }
-
-    // Clean username
-    username = username.replace(/[^a-zA-Z0-9_]/g, '');
-
-    $('#id_username').val(username);
-  }
-
+  {% if form_action == "Create" %}
   function checkPasswordStrength(password) {
-    const strengthMeter = $('#strengthFill');
-    const strengthText = $('#strengthText');
-
-    if (!password) {
-      strengthMeter.removeClass().addClass('strength-fill');
-      strengthText.text('Enter a password');
-      return;
-    }
+    const strengthBar = document.getElementById('passwordStrengthBar');
+    const helpText = document.getElementById('passwordHelp');
 
     let score = 0;
     let feedback = [];
@@ -890,145 +715,37 @@
 
     // Uppercase check
     if (/[A-Z]/.test(password)) score += 25;
-    else feedback.push('Include uppercase letters');
+    else feedback.push('One uppercase letter');
 
     // Lowercase check
     if (/[a-z]/.test(password)) score += 25;
-    else feedback.push('Include lowercase letters');
+    else feedback.push('One lowercase letter');
 
-    // Number check
-    if (/\d/.test(password)) score += 15;
-    else feedback.push('Include numbers');
+    // Number or special character check
+    if (/[\d\W]/.test(password)) score += 25;
+    else feedback.push('One number or special character');
 
-    // Special character check
-    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score += 10;
-    else feedback.push('Include special characters');
-
-    // Update strength meter
-    strengthMeter.removeClass().addClass('strength-fill');
+    // Update strength bar
+    strengthBar.style.width = score + '%';
 
     if (score < 50) {
-      strengthMeter.addClass('strength-weak');
-      strengthText.html('<span class="text-danger">Weak</span>: ' + feedback.join(', '));
+      strengthBar.className = 'password-strength-bar strength-weak';
+      helpText.textContent = 'Weak password. Needs: ' + feedback.join(', ');
+      helpText.className = 'form-text text-danger';
     } else if (score < 75) {
-      strengthMeter.addClass('strength-fair');
-      strengthText.html('<span class="text-warning">Fair</span>: ' + feedback.join(', '));
-    } else if (score < 90) {
-      strengthMeter.addClass('strength-good');
-      strengthText.html('<span class="text-info">Good</span>: ' + feedback.join(', '));
+      strengthBar.className = 'password-strength-bar strength-fair';
+      helpText.textContent = 'Fair password. Consider adding: ' + feedback.join(', ');
+      helpText.className = 'form-text text-warning';
+    } else if (score < 100) {
+      strengthBar.className = 'password-strength-bar strength-good';
+      helpText.textContent = 'Good password. Consider adding: ' + feedback.join(', ');
+      helpText.className = 'form-text text-info';
     } else {
-      strengthMeter.addClass('strength-strong');
-      strengthText.html('<span class="text-success">Strong</span>: Password meets all requirements');
+      strengthBar.className = 'password-strength-bar strength-strong';
+      helpText.textContent = 'Strong password!';
+      helpText.className = 'form-text text-success';
     }
   }
-
-  function checkPasswordMatch() {
-    const password1 = $('#id_password1').val();
-    const password2 = $('#id_password2').val();
-    const matchIndicator = $('#passwordMatch');
-
-    if (!password2) {
-      matchIndicator.text('');
-      return;
-    }
-
-    if (password1 === password2) {
-      matchIndicator.html('<span class="text-success"><i class="fas fa-check me-1"></i>Passwords match</span>');
-      $('#id_password2').removeClass('is-invalid');
-    } else {
-      matchIndicator.html('<span class="text-danger"><i class="fas fa-times me-1"></i>Passwords do not match</span>');
-      $('#id_password2').addClass('is-invalid');
-    }
-  }
-
-  function toggleRole(card, roleId) {
-    const checkbox = $(card).find('input[type="checkbox"]');
-    const isChecked = !checkbox.prop('checked');
-
-    checkbox.prop('checked', isChecked);
-
-    if (isChecked) {
-      $(card).addClass('selected');
-    } else {
-      $(card).removeClass('selected');
-    }
-
-    updatePreview();
-  }
-
-  function previewImage(input) {
-    const file = input.files[0];
-    const preview = $('#avatarPreview');
-
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        preview.html(`<img src="${e.target.result}" alt="Preview">`);
-      };
-      reader.readAsDataURL(file);
-    }
-  }
-
-  function updatePreview() {
-    const firstName = $('#id_first_name').val() || '';
-    const lastName = $('#id_last_name').val() || '';
-    const fullName = `${firstName} ${lastName}`.trim() || 'Not provided';
-
-    $('#preview-name').text(fullName);
-    $('#preview-username').text($('#id_username').val() || 'Auto-generated');
-    $('#preview-email').text($('#id_email').val() || 'Not provided');
-    $('#preview-phone').text($('#id_phone_number').val() || 'Not provided');
-    $('#preview-dob').text($('#id_date_of_birth').val() || 'Not provided');
-
-    const gender = $('#id_gender option:selected').text() || 'Not specified';
-    $('#preview-gender').text(gender);
-
-    const isActive = $('#id_is_active').is(':checked') ? 'Yes' : 'No';
-    $('#preview-active').text(isActive);
-
-    // Update roles preview
-    const selectedRoles = [];
-    $('input[name="roles"]:checked').each(function () {
-      const roleCard = $(this).closest('.role-card');
-      const roleName = roleCard.find('.role-name').text();
-      selectedRoles.push(roleName);
-    });
-    $('#preview-roles').text(selectedRoles.length > 0 ? selectedRoles.join(', ') : 'None selected');
-  }
-
-  function submitForm() {
-    if (!validateCurrentStep()) {
-      return;
-    }
-
-    // Show loading
-    showLoading();
-    $('#nextBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Saving...');
-
-    // Submit the form
-    document.getElementById('userForm').submit();
-  }
-
-  // Keyboard navigation
-  $(document).on('keydown', function (e) {
-    if (e.ctrlKey || e.metaKey) {
-      switch (e.key) {
-        case 'ArrowLeft':
-          e.preventDefault();
-          if (currentStepIndex > 1) changeStep(-1);
-          break;
-        case 'ArrowRight':
-          e.preventDefault();
-          if (currentStepIndex < totalSteps) changeStep(1);
-          break;
-        case 'Enter':
-          if (currentStepIndex === totalSteps) {
-            e.preventDefault();
-            submitForm();
-          }
-          break;
-      }
-    }
-  });
+  {% endif %}
 </script>
 {% endblock %}

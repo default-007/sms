@@ -1,0 +1,609 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Financial Reports - Finance{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-0">
+            <i class="fas fa-chart-bar me-2"></i>Financial Reports
+          </h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'finance:dashboard' %}">Finance</a></li>
+              <li class="breadcrumb-item active">Reports</li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#reportFiltersModal">
+            <i class="fas fa-filter me-2"></i>Set Filters
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Stats Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title">Total Reports</h6>
+              <h3 class="mb-0">6</h3>
+              <small>Available Reports</small>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-file-alt fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title">Collection Rate</h6>
+              <h3 class="mb-0">85%</h3>
+              <small>Current Term</small>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-percentage fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title">Outstanding</h6>
+              <h3 class="mb-0">$24,580</h3>
+              <small>Total Due</small>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-exclamation-triangle fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title">Scholarships</h6>
+              <h3 class="mb-0">127</h3>
+              <small>Active Recipients</small>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-graduation-cap fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report Categories -->
+  <div class="row">
+    <!-- Collection Reports -->
+    <div class="col-lg-6 mb-4">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-coins me-2 text-success"></i>Collection Reports
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            <a href="{% url 'finance:collection-report' %}" class="list-group-item list-group-item-action">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h6 class="mb-1">Collection Summary</h6>
+                  <p class="mb-1 text-muted">Detailed collection analysis by period and payment method</p>
+                  <small class="text-success">Real-time data</small>
+                </div>
+                <span class="badge bg-primary">Interactive</span>
+              </div>
+            </a>
+
+            <a href="#" class="list-group-item list-group-item-action" onclick="generateReport('payment_trends')">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h6 class="mb-1">Payment Trends</h6>
+                  <p class="mb-1 text-muted">Payment patterns and trends over time</p>
+                  <small class="text-info">Historical analysis</small>
+                </div>
+                <span class="badge bg-info">Charts</span>
+              </div>
+            </a>
+
+            <a href="#" class="list-group-item list-group-item-action"
+              onclick="generateReport('collection_efficiency')">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h6 class="mb-1">Collection Efficiency</h6>
+                  <p class="mb-1 text-muted">Fee category wise collection performance</p>
+                  <small class="text-warning">Performance metrics</small>
+                </div>
+                <span class="badge bg-warning text-dark">Analytics</span>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Student Reports -->
+    <div class="col-lg-6 mb-4">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-users me-2 text-primary"></i>Student Reports
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            <a href="{% url 'finance:defaulters-report' %}" class="list-group-item list-group-item-action">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h6 class="mb-1">Defaulter Report</h6>
+                  <p class="mb-1 text-muted">Students with overdue payments and follow-up actions</p>
+                  <small class="text-danger">Action required</small>
+                </div>
+                <span class="badge bg-danger">Critical</span>
+              </div>
+            </a>
+
+            <a href="{% url 'finance:scholarship-report' %}" class="list-group-item list-group-item-action">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h6 class="mb-1">Scholarship Report</h6>
+                  <p class="mb-1 text-muted">Scholarship utilization and impact analysis</p>
+                  <small class="text-success">Financial aid tracking</small>
+                </div>
+                <span class="badge bg-success">Detailed</span>
+              </div>
+            </a>
+
+            <a href="#" class="list-group-item list-group-item-action" onclick="generateReport('student_balance')">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h6 class="mb-1">Student Balance Sheet</h6>
+                  <p class="mb-1 text-muted">Individual student account statements</p>
+                  <small class="text-info">Account summaries</small>
+                </div>
+                <span class="badge bg-info">Export</span>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Financial Reports -->
+    <div class="col-lg-6 mb-4">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-chart-line me-2 text-warning"></i>Financial Analysis
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            <a href="{% url 'finance:financial-summary-report' %}" class="list-group-item list-group-item-action">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h6 class="mb-1">Financial Summary</h6>
+                  <p class="mb-1 text-muted">Comprehensive financial overview and metrics</p>
+                  <small class="text-primary">Executive summary</small>
+                </div>
+                <span class="badge bg-primary">Executive</span>
+              </div>
+            </a>
+
+            <a href="#" class="list-group-item list-group-item-action" onclick="generateReport('revenue_forecast')">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h6 class="mb-1">Revenue Forecast</h6>
+                  <p class="mb-1 text-muted">Projected revenue and collection predictions</p>
+                  <small class="text-info">Predictive analysis</small>
+                </div>
+                <span class="badge bg-info">Forecast</span>
+              </div>
+            </a>
+
+            <a href="#" class="list-group-item list-group-item-action"
+              onclick="generateReport('fee_structure_analysis')">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h6 class="mb-1">Fee Structure Analysis</h6>
+                  <p class="mb-1 text-muted">Fee structure effectiveness and recommendations</p>
+                  <small class="text-warning">Strategic insights</small>
+                </div>
+                <span class="badge bg-warning text-dark">Strategic</span>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="col-lg-6 mb-4">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-bolt me-2 text-danger"></i>Quick Actions
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-6">
+              <button class="btn btn-outline-primary w-100" onclick="exportData('invoices')">
+                <i class="fas fa-file-invoice mb-2"></i>
+                <br>Export Invoices
+              </button>
+            </div>
+            <div class="col-6">
+              <button class="btn btn-outline-success w-100" onclick="exportData('payments')">
+                <i class="fas fa-money-bill mb-2"></i>
+                <br>Export Payments
+              </button>
+            </div>
+            <div class="col-6">
+              <button class="btn btn-outline-warning w-100" onclick="generateReport('outstanding_summary')">
+                <i class="fas fa-exclamation-triangle mb-2"></i>
+                <br>Outstanding Summary
+              </button>
+            </div>
+            <div class="col-6">
+              <button class="btn btn-outline-info w-100" onclick="generateReport('monthly_summary')">
+                <i class="fas fa-calendar mb-2"></i>
+                <br>Monthly Summary
+              </button>
+            </div>
+          </div>
+
+          <hr>
+
+          <div class="mb-3">
+            <label class="form-label">Generate Custom Report</label>
+            <div class="input-group">
+              <select class="form-select" id="customReportType">
+                <option value="">Select Report Type</option>
+                <option value="class_wise">Class-wise Analysis</option>
+                <option value="section_wise">Section-wise Analysis</option>
+                <option value="term_comparison">Term Comparison</option>
+                <option value="payment_method">Payment Method Analysis</option>
+              </select>
+              <button class="btn btn-primary" onclick="generateCustomReport()">
+                Generate
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Report Filters Modal -->
+<div class="modal fade" id="reportFiltersModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Report Filters</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="reportFiltersForm">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Academic Year</label>
+              <select class="form-select" id="filterAcademicYear">
+                <option value="">All Years</option>
+                {% for year in academic_years %}
+                <option value="{{ year.id }}" {% if year.is_current %}selected{% endif %}>{{ year.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Term</label>
+              <select class="form-select" id="filterTerm">
+                <option value="">All Terms</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Section</label>
+              <select class="form-select" id="filterSection">
+                <option value="">All Sections</option>
+                {% for section in sections %}
+                <option value="{{ section.id }}">{{ section.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Grade</label>
+              <select class="form-select" id="filterGrade">
+                <option value="">All Grades</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Date From</label>
+              <input type="date" class="form-control" id="filterDateFrom">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Date To</label>
+              <input type="date" class="form-control" id="filterDateTo">
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
+        <button type="button" class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-body text-center">
+        <div class="spinner-border text-primary mb-3" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <div>Generating report...</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let currentFilters = {};
+
+  function generateReport(reportType) {
+    showLoading();
+
+    // Simulate report generation
+    setTimeout(() => {
+      hideLoading();
+
+      // In real implementation, this would redirect to the actual report
+      switch (reportType) {
+        case 'payment_trends':
+          window.open(`/finance/reports/payment-trends/?${buildFilterParams()}`, '_blank');
+          break;
+        case 'collection_efficiency':
+          window.open(`/finance/reports/collection-efficiency/?${buildFilterParams()}`, '_blank');
+          break;
+        case 'student_balance':
+          window.open(`/finance/reports/student-balance/?${buildFilterParams()}`, '_blank');
+          break;
+        case 'revenue_forecast':
+          window.open(`/finance/reports/revenue-forecast/?${buildFilterParams()}`, '_blank');
+          break;
+        case 'fee_structure_analysis':
+          window.open(`/finance/reports/fee-structure-analysis/?${buildFilterParams()}`, '_blank');
+          break;
+        case 'outstanding_summary':
+          generateOutstandingSummary();
+          break;
+        case 'monthly_summary':
+          generateMonthlySummary();
+          break;
+      }
+    }, 1500);
+  }
+
+  function generateCustomReport() {
+    const reportType = $('#customReportType').val();
+    if (!reportType) {
+      alert('Please select a report type');
+      return;
+    }
+
+    generateReport(reportType);
+  }
+
+  function exportData(dataType) {
+    showLoading();
+
+    const params = new URLSearchParams(currentFilters);
+    const url = `/finance/export/${dataType}/?${params.toString()}`;
+
+    // Create hidden link and trigger download
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${dataType}_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setTimeout(hideLoading, 1000);
+  }
+
+  function applyFilters() {
+    currentFilters = {
+      academic_year: $('#filterAcademicYear').val(),
+      term: $('#filterTerm').val(),
+      section: $('#filterSection').val(),
+      grade: $('#filterGrade').val(),
+      date_from: $('#filterDateFrom').val(),
+      date_to: $('#filterDateTo').val()
+    };
+
+    // Remove empty values
+    Object.keys(currentFilters).forEach(key => {
+      if (!currentFilters[key]) {
+        delete currentFilters[key];
+      }
+    });
+
+    $('#reportFiltersModal').modal('hide');
+
+    // Show filter indicator
+    updateFilterIndicator();
+  }
+
+  function clearFilters() {
+    $('#reportFiltersForm')[0].reset();
+    currentFilters = {};
+    updateFilterIndicator();
+    $('#reportFiltersModal').modal('hide');
+  }
+
+  function updateFilterIndicator() {
+    const filterCount = Object.keys(currentFilters).length;
+    const filterBtn = $('[data-bs-target="#reportFiltersModal"]');
+
+    if (filterCount > 0) {
+      filterBtn.html(`<i class="fas fa-filter me-2"></i>Filters Applied (${filterCount})`);
+      filterBtn.removeClass('btn-outline-primary').addClass('btn-primary');
+    } else {
+      filterBtn.html('<i class="fas fa-filter me-2"></i>Set Filters');
+      filterBtn.removeClass('btn-primary').addClass('btn-outline-primary');
+    }
+  }
+
+  function buildFilterParams() {
+    return new URLSearchParams(currentFilters).toString();
+  }
+
+  function showLoading() {
+    $('#loadingModal').modal('show');
+  }
+
+  function hideLoading() {
+    $('#loadingModal').modal('hide');
+  }
+
+  function generateOutstandingSummary() {
+    const data = {
+      totalOutstanding: 24580,
+      overdueCount: 47,
+      criticalCases: 12,
+      averageOverdue: 521
+    };
+
+    alert(`Outstanding Summary:\nTotal Outstanding: $${data.totalOutstanding}\nOverdue Students: ${data.overdueCount}\nCritical Cases: ${data.criticalCases}\nAverage Overdue: $${data.averageOverdue}`);
+  }
+
+  function generateMonthlySummary() {
+    const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+    alert(`${currentMonth} Summary report will be generated and emailed to you within 5 minutes.`);
+  }
+
+  $(document).ready(function () {
+    // Load terms when academic year changes
+    $('#filterAcademicYear').on('change', function () {
+      const yearId = $(this).val();
+      $('#filterTerm').empty().append('<option value="">All Terms</option>');
+
+      if (yearId) {
+        // Fetch terms for selected academic year
+        $.get(`/api/terms/?academic_year=${yearId}`, function (data) {
+          data.forEach(term => {
+            $('#filterTerm').append(`<option value="${term.id}">${term.name}</option>`);
+          });
+        });
+      }
+    });
+
+    // Load grades when section changes
+    $('#filterSection').on('change', function () {
+      const sectionId = $(this).val();
+      $('#filterGrade').empty().append('<option value="">All Grades</option>');
+
+      if (sectionId) {
+        // Fetch grades for selected section
+        $.get(`/api/grades/?section=${sectionId}`, function (data) {
+          data.forEach(grade => {
+            $('#filterGrade').append(`<option value="${grade.id}">${grade.name}</option>`);
+          });
+        });
+      }
+    });
+
+    // Animate stats cards
+    $('.card h3').each(function () {
+      const $this = $(this);
+      const text = $this.text();
+
+      if (text.includes('$')) {
+        const value = parseFloat(text.replace(/[$,]/g, ''));
+        if (!isNaN(value)) {
+          $({ countNum: 0 }).animate({
+            countNum: value
+          }, {
+            duration: 2000,
+            easing: 'linear',
+            step: function () {
+              $this.text('$' + Math.floor(this.countNum).toLocaleString());
+            },
+            complete: function () {
+              $this.text('$' + value.toLocaleString());
+            }
+          });
+        }
+      } else if (text.includes('%')) {
+        const value = parseFloat(text.replace('%', ''));
+        if (!isNaN(value)) {
+          $({ countNum: 0 }).animate({
+            countNum: value
+          }, {
+            duration: 2000,
+            easing: 'linear',
+            step: function () {
+              $this.text(Math.floor(this.countNum) + '%');
+            },
+            complete: function () {
+              $this.text(value + '%');
+            }
+          });
+        }
+      } else {
+        const value = parseInt(text);
+        if (!isNaN(value)) {
+          $({ countNum: 0 }).animate({
+            countNum: value
+          }, {
+            duration: 2000,
+            easing: 'linear',
+            step: function () {
+              $this.text(Math.floor(this.countNum));
+            },
+            complete: function () {
+              $this.text(value);
+            }
+          });
+        }
+      }
+    });
+  });
+</script>
+{% endblock %}

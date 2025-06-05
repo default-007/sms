@@ -1,0 +1,298 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Substitute Assignment - {{ substitute.date }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Substitute Assignment</h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:dashboard' %}">Scheduling</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:substitute_list' %}">Substitutes</a></li>
+              <li class="breadcrumb-item active">{{ substitute.date }}</li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          {% if not substitute.approved_by and perms.scheduling.approve_substitutions %}
+          <form method="post" action="{% url 'scheduling:approve_substitute' substitute.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success me-2">
+              <i class="fas fa-check me-1"></i> Approve
+            </button>
+          </form>
+          {% endif %}
+          <a href="{% url 'scheduling:substitute_edit' substitute.pk %}" class="btn btn-warning me-2">
+            <i class="fas fa-edit"></i> Edit
+          </a>
+          <a href="{% url 'scheduling:substitute_delete' substitute.pk %}" class="btn btn-danger">
+            <i class="fas fa-trash"></i> Delete
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Substitute Details -->
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-user-plus me-2"></i>Assignment Details
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <table class="table table-borderless">
+                <tr>
+                  <td class="fw-bold">Date:</td>
+                  <td>
+                    <span class="badge bg-primary">{{ substitute.date|date:"l, F d, Y" }}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">Original Teacher:</td>
+                  <td>
+                    <a href="{% url 'scheduling:teacher_timetable' substitute.original_timetable.teacher.pk %}">
+                      {{ substitute.original_timetable.teacher.user.get_full_name }}
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">Substitute Teacher:</td>
+                  <td>
+                    <a href="{% url 'scheduling:teacher_timetable' substitute.substitute_teacher.pk %}">
+                      {{ substitute.substitute_teacher.user.get_full_name }}
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">Reason:</td>
+                  <td>{{ substitute.reason }}</td>
+                </tr>
+              </table>
+            </div>
+            <div class="col-md-6">
+              <table class="table table-borderless">
+                <tr>
+                  <td class="fw-bold">Class:</td>
+                  <td>
+                    <a href="{% url 'scheduling:class_timetable' substitute.original_timetable.class_assigned.pk %}">
+                      {{ substitute.original_timetable.class_assigned }}
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">Subject:</td>
+                  <td>{{ substitute.original_timetable.subject.name }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">Time:</td>
+                  <td>
+                    {{ substitute.original_timetable.time_slot.start_time }} -
+                    {{ substitute.original_timetable.time_slot.end_time }}
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">Room:</td>
+                  <td>
+                    {% if substitute.original_timetable.room %}
+                    <a href="{% url 'scheduling:room_detail' substitute.original_timetable.room.pk %}">
+                      {{ substitute.original_timetable.room.number }} - {{ substitute.original_timetable.room.name }}
+                    </a>
+                    {% else %}
+                    <span class="text-warning">Not assigned</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          {% if substitute.notes %}
+          <div class="row mt-3">
+            <div class="col-12">
+              <h6>Additional Notes:</h6>
+              <div class="alert alert-info">
+                {{ substitute.notes }}
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="row mt-3">
+            <div class="col-12">
+              <small class="text-muted">
+                Created: {{ substitute.created_at|date:"M d, Y H:i" }}
+                {% if substitute.created_by %}
+                by {{ substitute.created_by.get_full_name }}
+                {% endif %}
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Original Timetable -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-calendar-alt me-2"></i>Original Timetable Entry
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card bg-light">
+                <div class="card-body">
+                  <h6 class="card-title">Class & Subject</h6>
+                  <p class="card-text">
+                    <strong>{{ substitute.original_timetable.class_assigned }}</strong><br>
+                    {{ substitute.original_timetable.subject.name }}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card bg-light">
+                <div class="card-body">
+                  <h6 class="card-title">Schedule</h6>
+                  <p class="card-text">
+                    <strong>{{ substitute.original_timetable.time_slot.get_day_of_week_display }}</strong><br>
+                    {{ substitute.original_timetable.time_slot.start_time }} -
+                    {{ substitute.original_timetable.time_slot.end_time }}<br>
+                    <span class="badge bg-secondary">Period
+                      {{ substitute.original_timetable.time_slot.period_number }}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="mt-3">
+            <a href="{% url 'scheduling:timetable_detail' substitute.original_timetable.pk %}"
+              class="btn btn-outline-primary btn-sm">
+              <i class="fas fa-eye me-1"></i> View Full Timetable Entry
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status and Actions -->
+    <div class="col-md-4">
+      <!-- Status Card -->
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-info-circle me-2"></i>Status
+          </h6>
+        </div>
+        <div class="card-body">
+          {% if substitute.approved_by %}
+          <div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>
+            <strong>Approved</strong><br>
+            By: {{ substitute.approved_by.get_full_name }}<br>
+            <small class="text-muted">This substitute assignment has been approved and is active.</small>
+          </div>
+          {% else %}
+          <div class="alert alert-warning">
+            <i class="fas fa-clock me-2"></i>
+            <strong>Pending Approval</strong><br>
+            <small class="text-muted">This substitute assignment is waiting for approval from an administrator.</small>
+          </div>
+          {% endif %}
+
+          <!-- Date Status -->
+          {% now "Y-m-d" as today %}
+          {% if substitute.date|date:"Y-m-d" < today %}
+          <div class="alert alert-secondary">
+            <i class="fas fa-history me-2"></i>
+            <strong>Past Assignment</strong><br>
+            <small class="text-muted">This substitute assignment was for a past date.</small>
+          </div>
+          {% elif substitute.date|date:"Y-m-d" == today %}
+          <div class="alert alert-info">
+            <i class="fas fa-calendar-day me-2"></i>
+            <strong>Today's Assignment</strong><br>
+            <small class="text-muted">This substitute assignment is for today.</small>
+          </div>
+          {% else %}
+          <div class="alert alert-primary">
+            <i class="fas fa-calendar-plus me-2"></i>
+            <strong>Future Assignment</strong><br>
+            <small class="text-muted">This substitute assignment is scheduled for the future.</small>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card mt-3">
+        <div class="card-header">
+          <h6 class="card-title mb-0">Quick Actions</h6>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            {% if substitute.date|date:"Y-m-d" >= today %}
+            <a href="{% url 'scheduling:substitute_create' %}?timetable_id={{ substitute.original_timetable.pk }}&date={{ substitute.date|date:"Y-m-d" }}"
+              class="btn btn-outline-warning btn-sm">
+              <i class="fas fa-copy me-1"></i> Create Similar Assignment
+            </a>
+            {% endif %}
+
+            <a href="{% url 'scheduling:class_timetable' substitute.original_timetable.class_assigned.pk %}"
+              class="btn btn-outline-primary btn-sm">
+              <i class="fas fa-table me-1"></i> View Class Timetable
+            </a>
+
+            <a href="{% url 'scheduling:teacher_timetable' substitute.substitute_teacher.pk %}"
+              class="btn btn-outline-info btn-sm">
+              <i class="fas fa-user-clock me-1"></i> View Substitute's Schedule
+            </a>
+
+            <a href="{% url 'scheduling:teacher_timetable' substitute.original_timetable.teacher.pk %}"
+              class="btn btn-outline-secondary btn-sm">
+              <i class="fas fa-user me-1"></i> View Original Teacher's Schedule
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Teacher Comparison -->
+      <div class="card mt-3">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-users me-2"></i>Teacher Comparison
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-6">
+              <div class="border rounded p-2">
+                <div class="fw-bold">Original</div>
+                <div class="small text-muted">{{ substitute.original_timetable.teacher.user.get_full_name }}</div>
+                <div class="small">{{ substitute.original_timetable.teacher.qualification|default:"N/A" }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="border rounded p-2">
+                <div class="fw-bold">Substitute</div>
+                <div class="small text-muted">{{ substitute.substitute_teacher.user.get_full_name }}</div>
+                <div class="small">{{ substitute.substitute_teacher.qualification|default:"N/A" }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

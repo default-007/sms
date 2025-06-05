@@ -1,0 +1,506 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create Academic Year{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0 text-gray-800">
+        <i class="fas fa-calendar-plus me-2"></i>Create Academic Year
+      </h1>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item"><a href="{% url 'academics:home' %}">Academics</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'academics:academic-year-list' %}">Academic Years</a></li>
+          <li class="breadcrumb-item active">Create</li>
+        </ol>
+      </nav>
+    </div>
+    <div>
+      <a href="{% url 'academics:academic-year-list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-times me-1"></i>Cancel
+      </a>
+    </div>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <!-- Create Form Card -->
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-plus me-2"></i>Academic Year Information
+          </h6>
+        </div>
+        <div class="card-body">
+          <form id="createAcademicYearForm" method="post">
+            {% csrf_token %}
+
+            <!-- Basic Information -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h6 class="text-primary border-bottom pb-2 mb-3">
+                  <i class="fas fa-info-circle me-2"></i>Basic Information
+                </h6>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="yearName" class="form-label">
+                  Academic Year Name <span class="text-danger">*</span>
+                </label>
+                <input type="text" class="form-control" id="yearName" name="name" placeholder="e.g., 2024-2025"
+                  required>
+                <div class="form-text">
+                  Enter the academic year in format: YYYY-YYYY
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <div class="form-check form-switch mt-4">
+                  <input class="form-check-input" type="checkbox" id="isCurrent" name="is_current">
+                  <label class="form-check-label" for="isCurrent">
+                    <strong>Set as Current Academic Year</strong>
+                    <br>
+                    <small class="text-muted">This will make it the active year for all operations</small>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Date Range -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h6 class="text-primary border-bottom pb-2 mb-3">
+                  <i class="fas fa-calendar me-2"></i>Date Range
+                </h6>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="startDate" class="form-label">
+                  Start Date <span class="text-danger">*</span>
+                </label>
+                <input type="date" class="form-control" id="startDate" name="start_date" required>
+                <div class="form-text">
+                  When does the academic year begin?
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="endDate" class="form-label">
+                  End Date <span class="text-danger">*</span>
+                </label>
+                <input type="date" class="form-control" id="endDate" name="end_date" required>
+                <div class="form-text">
+                  When does the academic year end?
+                </div>
+              </div>
+            </div>
+
+            <!-- Term Configuration -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h6 class="text-primary border-bottom pb-2 mb-3">
+                  <i class="fas fa-clock me-2"></i>Terms Configuration
+                </h6>
+              </div>
+              <div class="col-md-6 mb-3">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="createTerms" name="create_terms" checked>
+                  <label class="form-check-label" for="createTerms">
+                    <strong>Automatically Create Terms</strong>
+                    <br>
+                    <small class="text-muted">Generate terms with equal duration</small>
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-6 mb-3" id="termConfigSection">
+                <label for="numTerms" class="form-label">Number of Terms</label>
+                <select class="form-select" id="numTerms" name="num_terms">
+                  <option value="2">2 Terms (Semesters)</option>
+                  <option value="3" selected>3 Terms (Trimesters)</option>
+                  <option value="4">4 Terms (Quarters)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Term Names (when creating terms) -->
+            <div class="row mb-4" id="termNamesSection">
+              <div class="col-12">
+                <h6 class="text-secondary border-bottom pb-2 mb-3">
+                  <i class="fas fa-tags me-2"></i>Term Names (Optional)
+                </h6>
+                <p class="text-muted mb-3">
+                  Leave blank to use default names (First Term, Second Term, etc.)
+                </p>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="term1Name" class="form-label">First Term Name</label>
+                <input type="text" class="form-control" id="term1Name" name="term_1_name"
+                  placeholder="e.g., First Term, Fall Semester">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="term2Name" class="form-label">Second Term Name</label>
+                <input type="text" class="form-control" id="term2Name" name="term_2_name"
+                  placeholder="e.g., Second Term, Spring Semester">
+              </div>
+              <div class="col-md-6 mb-3" id="term3Section">
+                <label for="term3Name" class="form-label">Third Term Name</label>
+                <input type="text" class="form-control" id="term3Name" name="term_3_name"
+                  placeholder="e.g., Third Term, Summer Session">
+              </div>
+              <div class="col-md-6 mb-3" id="term4Section" style="display: none;">
+                <label for="term4Name" class="form-label">Fourth Term Name</label>
+                <input type="text" class="form-control" id="term4Name" name="term_4_name"
+                  placeholder="e.g., Fourth Term, Winter Session">
+              </div>
+            </div>
+
+            <!-- Preview Section -->
+            <div class="row mb-4" id="previewSection">
+              <div class="col-12">
+                <h6 class="text-info border-bottom pb-2 mb-3">
+                  <i class="fas fa-eye me-2"></i>Preview
+                </h6>
+                <div class="alert alert-info">
+                  <div id="previewContent">
+                    <p class="mb-1"><strong>Academic Year:</strong> <span id="previewName">-</span></p>
+                    <p class="mb-1"><strong>Duration:</strong> <span id="previewDuration">-</span></p>
+                    <p class="mb-1"><strong>Terms:</strong> <span id="previewTerms">-</span></p>
+                    <p class="mb-0"><strong>Status:</strong> <span id="previewStatus">-</span></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="row">
+              <div class="col-12">
+                <div class="d-flex justify-content-between">
+                  <a href="{% url 'academics:academic-year-list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to List
+                  </a>
+                  <div>
+                    <button type="button" class="btn btn-outline-info me-2" onclick="previewYear()">
+                      <i class="fas fa-eye me-1"></i>Preview
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                      <i class="fas fa-save me-1"></i>Create Academic Year
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Help Card -->
+      <div class="card shadow mt-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-info">
+            <i class="fas fa-question-circle me-2"></i>Help & Guidelines
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h6 class="text-primary">Naming Convention</h6>
+              <ul class="list-unstyled">
+                <li><i class="fas fa-check text-success me-2"></i>Use format: YYYY-YYYY (e.g., 2024-2025)</li>
+                <li><i class="fas fa-check text-success me-2"></i>For single year: YYYY (e.g., 2024)</li>
+                <li><i class="fas fa-check text-success me-2"></i>Be consistent across years</li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <h6 class="text-primary">Best Practices</h6>
+              <ul class="list-unstyled">
+                <li><i class="fas fa-lightbulb text-warning me-2"></i>Create next year before current ends</li>
+                <li><i class="fas fa-lightbulb text-warning me-2"></i>Set up terms for better organization</li>
+                <li><i class="fas fa-lightbulb text-warning me-2"></i>Only one current year at a time</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize date pickers
+    flatpickr("#startDate", {
+      dateFormat: "Y-m-d",
+      onChange: function (selectedDates, dateStr, instance) {
+        updatePreview();
+        // Set minimum end date
+        if (selectedDates[0]) {
+          const endDatePicker = document.querySelector("#endDate")._flatpickr;
+          endDatePicker.set('minDate', selectedDates[0]);
+        }
+      }
+    });
+
+    flatpickr("#endDate", {
+      dateFormat: "Y-m-d",
+      onChange: function (selectedDates, dateStr, instance) {
+        updatePreview();
+      }
+    });
+
+    // Handle create terms toggle
+    $('#createTerms').on('change', function () {
+      if ($(this).is(':checked')) {
+        $('#termConfigSection, #termNamesSection').show();
+      } else {
+        $('#termConfigSection, #termNamesSection').hide();
+      }
+      updatePreview();
+    });
+
+    // Handle number of terms change
+    $('#numTerms').on('change', function () {
+      const numTerms = parseInt($(this).val());
+
+      // Show/hide term name fields based on selection
+      $('#term3Section, #term4Section').hide();
+
+      if (numTerms >= 3) {
+        $('#term3Section').show();
+      }
+      if (numTerms >= 4) {
+        $('#term4Section').show();
+      }
+
+      updatePreview();
+    });
+
+    // Handle form input changes
+    $('#yearName, #isCurrent').on('change input', updatePreview);
+
+    // Initialize preview
+    updatePreview();
+
+    // Handle form submission
+    $('#createAcademicYearForm').on('submit', function (e) {
+      e.preventDefault();
+
+      // Validate form
+      if (!validateForm()) {
+        return;
+      }
+
+      const formData = new FormData(this);
+
+      // Show loading state
+      const submitBtn = $(this).find('button[type="submit"]');
+      const originalText = submitBtn.html();
+      submitBtn.html('<i class="fas fa-spinner fa-spin me-1"></i>Creating...').prop('disabled', true);
+
+      fetch('{% url "academics:academic-year-create" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+        }
+      })
+        .then(response => {
+          if (response.ok) {
+            return response.text();
+          }
+          throw new Error('Network response was not ok');
+        })
+        .then(data => {
+          // Check if response contains redirect (success)
+          if (data.includes('academic-year-detail') || data.includes('academic-year-list')) {
+            window.location.href = '{% url "academics:academic-year-list" %}';
+          } else {
+            // Parse form errors from response
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(data, 'text/html');
+            const errors = doc.querySelectorAll('.alert-danger, .invalid-feedback');
+
+            if (errors.length > 0) {
+              let errorMsg = 'Please fix the following errors:\n';
+              errors.forEach(error => {
+                errorMsg += '- ' + error.textContent.trim() + '\n';
+              });
+              alert(errorMsg);
+            } else {
+              alert('Academic year created successfully!');
+              window.location.href = '{% url "academics:academic-year-list" %}';
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred while creating the academic year');
+        })
+        .finally(() => {
+          submitBtn.html(originalText).prop('disabled', false);
+        });
+    });
+  });
+
+  function updatePreview() {
+    const name = $('#yearName').val() || '-';
+    const startDate = $('#startDate').val();
+    const endDate = $('#endDate').val();
+    const isCurrent = $('#isCurrent').is(':checked');
+    const createTerms = $('#createTerms').is(':checked');
+    const numTerms = $('#numTerms').val();
+
+    // Update name
+    $('#previewName').text(name);
+
+    // Update duration
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const diffTime = Math.abs(end - start);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      $('#previewDuration').text(`${startDate} to ${endDate} (${diffDays} days)`);
+    } else {
+      $('#previewDuration').text('-');
+    }
+
+    // Update terms
+    if (createTerms) {
+      $('#previewTerms').text(`${numTerms} terms will be created automatically`);
+    } else {
+      $('#previewTerms').text('No terms will be created');
+    }
+
+    // Update status
+    $('#previewStatus').text(isCurrent ? 'Current Academic Year' : 'Regular Academic Year');
+  }
+
+  function validateForm() {
+    let isValid = true;
+    const errors = [];
+
+    // Validate required fields
+    const name = $('#yearName').val().trim();
+    if (!name) {
+      errors.push('Academic year name is required');
+      isValid = false;
+    }
+
+    const startDate = $('#startDate').val();
+    const endDate = $('#endDate').val();
+
+    if (!startDate) {
+      errors.push('Start date is required');
+      isValid = false;
+    }
+
+    if (!endDate) {
+      errors.push('End date is required');
+      isValid = false;
+    }
+
+    // Validate date range
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      if (start >= end) {
+        errors.push('End date must be after start date');
+        isValid = false;
+      }
+
+      // Check if duration is reasonable (at least 180 days, max 400 days)
+      const diffTime = Math.abs(end - start);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 180) {
+        errors.push('Academic year should be at least 180 days long');
+        isValid = false;
+      }
+
+      if (diffDays > 400) {
+        errors.push('Academic year should not exceed 400 days');
+        isValid = false;
+      }
+    }
+
+    // Show errors if any
+    if (!isValid) {
+      alert('Please fix the following errors:\n- ' + errors.join('\n- '));
+    }
+
+    return isValid;
+  }
+
+  function previewYear() {
+    updatePreview();
+
+    // Scroll to preview section
+    $('html, body').animate({
+      scrollTop: $("#previewSection").offset().top - 100
+    }, 500);
+
+    // Highlight preview section
+    $('#previewSection .alert').removeClass('alert-info').addClass('alert-success');
+    setTimeout(() => {
+      $('#previewSection .alert').removeClass('alert-success').addClass('alert-info');
+    }, 2000);
+  }
+</script>
+
+<style>
+  .form-check-input:checked {
+    background-color: #4e73df;
+    border-color: #4e73df;
+  }
+
+  .border-bottom {
+    border-bottom: 2px solid #e3e6f0 !important;
+  }
+
+  .card {
+    border: none;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+  }
+
+  .form-text {
+    font-size: 0.8rem;
+  }
+
+  .alert-info {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+    color: #0c5460;
+  }
+
+  .btn-primary {
+    background-color: #4e73df;
+    border-color: #4e73df;
+  }
+
+  .btn-primary:hover {
+    background-color: #375a7f;
+    border-color: #375a7f;
+  }
+
+  #previewContent {
+    font-size: 0.9rem;
+  }
+
+  .text-danger {
+    color: #e74a3b !important;
+  }
+
+  .flatpickr-input {
+    background: white !important;
+  }
+</style>
+{% endblock %}

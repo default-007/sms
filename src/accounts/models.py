@@ -280,10 +280,27 @@ class User(AbstractBaseUser, PermissionsMixin):
 
         return roles
 
+    @property
+    def role(self):
+        """Get user's primary role"""
+        assignment = self.role_assignments.filter(role__is_active=True).first()
+        return assignment.role.name if assignment else None
+
+    @property
+    def roles(self):
+        """Get all user roles"""
+        return [
+            assignment.role.name
+            for assignment in self.role_assignments.filter(role__is_active=True)
+        ]
+
     def has_role(self, role_name):
-        """Check if the user has a specific role with caching."""
-        roles = self.get_assigned_roles()
-        return any(role.name == role_name for role in roles)
+        """Check if user has specific role"""
+        return role_name in self.roles
+
+    def has_any_role(self, role_names):
+        """Check if user has any of the specified roles"""
+        return any(role in self.roles for role in role_names)
 
     def get_initials(self):
         """Return the user's initials."""
@@ -314,6 +331,22 @@ class User(AbstractBaseUser, PermissionsMixin):
     def is_admin(self):
         """Check if the user has admin role."""
         return self.is_superuser or self.has_role("Admin")
+
+    @property
+    def is_teacher(self):
+        return self.has_role("TEACHER")
+
+    @property
+    def is_student(self):
+        return self.has_role("STUDENT")
+
+    @property
+    def is_parent(self):
+        return self.has_role("PARENT")
+
+    @property
+    def is_staff_member(self):
+        return self.has_any_role(["ADMIN", "PRINCIPAL", "TEACHER", "STAFF"])
 
     def get_permissions(self):
         """Get all permissions from the user's roles with caching."""
@@ -453,6 +486,19 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 class UserRole(models.Model):
     """Enhanced Role model with permission management."""
+
+    ROLE_CHOICES = [
+        ("ADMIN", "Administrator"),
+        ("PRINCIPAL", "Principal"),
+        ("TEACHER", "Teacher"),
+        ("STUDENT", "Student"),
+        ("PARENT", "Parent"),
+        ("STAFF", "Staff"),
+        ("ACADEMIC_COORDINATOR", "Academic Coordinator"),
+        ("FINANCE_MANAGER", "Finance Manager"),
+        ("LIBRARIAN", "Librarian"),
+        ("TRANSPORT_MANAGER", "Transport Manager"),
+    ]
 
     name = models.CharField(_("role name"), max_length=100, unique=True)
     description = models.TextField(_("description"), blank=True)

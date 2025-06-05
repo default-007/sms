@@ -1,0 +1,516 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment {{ object.receipt_number }} - Finance{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0 text-gray-800">Payment {{ object.receipt_number }}</h1>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'finance:dashboard' %}">Finance</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'finance:payment-list' %}">Payments</a></li>
+          <li class="breadcrumb-item active">{{ object.receipt_number }}</li>
+        </ol>
+      </nav>
+    </div>
+    <div>
+      <a href="{% url 'finance:payment-receipt' object.pk %}" class="btn btn-success me-2" target="_blank">
+        <i class="fas fa-print me-2"></i>Print Receipt
+      </a>
+      <a href="{% url 'finance:payment-list' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to List
+      </a>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-8">
+      <!-- Payment Information -->
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-receipt me-2"></i>Payment Information
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h6 class="font-weight-bold text-gray-800">Receipt Number</h6>
+              <p class="mb-3">{{ object.receipt_number }}</p>
+
+              <h6 class="font-weight-bold text-gray-800">Payment Date & Time</h6>
+              <p class="mb-3">
+                <i class="fas fa-calendar me-2"></i>{{ object.payment_date|date:"F d, Y" }}
+                <br>
+                <i class="fas fa-clock me-2"></i>{{ object.payment_date|time:"g:i A" }}
+              </p>
+
+              <h6 class="font-weight-bold text-gray-800">Amount</h6>
+              <p class="mb-3">
+                <span class="h4 font-weight-bold text-success">${{ object.amount|floatformat:2 }}</span>
+              </p>
+
+              <h6 class="font-weight-bold text-gray-800">Payment Method</h6>
+              <p class="mb-3">
+                <span
+                  class="badge bg-{% if object.payment_method == 'cash' %}warning{% elif object.payment_method == 'online' %}info{% elif object.payment_method == 'bank_transfer' %}primary{% else %}secondary{% endif %} fs-6">
+                  <i
+                    class="fas fa-{% if object.payment_method == 'cash' %}money-bill-wave{% elif object.payment_method == 'online' %}globe{% elif object.payment_method == 'bank_transfer' %}university{% elif object.payment_method == 'credit_card' %}credit-card{% elif object.payment_method == 'debit_card' %}credit-card{% elif object.payment_method == 'mobile_payment' %}mobile-alt{% else %}money-check{% endif %} me-2"></i>
+                  {{ object.get_payment_method_display }}
+                </span>
+              </p>
+            </div>
+            <div class="col-md-6">
+              <h6 class="font-weight-bold text-gray-800">Status</h6>
+              <p class="mb-3">
+                {% if object.status == 'completed' %}
+                <span class="badge bg-success fs-6">
+                  <i class="fas fa-check-circle me-2"></i>Completed
+                </span>
+                {% elif object.status == 'pending' %}
+                <span class="badge bg-warning fs-6">
+                  <i class="fas fa-clock me-2"></i>Pending
+                </span>
+                {% elif object.status == 'failed' %}
+                <span class="badge bg-danger fs-6">
+                  <i class="fas fa-times-circle me-2"></i>Failed
+                </span>
+                {% elif object.status == 'refunded' %}
+                <span class="badge bg-info fs-6">
+                  <i class="fas fa-undo me-2"></i>Refunded
+                </span>
+                {% endif %}
+              </p>
+
+              {% if object.transaction_id %}
+              <h6 class="font-weight-bold text-gray-800">Transaction ID</h6>
+              <p class="mb-3">
+                <code>{{ object.transaction_id }}</code>
+              </p>
+              {% endif %}
+
+              {% if object.reference_number %}
+              <h6 class="font-weight-bold text-gray-800">Reference Number</h6>
+              <p class="mb-3">
+                <code>{{ object.reference_number }}</code>
+              </p>
+              {% endif %}
+
+              <h6 class="font-weight-bold text-gray-800">Received By</h6>
+              <p class="mb-3">
+                {% if object.received_by %}
+              <div class="d-flex align-items-center">
+                <div class="flex-shrink-0">
+                  <div class="avatar avatar-sm rounded-circle bg-primary">
+                    <i class="fas fa-user text-white"></i>
+                  </div>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                  <h6 class="mb-0">{{ object.received_by.get_full_name }}</h6>
+                  <small class="text-muted">{{ object.received_by.username }}</small>
+                </div>
+              </div>
+              {% else %}
+              <span class="text-muted">System Generated</span>
+              {% endif %}
+              </p>
+
+              {% if object.remarks %}
+              <h6 class="font-weight-bold text-gray-800">Remarks</h6>
+              <p class="mb-3">{{ object.remarks|linebreaks }}</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Student and Invoice Information -->
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-user-graduate me-2"></i>Student & Invoice Details
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h6 class="font-weight-bold text-gray-800">Student Information</h6>
+              <div class="card bg-light">
+                <div class="card-body">
+                  <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                      <div class="avatar avatar-md rounded-circle bg-primary">
+                        <i class="fas fa-user-graduate text-white"></i>
+                      </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                      <h5 class="mb-1">{{ object.invoice.student.user.get_full_name }}</h5>
+                      <p class="mb-1"><strong>Admission #:</strong> {{ object.invoice.student.admission_number }}</p>
+                      <p class="mb-1"><strong>Class:</strong> {{ object.invoice.student.current_class }}</p>
+                      <p class="mb-0"><strong>Section:</strong>
+                        {{ object.invoice.student.current_class.grade.section.name }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <h6 class="font-weight-bold text-gray-800">Invoice Information</h6>
+              <div class="card bg-light">
+                <div class="card-body">
+                  <p class="mb-2">
+                    <strong>Invoice #:</strong>
+                    <a href="{% url 'finance:invoice-detail' object.invoice.pk %}" class="text-decoration-none">
+                      {{ object.invoice.invoice_number }}
+                    </a>
+                  </p>
+                  <p class="mb-2"><strong>Academic Year:</strong> {{ object.invoice.academic_year }}</p>
+                  <p class="mb-2"><strong>Term:</strong> {{ object.invoice.term }}</p>
+                  <p class="mb-2"><strong>Due Date:</strong> {{ object.invoice.due_date|date:"M d, Y" }}</p>
+                  <p class="mb-0">
+                    <strong>Status:</strong>
+                    {% if object.invoice.status == 'paid' %}
+                    <span class="badge bg-success">Paid</span>
+                    {% elif object.invoice.status == 'partially_paid' %}
+                    <span class="badge bg-warning">Partially Paid</span>
+                    {% elif object.invoice.status == 'overdue' %}
+                    <span class="badge bg-danger">Overdue</span>
+                    {% else %}
+                    <span class="badge bg-secondary">{{ object.invoice.get_status_display }}</span>
+                    {% endif %}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment History for this Invoice -->
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-history me-2"></i>Payment History for Invoice {{ object.invoice.invoice_number }}
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Receipt #</th>
+                  <th>Date</th>
+                  <th>Amount</th>
+                  <th>Method</th>
+                  <th>Status</th>
+                  <th>Received By</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for payment in object.invoice.payments.all %}
+                <tr{% if payment.pk == object.pk %} class="table-info" {% endif %}>
+                  <td>
+                    {% if payment.pk == object.pk %}
+                    <strong>{{ payment.receipt_number }}</strong>
+                    <span class="badge bg-info ms-2">Current</span>
+                    {% else %}
+                    {{ payment.receipt_number }}
+                    {% endif %}
+                  </td>
+                  <td>{{ payment.payment_date|date:"M d, Y g:i A" }}</td>
+                  <td>
+                    <span class="font-weight-bold text-success">${{ payment.amount|floatformat:2 }}</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-secondary">{{ payment.get_payment_method_display }}</span>
+                  </td>
+                  <td>
+                    {% if payment.status == 'completed' %}
+                    <span class="badge bg-success">Completed</span>
+                    {% elif payment.status == 'pending' %}
+                    <span class="badge bg-warning">Pending</span>
+                    {% elif payment.status == 'failed' %}
+                    <span class="badge bg-danger">Failed</span>
+                    {% elif payment.status == 'refunded' %}
+                    <span class="badge bg-info">Refunded</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if payment.received_by %}
+                    {{ payment.received_by.get_full_name }}
+                    {% else %}
+                    <span class="text-muted">System</span>
+                    {% endif %}
+                  </td>
+                  </tr>
+                  {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <!-- Payment Summary Card -->
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-success">
+            <i class="fas fa-calculator me-2"></i>Payment Summary
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row text-center mb-3">
+            <div class="col-12">
+              <h3 class="font-weight-bold text-success">${{ object.amount|floatformat:2 }}</h3>
+              <small class="text-muted">Payment Amount</small>
+            </div>
+          </div>
+
+          <hr>
+
+          <div class="row text-center">
+            <div class="col-4">
+              <h6 class="font-weight-bold text-primary">${{ object.invoice.total_amount|floatformat:2 }}</h6>
+              <small class="text-muted">Invoice Total</small>
+            </div>
+            <div class="col-4">
+              <h6 class="font-weight-bold text-success">${{ object.invoice.paid_amount|floatformat:2 }}</h6>
+              <small class="text-muted">Total Paid</small>
+            </div>
+            <div class="col-4">
+              <h6 class="font-weight-bold text-warning">${{ object.invoice.outstanding_amount|floatformat:2 }}</h6>
+              <small class="text-muted">Outstanding</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions Card -->
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-warning">
+            <i class="fas fa-bolt me-2"></i>Quick Actions
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <a href="{% url 'finance:payment-receipt' object.pk %}" class="btn btn-success btn-sm" target="_blank">
+              <i class="fas fa-print me-2"></i>Print Receipt
+            </a>
+
+            <a href="{% url 'finance:invoice-detail' object.invoice.pk %}" class="btn btn-outline-primary btn-sm">
+              <i class="fas fa-file-invoice me-2"></i>View Invoice
+            </a>
+
+            <button class="btn btn-outline-info btn-sm" onclick="emailReceipt()">
+              <i class="fas fa-envelope me-2"></i>Email Receipt
+            </button>
+
+            {% if object.status == 'completed' and perms.finance.can_refund_payments %}
+            <hr>
+
+            <button class="btn btn-outline-warning btn-sm" onclick="initiateRefund()">
+              <i class="fas fa-undo me-2"></i>Process Refund
+            </button>
+            {% endif %}
+
+            {% if object.status == 'pending' and perms.finance.can_void_payments %}
+            <button class="btn btn-outline-danger btn-sm" onclick="voidPayment()">
+              <i class="fas fa-ban me-2"></i>Void Payment
+            </button>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Transaction Details Card -->
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-info">
+            <i class="fas fa-info-circle me-2"></i>Transaction Details
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="small">Payment Method:</span>
+            <span class="badge bg-secondary">{{ object.get_payment_method_display }}</span>
+          </div>
+
+          {% if object.transaction_id %}
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="small">Transaction ID:</span>
+            <code class="small">{{ object.transaction_id|truncatechars:15 }}</code>
+          </div>
+          {% endif %}
+
+          {% if object.reference_number %}
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="small">Reference:</span>
+            <code class="small">{{ object.reference_number|truncatechars:15 }}</code>
+          </div>
+          {% endif %}
+
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="small">Status:</span>
+            <span class="badge bg-{{ object.status|yesno:'success,warning,danger' }}">
+              {{ object.get_status_display }}
+            </span>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="small">Created:</span>
+            <span class="small text-muted">{{ object.created_at|date:"M d, Y g:i A" }}</span>
+          </div>
+
+          {% if object.updated_at != object.created_at %}
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="small">Updated:</span>
+            <span class="small text-muted">{{ object.updated_at|date:"M d, Y g:i A" }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Contact Information Card -->
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-secondary">
+            <i class="fas fa-address-card me-2"></i>Contact Information
+          </h6>
+        </div>
+        <div class="card-body">
+          <h6 class="font-weight-bold">Student</h6>
+          <p class="mb-2">
+            <i class="fas fa-envelope me-2 text-muted"></i>
+            {{ object.invoice.student.user.email|default:"No email" }}
+          </p>
+          <p class="mb-3">
+            <i class="fas fa-phone me-2 text-muted"></i>
+            {{ object.invoice.student.user.phone_number|default:"No phone" }}
+          </p>
+
+          <!-- Parent contact information could be added here -->
+          {% if object.invoice.student.studentparentrelation_set.exists %}
+          <h6 class="font-weight-bold">Parent/Guardian</h6>
+          {% for relation in object.invoice.student.studentparentrelation_set.all %}
+          {% if relation.is_primary_contact %}
+          <p class="mb-1">
+            <strong>{{ relation.parent.user.get_full_name }}</strong>
+            <span class="badge bg-primary ms-1">{{ relation.get_relation_type_display }}</span>
+          </p>
+          <p class="mb-2">
+            <i class="fas fa-envelope me-2 text-muted"></i>
+            {{ relation.parent.user.email|default:"No email" }}
+          </p>
+          <p class="mb-0">
+            <i class="fas fa-phone me-2 text-muted"></i>
+            {{ relation.parent.user.phone_number|default:"No phone" }}
+          </p>
+          {% endif %}
+          {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Email Receipt Modal -->
+<div class="modal fade" id="emailModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Email Receipt</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="emailForm">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Recipient Email</label>
+            <input type="email" class="form-control" id="recipientEmail" value="{{ object.invoice.student.user.email }}"
+              required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Subject</label>
+            <input type="text" class="form-control" id="emailSubject"
+              value="Payment Receipt - {{ object.receipt_number }}" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Message</label>
+            <textarea class="form-control" id="emailMessage" rows="4">Dear
+              {{ object.invoice.student.user.get_full_name }},
+
+              Please find attached your payment receipt for the amount of ${{ object.amount|floatformat:2 }}.
+
+              Receipt Number: {{ object.receipt_number }}
+              Payment Date: {{ object.payment_date|date:"F d, Y" }}
+              Invoice Number: {{ object.invoice.invoice_number }}
+
+              Thank you for your payment.
+
+              Best regards,
+              Finance Department</textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-envelope me-2"></i>Send Email
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function emailReceipt() {
+    new bootstrap.Modal(document.getElementById('emailModal')).show();
+  }
+
+  function initiateRefund() {
+    if (confirm('Are you sure you want to process a refund for this payment?')) {
+      window.location.href = '/finance/payments/{{ object.pk }}/refund/';
+    }
+  }
+
+  function voidPayment() {
+    if (confirm('Are you sure you want to void this payment? This action cannot be undone.')) {
+      $.post('/finance/payments/{{ object.pk }}/void/', {
+        'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+      }).done(function (response) {
+        alert('Payment voided successfully!');
+        location.reload();
+      }).fail(function () {
+        alert('Error voiding payment. Please try again.');
+      });
+    }
+  }
+
+  $('#emailForm').on('submit', function (e) {
+    e.preventDefault();
+
+    $.post('/finance/payments/{{ object.pk }}/email-receipt/', {
+      'recipient': $('#recipientEmail').val(),
+      'subject': $('#emailSubject').val(),
+      'message': $('#emailMessage').val(),
+      'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+    }).done(function (response) {
+      bootstrap.Modal.getInstance(document.getElementById('emailModal')).hide();
+      alert('Receipt emailed successfully!');
+    }).fail(function () {
+      alert('Error sending email. Please try again.');
+    });
+  });
+</script>
+{% endblock %>

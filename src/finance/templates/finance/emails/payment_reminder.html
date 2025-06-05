@@ -1,0 +1,130 @@
+<!-- finance/emails/payment_reminder.html -->
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Payment Reminder</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .header {
+        background: #ffc107;
+        color: #333;
+        padding: 20px;
+        text-align: center;
+      }
+
+      .content {
+        padding: 20px;
+        background: #f8f9fa;
+      }
+
+      .reminder-details {
+        background: white;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 5px;
+      }
+
+      .footer {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+        font-size: 12px;
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 10px 20px;
+        background: #ffc107;
+        color: #333;
+        text-decoration: none;
+        border-radius: 5px;
+        font-weight: bold;
+      }
+
+      .urgent {
+        color: #dc3545;
+        font-weight: bold;
+      }
+
+      .overdue {
+        background: #f8d7da;
+        padding: 10px;
+        border-radius: 5px;
+        margin: 10px 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Payment Reminder</h1>
+      </div>
+
+      <div class="content">
+        <p>Dear {{ invoice.student.user.first_name }},</p>
+
+        {% if invoice.is_overdue %}
+        <div class="overdue">
+          <p class="urgent">⚠️ OVERDUE NOTICE: Your payment is now {{ days_overdue }} days overdue.</p>
+        </div>
+        {% else %}
+        <p>This is a friendly reminder that your payment is due soon.</p>
+        {% endif %}
+
+        <div class="reminder-details">
+          <h3>Payment Details:</h3>
+          <ul>
+            <li><strong>Invoice Number:</strong> {{ invoice.invoice_number }}</li>
+            <li><strong>Student:</strong> {{ invoice.student.user.get_full_name }}</li>
+            <li><strong>Class:</strong> {{ invoice.student.current_class }}</li>
+            <li><strong>Outstanding Amount:</strong> ${{ invoice.outstanding_amount }}</li>
+            <li><strong>Due Date:</strong> {{ invoice.due_date|date:"F d, Y" }}</li>
+            {% if invoice.is_overdue and late_fee_amount %}
+            <li><strong>Late Fee:</strong> ${{ late_fee_amount }}</li>
+            {% endif %}
+          </ul>
+        </div>
+
+        {% if invoice.is_overdue %}
+        <p class="urgent">Please make payment immediately to avoid additional late fees.</p>
+        {% else %}
+        <p>Please make payment before the due date to avoid late fees.</p>
+        {% endif %}
+
+        <p><strong>Payment Options:</strong></p>
+        <ul>
+          <li>Online payment through student portal</li>
+          <li>Bank transfer to school account</li>
+          <li>Cash payment at finance office</li>
+          <li>Credit/Debit card at school</li>
+        </ul>
+
+        <p style="text-align: center;">
+          <a href="{{ payment_url }}" class="btn">Make Payment Now</a>
+        </p>
+      </div>
+
+      <div class="footer">
+        <p>{{ school_name }} Finance Department</p>
+        <p>{{ school_address }} | {{ school_phone }} | {{ school_email }}</p>
+        <p>If you have any questions, please contact our finance office.</p>
+      </div>
+    </div>
+  </body>
+
+</html>

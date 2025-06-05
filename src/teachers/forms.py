@@ -477,7 +477,7 @@ class TeacherFilterForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        from src.courses.models import Department
+        from src.academics.models import Department
 
         self.fields["department"].queryset = Department.objects.all()
 

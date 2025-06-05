@@ -1,0 +1,627 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Invoice {{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-sm-6">
+      <h1 class="h3 mb-1">Invoice {{ invoice.invoice_number }}</h1>
+      <div class="d-flex align-items-center">
+        <span class="badge 
+                    {% if invoice.status == 'paid' %}bg-success
+                    {% elif invoice.status == 'partially_paid' %}bg-warning
+                    {% elif invoice.status == 'overdue' %}bg-danger
+                    {% elif invoice.status == 'cancelled' %}bg-secondary
+                    {% else %}bg-primary{% endif %} me-2">
+          {{ invoice.get_status_display }}
+        </span>
+        {% if invoice.is_overdue %}
+        <small class="text-danger">
+          <i class="fas fa-exclamation-triangle me-1"></i>
+          Overdue by {{ invoice.due_date|timesince }}
+        </small>
+        {% endif %}
+      </div>
+    </div>
+    <div class="col-sm-6 text-end">
+      <div class="btn-group" role="group">
+        <a href="{% url 'finance:invoice-pdf' invoice.pk %}" class="btn btn-outline-primary" target="_blank">
+          <i class="fas fa-file-pdf me-2"></i>Download PDF
+        </a>
+        {% if invoice.outstanding_amount > 0 %}
+        <button type="button" class="btn btn-success" onclick="processPayment()">
+          <i class="fas fa-credit-card me-2"></i>Process Payment
+        </button>
+        {% endif %}
+        <div class="btn-group" role="group">
+          <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"
+            aria-expanded="false">
+            <i class="fas fa-ellipsis-v"></i>
+          </button>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#" onclick="sendReminder()">
+                <i class="fas fa-envelope me-2"></i>Send Reminder
+              </a></li>
+            <li><a class="dropdown-item" href="{% url 'finance:fee-waiver-create' %}?invoice={{ invoice.pk }}">
+                <i class="fas fa-hand-holding-usd me-2"></i>Request Fee Waiver
+              </a></li>
+            <li>
+              <hr class="dropdown-divider">
+            </li>
+            <li><a class="dropdown-item" href="{% url 'finance:invoice-list' %}">
+                <i class="fas fa-list me-2"></i>Back to List
+              </a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-8">
+      <!-- Invoice Details -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-file-invoice me-2"></i>Invoice Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h6>Student Information</h6>
+              <p class="mb-1"><strong>Name:</strong> {{ invoice.student.user.get_full_name }}</p>
+              <p class="mb-1"><strong>Admission No:</strong> {{ invoice.student.admission_number }}</p>
+              <p class="mb-1"><strong>Class:</strong>
+                {% if invoice.student.current_class %}
+                {{ invoice.student.current_class }}
+                {% else %}
+                <span class="text-muted">Not assigned</span>
+                {% endif %}
+              </p>
+              <p class="mb-1"><strong>Email:</strong> {{ invoice.student.user.email }}</p>
+              {% if invoice.student.user.phone_number %}
+              <p class="mb-1"><strong>Phone:</strong> {{ invoice.student.user.phone_number }}</p>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <h6>Invoice Details</h6>
+              <p class="mb-1"><strong>Academic Year:</strong> {{ invoice.academic_year.name }}</p>
+              <p class="mb-1"><strong>Term:</strong> {{ invoice.term.name }}</p>
+              <p class="mb-1"><strong>Issue Date:</strong> {{ invoice.issue_date|date:"M d, Y" }}</p>
+              <p class="mb-1"><strong>Due Date:</strong> {{ invoice.due_date|date:"M d, Y" }}</p>
+              {% if invoice.created_by %}
+              <p class="mb-1"><strong>Created By:</strong> {{ invoice.created_by.get_full_name }}</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Invoice Items -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-list me-2"></i>Invoice Items
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th class="text-end">Amount</th>
+                  <th class="text-end">Discount</th>
+                  <th class="text-end">Net Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in invoice_items %}
+                <tr>
+                  <td>
+                    <strong>{{ item.description }}</strong>
+                    {% if item.fee_structure %}
+                    <br><small class="text-muted">
+                      Fee Structure: {{ item.fee_structure.fee_category.name }}
+                      {% if item.fee_structure.late_fee_percentage > 0 %}
+                      (Late fee: {{ item.fee_structure.late_fee_percentage }}%)
+                      {% endif %}
+                    </small>
+                    {% elif item.special_fee %}
+                    <br><small class="text-muted">Special Fee: {{ item.special_fee.name }}</small>
+                    {% endif %}
+                  </td>
+                  <td class="text-end">${{ item.amount|floatformat:2 }}</td>
+                  <td class="text-end">
+                    {% if item.discount_amount > 0 %}
+                    <span class="text-success">-${{ item.discount_amount|floatformat:2 }}</span>
+                    {% else %}
+                    <span class="text-muted">$0.00</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end"><strong>${{ item.net_amount|floatformat:2 }}</strong></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot>
+                <tr class="table-light">
+                  <th>Total</th>
+                  <th class="text-end">${{ invoice.total_amount|floatformat:2 }}</th>
+                  <th class="text-end">
+                    {% if invoice.discount_amount > 0 %}
+                    <span class="text-success">-${{ invoice.discount_amount|floatformat:2 }}</span>
+                    {% else %}
+                    <span class="text-muted">$0.00</span>
+                    {% endif %}
+                  </th>
+                  <th class="text-end"><strong>${{ invoice.net_amount|floatformat:2 }}</strong></th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment History -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-history me-2"></i>Payment History
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if payments %}
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Receipt #</th>
+                  <th>Date</th>
+                  <th>Payment Method</th>
+                  <th class="text-end">Amount</th>
+                  <th>Transaction ID</th>
+                  <th>Received By</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for payment in payments %}
+                <tr>
+                  <td>
+                    <strong>{{ payment.receipt_number }}</strong>
+                    <span class="badge 
+                                            {% if payment.status == 'completed' %}bg-success
+                                            {% elif payment.status == 'pending' %}bg-warning
+                                            {% else %}bg-danger{% endif %} ms-2">
+                      {{ payment.get_status_display }}
+                    </span>
+                  </td>
+                  <td>{{ payment.payment_date|date:"M d, Y H:i" }}</td>
+                  <td>
+                    <i
+                      class="fas fa-{% if payment.payment_method == 'cash' %}money-bill-wave{% elif payment.payment_method == 'credit_card' %}credit-card{% elif payment.payment_method == 'bank_transfer' %}university{% else %}payment{% endif %} me-2"></i>
+                    {{ payment.get_payment_method_display }}
+                  </td>
+                  <td class="text-end">
+                    <strong class="text-success">${{ payment.amount|floatformat:2 }}</strong>
+                  </td>
+                  <td>
+                    {% if payment.transaction_id %}
+                    <code>{{ payment.transaction_id }}</code>
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if payment.received_by %}
+                    {{ payment.received_by.get_full_name }}
+                    {% else %}
+                    <span class="text-muted">System</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                      <a href="{% url 'finance:payment-receipt' payment.pk %}" class="btn btn-outline-primary"
+                        title="View Receipt" target="_blank">
+                        <i class="fas fa-receipt"></i>
+                      </a>
+                      {% if payment.status == 'completed' %}
+                      <button type="button" class="btn btn-outline-warning" title="Request Refund"
+                        onclick="requestRefund({{ payment.pk }})">
+                        <i class="fas fa-undo"></i>
+                      </button>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                {% if payment.remarks %}
+                <tr>
+                  <td colspan="7" class="bg-light">
+                    <small><strong>Remarks:</strong> {{ payment.remarks }}</small>
+                  </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-4">
+            <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
+            <h6>No Payments Yet</h6>
+            <p class="text-muted">No payments have been made for this invoice.</p>
+            {% if invoice.outstanding_amount > 0 %}
+            <button type="button" class="btn btn-primary" onclick="processPayment()">
+              <i class="fas fa-credit-card me-2"></i>Make First Payment
+            </button>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+      <!-- Financial Summary -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-calculator me-2"></i>Financial Summary
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row text-center mb-3">
+            <div class="col-12">
+              <h3 class="text-info">${{ invoice.net_amount|floatformat:2 }}</h3>
+              <p class="text-muted mb-0">Net Amount</p>
+            </div>
+          </div>
+
+          <div class="row text-center mb-3">
+            <div class="col-6">
+              <h5 class="text-success">${{ invoice.paid_amount|floatformat:2 }}</h5>
+              <small class="text-muted">Paid</small>
+            </div>
+            <div class="col-6">
+              <h5 class="{% if invoice.outstanding_amount > 0 %}text-danger{% else %}text-success{% endif %}">
+                ${{ invoice.outstanding_amount|floatformat:2 }}
+              </h5>
+              <small class="text-muted">Outstanding</small>
+            </div>
+          </div>
+
+          <div class="progress mb-3" style="height: 25px;">
+            {% widthratio invoice.paid_amount invoice.net_amount 100 as payment_percentage %}
+            <div class="progress-bar bg-success" role="progressbar" style="width: {{ payment_percentage }}%"
+              aria-valuenow="{{ payment_percentage }}" aria-valuemin="0" aria-valuemax="100">
+              {{ payment_percentage }}% Paid
+            </div>
+          </div>
+
+          {% if invoice.discount_amount > 0 %}
+          <div class="alert alert-info">
+            <small>
+              <i class="fas fa-tag me-1"></i>
+              <strong>Discount Applied:</strong> ${{ invoice.discount_amount|floatformat:2 }}
+            </small>
+          </div>
+          {% endif %}
+
+          {% if invoice.is_overdue %}
+          <div class="alert alert-warning">
+            <small>
+              <i class="fas fa-exclamation-triangle me-1"></i>
+              <strong>Overdue:</strong> {{ invoice.due_date|timesince }} past due date
+            </small>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-bolt me-2"></i>Quick Actions
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            {% if invoice.outstanding_amount > 0 %}
+            <button type="button" class="btn btn-success" onclick="processPayment()">
+              <i class="fas fa-credit-card me-2"></i>Process Payment
+            </button>
+            {% endif %}
+
+            <button type="button" class="btn btn-outline-primary" onclick="sendReminder()">
+              <i class="fas fa-envelope me-2"></i>Send Reminder
+            </button>
+
+            <a href="{% url 'finance:invoice-pdf' invoice.pk %}" class="btn btn-outline-secondary" target="_blank">
+              <i class="fas fa-download me-2"></i>Download PDF
+            </a>
+
+            {% if invoice.status != 'cancelled' and invoice.outstanding_amount > 0 %}
+            <a href="{% url 'finance:fee-waiver-create' %}?invoice={{ invoice.pk }}" class="btn btn-outline-warning">
+              <i class="fas fa-hand-holding-usd me-2"></i>Request Waiver
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Student Contact -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-address-book me-2"></i>Contact Information
+          </h6>
+        </div>
+        <div class="card-body">
+          <p class="mb-2">
+            <strong>Student:</strong><br>
+            {{ invoice.student.user.get_full_name }}<br>
+            <small class="text-muted">{{ invoice.student.admission_number }}</small>
+          </p>
+
+          <p class="mb-2">
+            <strong>Email:</strong><br>
+            <a href="mailto:{{ invoice.student.user.email }}">{{ invoice.student.user.email }}</a>
+          </p>
+
+          {% if invoice.student.user.phone_number %}
+          <p class="mb-2">
+            <strong>Phone:</strong><br>
+            <a href="tel:{{ invoice.student.user.phone_number }}">{{ invoice.student.user.phone_number }}</a>
+          </p>
+          {% endif %}
+
+          <!-- Parent Contacts -->
+          {% for relation in invoice.student.studentparentrelation_set.all %}
+          <hr>
+          <p class="mb-2">
+            <strong>{{ relation.get_relation_type_display }}:</strong><br>
+            {{ relation.parent.user.get_full_name }}
+            {% if relation.is_primary_contact %}
+            <span class="badge bg-primary ms-1">Primary</span>
+            {% endif %}
+          </p>
+          <p class="mb-1">
+            <small>
+              <a href="mailto:{{ relation.parent.user.email }}">{{ relation.parent.user.email }}</a>
+            </small>
+          </p>
+          {% if relation.parent.user.phone_number %}
+          <p class="mb-1">
+            <small>
+              <a href="tel:{{ relation.parent.user.phone_number }}">{{ relation.parent.user.phone_number }}</a>
+            </small>
+          </p>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Invoice History -->
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-clock me-2"></i>Recent Activity
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-marker bg-primary"></div>
+              <div class="timeline-content">
+                <h6 class="timeline-title">Invoice Created</h6>
+                <p class="timeline-text">{{ invoice.created_at|date:"M d, Y H:i" }}</p>
+              </div>
+            </div>
+
+            {% for payment in payments %}
+            <div class="timeline-item">
+              <div class="timeline-marker bg-success"></div>
+              <div class="timeline-content">
+                <h6 class="timeline-title">Payment Received</h6>
+                <p class="timeline-text">
+                  ${{ payment.amount|floatformat:2 }} via {{ payment.get_payment_method_display }}<br>
+                  <small class="text-muted">{{ payment.payment_date|date:"M d, Y H:i" }}</small>
+                </p>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="paymentModalLabel">Process Payment</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="paymentForm">
+          {% csrf_token %}
+          <input type="hidden" name="invoice_id" value="{{ invoice.pk }}">
+
+          <div class="alert alert-info">
+            <strong>Invoice:</strong> {{ invoice.invoice_number }}<br>
+            <strong>Student:</strong> {{ invoice.student.user.get_full_name }}<br>
+            <strong>Outstanding Amount:</strong> ${{ invoice.outstanding_amount|floatformat:2 }}
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="amount" class="form-label">Payment Amount</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" class="form-control" name="amount" step="0.01" min="0.01"
+                  max="{{ invoice.outstanding_amount }}" required>
+                <button type="button" class="btn btn-outline-secondary" onclick="setFullAmount()">
+                  Full
+                </button>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label for="payment_method" class="form-label">Payment Method</label>
+              <select name="payment_method" class="form-select" required>
+                <option value="">Select Method</option>
+                <option value="cash">Cash</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="credit_card">Credit Card</option>
+                <option value="debit_card">Debit Card</option>
+                <option value="mobile_payment">Mobile Payment</option>
+                <option value="cheque">Cheque</option>
+                <option value="online">Online Payment</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="transaction_id" class="form-label">Transaction ID</label>
+              <input type="text" class="form-control" name="transaction_id">
+            </div>
+            <div class="col-md-6">
+              <label for="reference_number" class="form-label">Reference Number</label>
+              <input type="text" class="form-control" name="reference_number">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="remarks" class="form-label">Remarks</label>
+            <textarea class="form-control" name="remarks" rows="2"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="submitPayment()">
+          <i class="fas fa-credit-card me-2"></i>Process Payment
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function processPayment() {
+    const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    paymentModal.show();
+  }
+
+  function setFullAmount() {
+    const outstandingAmount = {{ invoice.outstanding_amount }
+  };
+  document.querySelector('input[name="amount"]').value = outstandingAmount.toFixed(2);
+}
+
+  function submitPayment() {
+    const form = document.getElementById('paymentForm');
+    const formData = new FormData(form);
+
+    fetch('{% url "finance:payment-process" %}', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          location.reload();
+        } else {
+          alert('Error processing payment: ' + (data.error || 'Unknown error'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error processing payment');
+      });
+  }
+
+  function sendReminder() {
+    if (confirm('Send payment reminder for this invoice?')) {
+      fetch(`{% url 'finance:invoice-detail' invoice.pk %}send-reminder/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Reminder sent successfully');
+          } else {
+            alert('Error sending reminder: ' + (data.error || 'Unknown error'));
+          }
+        });
+    }
+  }
+
+  function requestRefund(paymentId) {
+    if (confirm('Request refund for this payment? This will require approval.')) {
+      // Implementation for refund request
+      alert('Refund request functionality would be implemented here');
+    }
+  }
+</script>
+
+<style>
+  .timeline {
+    position: relative;
+    padding-left: 20px;
+  }
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .timeline-marker {
+    position: absolute;
+    left: -25px;
+    top: 5px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: -21px;
+    top: 15px;
+    width: 2px;
+    height: 100%;
+    background-color: #dee2e6;
+  }
+
+  .timeline-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+
+  .timeline-text {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-bottom: 0;
+  }
+</style>
+{% endblock %}

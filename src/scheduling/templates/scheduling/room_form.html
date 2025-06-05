@@ -1,0 +1,350 @@
+{% extends 'core/base.html' %}
+
+{% block title %}
+{% if object %}Edit Room - {{ object.number }}{% else %}Create Room{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'scheduling:dashboard' %}">Scheduling</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'scheduling:room_list' %}">Rooms</a></li>
+          <li class="breadcrumb-item active">
+            {% if object %}Edit {{ object.number }}{% else %}Create Room{% endif %}
+          </li>
+        </ol>
+      </nav>
+    </div>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-md-10 col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-door-open me-2"></i>
+            {% if object %}Edit Room{% else %}Create New Room{% endif %}
+          </h5>
+        </div>
+        <div class="card-body">
+          <form method="post" id="roomForm">
+            {% csrf_token %}
+
+            <!-- Basic Information -->
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.number.id_for_label }}" class="form-label">
+                    Room Number <span class="text-danger">*</span>
+                  </label>
+                  {{ form.number }}
+                  {% if form.number.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.number.errors.0 }}
+                  </div>
+                  {% endif %}
+                  <div class="form-text">e.g., "101", "A-201", "Lab-1"</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.name.id_for_label }}" class="form-label">
+                    Room Name <span class="text-danger">*</span>
+                  </label>
+                  {{ form.name }}
+                  {% if form.name.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.name.errors.0 }}
+                  </div>
+                  {% endif %}
+                  <div class="form-text">e.g., "Physics Lab", "Main Hall"</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.room_type.id_for_label }}" class="form-label">
+                    Room Type <span class="text-danger">*</span>
+                  </label>
+                  {{ form.room_type }}
+                  {% if form.room_type.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.room_type.errors.0 }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.capacity.id_for_label }}" class="form-label">
+                    Capacity <span class="text-danger">*</span>
+                  </label>
+                  {{ form.capacity }}
+                  {% if form.capacity.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.capacity.errors.0 }}
+                  </div>
+                  {% endif %}
+                  <div class="form-text">Maximum number of students</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Location Information -->
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.building.id_for_label }}" class="form-label">
+                    Building
+                  </label>
+                  {{ form.building }}
+                  {% if form.building.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.building.errors.0 }}
+                  </div>
+                  {% endif %}
+                  <div class="form-text">e.g., "Main Building", "Science Block"</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.floor.id_for_label }}" class="form-label">
+                    Floor
+                  </label>
+                  {{ form.floor }}
+                  {% if form.floor.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.floor.errors.0 }}
+                  </div>
+                  {% endif %}
+                  <div class="form-text">e.g., "Ground", "1st", "2nd"</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Equipment -->
+            <div class="row">
+              <div class="col-12">
+                <div class="mb-3">
+                  <label class="form-label">Available Equipment</label>
+                  <div class="card bg-light">
+                    <div class="card-body">
+                      {{ form.equipment }}
+                      {% if form.equipment.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.equipment.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="form-text">Select all equipment available in this room</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Status and Notes -->
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <div class="form-check">
+                    {{ form.is_available }}
+                    <label class="form-check-label" for="{{ form.is_available.id_for_label }}">
+                      Room is available for scheduling
+                    </label>
+                  </div>
+                  {% if form.is_available.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.is_available.errors.0 }}
+                  </div>
+                  {% endif %}
+                  <div class="form-text">Uncheck if room is under maintenance or unavailable</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12">
+                <div class="mb-3">
+                  <label for="{{ form.maintenance_notes.id_for_label }}" class="form-label">
+                    Maintenance Notes
+                  </label>
+                  {{ form.maintenance_notes }}
+                  {% if form.maintenance_notes.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.maintenance_notes.errors.0 }}
+                  </div>
+                  {% endif %}
+                  <div class="form-text">Any maintenance issues or special instructions</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Preview Section -->
+            <div class="alert alert-info">
+              <h6 class="alert-heading">
+                <i class="fas fa-info-circle me-1"></i> Preview
+              </h6>
+              <div id="roomPreview">
+                <strong>Room:</strong> <span id="previewNumber">-</span> - <span id="previewName">-</span><br>
+                <strong>Type:</strong> <span id="previewType">-</span><br>
+                <strong>Location:</strong> <span id="previewLocation">-</span><br>
+                <strong>Capacity:</strong> <span id="previewCapacity">-</span> students<br>
+                <strong>Status:</strong> <span id="previewStatus">-</span>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="d-flex justify-content-between">
+              <a href="{% url 'scheduling:room_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Cancel
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-1"></i>
+                {% if object %}Update Room{% else %}Create Room{% endif %}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Help Card -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-question-circle me-2"></i>Room Setup Guidelines
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h6>Room Types:</h6>
+              <ul class="small">
+                <li><strong>Classroom:</strong> Standard teaching rooms</li>
+                <li><strong>Laboratory:</strong> Science labs with special equipment</li>
+                <li><strong>Computer Lab:</strong> Rooms with computers</li>
+                <li><strong>Library:</strong> Study and reading areas</li>
+                <li><strong>Gymnasium:</strong> Sports and physical education</li>
+                <li><strong>Auditorium:</strong> Large gatherings and events</li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <h6>Best Practices:</h6>
+              <ul class="small">
+                <li>Use consistent room numbering (e.g., Floor-Room)</li>
+                <li>Set realistic capacity based on furniture and space</li>
+                <li>Mark rooms unavailable during maintenance</li>
+                <li>Specify equipment for automatic room suggestions</li>
+                <li>Keep maintenance notes updated</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Add Bootstrap classes to form fields
+    $('#id_number').addClass('form-control');
+    $('#id_name').addClass('form-control');
+    $('#id_room_type').addClass('form-select');
+    $('#id_capacity').addClass('form-control');
+    $('#id_building').addClass('form-control');
+    $('#id_floor').addClass('form-control');
+    $('#id_is_available').addClass('form-check-input');
+    $('#id_maintenance_notes').addClass('form-control');
+
+    // Equipment checkboxes styling
+    $('#id_equipment input[type="checkbox"]').addClass('form-check-input me-2');
+    $('#id_equipment label').addClass('form-check-label me-3');
+
+    // Update preview
+    function updatePreview() {
+      var number = $('#id_number').val() || '-';
+      var name = $('#id_name').val() || '-';
+      var type = $('#id_room_type option:selected').text() || '-';
+      var capacity = $('#id_capacity').val() || '-';
+      var building = $('#id_building').val();
+      var floor = $('#id_floor').val();
+      var isAvailable = $('#id_is_available').is(':checked');
+
+      var location = '';
+      if (building && floor) {
+        location = building + ', ' + floor + ' Floor';
+      } else if (building) {
+        location = building;
+      } else if (floor) {
+        location = floor + ' Floor';
+      } else {
+        location = '-';
+      }
+
+      $('#previewNumber').text(number);
+      $('#previewName').text(name);
+      $('#previewType').text(type);
+      $('#previewLocation').text(location);
+      $('#previewCapacity').text(capacity);
+      $('#previewStatus').text(isAvailable ? 'Available' : 'Unavailable');
+    }
+
+    // Event listeners for preview update
+    $('#id_number, #id_name, #id_room_type, #id_capacity, #id_building, #id_floor, #id_is_available').on('input change', updatePreview);
+
+    // Initial preview update
+    updatePreview();
+
+    // Form validation
+    $('#roomForm').on('submit', function (e) {
+      var capacity = parseInt($('#id_capacity').val());
+
+      if (capacity && capacity < 1) {
+        e.preventDefault();
+        alert('Room capacity must be at least 1.');
+        return false;
+      }
+
+      if (capacity && capacity > 1000) {
+        e.preventDefault();
+        if (!confirm('Room capacity is very large (' + capacity + '). Are you sure this is correct?')) {
+          return false;
+        }
+      }
+    });
+
+    // Auto-suggest room type based on name
+    $('#id_name').on('blur', function () {
+      var name = $(this).val().toLowerCase();
+      var roomType = $('#id_room_type');
+
+      if (roomType.val() === '') { // Only suggest if no type selected
+        if (name.includes('lab') || name.includes('laboratory')) {
+          roomType.val('laboratory');
+        } else if (name.includes('computer') || name.includes('it')) {
+          roomType.val('computer_lab');
+        } else if (name.includes('gym') || name.includes('sports')) {
+          roomType.val('gymnasium');
+        } else if (name.includes('library')) {
+          roomType.val('library');
+        } else if (name.includes('hall') || name.includes('auditorium')) {
+          roomType.val('auditorium');
+        } else if (name.includes('music')) {
+          roomType.val('music_room');
+        } else if (name.includes('art')) {
+          roomType.val('art_room');
+        }
+        updatePreview();
+      }
+    });
+  });
+</script>
+{% endblock %}

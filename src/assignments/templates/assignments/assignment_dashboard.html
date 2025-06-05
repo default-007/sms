@@ -1,0 +1,734 @@
+{% extends "base.html" %}
+{% load assignment_tags %}
+
+{% block title %}Assignment Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Dashboard Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Assignment Dashboard</h2>
+          <p class="text-muted mb-0">
+            {% if user.teacher %}
+            Manage your assignments and track student progress
+            {% elif user.student %}
+            Track your assignments and academic progress
+            {% elif user.parent %}
+            Monitor your children's assignment progress
+            {% endif %}
+          </p>
+        </div>
+        <div>
+          {% if user.teacher %}
+          <a href="{% url 'assignments:assignment_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Create Assignment
+          </a>
+          {% endif %}
+          <a href="{% url 'assignments:assignment_list' %}" class="btn btn-outline-secondary ms-2">
+            <i class="fas fa-list me-2"></i>View All
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEACHER DASHBOARD -->
+  {% if user.teacher %}
+  <!-- Teacher Stats Cards -->
+  <div class="row mb-4">
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-gradient-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="mb-0">{{ analytics_summary.total_assignments|default:0 }}</h3>
+              <p class="mb-0">Total Assignments</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-clipboard-list fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-gradient-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="mb-0">{{ pending_grading|length|default:0 }}</h3>
+              <p class="mb-0">Pending Grading</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-clipboard-check fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-gradient-warning text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="mb-0">{{ upcoming_deadlines|length|default:0 }}</h3>
+              <p class="mb-0">Upcoming Deadlines</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-clock fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-gradient-info text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="mb-0">{{ analytics_summary.grading_rate|default:0|floatformat:0 }}%</h3>
+              <p class="mb-0">Grading Rate</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-percentage fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Subject Performance Chart -->
+    <div class="col-lg-8">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-chart-bar me-2"></i>Subject Performance Overview
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="subjectPerformanceChart" style="height: 350px;"></div>
+        </div>
+      </div>
+
+      <!-- Recent Assignments -->
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            <i class="fas fa-clock me-2"></i>Recent Assignments
+          </h5>
+          <a href="{% url 'assignments:assignment_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Assignment</th>
+                  <th>Class</th>
+                  <th>Due Date</th>
+                  <th>Submissions</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for assignment in recent_assignments %}
+                <tr>
+                  <td>
+                    <div>
+                      <h6 class="mb-1">{{ assignment.title }}</h6>
+                      <small class="text-muted">{{ assignment.subject.name }}</small>
+                    </div>
+                  </td>
+                  <td>{{ assignment.class_id }}</td>
+                  <td>
+                    {{ assignment.due_date|date:"M d, Y" }}
+                    {% assignment_deadline_warning assignment %}
+                  </td>
+                  <td>
+                    <span class="fw-bold">{{ assignment.submission_count }}</span>
+                    {% assignment_completion_bar assignment %}
+                  </td>
+                  <td>{% assignment_status_badge assignment %}</td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <a href="{% url 'assignments:assignment_detail' assignment.pk %}" class="btn btn-outline-primary">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      <a href="{% url 'assignments:submission_list' assignment.pk %}" class="btn btn-outline-info">
+                        <i class="fas fa-list"></i>
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="6" class="text-center py-3">
+                    <div class="text-muted">
+                      <i class="fas fa-clipboard-list fa-2x mb-2"></i>
+                      <p>No recent assignments</p>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+      <!-- Pending Grading -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">
+            <i class="fas fa-clipboard-check me-2"></i>Pending Grading
+          </h6>
+          <a href="{% url 'assignments:grading_queue' %}" class="btn btn-sm btn-outline-primary">View All</a>
+        </div>
+        <div class="card-body">
+          {% for submission in pending_grading|slice:":5" %}
+          <div class="d-flex align-items-center mb-3">
+            <div class="flex-grow-1">
+              <h6 class="mb-1">{{ submission.assignment.title|truncatechars:30 }}</h6>
+              <small class="text-muted">{{ submission.student.user.get_full_name }}</small>
+            </div>
+            <div>
+              <a href="{% url 'assignments:submission_grade' submission.pk %}" class="btn btn-sm btn-primary">
+                Grade
+              </a>
+            </div>
+          </div>
+          {% empty %}
+          <div class="text-center text-muted py-3">
+            <i class="fas fa-check-circle fa-2x mb-2"></i>
+            <p>All caught up!</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Upcoming Deadlines -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-calendar-alt me-2"></i>Upcoming Deadlines
+          </h6>
+        </div>
+        <div class="card-body">
+          {% for deadline in upcoming_deadlines|slice:":5" %}
+          <div class="d-flex align-items-center mb-3">
+            <div class="me-3">
+              <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                style="width: 32px; height: 32px;">
+                {{ deadline.days_until_due }}
+              </div>
+            </div>
+            <div class="flex-grow-1">
+              <h6 class="mb-1">{{ deadline.title|truncatechars:25 }}</h6>
+              <small class="text-muted">{{ deadline.class }} • {{ deadline.subject }}</small>
+            </div>
+          </div>
+          {% empty %}
+          <div class="text-center text-muted py-3">
+            <i class="fas fa-calendar-check fa-2x mb-2"></i>
+            <p>No upcoming deadlines</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Monthly Activity Chart -->
+      <div class="card">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-chart-line me-2"></i>Monthly Activity
+          </h6>
+        </div>
+        <div class="card-body">
+          <div id="monthlyActivityChart" style="height: 200px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- STUDENT DASHBOARD -->
+  {% if user.student %}
+  <!-- Student Stats Cards -->
+  <div class="row mb-4">
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-gradient-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="mb-0">{{ performance_summary.basic_stats.total_assignments|default:0 }}</h3>
+              <p class="mb-0">Total Assignments</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-clipboard-list fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-gradient-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="mb-0">{{ performance_summary.basic_stats.submission_rate|default:0|floatformat:0 }}%</h3>
+              <p class="mb-0">Submission Rate</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-upload fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-gradient-warning text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="mb-0">{{ upcoming_assignments|length|default:0 }}</h3>
+              <p class="mb-0">Pending Submissions</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-clock fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card bg-gradient-info text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="mb-0">{{ performance_summary.performance_stats.average_percentage|default:0|floatformat:0 }}%
+              </h3>
+              <p class="mb-0">Average Score</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-chart-line fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Performance Chart -->
+    <div class="col-lg-8">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-chart-area me-2"></i>Performance Trend
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="performanceTrendChart" style="height: 350px;"></div>
+        </div>
+      </div>
+
+      <!-- Recent Assignments -->
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            <i class="fas fa-list me-2"></i>Recent Assignments
+          </h5>
+          <a href="{% url 'assignments:student_assignments' %}" class="btn btn-sm btn-outline-primary">View All</a>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Assignment</th>
+                  <th>Subject</th>
+                  <th>Due Date</th>
+                  <th>Status</th>
+                  <th>Score</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for assignment in recent_assignments %}
+                <tr>
+                  <td>
+                    <div>
+                      <h6 class="mb-1">{{ assignment.title }}</h6>
+                      <small class="text-muted">{{ assignment.total_marks }} marks</small>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-primary">{{ assignment.subject.code }}</span>
+                  </td>
+                  <td>
+                    {{ assignment.due_date|date:"M d, Y" }}
+                    {% assignment_deadline_warning assignment %}
+                  </td>
+                  <td>
+                    {% get_student_submission assignment user.student as submission %}
+                    {% if submission %}
+                    {% submission_status_badge submission %}
+                    {% else %}
+                    <span class="badge bg-warning">Not Submitted</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if submission and submission.marks_obtained %}
+                    {% grade_badge submission.percentage %}
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <a href="{% url 'assignments:assignment_detail' assignment.pk %}" class="btn btn-outline-primary">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      {% if not submission and assignment.status == 'published' %}
+                      <a href="{% url 'assignments:submission_create' assignment.pk %}" class="btn btn-success">
+                        <i class="fas fa-upload"></i>
+                      </a>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="6" class="text-center py-3">
+                    <div class="text-muted">
+                      <i class="fas fa-clipboard-list fa-2x mb-2"></i>
+                      <p>No assignments available</p>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Student Sidebar -->
+    <div class="col-lg-4">
+      <!-- Upcoming Assignments -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">
+            <i class="fas fa-exclamation-circle me-2"></i>Due Soon
+          </h6>
+          <span class="badge bg-warning">{{ upcoming_assignments|length }}</span>
+        </div>
+        <div class="card-body">
+          {% for assignment in upcoming_assignments|slice:":5" %}
+          <div class="d-flex align-items-center mb-3">
+            <div class="me-3">
+              <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center"
+                style="width: 32px; height: 32px;">
+                {{ assignment.days_until_due }}
+              </div>
+            </div>
+            <div class="flex-grow-1">
+              <h6 class="mb-1">{{ assignment.title|truncatechars:25 }}</h6>
+              <small class="text-muted">{{ assignment.subject.name }}</small>
+            </div>
+            <div>
+              <a href="{% url 'assignments:assignment_detail' assignment.pk %}" class="btn btn-sm btn-outline-primary">
+                View
+              </a>
+            </div>
+          </div>
+          {% empty %}
+          <div class="text-center text-muted py-3">
+            <i class="fas fa-check-circle fa-2x mb-2"></i>
+            <p>No upcoming deadlines</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Recent Grades -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-award me-2"></i>Recent Grades
+          </h6>
+        </div>
+        <div class="card-body">
+          {% for grade in recent_grades|slice:":5" %}
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="flex-grow-1">
+              <h6 class="mb-1">{{ grade.assignment.title|truncatechars:25 }}</h6>
+              <small class="text-muted">{{ grade.assignment.subject.name }}</small>
+            </div>
+            <div>
+              {% grade_badge grade.percentage %}
+            </div>
+          </div>
+          {% empty %}
+          <div class="text-center text-muted py-3">
+            <i class="fas fa-star fa-2x mb-2"></i>
+            <p>No grades available</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Subject Performance -->
+      <div class="card">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-chart-pie me-2"></i>Subject Performance
+          </h6>
+        </div>
+        <div class="card-body">
+          <div id="subjectPerformancePieChart" style="height: 250px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- PARENT DASHBOARD -->
+  {% if user.parent %}
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-users me-2"></i>Children's Assignment Overview
+          </h5>
+        </div>
+        <div class="card-body">
+          {% for child_data in children_data %}
+          <div class="child-section mb-4 pb-4 {% if not forloop.last %}border-bottom{% endif %}">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h5 class="mb-1">{{ child_data.child.user.get_full_name }}</h5>
+                <small class="text-muted">{{ child_data.child.current_class_id }} •
+                  {{ child_data.child.admission_number }}</small>
+              </div>
+              <div>
+                <a href="{% url 'assignments:parent_child_assignments' child_data.child.id %}"
+                  class="btn btn-outline-primary">
+                  <i class="fas fa-eye me-1"></i>View Details
+                </a>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-3">
+                <div class="card bg-light">
+                  <div class="card-body text-center">
+                    <h4 class="mb-1">{{ child_data.total_assignments }}</h4>
+                    <small class="text-muted">Total Assignments</small>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-9">
+                <h6 class="mb-2">Recent Grades</h6>
+                <div class="d-flex gap-2">
+                  {% for grade in child_data.recent_grades %}
+                  <div class="grade-item">
+                    <div class="text-center">
+                      {% grade_badge grade.percentage %}
+                      <small class="d-block text-muted">{{ grade.assignment.subject.code }}</small>
+                    </div>
+                  </div>
+                  {% empty %}
+                  <small class="text-muted">No recent grades</small>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+          {% empty %}
+          <div class="text-center text-muted py-4">
+            <i class="fas fa-user-graduate fa-3x mb-3"></i>
+            <h5>No Children Found</h5>
+            <p>Please contact the school to link your children's accounts.</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .bg-gradient-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+  }
+
+  .bg-gradient-success {
+    background: linear-gradient(45deg, #28a745, #1e7e34);
+  }
+
+  .bg-gradient-warning {
+    background: linear-gradient(45deg, #ffc107, #d39e00);
+  }
+
+  .bg-gradient-info {
+    background: linear-gradient(45deg, #17a2b8, #117a8b);
+  }
+
+  .child-section:last-child {
+    border-bottom: none !important;
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@latest"></script>
+<script>
+  $(document).ready(function () {
+    {% if user.teacher %}
+    // Subject Performance Chart (Teacher)
+    var subjectPerformanceOptions = {
+      series: [{
+        name: 'Assignment Count',
+        data: [{% for subject in subject_performance %}{{ subject.assignment_count }}{% if not forloop.last %}, {% endif %}{% endfor %}]
+        }, {
+      name: 'Average Score',
+      data: [{% for subject in subject_performance %}{{ subject.average_score |default: 0 }}{% if not forloop.last %}, {% endif %} {% endfor %}]
+        }],
+  chart: {
+    type: 'bar',
+      height: 350
+  },
+  plotOptions: {
+    bar: {
+      horizontal: false,
+        columnWidth: '55%',
+          endingShape: 'rounded'
+    },
+  },
+  dataLabels: {
+    enabled: false
+  },
+  stroke: {
+    show: true,
+      width: 2,
+        colors: ['transparent']
+  },
+  xaxis: {
+    categories: [{% for subject in subject_performance %} '{{ subject.name }}'{% if not forloop.last %}, {% endif %} {% endfor %}],
+        },
+  yaxis: {
+    title: {
+      text: 'Values'
+    }
+  },
+  fill: {
+    opacity: 1
+  },
+  tooltip: {
+    y: {
+      formatter: function (val) {
+        return val
+      }
+    }
+  }
+    };
+
+  var subjectPerformanceChart = new ApexCharts(document.querySelector("#subjectPerformanceChart"), subjectPerformanceOptions);
+  subjectPerformanceChart.render();
+
+  // Monthly Activity Chart
+  var monthlyActivityOptions = {
+    series: [{
+      name: 'Assignments Created',
+      data: [5, 8, 12, 6, 10, 15] // Sample data
+    }],
+    chart: {
+      type: 'line',
+      height: 200,
+      sparkline: {
+        enabled: true
+      }
+    },
+    stroke: {
+      curve: 'smooth'
+    },
+    colors: ['#007bff']
+  };
+
+  var monthlyActivityChart = new ApexCharts(document.querySelector("#monthlyActivityChart"), monthlyActivityOptions);
+  monthlyActivityChart.render();
+  {% endif %}
+
+  {% if user.student %}
+  // Performance Trend Chart (Student)
+  var performanceTrendOptions = {
+    series: [{
+      name: 'Your Score',
+      data: [{% for trend in recent_trend %}{{ trend.percentage }}{% if not forloop.last %}, {% endif %} {% endfor %}]
+        }],
+  chart: {
+    type: 'area',
+      height: 350
+  },
+  dataLabels: {
+    enabled: false
+  },
+  stroke: {
+    curve: 'smooth'
+  },
+  xaxis: {
+    categories: [{% for trend in recent_trend %} '{{ trend.assignment_title|slice:":15" }}'{% if not forloop.last %}, {% endif %} {% endfor %}]
+        },
+  tooltip: {
+    x: {
+      format: 'dd/MM/yy HH:mm'
+    },
+  },
+  colors: ['#28a745']
+    };
+
+  var performanceTrendChart = new ApexCharts(document.querySelector("#performanceTrendChart"), performanceTrendOptions);
+  performanceTrendChart.render();
+
+  // Subject Performance Pie Chart
+  var subjectPieOptions = {
+    series: [{% for subject in subject_performance %}{{ subject.average_percentage|default: 0 }}{% if not forloop.last %}, {% endif %} {% endfor %}],
+  chart: {
+    type: 'pie',
+      height: 250
+  },
+  labels: [{% for subject in subject_performance %}'{{ subject.assignment__subject__name }}'{% if not forloop.last %}, {% endif %} {% endfor %}],
+  responsive: [{
+    breakpoint: 480,
+    options: {
+      chart: {
+        width: 200
+      },
+      legend: {
+        position: 'bottom'
+      }
+    }
+  }]
+    };
+
+  var subjectPieChart = new ApexCharts(document.querySelector("#subjectPerformancePieChart"), subjectPieOptions);
+  subjectPieChart.render();
+  {% endif %}
+});
+</script>
+{% endblock %}

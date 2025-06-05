@@ -1,453 +1,762 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load static %}
 {% load accounts_tags %}
 
-{% block title %}{{ user_obj.get_display_name }} - User Details{% endblock %}
-
-{% block page_title %}User Details{% endblock %}
-
-{% block breadcrumb_items %}
-<li class="breadcrumb-item">People</li>
-<li class="breadcrumb-item"><a href="{% url 'accounts:user_list' %}">Users</a></li>
-<li class="breadcrumb-item active">{{ user_obj.get_display_name }}</li>
-{% endblock %}
+{% block title %}{{ user_obj.get_display_name }} - User Details - {{ block.super }}{% endblock %}
 
 {% block extra_css %}
+<style>
+  .profile-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px 15px 0 0;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
 
+  .profile-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="20" cy="20" r="1" fill="white" opacity="0.1"/><circle cx="80" cy="40" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="70" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    opacity: 0.3;
+  }
+
+  .profile-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    object-fit: cover;
+    position: relative;
+    z-index: 1;
+  }
+
+  .profile-info {
+    position: relative;
+    z-index: 1;
+  }
+
+  .metric-card {
+    border: none;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .metric-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+  }
+
+  .metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .metric-label {
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.7;
+  }
+
+  .activity-item {
+    border-left: 3px solid #e9ecef;
+    padding-left: 1rem;
+    margin-bottom: 1rem;
+    position: relative;
+  }
+
+  .activity-item::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: 0.5rem;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #6c757d;
+  }
+
+  .activity-item.success::before {
+    background: #28a745;
+  }
+
+  .activity-item.warning::before {
+    background: #ffc107;
+  }
+
+  .activity-item.danger::before {
+    background: #dc3545;
+  }
+
+  .activity-item.info::before {
+    background: #17a2b8;
+  }
+
+  .session-card {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s;
+  }
+
+  .session-card:hover {
+    background: #f8f9fa;
+    border-color: #dee2e6;
+  }
+
+  .security-score-circle {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: white;
+    margin: 0 auto;
+  }
+
+  .nav-pills .nav-link {
+    border-radius: 20px;
+    padding: 0.75rem 1.5rem;
+    margin-right: 0.5rem;
+    transition: all 0.3s;
+  }
+
+  .nav-pills .nav-link.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+</style>
 {% endblock %}
 
 {% block content %}
-<!-- Profile Header -->
-<div class="profile-header animate__animated animate__fadeInUp">
-  <div class="row align-items-center">
-    <div class="col-auto">
-      {% if user_obj.profile_picture %}
-      <img src="{{ user_obj.profile_picture.url }}" alt="{{ user_obj.get_display_name }}" class="profile-avatar">
-      {% else %}
-      <div class="profile-avatar bg-white bg-opacity-25 d-flex align-items-center justify-content-center">
-        <i class="fas fa-user fa-3x text-white"></i>
-      </div>
-      {% endif %}
-    </div>
-    <div class="col">
-      <div class="profile-info">
-        <h2>{{ user_obj.get_display_name }}</h2>
-        <div class="profile-meta">
-          <i class="fas fa-envelope me-2"></i>{{ user_obj.email }}
-          {% if user_obj.phone_number %}
-          <span class="ms-3">
-            <i class="fas fa-phone me-2"></i>{{ user_obj.phone_number }}
-          </span>
+<div class="container-fluid">
+  <!-- Profile Header -->
+  <div class="card mb-4">
+    <div class="profile-header">
+      <div class="row align-items-center">
+        <div class="col-auto">
+          <img src="{% user_avatar_url user_obj 120 %}" alt="{{ user_obj.get_display_name }}" class="profile-avatar">
+        </div>
+        <div class="col profile-info">
+          <h1 class="h2 mb-1">{{ user_obj.get_display_name }}</h1>
+          <p class="mb-1">@{{ user_obj.username }} • {{ user_obj.email }}</p>
+          <div class="d-flex align-items-center gap-3 mt-3">
+            {% account_status_badge user_obj %}
+            {% security_status_badge user_obj %}
+            {% verification_status_badges user_obj %}
+            {% user_activity_indicator user_obj %}
+            <span class="badge bg-light text-dark">
+              <i class="fas fa-calendar me-1"></i>
+              Joined {{ user_obj.date_joined|date:"M Y" }}
+            </span>
+          </div>
+        </div>
+        <div class="col-auto">
+          {% if can_edit %}
+          <a href="{% url 'accounts:user_update' user_obj.pk %}" class="btn btn-light btn-lg me-2">
+            <i class="fas fa-edit me-2"></i>Edit Profile
+          </a>
+          {% endif %}
+          {% if can_reset_password %}
+          <button type="button" class="btn btn-outline-light btn-lg" onclick="resetPassword({{ user_obj.id }})">
+            <i class="fas fa-key me-2"></i>Reset Password
+          </button>
           {% endif %}
         </div>
-        <div class="profile-badges">
-          {% user_activity_indicator user_obj %}
-          {% account_status_badge user_obj %}
-          {% verification_status_badges user_obj %}
-          {% user_roles_badges user_obj %}
-        </div>
-      </div>
-    </div>
-    <div class="col-auto">
-      <div class="action-buttons">
-        {% if can_edit %}
-        <a href="{% url 'accounts:user_update' user_obj.pk %}" class="btn btn-light btn-action">
-          <i class="fas fa-edit"></i>
-          <span>Edit Profile</span>
-        </a>
-        {% endif %}
-        {% if can_reset_password %}
-        <button type="button" class="btn btn-warning btn-action" onclick="resetPassword()">
-          <i class="fas fa-key"></i>
-          <span>Reset Password</span>
-        </button>
-        {% endif %}
-        {% if can_delete %}
-        <button type="button" class="btn btn-danger btn-action" onclick="confirmDelete()">
-          <i class="fas fa-trash"></i>
-          <span>Delete User</span>
-        </button>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="row">
-  <!-- Left Column -->
-  <div class="col-lg-4">
-    <!-- Personal Information -->
-    <div class="info-card animate__animated animate__fadeInUp">
-      <h5><i class="fas fa-user"></i>Personal Information</h5>
-      <div class="info-item">
-        <span class="info-label">Username:</span>
-        <span class="info-value">{{ user_obj.username }}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Full Name:</span>
-        <span class="info-value">{{ user_obj.get_full_name|default:"Not provided" }}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Email:</span>
-        <span class="info-value">
-          {{ user_obj.email }}
-          {% if user_obj.email_verified %}
-          <i class="fas fa-check-circle text-success ms-2" title="Verified"></i>
-          {% else %}
-          <i class="fas fa-exclamation-triangle text-warning ms-2" title="Unverified"></i>
-          {% endif %}
-        </span>
-      </div>
-      {% if user_obj.phone_number %}
-      <div class="info-item">
-        <span class="info-label">Phone:</span>
-        <span class="info-value">
-          {{ user_obj.phone_number }}
-          {% if user_obj.phone_verified %}
-          <i class="fas fa-check-circle text-success ms-2" title="Verified"></i>
-          {% else %}
-          <i class="fas fa-exclamation-triangle text-warning ms-2" title="Unverified"></i>
-          {% endif %}
-        </span>
-      </div>
-      {% endif %}
-      {% if user_obj.date_of_birth %}
-      <div class="info-item">
-        <span class="info-label">Date of Birth:</span>
-        <span class="info-value">
-          {{ user_obj.date_of_birth|date:"F d, Y" }}
-          {% if user_obj|user_age %}
-          ({{ user_obj|user_age }} years old)
-          {% endif %}
-        </span>
-      </div>
-      {% endif %}
-      {% if user_obj.gender %}
-      <div class="info-item">
-        <span class="info-label">Gender:</span>
-        <span class="info-value">{{ user_obj.get_gender_display }}</span>
-      </div>
-      {% endif %}
-      {% if user_obj.address %}
-      <div class="info-item">
-        <span class="info-label">Address:</span>
-        <span class="info-value">{{ user_obj.address }}</span>
-      </div>
-      {% endif %}
-    </div>
-
-    <!-- Account Information -->
-    <div class="info-card animate__animated animate__fadeInUp">
-      <h5><i class="fas fa-cog"></i>Account Information</h5>
-      <div class="info-item">
-        <span class="info-label">Date Joined:</span>
-        <span class="info-value">{{ user_obj.date_joined|date:"F d, Y" }}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Last Login:</span>
-        <span class="info-value">
-          {% if user_obj.last_login %}
-          {{ user_obj.last_login|date:"F d, Y H:i" }}
-          <small class="text-muted">({{ user_obj.last_login|time_since_filter }})</small>
-          {% else %}
-          <span class="text-muted">Never</span>
-          {% endif %}
-        </span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Status:</span>
-        <span class="info-value">
-          {% if user_obj.is_active %}
-          <span class="badge bg-success">Active</span>
-          {% else %}
-          <span class="badge bg-danger">Inactive</span>
-          {% endif %}
-          {% if user_obj|user_is_locked %}
-          <span class="badge bg-warning ms-2">Locked</span>
-          {% endif %}
-        </span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Profile Completion:</span>
-        <span class="info-value">
-          {% with completion=user_obj|user_profile_completion %}
-          <div class="d-flex align-items-center">
-            <div class="progress flex-grow-1 me-2" style="height: 8px;">
-              <div class="progress-bar" role="progressbar" style="width: {{ completion }}%"
-                aria-valuenow="{{ completion }}" aria-valuemin="0" aria-valuemax="100"></div>
-            </div>
-            <span class="text-muted">{{ completion }}%</span>
-          </div>
-          {% endwith %}
-        </span>
       </div>
     </div>
 
-    <!-- Security Information -->
-    <div class="info-card animate__animated animate__fadeInUp">
-      <h5><i class="fas fa-shield-alt"></i>Security Information</h5>
-      <div class="info-item">
-        <span class="info-label">Security Score:</span>
-        <span class="info-value">
-          {% with security_score=user_obj|user_security_score %}
-          <div class="security-score">
-            <div
-              class="score-circle {% if security_score >= 80 %}score-high{% elif security_score >= 60 %}score-medium{% else %}score-low{% endif %}">
-              {{ security_score }}
-            </div>
-            <div>
-              <div class="fw-bold">
-                {% if security_score >= 80 %}High{% elif security_score >= 60 %}Medium{% else %}Low{% endif %}
-              </div>
-              <small class="text-muted">Security Level</small>
-            </div>
-          </div>
-          {% endwith %}
-        </span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">2FA Enabled:</span>
-        <span class="info-value">
-          {% if user_obj.two_factor_enabled %}
-          <span class="badge bg-success">Enabled</span>
-          {% else %}
-          <span class="badge bg-warning">Disabled</span>
-          {% endif %}
-        </span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Failed Attempts:</span>
-        <span class="info-value">
-          {% with failed_attempts=user_obj|user_failed_login_attempts %}
-          <span class="{% if failed_attempts > 0 %}text-warning{% else %}text-success{% endif %}">
-            {{ failed_attempts }}
-          </span>
-          {% endwith %}
-        </span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Active Sessions:</span>
-        <span class="info-value">
-          {% with session_count=user_obj|user_active_sessions_count %}
-          {{ session_count }}
-          {% endwith %}
-        </span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Right Column -->
-  <div class="col-lg-8">
-    <!-- Performance Statistics -->
-    <div class="info-card animate__animated animate__fadeInUp">
-      <h5><i class="fas fa-chart-line"></i>Performance Statistics (Last 30 Days)</h5>
+    <!-- Quick Stats -->
+    <div class="card-body">
       <div class="row">
-        <div class="col-md-3">
-          <div class="stat-mini">
-            <div class="number">{{ user_performance.successful_logins }}</div>
-            <p class="label">Successful Logins</p>
+        <div class="col-md-3 mb-3">
+          <div class="metric-card card text-center p-3">
+            <div class="metric-value text-primary">{{ login_stats.successful_logins }}</div>
+            <div class="metric-label text-muted">Total Logins</div>
           </div>
         </div>
-        <div class="col-md-3">
-          <div class="stat-mini">
-            <div class="number">{{ user_performance.failed_logins }}</div>
-            <p class="label">Failed Logins</p>
+        <div class="col-md-3 mb-3">
+          <div class="metric-card card text-center p-3">
+            <div class="metric-value text-success">{{ active_sessions.count }}</div>
+            <div class="metric-label text-muted">Active Sessions</div>
           </div>
         </div>
-        <div class="col-md-3">
-          <div class="stat-mini">
-            <div class="number">{{ user_performance.total_sessions }}</div>
-            <p class="label">Total Sessions</p>
+        <div class="col-md-3 mb-3">
+          <div class="metric-card card text-center p-3">
+            <div class="metric-value text-info">{{ role_assignments.count }}</div>
+            <div class="metric-label text-muted">Assigned Roles</div>
           </div>
         </div>
-        <div class="col-md-3">
-          <div class="stat-mini">
-            <div class="number">{{ user_performance.security_events }}</div>
-            <p class="label">Security Events</p>
+        <div class="col-md-3 mb-3">
+          <div class="metric-card card text-center p-3">
+            <div class="metric-value text-warning">{{ user_obj|user_profile_completion }}%</div>
+            <div class="metric-label text-muted">Profile Complete</div>
           </div>
         </div>
       </div>
+    </div>
+  </div>
 
-      <!-- Login Statistics Chart -->
-      <div class="performance-chart" id="loginChart"></div>
+  <!-- Tabs Navigation -->
+  <ul class="nav nav-pills mb-4" id="userDetailTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="overview-tab" data-bs-toggle="pill" data-bs-target="#overview" type="button"
+        role="tab">
+        <i class="fas fa-user me-2"></i>Overview
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="activity-tab" data-bs-toggle="pill" data-bs-target="#activity" type="button"
+        role="tab">
+        <i class="fas fa-history me-2"></i>Activity
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="sessions-tab" data-bs-toggle="pill" data-bs-target="#sessions" type="button"
+        role="tab">
+        <i class="fas fa-desktop me-2"></i>Sessions
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="security-tab" data-bs-toggle="pill" data-bs-target="#security" type="button"
+        role="tab">
+        <i class="fas fa-shield-alt me-2"></i>Security
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="roles-tab" data-bs-toggle="pill" data-bs-target="#roles" type="button" role="tab">
+        <i class="fas fa-users-cog me-2"></i>Roles & Permissions
+      </button>
+    </li>
+  </ul>
+
+  <!-- Tab Content -->
+  <div class="tab-content" id="userDetailTabsContent">
+    <!-- Overview Tab -->
+    <div class="tab-pane fade show active" id="overview" role="tabpanel">
+      <div class="row">
+        <!-- Personal Information -->
+        <div class="col-lg-6">
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-user me-2"></i>Personal Information
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row mb-3">
+                <div class="col-sm-4 fw-bold">Full Name:</div>
+                <div class="col-sm-8">{{ user_obj.get_full_name|default:"Not provided" }}</div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-4 fw-bold">Email:</div>
+                <div class="col-sm-8">
+                  {{ user_obj.email }}
+                  {% if user_obj.email_verified %}
+                  <i class="fas fa-check-circle text-success ms-1" title="Verified"></i>
+                  {% else %}
+                  <i class="fas fa-exclamation-circle text-warning ms-1" title="Unverified"></i>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-4 fw-bold">Phone:</div>
+                <div class="col-sm-8">
+                  {{ user_obj.phone_number|default:"Not provided" }}
+                  {% if user_obj.phone_verified %}
+                  <i class="fas fa-check-circle text-success ms-1" title="Verified"></i>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-4 fw-bold">Date of Birth:</div>
+                <div class="col-sm-8">
+                  {% if user_obj.date_of_birth %}
+                  {{ user_obj.date_of_birth|date:"F d, Y" }}
+                  ({{ user_obj|user_age }} years old)
+                  {% else %}
+                  Not provided
+                  {% endif %}
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-4 fw-bold">Gender:</div>
+                <div class="col-sm-8">{{ user_obj.get_gender_display|default:"Not specified" }}</div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-4 fw-bold">Address:</div>
+                <div class="col-sm-8">{{ user_obj.address|default:"Not provided" }}</div>
+              </div>
+              <div class="row">
+                <div class="col-sm-4 fw-bold">Profile Completion:</div>
+                <div class="col-sm-8">
+                  {% progress_bar user_obj|user_profile_completion 100 "info" %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Account Information -->
+        <div class="col-lg-6">
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-cog me-2"></i>Account Information
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row mb-3">
+                <div class="col-sm-4 fw-bold">Username:</div>
+                <div class="col-sm-8">{{ user_obj.username }}</div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-4 fw-bold">User ID:</div>
+                <div class="col-sm-8">{{ user_obj.id }}</div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-4 fw-bold">Account Status:</div>
+                <div class="col-sm-8">{% account_status_badge user_obj %}</div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-4 fw-bold">Date Joined:</div>
+                <div class="col-sm-8">{{ user_obj.date_joined|date:"F d, Y g:i A" }}</div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-4 fw-bold">Last Login:</div>
+                <div class="col-sm-8">
+                  {% if user_obj.last_login %}
+                  {{ user_obj.last_login|date:"F d, Y g:i A" }}
+                  <br><small class="text-muted">{{ user_obj.last_login|time_since_filter }} ago</small>
+                  {% else %}
+                  <span class="text-muted">Never</span>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-4 fw-bold">Failed Logins:</div>
+                <div class="col-sm-8">
+                  <span class="badge bg-{% if user_obj.failed_login_attempts > 0 %}warning{% else %}success{% endif %}">
+                    {{ user_obj.failed_login_attempts }}
+                  </span>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-4 fw-bold">Password Changed:</div>
+                <div class="col-sm-8">
+                  {% if user_obj.password_changed_at %}
+                  {{ user_obj.password_changed_at|time_since_filter }} ago
+                  {% else %}
+                  <span class="text-muted">Unknown</span>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-sm-4 fw-bold">Preferences:</div>
+                <div class="col-sm-8">
+                  <div>
+                    <i
+                      class="fas fa-envelope {% if user_obj.email_notifications %}text-success{% else %}text-muted{% endif %}"></i>
+                    Email Notifications
+                  </div>
+                  <div>
+                    <i
+                      class="fas fa-sms {% if user_obj.sms_notifications %}text-success{% else %}text-muted{% endif %}"></i>
+                    SMS Notifications
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Role Assignments -->
-    <div class="info-card animate__animated animate__fadeInUp">
-      <h5><i class="fas fa-user-tag"></i>Role Assignments</h5>
-      {% if role_assignments %}
-      <div class="table-responsive">
-        <table class="table table-sm">
-          <thead>
-            <tr>
-              <th>Role</th>
-              <th>Assigned Date</th>
-              <th>Assigned By</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for assignment in role_assignments %}
-            <tr>
-              <td>
-                <span class="badge" style="background-color: {{ assignment.role.color_code }};">
-                  {{ assignment.role.name }}
-                </span>
-              </td>
-              <td>{{ assignment.assigned_date|date:"M d, Y" }}</td>
-              <td>
-                {% if assignment.assigned_by %}
-                {{ assignment.assigned_by.get_display_name }}
-                {% else %}
-                <span class="text-muted">System</span>
+    <!-- Activity Tab -->
+    <div class="tab-pane fade" id="activity" role="tabpanel">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-history me-2"></i>Recent Activity
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if recent_activity %}
+          {% for activity in recent_activity %}
+          <div
+            class="activity-item {% if 'successful' in activity.description|lower %}success{% elif 'failed' in activity.description|lower %}danger{% elif 'password' in activity.description|lower %}warning{% else %}info{% endif %}">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="fw-bold">{{ activity.get_action_display }}</div>
+                <div class="text-muted">{{ activity.description }}</div>
+                {% if activity.ip_address %}
+                <small class="text-muted">
+                  <i class="fas fa-map-marker-alt me-1"></i>{{ activity.ip_address }}
+                </small>
                 {% endif %}
-              </td>
-              <td>
-                {% if assignment.is_expired %}
-                <span class="badge bg-danger">Expired</span>
-                {% else %}
+              </div>
+              <small class="text-muted">{{ activity.timestamp|time_since_filter }} ago</small>
+            </div>
+          </div>
+          {% endfor %}
+          {% else %}
+          <p class="text-muted text-center py-5">
+            <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+            No recent activity found.
+          </p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Sessions Tab -->
+    <div class="tab-pane fade" id="sessions" role="tabpanel">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-desktop me-2"></i>Active Sessions
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if active_sessions %}
+          {% for session in active_sessions %}
+          <div class="session-card">
+            <div class="row align-items-center">
+              <div class="col">
+                <div class="d-flex align-items-center">
+                  <i
+                    class="fas fa-{% if 'Mobile' in session.user_agent %}mobile-alt{% elif 'Tablet' in session.user_agent %}tablet-alt{% else %}desktop{% endif %} text-primary me-3 fa-lg"></i>
+                  <div>
+                    <div class="fw-bold">{{ session.browser|default:"Unknown Browser" }}</div>
+                    <small class="text-muted">{{ session.os|default:"Unknown OS" }}</small>
+                  </div>
+                </div>
+              </div>
+              <div class="col-auto">
+                <div class="text-end">
+                  <div class="fw-bold">{{ session.ip_address }}</div>
+                  <small class="text-muted">{{ session.country|default:"Unknown Location" }}</small>
+                </div>
+              </div>
+              <div class="col-auto">
+                <div class="text-end">
+                  <div>{{ session.last_activity|time_since_filter }} ago</div>
+                  <small class="text-muted">{{ session.get_session_duration }} min session</small>
+                </div>
+              </div>
+              <div class="col-auto">
+                {% if session.is_active %}
                 <span class="badge bg-success">Active</span>
+                {% else %}
+                <span class="badge bg-secondary">Ended</span>
                 {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-      <div class="text-center py-4 text-muted">
-        <i class="fas fa-user-tag fa-2x mb-3"></i>
-        <p>No roles assigned to this user.</p>
-      </div>
-      {% endif %}
-    </div>
-
-    <!-- Recent Activity -->
-    <div class="info-card animate__animated animate__fadeInUp">
-      <h5><i class="fas fa-history"></i>Recent Activity</h5>
-      <div class="activity-timeline">
-        {% if recent_activity %}
-        {% for activity in recent_activity %}
-        <div class="timeline-item">
-          <div class="timeline-icon {{ activity.action }}">
-            <i
-              class="fas fa-{% if activity.action == 'login' %}sign-in-alt{% elif activity.action == 'logout' %}sign-out-alt{% elif activity.action == 'password_change' %}key{% elif activity.action == 'role_assign' or activity.action == 'role_remove' %}user-tag{% else %}user-edit{% endif %}"></i>
-          </div>
-          <div class="timeline-content">
-            <div class="timeline-action">{{ activity.description }}</div>
-            <div class="timeline-time">
-              {{ activity.timestamp|date:"M d, Y H:i" }}
-              {% if activity.ip_address %}
-              <span class="text-muted">• {{ activity.ip_address }}</span>
-              {% endif %}
+              </div>
             </div>
           </div>
+          {% endfor %}
+          {% else %}
+          <p class="text-muted text-center py-5">
+            <i class="fas fa-desktop fa-3x mb-3 d-block"></i>
+            No active sessions found.
+          </p>
+          {% endif %}
         </div>
-        {% endfor %}
-        {% else %}
-        <div class="text-center py-4 text-muted">
-          <i class="fas fa-history fa-2x mb-3"></i>
-          <p>No recent activity found.</p>
-        </div>
-        {% endif %}
       </div>
     </div>
 
-    <!-- Active Sessions -->
-    <div class="info-card animate__animated animate__fadeInUp">
-      <h5><i class="fas fa-desktop"></i>Active Sessions</h5>
-      {% if active_sessions %}
-      {% for session in active_sessions %}
-      <div class="session-card">
-        <div class="session-header">
-          <div>
-            <strong>{{ session.device_type|title }} - {{ session.browser }}</strong>
-          </div>
-          <span class="session-status {% if session.is_active %}session-active{% else %}session-inactive{% endif %}">
-            {% if session.is_active %}Active{% else %}Inactive{% endif %}
-          </span>
-        </div>
-        <div class="session-details">
-          <div class="row">
-            <div class="col-md-6">
-              <i class="fas fa-globe me-2"></i>{{ session.ip_address }}
-              {% if session.country %}
-              <span class="text-muted">{{ session.country }}</span>
-              {% endif %}
+    <!-- Security Tab -->
+    <div class="tab-pane fade" id="security" role="tabpanel">
+      <div class="row">
+        <div class="col-lg-6">
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-shield-alt me-2"></i>Security Overview
+              </h5>
             </div>
-            <div class="col-md-6">
-              <i class="fas fa-clock me-2"></i>{{ session.last_activity|time_since_filter }}
+            <div class="card-body text-center">
+              <div
+                class="security-score-circle bg-{% if security_info.security_score >= 80 %}success{% elif security_info.security_score >= 60 %}warning{% else %}danger{% endif %} mb-3">
+                {{ security_info.security_score }}
+              </div>
+              <h6>Security Score</h6>
+              <p class="text-muted">
+                {% if security_info.security_score >= 80 %}
+                Excellent security posture
+                {% elif security_info.security_score >= 60 %}
+                Good security with room for improvement
+                {% else %}
+                Security needs attention
+                {% endif %}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-6">
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-check-circle me-2"></i>Security Checklist
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span>Email Verified</span>
+                <i
+                  class="fas fa-{% if security_info.email_verified %}check text-success{% else %}times text-danger{% endif %}"></i>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span>Phone Verified</span>
+                <i
+                  class="fas fa-{% if security_info.phone_verified %}check text-success{% else %}times text-danger{% endif %}"></i>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span>Two-Factor Authentication</span>
+                <i
+                  class="fas fa-{% if security_info.two_factor_enabled %}check text-success{% else %}times text-danger{% endif %}"></i>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span>Account Not Locked</span>
+                <i
+                  class="fas fa-{% if not security_info.is_locked %}check text-success{% else %}times text-danger{% endif %}"></i>
+              </div>
+              <div class="d-flex justify-content-between align-items-center">
+                <span>Password Up to Date</span>
+                <i
+                  class="fas fa-{% if not security_info.requires_password_change %}check text-success{% else %}times text-danger{% endif %}"></i>
+              </div>
             </div>
           </div>
         </div>
       </div>
-      {% endfor %}
-      {% else %}
-      <div class="text-center py-4 text-muted">
-        <i class="fas fa-desktop fa-2x mb-3"></i>
-        <p>No active sessions found.</p>
+
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i>Security Actions
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if security_info.failed_attempts > 0 %}
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            This account has {{ security_info.failed_attempts }} failed login attempt(s).
+          </div>
+          {% endif %}
+
+          {% if security_info.is_locked %}
+          <div class="alert alert-danger">
+            <i class="fas fa-lock me-2"></i>
+            This account is currently locked.
+            {% if can_reset_password %}
+            <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="unlockAccount({{ user_obj.id }})">
+              Unlock Account
+            </button>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          {% if security_info.requires_password_change %}
+          <div class="alert alert-info">
+            <i class="fas fa-key me-2"></i>
+            This user is required to change their password on next login.
+          </div>
+          {% endif %}
+        </div>
       </div>
-      {% endif %}
+    </div>
+
+    <!-- Roles Tab -->
+    <div class="tab-pane fade" id="roles" role="tabpanel">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-users-cog me-2"></i>Assigned Roles
+          </h5>
+          {% if user|can_do:"roles:change" %}
+          <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#assignRoleModal">
+            <i class="fas fa-plus me-1"></i>Assign Role
+          </button>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          {% if role_assignments %}
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Role</th>
+                  <th>Description</th>
+                  <th>Assigned Date</th>
+                  <th>Assigned By</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for assignment in role_assignments %}
+                <tr>
+                  <td>
+                    {% role_display_badge assignment.role %}
+                  </td>
+                  <td>{{ assignment.role.description|default:"No description" }}</td>
+                  <td>{{ assignment.assigned_date|date:"M d, Y" }}</td>
+                  <td>
+                    {% if assignment.assigned_by %}
+                    {{ assignment.assigned_by.get_display_name }}
+                    {% else %}
+                    <span class="text-muted">System</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if user|can_do:"roles:change" and not assignment.role.is_system_role %}
+                    <button type="button" class="btn btn-sm btn-outline-danger"
+                      onclick="removeRole({{ user_obj.id }}, '{{ assignment.role.name }}')">
+                      <i class="fas fa-times"></i>
+                    </button>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="text-muted text-center py-5">
+            <i class="fas fa-user-times fa-3x mb-3 d-block"></i>
+            No roles assigned to this user.
+          </p>
+          {% endif %}
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- Modals -->
-<!-- Password Reset Modal -->
-<div class="modal fade" id="passwordResetModal" tabindex="-1">
+<!-- Assign Role Modal -->
+<div class="modal fade" id="assignRoleModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Reset Password</h5>
+        <h5 class="modal-title">Assign Role</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <p>Are you sure you want to reset the password for <strong>{{ user_obj.get_display_name }}</strong>?</p>
-        <div class="alert alert-warning">
-          <i class="fas fa-exclamation-triangle me-2"></i>
-          This will generate a temporary password and require the user to change it on next login.
-        </div>
+        <form id="assignRoleForm">
+          <div class="mb-3">
+            <label class="form-label">Select Role</label>
+            <select class="form-select" name="role_name" required>
+              <option value="">Choose a role...</option>
+              {% for role in available_roles %}
+              <option value="{{ role.name }}">{{ role.name }} - {{ role.description }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Notes (optional)</label>
+            <textarea class="form-control" name="notes" rows="3" placeholder="Reason for assignment..."></textarea>
+          </div>
+        </form>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-warning" onclick="confirmPasswordReset()">
-          <i class="fas fa-key me-2"></i>Reset Password
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Delete User Modal -->
-<div class="modal fade" id="deleteUserModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Delete User</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <p>Are you sure you want to delete <strong>{{ user_obj.get_display_name }}</strong>?</p>
-        <div class="alert alert-danger">
-          <i class="fas fa-exclamation-triangle me-2"></i>
-          This action cannot be undone. All user data will be permanently deleted.
-        </div>
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="confirmDelete">
-          <label class="form-check-label" for="confirmDelete">
-            I understand this action cannot be undone
-          </label>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-danger" onclick="executeDelete()" disabled id="deleteButton">
-          <i class="fas fa-trash me-2"></i>Delete User
-        </button>
+        <button type="button" class="btn btn-primary" onclick="assignRole()">Assign Role</button>
       </div>
     </div>
   </div>
 </div>
 {% endblock %}
 
-<script src="{% static 'accounts/js/user_detail.js' %}"></script>
+{% block extra_js %}
+<script>
+  function resetPassword(userId) {
+    if (confirm('Are you sure you want to reset this user\'s password? They will receive a temporary password via email.')) {
+      $.post(`/accounts/users/${userId}/reset-password/`, {
+        'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+      }).done(function (response) {
+        if (response.success) {
+          alert(`Password reset successfully. Temporary password: ${response.temporary_password}`);
+          location.reload();
+        } else {
+          alert('Failed to reset password: ' + (response.error || 'Unknown error'));
+        }
+      }).fail(function () {
+        alert('Failed to reset password.');
+      });
+    }
+  }
+
+  function unlockAccount(userId) {
+    if (confirm('Are you sure you want to unlock this account?')) {
+      $.post(`/accounts/users/${userId}/unlock/`, {
+        'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+      }).done(function (response) {
+        if (response.success) {
+          alert('Account unlocked successfully.');
+          location.reload();
+        } else {
+          alert('Failed to unlock account: ' + (response.error || 'Unknown error'));
+        }
+      }).fail(function () {
+        alert('Failed to unlock account.');
+      });
+    }
+  }
+
+  function assignRole() {
+    const form = document.getElementById('assignRoleForm');
+    const formData = new FormData(form);
+
+    if (!formData.get('role_name')) {
+      alert('Please select a role.');
+      return;
+    }
+
+    $.post('/accounts/assign-role/', {
+      'user_id': {{ user_obj.id }},
+  'role_name': formData.get('role_name'),
+    'notes': formData.get('notes'),
+      'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+    }).done(function (response) {
+        if (response.success) {
+          alert(response.message);
+          location.reload();
+        } else {
+          alert('Failed to assign role: ' + (response.error || 'Unknown error'));
+        }
+      }).fail(function () {
+        alert('Failed to assign role.');
+      });
+}
+
+  function removeRole(userId, roleName) {
+    if (confirm(`Are you sure you want to remove the "${roleName}" role from this user?`)) {
+      $.post('/accounts/remove-role/', {
+        'user_id': userId,
+        'role_name': roleName,
+        'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+      }).done(function (response) {
+        if (response.success) {
+          alert(response.message);
+          location.reload();
+        } else {
+          alert('Failed to remove role: ' + (response.error || 'Unknown error'));
+        }
+      }).fail(function () {
+        alert('Failed to remove role.');
+      });
+    }
+  }
+</script>
+{% endblock %}

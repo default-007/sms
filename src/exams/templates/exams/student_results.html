@@ -1,0 +1,709 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if student %}{{ student.user.get_full_name }} - Results{% else %}My Results{% endif %}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'exams:dashboard' %}">Dashboard</a></li>
+      {% if user.role != 'STUDENT' %}
+      <li class="breadcrumb-item"><a href="{% url 'exams:exam_list' %}">Exams</a></li>
+      {% endif %}
+      <li class="breadcrumb-item active">
+        {% if student %}{{ student.user.get_full_name }} - Results{% else %}My Results{% endif %}
+      </li>
+    </ol>
+  </nav>
+
+  <!-- Student Header -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <div class="d-flex align-items-center">
+            {% if student.user.profile_picture %}
+            <img src="{{ student.user.profile_picture.url }}" alt="{{ student.user.get_full_name }}"
+              class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
+            {% else %}
+            <div class="rounded-circle me-3 bg-primary d-flex align-items-center justify-content-center"
+              style="width: 60px; height: 60px;">
+              <i class="fas fa-user text-white fa-2x"></i>
+            </div>
+            {% endif %}
+
+            <div>
+              <h3 class="mb-1">{{ student.user.get_full_name }}</h3>
+              <div class="text-muted">
+                <i class="fas fa-id-card me-2"></i>{{ student.admission_number }} •
+                <i class="fas fa-users me-2"></i>{{ student.current_class }} •
+                <i class="fas fa-user-graduate me-2"></i>{{ student.status }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4 text-end">
+          <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-info" id="exportResultsBtn">
+              <i class="fas fa-download me-2"></i>Export Results
+            </button>
+            <button type="button" class="btn btn-outline-primary" id="performanceChartBtn">
+              <i class="fas fa-chart-line me-2"></i>Performance Chart
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Performance Overview -->
+  {% if progress_data %}
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-primary text-white h-100">
+        <div class="card-body text-center">
+          <h3 class="mb-1">{{ progress_data.academic_summary.total_exams }}</h3>
+          <small>Total Exams</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-success text-white h-100">
+        <div class="card-body text-center">
+          <h3 class="mb-1">{{ progress_data.academic_summary.average_percentage|floatformat:1 }}%</h3>
+          <small>Average Score</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-info text-white h-100">
+        <div class="card-body text-center">
+          <h3 class="mb-1">{{ progress_data.academic_summary.pass_rate|floatformat:1 }}%</h3>
+          <small>Pass Rate</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-warning text-white h-100">
+        <div class="card-body text-center">
+          <h3 class="mb-1">{{ report_cards|length }}</h3>
+          <small>Report Cards</small>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="row">
+    <!-- Recent Results -->
+    <div class="col-lg-8 mb-4">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            <i class="fas fa-chart-bar me-2"></i>Exam Results
+          </h5>
+          <div class="d-flex gap-2">
+            <select class="form-select form-select-sm" id="termFilter" style="width: auto;">
+              <option value="">All Terms</option>
+              <!-- Terms will be populated dynamically -->
+            </select>
+            <select class="form-select form-select-sm" id="subjectFilter" style="width: auto;">
+              <option value="">All Subjects</option>
+              <!-- Subjects will be populated dynamically -->
+            </select>
+          </div>
+        </div>
+
+        <div class="card-body">
+          {% if results %}
+          <div class="table-responsive">
+            <table id="resultsTable" class="table table-hover">
+              <thead class="table-dark">
+                <tr>
+                  <th>Exam</th>
+                  <th>Subject</th>
+                  <th>Term</th>
+                  <th>Date</th>
+                  <th>Marks</th>
+                  <th>Percentage</th>
+                  <th>Grade</th>
+                  <th>Rank</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for result in results %}
+                <tr>
+                  <td>
+                    <div class="fw-bold">{{ result.exam_schedule.exam.name }}</div>
+                    <small class="text-muted">{{ result.exam_schedule.exam.exam_type.name }}</small>
+                  </td>
+                  <td>
+                    <span class="badge bg-secondary">{{ result.exam_schedule.subject.name }}</span>
+                  </td>
+                  <td>{{ result.term.name }}</td>
+                  <td>{{ result.exam_schedule.date|date:"M d, Y" }}</td>
+                  <td>
+                    {% if result.is_absent %}
+                    <span class="text-danger">Absent</span>
+                    {% else %}
+                    {{ result.marks_obtained }}/{{ result.exam_schedule.total_marks }}
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if not result.is_absent %}
+                    <div class="d-flex align-items-center">
+                      <span class="me-2">{{ result.percentage|floatformat:1 }}%</span>
+                      <div class="progress flex-grow-1" style="height: 8px; width: 60px;">
+                        <div
+                          class="progress-bar bg-{% if result.percentage >= 80 %}success{% elif result.percentage >= 60 %}primary{% elif result.percentage >= 40 %}warning{% else %}danger{% endif %}"
+                          style="width: {{ result.percentage }}%"></div>
+                      </div>
+                    </div>
+                    {% else %}
+                    <span class="text-muted">N/A</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if not result.is_absent %}
+                    <span
+                      class="badge bg-{% if result.grade == 'A+' or result.grade == 'A' %}success{% elif result.grade == 'B+' or result.grade == 'B' %}primary{% elif result.grade == 'C+' or result.grade == 'C' %}warning{% else %}danger{% endif %} fs-6">
+                      {{ result.grade }}
+                    </span>
+                    {% else %}
+                    <span class="badge bg-secondary">AB</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if result.class_rank and not result.is_absent %}
+                    <span class="badge bg-info">{{ result.class_rank }}</span>
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if result.is_absent %}
+                    <span class="badge bg-danger">
+                      <i class="fas fa-times me-1"></i>Absent
+                    </span>
+                    {% elif result.is_pass %}
+                    <span class="badge bg-success">
+                      <i class="fas fa-check me-1"></i>Pass
+                    </span>
+                    {% else %}
+                    <span class="badge bg-warning">
+                      <i class="fas fa-exclamation me-1"></i>Fail
+                    </span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-4">
+            <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No Results Available</h5>
+            <p class="text-muted">Exam results will appear here once they are published by teachers.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+      <!-- Report Cards -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-file-alt me-2"></i>Report Cards
+          </h6>
+        </div>
+        <div class="card-body">
+          {% if report_cards %}
+          <div class="list-group list-group-flush">
+            {% for report_card in report_cards %}
+            <div class="list-group-item px-0">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h6 class="mb-1">{{ report_card.term.name }}</h6>
+                  <p class="mb-1 text-muted">{{ report_card.academic_year.name }}</p>
+                  <small class="text-success">{{ report_card.percentage|floatformat:1 }}%
+                    ({{ report_card.grade }})</small>
+                </div>
+                <div class="text-end">
+                  <span class="badge bg-primary">Rank {{ report_card.class_rank }}</span>
+                  <div class="mt-1">
+                    <a href="{% url 'exams:report_card_detail' report_card.id %}"
+                      class="btn btn-sm btn-outline-primary">
+                      <i class="fas fa-eye me-1"></i>View
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-center py-3">
+            <i class="fas fa-file-alt fa-2x text-muted mb-2"></i>
+            <p class="text-muted mb-0">No report cards available yet</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Subject Performance -->
+      {% if progress_data.subject_performance %}
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-book me-2"></i>Subject Performance
+          </h6>
+        </div>
+        <div class="card-body">
+          {% for subject in progress_data.subject_performance %}
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="fw-bold">{{ subject.exam_schedule__subject__name }}</span>
+              <span class="text-muted">{{ subject.avg_percentage|floatformat:1 }}%</span>
+            </div>
+            <div class="progress" style="height: 8px;">
+              <div
+                class="progress-bar bg-{% if subject.avg_percentage >= 80 %}success{% elif subject.avg_percentage >= 60 %}primary{% elif subject.avg_percentage >= 40 %}warning{% else %}danger{% endif %}"
+                style="width: {{ subject.avg_percentage }}%"></div>
+            </div>
+            <small class="text-muted">{{ subject.total_exams }} exam{{ subject.total_exams|pluralize }}</small>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Achievements -->
+      {% if progress_data.achievements %}
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-trophy me-2"></i>Recent Achievements
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            {% for achievement in progress_data.achievements %}
+            <div class="list-group-item px-0">
+              <div class="d-flex align-items-start">
+                <div class="me-3">
+                  {% if achievement.type == 'academic_rank' %}
+                  <i class="fas fa-medal text-warning"></i>
+                  {% elif achievement.type == 'high_score' %}
+                  <i class="fas fa-star text-success"></i>
+                  {% else %}
+                  <i class="fas fa-trophy text-info"></i>
+                  {% endif %}
+                </div>
+                <div>
+                  <h6 class="mb-1">{{ achievement.title }}</h6>
+                  <p class="mb-1 text-muted">{{ achievement.description }}</p>
+                  <small class="text-muted">{{ achievement.date|date:"M d, Y" }}</small>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Improvement Areas -->
+      {% if progress_data.improvement_areas %}
+      <div class="card">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-lightbulb me-2"></i>Areas for Improvement
+          </h6>
+        </div>
+        <div class="card-body">
+          {% for area in progress_data.improvement_areas %}
+          <div class="alert alert-warning py-2 mb-2">
+            <h6 class="mb-1">{{ area.subject|default:area.area }}</h6>
+            <p class="mb-0 small">{{ area.recommendation }}</p>
+            {% if area.average %}
+            <small class="text-muted">Current average: {{ area.average }}%</small>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Performance Chart Modal -->
+<div class="modal fade" id="performanceChartModal" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Performance Analysis</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-8">
+            <div id="performanceChart" style="height: 400px;"></div>
+          </div>
+          <div class="col-md-4">
+            <div id="subjectRadarChart" style="height: 400px;"></div>
+          </div>
+        </div>
+
+        <div class="row mt-4">
+          <div class="col-md-6">
+            <div id="gradeDistributionChart" style="height: 300px;"></div>
+          </div>
+          <div class="col-md-6">
+            <div id="termProgressChart" style="height: 300px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.4.1/js/responsive.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    const table = $('#resultsTable').DataTable({
+      responsive: true,
+      pageLength: 15,
+      order: [[3, 'desc']], // Order by date desc
+      columnDefs: [
+        { className: 'text-center', targets: [4, 5, 6, 7, 8] }
+      ],
+      dom: 'frtip'
+    });
+
+    // Populate filter dropdowns
+    function populateFilters() {
+      const terms = new Set();
+      const subjects = new Set();
+
+      $('#resultsTable tbody tr').each(function () {
+        const term = $(this).find('td:eq(2)').text().trim();
+        const subject = $(this).find('td:eq(1) .badge').text().trim();
+
+        if (term) terms.add(term);
+        if (subject) subjects.add(subject);
+      });
+
+      // Populate term filter
+      terms.forEach(term => {
+        $('#termFilter').append(`<option value="${term}">${term}</option>`);
+      });
+
+      // Populate subject filter
+      subjects.forEach(subject => {
+        $('#subjectFilter').append(`<option value="${subject}">${subject}</option>`);
+      });
+    }
+
+    populateFilters();
+
+    // Filter functionality
+    $('#termFilter, #subjectFilter').on('change', function () {
+      const termFilter = $('#termFilter').val();
+      const subjectFilter = $('#subjectFilter').val();
+
+      table.rows().every(function () {
+        const row = this.node();
+        const term = $(row).find('td:eq(2)').text().trim();
+        const subject = $(row).find('td:eq(1) .badge').text().trim();
+
+        const termMatch = !termFilter || term === termFilter;
+        const subjectMatch = !subjectFilter || subject === subjectFilter;
+
+        if (termMatch && subjectMatch) {
+          $(row).show();
+        } else {
+          $(row).hide();
+        }
+      });
+
+      table.draw();
+    });
+
+    // Export results
+    $('#exportResultsBtn').on('click', function () {
+      // Create CSV content
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "Exam,Subject,Term,Date,Marks,Percentage,Grade,Rank,Status\n";
+
+      $('#resultsTable tbody tr:visible').each(function () {
+        const row = [];
+        $(this).find('td').each(function (index) {
+          if (index < 9) { // Only first 9 columns
+            let text = $(this).text().trim().replace(/\n/g, ' ').replace(/,/g, ';');
+            row.push(text);
+          }
+        });
+        csvContent += row.join(",") + "\n";
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "exam_results.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    // Performance Chart Modal
+    $('#performanceChartBtn').on('click', function () {
+      $('#performanceChartModal').modal('show');
+
+      // Wait for modal to be shown, then render charts
+      setTimeout(() => {
+        renderPerformanceCharts();
+      }, 500);
+    });
+
+    function renderPerformanceCharts() {
+      // Performance Trend Chart
+      const performanceData = [];
+      const categories = [];
+
+      $('#resultsTable tbody tr').each(function () {
+        const percentage = parseFloat($(this).find('td:eq(5)').text());
+        const date = $(this).find('td:eq(3)').text();
+
+        if (!isNaN(percentage)) {
+          performanceData.push(percentage);
+          categories.push(date);
+        }
+      });
+
+      const performanceOptions = {
+        series: [{
+          name: 'Percentage',
+          data: performanceData.slice(0, 10) // Last 10 results
+        }],
+        chart: {
+          type: 'line',
+          height: 400,
+          toolbar: { show: true }
+        },
+        title: {
+          text: 'Performance Trend',
+          align: 'center'
+        },
+        xaxis: {
+          categories: categories.slice(0, 10),
+          title: { text: 'Exam Date' }
+        },
+        yaxis: {
+          title: { text: 'Percentage' },
+          min: 0,
+          max: 100
+        },
+        stroke: {
+          curve: 'smooth',
+          width: 3
+        },
+        markers: {
+          size: 5
+        },
+        colors: ['#28a745']
+      };
+
+      const performanceChart = new ApexCharts(document.querySelector("#performanceChart"), performanceOptions);
+      performanceChart.render();
+
+      // Subject Radar Chart
+      const subjectData = {};
+      $('#resultsTable tbody tr').each(function () {
+        const subject = $(this).find('td:eq(1) .badge').text().trim();
+        const percentage = parseFloat($(this).find('td:eq(5)').text());
+
+        if (!isNaN(percentage)) {
+          if (!subjectData[subject]) {
+            subjectData[subject] = [];
+          }
+          subjectData[subject].push(percentage);
+        }
+      });
+
+      const subjectAverages = [];
+      const subjectNames = [];
+
+      Object.keys(subjectData).forEach(subject => {
+        const avg = subjectData[subject].reduce((a, b) => a + b, 0) / subjectData[subject].length;
+        subjectAverages.push(avg);
+        subjectNames.push(subject);
+      });
+
+      const radarOptions = {
+        series: [{
+          name: 'Average Score',
+          data: subjectAverages,
+        }],
+        chart: {
+          height: 400,
+          type: 'radar',
+        },
+        title: {
+          text: 'Subject Performance',
+          align: 'center'
+        },
+        xaxis: {
+          categories: subjectNames
+        },
+        yaxis: {
+          min: 0,
+          max: 100
+        }
+      };
+
+      const radarChart = new ApexCharts(document.querySelector("#subjectRadarChart"), radarOptions);
+      radarChart.render();
+
+      // Grade Distribution Chart
+      const gradeCount = {};
+      $('#resultsTable tbody tr').each(function () {
+        const grade = $(this).find('td:eq(6) .badge').text().trim();
+        if (grade && grade !== 'AB') {
+          gradeCount[grade] = (gradeCount[grade] || 0) + 1;
+        }
+      });
+
+      const gradeOptions = {
+        series: Object.values(gradeCount),
+        chart: {
+          type: 'donut',
+          height: 300
+        },
+        title: {
+          text: 'Grade Distribution',
+          align: 'center'
+        },
+        labels: Object.keys(gradeCount),
+        colors: ['#28a745', '#17a2b8', '#ffc107', '#fd7e14', '#dc3545']
+      };
+
+      const gradeChart = new ApexCharts(document.querySelector("#gradeDistributionChart"), gradeOptions);
+      gradeChart.render();
+
+      // Term Progress Chart
+      const termData = {};
+      $('#resultsTable tbody tr').each(function () {
+        const term = $(this).find('td:eq(2)').text().trim();
+        const percentage = parseFloat($(this).find('td:eq(5)').text());
+
+        if (!isNaN(percentage)) {
+          if (!termData[term]) {
+            termData[term] = [];
+          }
+          termData[term].push(percentage);
+        }
+      });
+
+      const termAverages = [];
+      const termNames = [];
+
+      Object.keys(termData).forEach(term => {
+        const avg = termData[term].reduce((a, b) => a + b, 0) / termData[term].length;
+        termAverages.push(avg);
+        termNames.push(term);
+      });
+
+      const termOptions = {
+        series: [{
+          name: 'Average Score',
+          data: termAverages,
+        }],
+        chart: {
+          type: 'bar',
+          height: 300
+        },
+        title: {
+          text: 'Term-wise Progress',
+          align: 'center'
+        },
+        xaxis: {
+          categories: termNames
+        },
+        yaxis: {
+          min: 0,
+          max: 100
+        },
+        plotOptions: {
+          bar: {
+            borderRadius: 4,
+            horizontal: false,
+          }
+        },
+        colors: ['#007bff']
+      };
+
+      const termChart = new ApexCharts(document.querySelector("#termProgressChart"), termOptions);
+      termChart.render();
+    }
+
+    // Highlight best and worst performance
+    function highlightPerformance() {
+      let bestPercentage = 0;
+      let worstPercentage = 100;
+      let bestRow = null;
+      let worstRow = null;
+
+      $('#resultsTable tbody tr').each(function () {
+        const percentageText = $(this).find('td:eq(5)').text();
+        const percentage = parseFloat(percentageText);
+
+        if (!isNaN(percentage)) {
+          if (percentage > bestPercentage) {
+            bestPercentage = percentage;
+            bestRow = $(this);
+          }
+          if (percentage < worstPercentage) {
+            worstPercentage = percentage;
+            worstRow = $(this);
+          }
+        }
+      });
+
+      // Add highlighting classes
+      if (bestRow) {
+        bestRow.addClass('table-success');
+      }
+      if (worstRow && worstRow[0] !== bestRow[0]) {
+        worstRow.addClass('table-warning');
+      }
+    }
+
+    highlightPerformance();
+  });
+</script>
+{% endblock %}

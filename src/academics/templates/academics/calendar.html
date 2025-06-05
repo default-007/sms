@@ -1,0 +1,588 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Academic Calendar{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0 text-gray-800">
+        <i class="fas fa-calendar me-2"></i>Academic Calendar
+        {% if calendar_data.academic_year %}
+        <small class="text-muted">({{ calendar_data.academic_year.name }})</small>
+        {% endif %}
+      </h1>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item"><a href="{% url 'academics:home' %}">Academics</a></li>
+          <li class="breadcrumb-item active">Calendar</li>
+        </ol>
+      </nav>
+    </div>
+    <div class="btn-group" role="group">
+      <select class="form-select" id="academicYearSelect" onchange="changeAcademicYear()">
+        {% for year in academic_years %}
+        <option value="{{ year.id }}" {% if calendar_data.academic_year.id == year.id %}selected{% endif %}>
+          {{ year.name }}
+        </option>
+        {% endfor %}
+      </select>
+      <button type="button" class="btn btn-outline-primary" onclick="toggleView()">
+        <i class="fas fa-th me-1"></i>
+        <span id="viewToggleText">Timeline View</span>
+      </button>
+      <button type="button" class="btn btn-outline-info" onclick="exportCalendar()">
+        <i class="fas fa-download me-1"></i>Export
+      </button>
+    </div>
+  </div>
+
+  {% if calendar_data %}
+  <!-- Academic Year Overview -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow border-left-primary">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-info-circle me-2"></i>Academic Year Overview: {{ calendar_data.academic_year.name }}
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-md-3">
+              <div class="h5 mb-0 text-primary">{{ calendar_data.summary.total_terms }}</div>
+              <div class="text-xs text-muted">Total Terms</div>
+            </div>
+            <div class="col-md-3">
+              <div class="h5 mb-0 text-success">{{ calendar_data.summary.total_academic_days }}</div>
+              <div class="text-xs text-muted">Academic Days</div>
+            </div>
+            <div class="col-md-3">
+              <div class="h5 mb-0 text-warning">{{ calendar_data.summary.total_gap_days }}</div>
+              <div class="text-xs text-muted">Break Days</div>
+            </div>
+            <div class="col-md-3">
+              <div class="h5 mb-0 text-info">
+                {% with total_days=calendar_data.academic_year.end_date|timeuntil:calendar_data.academic_year.start_date %}
+                {{ total_days|floatformat:0 }}
+                {% endwith %}
+              </div>
+              <div class="text-xs text-muted">Total Days</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calendar Views -->
+  <div class="row">
+    <div class="col-12">
+      <!-- FullCalendar View -->
+      <div class="card shadow" id="calendarView">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-calendar-alt me-2"></i>Calendar View
+          </h6>
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary"
+              onclick="changeCalendarView('dayGridMonth')">Month</button>
+            <button type="button" class="btn btn-outline-primary"
+              onclick="changeCalendarView('timeGridWeek')">Week</button>
+            <button type="button" class="btn btn-outline-primary" onclick="changeCalendarView('listYear')">List</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="calendar"></div>
+        </div>
+      </div>
+
+      <!-- Timeline View -->
+      <div class="card shadow" id="timelineView" style="display: none;">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-timeline me-2"></i>Timeline View
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="timeline-container">
+            {% for term in calendar_data.terms %}
+            <div class="timeline-item">
+              <div class="timeline-marker {% if term.is_current %}current{% endif %}">
+                {% if term.is_current %}
+                <i class="fas fa-play text-success"></i>
+                {% else %}
+                <i class="fas fa-circle text-muted"></i>
+                {% endif %}
+              </div>
+              <div class="timeline-content">
+                <div class="card {% if term.is_current %}border-success{% endif %}">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div>
+                        <h5 class="card-title">
+                          {{ term.name }}
+                          {% if term.is_current %}
+                          <span class="badge bg-success ms-2">Current</span>
+                          {% endif %}
+                        </h5>
+                        <p class="text-muted mb-2">
+                          <i class="fas fa-calendar me-1"></i>
+                          {{ term.start_date|date:"M d, Y" }} - {{ term.end_date|date:"M d, Y" }}
+                        </p>
+                        <p class="text-muted mb-2">
+                          <i class="fas fa-clock me-1"></i>
+                          {{ term.duration_days }} days
+                        </p>
+
+                        <!-- Progress for current term -->
+                        {% if term.is_current and term.progress %}
+                        <div class="mb-2">
+                          <div class="d-flex justify-content-between align-items-center mb-1">
+                            <small class="text-muted">Progress</small>
+                            <small class="text-muted">{{ term.progress.progress_percentage }}%</small>
+                          </div>
+                          <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar"
+                              style="width: {{ term.progress.progress_percentage }}%"></div>
+                          </div>
+                          <small class="text-muted">
+                            {{ term.progress.days_remaining }} days remaining
+                          </small>
+                        </div>
+                        {% endif %}
+                      </div>
+                      <div class="text-end">
+                        <span class="badge 
+                                                    {% if term.progress.status == 'In Progress' %}bg-warning text-dark
+                                                    {% elif term.progress.status == 'Completed' %}bg-secondary
+                                                    {% else %}bg-info{% endif %}">
+                          {{ term.progress.status }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+
+            <!-- Show gaps/breaks -->
+            {% for gap in calendar_data.gaps %}
+            <div class="timeline-item gap-item">
+              <div class="timeline-marker gap">
+                <i class="fas fa-pause text-warning"></i>
+              </div>
+              <div class="timeline-content">
+                <div class="card border-warning">
+                  <div class="card-body bg-light">
+                    <h6 class="card-title text-warning">
+                      <i class="fas fa-umbrella-beach me-2"></i>Break Period
+                    </h6>
+                    <p class="text-muted mb-1">{{ gap.description }}</p>
+                    <small class="text-muted">
+                      <i class="fas fa-clock me-1"></i>
+                      {{ gap.duration_days }} days
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Terms Summary Cards -->
+  <div class="row mt-4">
+    {% for term in calendar_data.terms %}
+    <div class="col-lg-4 col-md-6 mb-4">
+      <div class="card h-100 {% if term.is_current %}border-success{% endif %} shadow-sm">
+        <div class="card-header py-3 {% if term.is_current %}bg-success text-white{% else %}bg-light{% endif %}">
+          <h6 class="m-0 font-weight-bold">
+            <i class="fas fa-calendar-week me-2"></i>{{ term.name }}
+            {% if term.is_current %}
+            <span class="badge bg-light text-success ms-2">Current</span>
+            {% endif %}
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row text-center mb-3">
+            <div class="col-6">
+              <div class="h6 mb-0 text-primary">{{ term.duration_days }}</div>
+              <small class="text-muted">Days</small>
+            </div>
+            <div class="col-6">
+              <div class="h6 mb-0 text-info">{{ term.term_number }}</div>
+              <small class="text-muted">Term #</small>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="text-muted">Start Date</span>
+              <strong>{{ term.start_date|date:"M d, Y" }}</strong>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="text-muted">End Date</span>
+              <strong>{{ term.end_date|date:"M d, Y" }}</strong>
+            </div>
+          </div>
+
+          {% if term.is_current %}
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="text-muted">Progress</span>
+              <span class="text-success">{{ term.progress.progress_percentage }}%</span>
+            </div>
+            <div class="progress" style="height: 8px;">
+              <div class="progress-bar bg-success" role="progressbar"
+                style="width: {{ term.progress.progress_percentage }}%"></div>
+            </div>
+            <small class="text-muted">{{ term.progress.days_remaining }} days remaining</small>
+          </div>
+          {% endif %}
+        </div>
+        <div class="card-footer bg-transparent">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="badge 
+                            {% if term.progress.status == 'In Progress' %}bg-warning text-dark
+                            {% elif term.progress.status == 'Completed' %}bg-secondary
+                            {% else %}bg-info{% endif %}">
+              {{ term.progress.status }}
+            </span>
+            <a href="{% url 'academics:term-detail' term.id %}" class="btn btn-sm btn-outline-primary">
+              <i class="fas fa-eye me-1"></i>Details
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <!-- No Calendar Data -->
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card shadow border-left-warning">
+        <div class="card-body text-center py-5">
+          <i class="fas fa-calendar-times fa-4x text-warning mb-4"></i>
+          <h4>No Academic Calendar Data</h4>
+          <p class="text-muted mb-4">
+            Select an academic year or create terms to view the calendar.
+          </p>
+          <div class="btn-group" role="group">
+            <a href="{% url 'academics:academic-year-list' %}" class="btn btn-warning">
+              <i class="fas fa-calendar-plus me-2"></i>Manage Academic Years
+            </a>
+            <a href="{% url 'academics:term-list' %}" class="btn btn-outline-primary">
+              <i class="fas fa-clock me-2"></i>Manage Terms
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+<script>
+  let calendar;
+
+  $(document).ready(function () {
+    {% if calendar_data %}
+    initializeCalendar();
+    {% endif %}
+  });
+
+  function initializeCalendar() {
+    const calendarEl = document.getElementById('calendar');
+
+    const events = [
+      {% for term in calendar_data.terms %}
+  {
+    title: '{{ term.name }}',
+      start: '{{ term.start_date|date:"Y-m-d" }}',
+        end: '{{ term.end_date|date:"Y-m-d" }}',
+          color: {% if term.is_current %} '#28a745'{% else %} '#007bff'{% endif %},
+    display: 'background',
+      extendedProps: {
+      type: 'term',
+        description: 'Academic term: {{ term.name }}',
+          duration: '{{ term.duration_days }} days'
+    }
+  },
+  {
+    title: '{{ term.name }} Start',
+      start: '{{ term.start_date|date:"Y-m-d" }}',
+        color: '#28a745',
+          display: 'block',
+            extendedProps: {
+      type: 'term-start'
+    }
+  },
+  {
+    title: '{{ term.name }} End',
+      start: '{{ term.end_date|date:"Y-m-d" }}',
+        color: '#dc3545',
+          display: 'block',
+            extendedProps: {
+      type: 'term-end'
+    }
+  },
+  {% endfor %}
+
+  {% for gap in calendar_data.gaps %}
+  {
+    title: 'Break Period',
+      start: '{{ gap.start_date|date:"Y-m-d" }}',
+        end: '{{ gap.end_date|date:"Y-m-d" }}',
+          color: '#ffc107',
+            display: 'background',
+              extendedProps: {
+      type: 'break',
+        description: '{{ gap.description }}',
+          duration: '{{ gap.duration_days }} days'
+    }
+  },
+  {% endfor %}
+    ];
+
+  calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'dayGridMonth',
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'dayGridMonth,timeGridWeek,listYear'
+    },
+    events: events,
+    eventClick: function (info) {
+      showEventDetails(info.event);
+    },
+    height: 'auto',
+    firstDay: 1, // Monday
+    weekNumbers: true,
+    eventDisplay: 'block',
+    displayEventTime: false,
+    eventDidMount: function (info) {
+      // Add tooltips
+      $(info.el).tooltip({
+        title: info.event.extendedProps.description || info.event.title,
+        placement: 'top',
+        container: 'body'
+      });
+    }
+  });
+
+  calendar.render();
+}
+
+  function changeCalendarView(view) {
+    if (calendar) {
+      calendar.changeView(view);
+    }
+  }
+
+  function toggleView() {
+    const calendarView = $('#calendarView');
+    const timelineView = $('#timelineView');
+    const toggleText = $('#viewToggleText');
+
+    if (calendarView.is(':visible')) {
+      calendarView.hide();
+      timelineView.show();
+      toggleText.text('Calendar View');
+    } else {
+      timelineView.hide();
+      calendarView.show();
+      toggleText.text('Timeline View');
+    }
+  }
+
+  function changeAcademicYear() {
+    const yearId = $('#academicYearSelect').val();
+    if (yearId) {
+      window.location.href = `{% url 'academics:calendar' %}?academic_year_id=${yearId}`;
+    }
+  }
+
+  function showEventDetails(event) {
+    const props = event.extendedProps;
+    let content = `<strong>${event.title}</strong><br>`;
+
+    if (props.description) {
+      content += `${props.description}<br>`;
+    }
+
+    if (props.duration) {
+      content += `Duration: ${props.duration}<br>`;
+    }
+
+    content += `Date: ${event.start.toLocaleDateString()}`;
+
+    if (event.end && event.end !== event.start) {
+      content += ` to ${event.end.toLocaleDateString()}`;
+    }
+
+    // Create a simple alert for now - could be enhanced with a modal
+    alert(content);
+  }
+
+  function exportCalendar() {
+    const format = prompt('Export format:\n1. PDF\n2. Excel\n3. iCal\n\nEnter 1, 2, or 3:');
+
+    switch (format) {
+      case '1':
+        window.open('{% url "academics:calendar" %}export/pdf/?academic_year_id={{ calendar_data.academic_year.id }}', '_blank');
+        break;
+      case '2':
+        window.open('{% url "academics:calendar" %}export/excel/?academic_year_id={{ calendar_data.academic_year.id }}', '_blank');
+        break;
+      case '3':
+        window.open('{% url "academics:calendar" %}export/ical/?academic_year_id={{ calendar_data.academic_year.id }}', '_blank');
+        break;
+      default:
+        if (format !== null) {
+          alert('Invalid option selected');
+        }
+    }
+  }
+</script>
+
+<style>
+  .border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+  }
+
+  .border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+  }
+
+  .text-xs {
+    font-size: 0.75rem;
+  }
+
+  /* Timeline Styles */
+  .timeline-container {
+    position: relative;
+    padding: 1rem 0;
+  }
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .timeline-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 12px;
+    top: 30px;
+    bottom: -2rem;
+    width: 2px;
+    background: linear-gradient(to bottom, #e9ecef, #dee2e6);
+  }
+
+  .timeline-marker {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #e9ecef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    z-index: 1;
+  }
+
+  .timeline-marker.current {
+    border-color: #28a745;
+    background: #d4edda;
+  }
+
+  .timeline-marker.gap {
+    border-color: #ffc107;
+    background: #fff3cd;
+  }
+
+  .timeline-content {
+    flex-grow: 1;
+    margin-top: -4px;
+  }
+
+  .gap-item .card {
+    background-color: #fffbf0;
+  }
+
+  /* FullCalendar Customizations */
+  .fc-event {
+    border: none !important;
+    border-radius: 4px !important;
+  }
+
+  .fc-event-title {
+    font-weight: 500;
+  }
+
+  .fc-daygrid-event {
+    margin: 1px 0;
+  }
+
+  .fc-list-event:hover {
+    background-color: #f8f9fa;
+  }
+
+  /* Card hover effects */
+  .card:hover {
+    transform: translateY(-2px);
+    transition: transform 0.3s ease;
+  }
+
+  .progress {
+    background-color: #f8f9fc;
+  }
+
+  @media (max-width: 768px) {
+    .timeline-item {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .timeline-marker {
+      align-self: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .timeline-item:not(:last-child)::after {
+      left: 12px;
+      top: 80px;
+    }
+
+    .btn-group {
+      flex-direction: column;
+    }
+
+    .btn-group .btn {
+      margin-bottom: 0.25rem;
+    }
+  }
+</style>
+{% endblock %}

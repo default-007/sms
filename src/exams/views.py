@@ -1,5 +1,5 @@
 """
-School Management System - Exam Views
+School Management System - Exam Views (Fixed Role Access)
 File: src/exams/views.py
 """
 
@@ -38,6 +38,30 @@ from .models import (
 )
 from .services.analytics_service import ExamAnalyticsService
 from .services.exam_service import ExamService, ResultService
+
+
+def get_user_primary_role(user):
+    """Helper function to get user's primary role"""
+    if not user.is_authenticated:
+        return None
+
+    # Get the first active role assignment
+    assignment = user.role_assignments.filter(
+        is_active=True, role__is_active=True
+    ).first()
+    return assignment.role.name if assignment else None
+
+
+def user_has_any_role(user, roles):
+    """Helper function to check if user has any of the specified roles"""
+    if not user.is_authenticated:
+        return False
+
+    user_roles = user.role_assignments.filter(
+        is_active=True, role__is_active=True
+    ).values_list("role__name", flat=True)
+
+    return any(role in user_roles for role in roles)
 
 
 @login_required
@@ -127,7 +151,7 @@ def exam_list(request):
         },
     }
 
-    return render(request, "exams/exam_list.html", context)
+    return render(request, "exam_list.html", context)
 
 
 @login_required
@@ -148,13 +172,15 @@ def exam_detail(request, exam_id):
         except Exception as e:
             messages.warning(request, f"Could not load analytics: {e}")
 
+    user_role = get_user_primary_role(request.user)
+
     context = {
         "exam": exam,
         "schedules": schedules,
         "analytics": analytics,
-        "can_edit": request.user.role in ["ADMIN", "PRINCIPAL"],
+        "can_edit": user_has_any_role(request.user, ["ADMIN", "PRINCIPAL"]),
         "can_publish": not exam.is_published
-        and request.user.role in ["ADMIN", "PRINCIPAL"],
+        and user_has_any_role(request.user, ["ADMIN", "PRINCIPAL"]),
     }
 
     return render(request, "exams/exam_detail.html", context)
@@ -163,7 +189,7 @@ def exam_detail(request, exam_id):
 @login_required
 def create_exam(request):
     """Create new exam"""
-    if request.user.role not in ["ADMIN", "PRINCIPAL"]:
+    if not user_has_any_role(request.user, ["ADMIN", "PRINCIPAL"]):
         messages.error(request, "You don't have permission to create exams.")
         return redirect("exams:exam_list")
 
@@ -199,7 +225,7 @@ def exam_schedules(request, exam_id):
     context = {
         "exam": exam,
         "schedules": schedules,
-        "can_edit": request.user.role in ["ADMIN", "PRINCIPAL", "TEACHER"],
+        "can_edit": user_has_any_role(request.user, ["ADMIN", "PRINCIPAL", "TEACHER"]),
     }
 
     return render(request, "exams/exam_schedules.html", context)
@@ -250,7 +276,8 @@ def result_entry(request, schedule_id):
     schedule = get_object_or_404(ExamSchedule, id=schedule_id)
 
     # Check permissions
-    if request.user.role == "TEACHER" and schedule.supervisor.user != request.user:
+    user_role = get_user_primary_role(request.user)
+    if user_role == "TEACHER" and schedule.supervisor.user != request.user:
         messages.error(request, "You can only enter results for your supervised exams.")
         return redirect("exams:exam_schedules", exam_id=schedule.exam.id)
 
@@ -329,17 +356,18 @@ def result_entry(request, schedule_id):
 @login_required
 def student_results(request, student_id=None):
     """View student exam results"""
+    user_role = get_user_primary_role(request.user)
+
     if student_id:
         student = get_object_or_404(Student, id=student_id)
         # Check permissions
-        if (request.user.role == "STUDENT" and request.user.student != student) or (
-            request.user.role == "PARENT"
-            and student not in request.user.parent.students.all()
+        if (user_role == "STUDENT" and request.user.student != student) or (
+            user_role == "PARENT" and student not in request.user.parent.students.all()
         ):
             messages.error(request, "You don't have permission to view these results.")
             return redirect("exams:dashboard")
     else:
-        if request.user.role == "STUDENT":
+        if user_role == "STUDENT":
             student = request.user.student
         else:
             messages.error(request, "Student ID required.")
@@ -382,13 +410,14 @@ def student_results(request, student_id=None):
 def report_card_detail(request, report_card_id):
     """View detailed report card"""
     report_card = get_object_or_404(ReportCard, id=report_card_id)
+    user_role = get_user_primary_role(request.user)
 
     # Check permissions
-    if request.user.role == "STUDENT" and request.user.student != report_card.student:
+    if user_role == "STUDENT" and request.user.student != report_card.student:
         messages.error(request, "You don't have permission to view this report card.")
         return redirect("exams:dashboard")
     elif (
-        request.user.role == "PARENT"
+        user_role == "PARENT"
         and report_card.student not in request.user.parent.students.all()
     ):
         messages.error(request, "You don't have permission to view this report card.")
@@ -411,7 +440,7 @@ def report_card_detail(request, report_card_id):
 @login_required
 def question_bank(request):
     """Manage question bank"""
-    if request.user.role not in ["ADMIN", "TEACHER", "PRINCIPAL"]:
+    if not user_has_any_role(request.user, ["ADMIN", "TEACHER", "PRINCIPAL"]):
         messages.error(
             request, "You don't have permission to access the question bank."
         )
@@ -442,7 +471,8 @@ def question_bank(request):
         )
 
     # Teacher can only see their own questions
-    if request.user.role == "TEACHER":
+    user_role = get_user_primary_role(request.user)
+    if user_role == "TEACHER":
         questions = questions.filter(created_by=request.user)
 
     # Pagination
@@ -467,7 +497,7 @@ def question_bank(request):
 @login_required
 def create_question(request):
     """Create exam question"""
-    if request.user.role not in ["ADMIN", "TEACHER", "PRINCIPAL"]:
+    if not user_has_any_role(request.user, ["ADMIN", "TEACHER", "PRINCIPAL"]):
         messages.error(request, "You don't have permission to create questions.")
         return redirect("exams:question_bank")
 
@@ -507,7 +537,7 @@ def exam_analytics_view(request, exam_id):
 @login_required
 def publish_exam(request, exam_id):
     """Publish exam (AJAX)"""
-    if request.user.role not in ["ADMIN", "PRINCIPAL"]:
+    if not user_has_any_role(request.user, ["ADMIN", "PRINCIPAL"]):
         return JsonResponse({"error": "Permission denied"}, status=403)
 
     try:
@@ -529,7 +559,7 @@ def publish_exam(request, exam_id):
 def get_exam_statistics(request, exam_id):
     """Get exam statistics (AJAX)"""
     try:
-        analytics = ExamService.get_exam_analytics(exam_id)
+        analytics = ExamService.get_exam_statistics(exam_id)
         return JsonResponse(analytics)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)

@@ -1,0 +1,706 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Exam Analytics - {{ exam.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap4.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.bootstrap4.min.css">
+<style>
+  .metric-card {
+    transition: transform 0.2s;
+  }
+
+  .metric-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .chart-container {
+    position: relative;
+    height: 400px;
+  }
+
+  .performance-badge {
+    font-size: 0.9em;
+    padding: 0.4em 0.8em;
+  }
+
+  .rank-badge {
+    font-size: 0.8em;
+    padding: 0.2em 0.5em;
+  }
+
+  .recommendation-card {
+    border-left: 4px solid #17a2b8;
+  }
+
+  .priority-high {
+    border-left-color: #dc3545 !important;
+  }
+
+  .priority-medium {
+    border-left-color: #ffc107 !important;
+  }
+
+  .priority-low {
+    border-left-color: #28a745 !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="fas fa-chart-line"></i> Exam Analytics: {{ exam.name }}
+          </h3>
+          <div class="card-tools">
+            <button type="button" class="btn btn-primary btn-sm" onclick="exportReport()">
+              <i class="fas fa-download"></i> Export Report
+            </button>
+            <button type="button" class="btn btn-info btn-sm" onclick="refreshAnalytics()">
+              <i class="fas fa-sync"></i> Refresh
+            </button>
+            <a href="{% url 'exams:exam_detail' exam.id %}" class="btn btn-secondary btn-sm">
+              <i class="fas fa-arrow-left"></i> Back to Exam
+            </a>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3">
+              <strong>Exam Type:</strong> {{ exam.exam_type.name }}
+            </div>
+            <div class="col-md-3">
+              <strong>Academic Year:</strong> {{ exam.academic_year.name }}
+            </div>
+            <div class="col-md-3">
+              <strong>Term:</strong> {{ exam.term.name }}
+            </div>
+            <div class="col-md-3">
+              <strong>Status:</strong>
+              <span
+                class="badge badge-{% if exam.status == 'COMPLETED' %}success{% elif exam.status == 'ONGOING' %}warning{% else %}secondary{% endif %}">
+                {{ exam.get_status_display }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if analytics %}
+  <!-- Performance Overview -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <h4 class="mb-3"><i class="fas fa-tachometer-alt"></i> Performance Overview</h4>
+    </div>
+
+    {% with overview=analytics.overview %}
+    <div class="col-lg-3 col-md-6">
+      <div class="card metric-card bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h5 class="card-title">{{ overview.total_students|default:"0" }}</h5>
+              <p class="card-text">Total Students</p>
+            </div>
+            <div class="flex-shrink-0">
+              <i class="fas fa-users fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+      <div class="card metric-card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h5 class="card-title">{{ overview.avg_percentage|floatformat:1|default:"0.0" }}%</h5>
+              <p class="card-text">Average Score</p>
+            </div>
+            <div class="flex-shrink-0">
+              <i class="fas fa-chart-line fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+      <div class="card metric-card bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h5 class="card-title">{{ overview.pass_rate|floatformat:1|default:"0.0" }}%</h5>
+              <p class="card-text">Pass Rate</p>
+            </div>
+            <div class="flex-shrink-0">
+              <i class="fas fa-check-circle fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+      <div class="card metric-card bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h5 class="card-title">{{ overview.attendance_rate|floatformat:1|default:"0.0" }}%</h5>
+              <p class="card-text">Attendance Rate</p>
+            </div>
+            <div class="flex-shrink-0">
+              <i class="fas fa-calendar-check fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endwith %}
+  </div>
+
+  <!-- Charts Row -->
+  <div class="row mb-4">
+    <!-- Grade Distribution Chart -->
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title">Grade Distribution</h5>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <div id="gradeDistributionChart"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Subject Performance Chart -->
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title">Subject Performance</h5>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <div id="subjectPerformanceChart"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Class Comparison Chart -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title">Class Performance Comparison</h5>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <div id="classComparisonChart"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Analysis Tables -->
+  <div class="row mb-4">
+    <!-- Subject Analysis Table -->
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title">Subject-wise Analysis</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="subjectAnalysisTable" class="table table-striped table-bordered">
+              <thead>
+                <tr>
+                  <th>Subject</th>
+                  <th>Avg %</th>
+                  <th>Pass Rate</th>
+                  <th>Students</th>
+                  <th>Highest</th>
+                  <th>Lowest</th>
+                  <th>Performance</th>
+                  <th>Difficulty</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for subject in analytics.subject_analysis %}
+                <tr>
+                  <td>{{ subject.subject_name }}</td>
+                  <td>{{ subject.avg_percentage|floatformat:1 }}%</td>
+                  <td>{{ subject.pass_rate|floatformat:1 }}%</td>
+                  <td>{{ subject.total_students }}</td>
+                  <td>{{ subject.highest_score|floatformat:1 }}%</td>
+                  <td>{{ subject.lowest_score|floatformat:1 }}%</td>
+                  <td>
+                    <span class="badge performance-badge 
+                                            {% if subject.performance_level == 'Excellent' %}badge-success
+                                            {% elif subject.performance_level == 'Good' %}badge-primary
+                                            {% elif subject.performance_level == 'Average' %}badge-warning
+                                            {% else %}badge-danger{% endif %}">
+                      {{ subject.performance_level }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge 
+                                            {% if subject.difficulty_index == 'Easy' %}badge-success
+                                            {% elif subject.difficulty_index == 'Moderate' %}badge-warning
+                                            {% else %}badge-danger{% endif %}">
+                      {{ subject.difficulty_index }}
+                    </span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Performers -->
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title">Top Performers</h5>
+        </div>
+        <div class="card-body">
+          {% if analytics.student_insights.top_performers %}
+          {% for student in analytics.student_insights.top_performers %}
+          <div class="d-flex align-items-center mb-3 p-2 bg-light rounded">
+            <div class="flex-shrink-0">
+              <span class="badge rank-badge badge-primary">#{{ forloop.counter }}</span>
+            </div>
+            <div class="flex-grow-1 ml-3">
+              <h6 class="mb-1">{{ student.student__user__first_name }} {{ student.student__user__last_name }}</h6>
+              <small class="text-muted">{{ student.student__admission_number }}</small>
+            </div>
+            <div class="flex-shrink-0">
+              <strong class="text-success">{{ student.avg_percentage|floatformat:1 }}%</strong>
+            </div>
+          </div>
+          {% endfor %}
+          {% else %}
+          <p class="text-muted">No data available</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Students Needing Attention -->
+  {% if analytics.student_insights.struggling_students %}
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title">Students Needing Attention</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="strugglingStudentsTable" class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Admission No.</th>
+                  <th>Average %</th>
+                  <th>Subjects</th>
+                  <th>Failed Subjects</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for student in analytics.student_insights.struggling_students %}
+                <tr>
+                  <td>{{ student.student__user__first_name }} {{ student.student__user__last_name }}</td>
+                  <td>{{ student.student__admission_number }}</td>
+                  <td>
+                    <span
+                      class="text-{% if student.avg_percentage < 30 %}danger{% elif student.avg_percentage < 50 %}warning{% else %}info{% endif %}">
+                      {{ student.avg_percentage|floatformat:1 }}%
+                    </span>
+                  </td>
+                  <td>{{ student.total_subjects }}</td>
+                  <td>{{ student.fail_count }}</td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-primary"
+                      onclick="viewStudentDetails('{{ student.student__id }}')">
+                      <i class="fas fa-eye"></i> View
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Teacher Effectiveness -->
+  {% if analytics.teacher_effectiveness %}
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title">Teacher Effectiveness</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="teacherEffectivenessTable" class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Teacher</th>
+                  <th>Employee ID</th>
+                  <th>Students Assessed</th>
+                  <th>Subjects</th>
+                  <th>Avg Performance</th>
+                  <th>Pass Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for teacher in analytics.teacher_effectiveness %}
+                <tr>
+                  <td>{{ teacher.teacher_name }}</td>
+                  <td>{{ teacher.employee_id }}</td>
+                  <td>{{ teacher.total_students }}</td>
+                  <td>{{ teacher.subjects_taught }}</td>
+                  <td>{{ teacher.avg_student_performance|floatformat:1 }}%</td>
+                  <td>{{ teacher.pass_rate|floatformat:1 }}%</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Improvement Recommendations -->
+  {% if analytics.improvement_recommendations %}
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title">Improvement Recommendations</h5>
+        </div>
+        <div class="card-body">
+          {% for recommendation in analytics.improvement_recommendations %}
+          <div class="card recommendation-card mb-3 priority-{{ recommendation.priority|lower }}">
+            <div class="card-body">
+              <div class="d-flex align-items-start">
+                <div class="flex-shrink-0">
+                  <span
+                    class="badge badge-{% if recommendation.priority == 'High' %}danger{% elif recommendation.priority == 'Medium' %}warning{% else %}info{% endif %}">
+                    {{ recommendation.priority }}
+                  </span>
+                </div>
+                <div class="flex-grow-1 ml-3">
+                  <h6 class="card-title">{{ recommendation.type }} - {{ recommendation.area }}</h6>
+                  <p class="card-text mb-2"><strong>Issue:</strong> {{ recommendation.issue }}</p>
+                  <p class="card-text text-muted">{{ recommendation.recommendation }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <!-- No Analytics Available -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body text-center">
+          <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
+          <h4>No Analytics Available</h4>
+          <p class="text-muted">Analytics will be available once students have taken the exam and results are entered.
+          </p>
+          <a href="{% url 'exams:exam_detail' exam.id %}" class="btn btn-primary">
+            <i class="fas fa-arrow-left"></i> Back to Exam Details
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap4.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.bootstrap4.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  $(document).ready(function () {
+    {% if analytics %}
+    // Initialize DataTables
+    $('#subjectAnalysisTable').DataTable({
+      dom: 'Bfrtip',
+      buttons: ['copy', 'csv', 'excel', 'pdf', 'print'],
+      responsive: true,
+      pageLength: 10,
+      order: [[1, 'desc']] // Sort by average percentage
+    });
+
+    $('#strugglingStudentsTable').DataTable({
+      responsive: true,
+      pageLength: 10,
+      order: [[2, 'asc']] // Sort by average percentage ascending
+    });
+
+    $('#teacherEffectivenessTable').DataTable({
+      responsive: true,
+      pageLength: 10,
+      order: [[4, 'desc']] // Sort by average performance
+    });
+
+    // Grade Distribution Chart
+    {% if analytics.overview.grade_distribution %}
+    var gradeDistributionOptions = {
+      series: [
+        {% for grade, data in analytics.overview.grade_distribution.items %}
+    { { data.count } },
+    {% endfor %}
+        ],
+    chart: {
+      type: 'donut',
+        height: 350
+    },
+    labels: [
+      {% for grade, data in analytics.overview.grade_distribution.items %}
+            '{{ grade }}',
+    {% endfor %}
+        ],
+    colors: ['#28a745', '#17a2b8', '#ffc107', '#fd7e14', '#dc3545', '#6f42c1', '#e83e8c', '#20c997'],
+    responsive: [{
+      breakpoint: 480,
+      options: {
+        chart: {
+          width: 200
+        },
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }],
+    legend: {
+    position: 'bottom'
+  }
+    };
+
+  var gradeDistributionChart = new ApexCharts(document.querySelector("#gradeDistributionChart"), gradeDistributionOptions);
+  gradeDistributionChart.render();
+  {% endif %}
+
+  // Subject Performance Chart
+  {% if analytics.subject_analysis %}
+  var subjectPerformanceOptions = {
+    series: [{
+      name: 'Average Percentage',
+      data: [
+        {% for subject in analytics.subject_analysis %}
+                {{ subject.avg_percentage | floatformat: 1 }},
+    {% endfor %}
+            ]
+        }, {
+    name: 'Pass Rate',
+      data: [
+        {% for subject in analytics.subject_analysis %}
+  { { subject.pass_rate | floatformat: 1 } },
+  {% endfor %}
+            ]
+        }],
+  chart: {
+    type: 'bar',
+      height: 350
+  },
+  plotOptions: {
+    bar: {
+      horizontal: false,
+        columnWidth: '55%',
+          endingShape: 'rounded'
+    }
+  },
+  dataLabels: {
+    enabled: false
+  },
+  stroke: {
+    show: true,
+      width: 2,
+        colors: ['transparent']
+  },
+  xaxis: {
+    categories: [
+      {% for subject in analytics.subject_analysis %}
+  '{{ subject.subject_name|truncatechars:15 }}',
+    {% endfor %}
+            ]
+        },
+  yaxis: {
+    title: {
+      text: 'Percentage (%)'
+    }
+  },
+  fill: {
+    opacity: 1
+  },
+  tooltip: {
+    y: {
+      formatter: function (val) {
+        return val + "%"
+      }
+    }
+  }
+    };
+
+  var subjectPerformanceChart = new ApexCharts(document.querySelector("#subjectPerformanceChart"), subjectPerformanceOptions);
+  subjectPerformanceChart.render();
+  {% endif %}
+
+  // Class Comparison Chart
+  {% if analytics.class_comparison %}
+  var classComparisonOptions = {
+    series: [{
+      name: 'Average Performance',
+      data: [
+        {% for class in analytics.class_comparison %}
+                {{ class.avg_percentage | floatformat: 1 }},
+    {% endfor %}
+            ]
+        }, {
+    name: 'Pass Rate',
+      data: [
+        {% for class in analytics.class_comparison %}
+  { { class.pass_rate | floatformat: 1 } },
+  {% endfor %}
+            ]
+        }],
+  chart: {
+    type: 'line',
+      height: 350
+  },
+  stroke: {
+    width: [3, 3],
+      curve: 'smooth'
+  },
+  xaxis: {
+    categories: [
+      {% for class in analytics.class_comparison %}
+  '{{ class.class_name|truncatechars:15 }}',
+    {% endfor %}
+            ]
+        },
+  yaxis: {
+    title: {
+      text: 'Percentage (%)'
+    }
+  },
+  tooltip: {
+    y: {
+      formatter: function (val) {
+        return val + "%"
+      }
+    }
+  },
+  legend: {
+    position: 'top'
+  }
+    };
+
+  var classComparisonChart = new ApexCharts(document.querySelector("#classComparisonChart"), classComparisonOptions);
+  classComparisonChart.render();
+  {% endif %}
+
+  {% endif %}
+});
+
+  // Utility Functions
+  function viewStudentDetails(studentId) {
+    window.open('/exams/students/' + studentId + '/results/', '_blank');
+  }
+
+  function exportReport() {
+    // Implement export functionality
+    const examId = '{{ exam.id }}';
+    window.open('/api/exams/' + examId + '/analytics/export/', '_blank');
+  }
+
+  function refreshAnalytics() {
+    // Show loading state
+    const originalText = $('.card-tools button:contains("Refresh")').html();
+    $('.card-tools button:contains("Refresh")').html('<i class="fas fa-spinner fa-spin"></i> Refreshing...');
+
+    // Reload the page to refresh analytics
+    setTimeout(function () {
+      location.reload();
+    }, 1000);
+  }
+
+  // Performance band chart for student insights
+  {% if analytics.student_insights.performance_bands %}
+  function createPerformanceBandChart() {
+    var performanceBandOptions = {
+      series: [
+        {{ analytics.student_insights.performance_bands.excellent }},
+      {{ analytics.student_insights.performance_bands.good }
+  },
+  { { analytics.student_insights.performance_bands.average } },
+  { { analytics.student_insights.performance_bands.below_average } }
+        ],
+  chart: {
+    type: 'pie',
+      height: 300
+  },
+  labels: ['Excellent (90-100%)', 'Good (70-89%)', 'Average (50-69%)', 'Below Average (<50%)'],
+    colors: ['#28a745', '#17a2b8', '#ffc107', '#dc3545'],
+      responsive: [{
+        breakpoint: 480,
+        options: {
+          chart: {
+            width: 200
+          },
+          legend: {
+            position: 'bottom'
+          }
+        }
+      }]
+    };
+
+  var performanceBandChart = new ApexCharts(document.querySelector("#performanceBandChart"), performanceBandOptions);
+  performanceBandChart.render();
+}
+  {% endif %}
+</script>
+{% endblock %}

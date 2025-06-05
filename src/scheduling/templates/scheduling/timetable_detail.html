@@ -1,0 +1,259 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Timetable Detail - {{ timetable.class_assigned }} - {{ timetable.subject }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Timetable Entry</h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:dashboard' %}">Scheduling</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:timetable_list' %}">Timetables</a></li>
+              <li class="breadcrumb-item active">{{ timetable.class_assigned }} - {{ timetable.subject }}</li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <a href="{% url 'scheduling:timetable_edit' timetable.pk %}" class="btn btn-warning me-2">
+            <i class="fas fa-edit"></i> Edit
+          </a>
+          <a href="{% url 'scheduling:timetable_delete' timetable.pk %}" class="btn btn-danger">
+            <i class="fas fa-trash"></i> Delete
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="row">
+    <!-- Timetable Details -->
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-calendar-alt me-2"></i>Timetable Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <table class="table table-borderless">
+                <tr>
+                  <td class="fw-bold">Class:</td>
+                  <td>{{ timetable.class_assigned }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">Subject:</td>
+                  <td>{{ timetable.subject.name }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">Teacher:</td>
+                  <td>
+                    <a href="{% url 'scheduling:teacher_timetable' timetable.teacher.pk %}">
+                      {{ timetable.teacher.user.get_full_name }}
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">Term:</td>
+                  <td>{{ timetable.term }}</td>
+                </tr>
+              </table>
+            </div>
+            <div class="col-md-6">
+              <table class="table table-borderless">
+                <tr>
+                  <td class="fw-bold">Day:</td>
+                  <td>{{ timetable.time_slot.get_day_of_week_display }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">Time:</td>
+                  <td>{{ timetable.time_slot.start_time }} - {{ timetable.time_slot.end_time }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">Period:</td>
+                  <td>{{ timetable.time_slot.period_number }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">Room:</td>
+                  <td>
+                    {% if timetable.room %}
+                    <a href="{% url 'scheduling:room_detail' timetable.room.pk %}">
+                      {{ timetable.room.number }} - {{ timetable.room.name }}
+                    </a>
+                    {% else %}
+                    <span class="text-warning">Not Assigned</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          {% if timetable.notes %}
+          <div class="row mt-3">
+            <div class="col-12">
+              <h6>Notes:</h6>
+              <p class="text-muted">{{ timetable.notes }}</p>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="row mt-3">
+            <div class="col-12">
+              <small class="text-muted">
+                Effective: {{ timetable.effective_from_date }} to {{ timetable.effective_to_date }}
+                {% if timetable.created_by %}
+                | Created by: {{ timetable.created_by.get_full_name }}
+                {% endif %}
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Panel -->
+    <div class="col-md-4">
+      <!-- Conflicts Alert -->
+      {% if conflicts %}
+      <div class="card border-danger mb-3">
+        <div class="card-header bg-danger text-white">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i>Conflicts Detected
+          </h6>
+        </div>
+        <div class="card-body">
+          {% for conflict in conflicts %}
+          <div class="alert alert-warning alert-sm mb-2">
+            <strong>{{ conflict.type|title }} Conflict:</strong><br>
+            {{ conflict.message }}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% else %}
+      <div class="card border-success mb-3">
+        <div class="card-header bg-success text-white">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-check-circle me-2"></i>No Conflicts
+          </h6>
+        </div>
+        <div class="card-body">
+          <p class="text-success mb-0">This timetable entry has no scheduling conflicts.</p>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Quick Actions -->
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">Quick Actions</h6>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <a href="{% url 'scheduling:class_timetable' timetable.class_assigned.pk %}?term_id={{ timetable.term.pk }}"
+              class="btn btn-outline-primary btn-sm">
+              <i class="fas fa-table me-1"></i> View Class Timetable
+            </a>
+            <a href="{% url 'scheduling:teacher_timetable' timetable.teacher.pk %}?term_id={{ timetable.term.pk }}"
+              class="btn btn-outline-info btn-sm">
+              <i class="fas fa-user-clock me-1"></i> View Teacher Schedule
+            </a>
+            {% if timetable.room %}
+            <a href="{% url 'scheduling:room_calendar' timetable.room.pk %}?term_id={{ timetable.term.pk }}"
+              class="btn btn-outline-secondary btn-sm">
+              <i class="fas fa-door-open me-1"></i> View Room Calendar
+            </a>
+            {% endif %}
+            <a href="{% url 'scheduling:substitute_create' %}?timetable_id={{ timetable.pk }}"
+              class="btn btn-outline-warning btn-sm">
+              <i class="fas fa-user-plus me-1"></i> Create Substitute
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Substitute History -->
+  {% if substitutes %}
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-history me-2"></i>Substitute History
+          </h5>
+        </div>
+        <div class="card-body">
+          <table id="substituteTable" class="table table-striped">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Substitute Teacher</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for substitute in substitutes %}
+              <tr>
+                <td>{{ substitute.date }}</td>
+                <td>{{ substitute.substitute_teacher.user.get_full_name }}</td>
+                <td>{{ substitute.reason }}</td>
+                <td>
+                  {% if substitute.approved_by %}
+                  <span class="badge bg-success">Approved</span>
+                  {% else %}
+                  <span class="badge bg-warning">Pending</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <a href="{% url 'scheduling:substitute_detail' substitute.pk %}"
+                    class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script>
+  $(document).ready(function () {
+    {% if substitutes %}
+    $('#substituteTable').DataTable({
+      responsive: true,
+      pageLength: 10,
+      order: [[0, 'desc']],
+      columnDefs: [
+        { orderable: false, targets: [4] }
+      ]
+    });
+    {% endif %}
+  });
+</script>
+{% endblock %}

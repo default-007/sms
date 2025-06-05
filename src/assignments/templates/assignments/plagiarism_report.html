@@ -1,0 +1,1023 @@
+{% extends "base.html" %}
+{% load assignment_tags %}
+
+{% block title %}Plagiarism Reports{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0">
+        <i class="fas fa-shield-alt text-warning"></i>
+        Plagiarism Detection Reports
+      </h1>
+      <p class="text-muted mb-0">Monitor and manage academic integrity across all assignments</p>
+    </div>
+    <div class="btn-group">
+      <button type="button" class="btn btn-warning" onclick="runBatchCheck()">
+        <i class="fas fa-play"></i> Run Batch Check
+      </button>
+      <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="fas fa-filter"></i> Filter
+      </button>
+      <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="?threshold=high">High Risk (>70%)</a></li>
+        <li><a class="dropdown-item" href="?threshold=medium">Medium Risk (30-70%)</a></li>
+        <li><a class="dropdown-item" href="?threshold=low">Low Risk (<30%)< /a>
+        </li>
+        <li>
+          <hr class="dropdown-divider">
+        </li>
+        <li><a class="dropdown-item" href="?status=flagged">Flagged Only</a></li>
+        <li><a class="dropdown-item" href="?status=resolved">Resolved Only</a></li>
+        <li><a class="dropdown-item" href="?period=week">This Week</a></li>
+        <li><a class="dropdown-item" href="?period=month">This Month</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Summary Statistics -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-danger text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="card-title">24</h3>
+              <p class="card-text">High Risk Cases</p>
+              <small>&gt;70% similarity</small>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-exclamation-triangle fa-3x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="card-title">56</h3>
+              <p class="card-text">Medium Risk Cases</p>
+              <small>30-70% similarity</small>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-exclamation-circle fa-3x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="card-title">847</h3>
+              <p class="card-text">Total Checked</p>
+              <small>This month</small>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-search fa-3x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h3 class="card-title">91.2%</h3>
+              <p class="card-text">Clean Submissions</p>
+              <small>&lt;30% similarity</small>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-check-circle fa-3x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Plagiarism Detection Trends</h5>
+        </div>
+        <div class="card-body">
+          <div id="plagiarismTrendsChart"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Risk Level Distribution</h5>
+        </div>
+        <div class="card-body">
+          <div id="riskDistributionChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-bolt text-primary"></i>
+            Quick Actions
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3">
+              <div class="d-grid">
+                <button type="button" class="btn btn-outline-warning btn-lg" onclick="checkAllRecent()">
+                  <i class="fas fa-sync"></i>
+                  <div class="small">Check Recent Submissions</div>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="d-grid">
+                <button type="button" class="btn btn-outline-danger btn-lg" onclick="flagAllHigh()">
+                  <i class="fas fa-flag"></i>
+                  <div class="small">Flag High Risk Cases</div>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="d-grid">
+                <button type="button" class="btn btn-outline-info btn-lg" onclick="exportReport()">
+                  <i class="fas fa-download"></i>
+                  <div class="small">Export Full Report</div>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="d-grid">
+                <button type="button" class="btn btn-outline-secondary btn-lg" onclick="showSettings()">
+                  <i class="fas fa-cog"></i>
+                  <div class="small">Detection Settings</div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flagged Cases Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-flag text-danger"></i>
+            Suspicious Submissions
+          </h5>
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-success" onclick="markSelectedResolved()">
+              <i class="fas fa-check"></i> Mark Resolved
+            </button>
+            <button type="button" class="btn btn-outline-danger" onclick="flagSelected()">
+              <i class="fas fa-flag"></i> Flag for Review
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="contactStudents()">
+              <i class="fas fa-envelope"></i> Contact Students
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="plagiarismTable" class="table table-hover">
+              <thead>
+                <tr>
+                  <th width="40">
+                    <input type="checkbox" id="selectAll" class="form-check-input">
+                  </th>
+                  <th>Student</th>
+                  <th>Assignment</th>
+                  <th>Subject</th>
+                  <th>Similarity Score</th>
+                  <th>Risk Level</th>
+                  <th>Checked Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- High Risk Cases -->
+                <tr data-risk="high">
+                  <td><input type="checkbox" class="form-check-input case-checkbox" value="1"></td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div
+                        class="avatar-sm bg-danger rounded-circle d-flex align-items-center justify-content-center text-white me-2">
+                        JD
+                      </div>
+                      <div>
+                        <strong>John Doe</strong>
+                        <br><small class="text-muted">ST2024001</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <strong>Climate Change Essay</strong>
+                    <br><small class="text-muted">Environmental Science</small>
+                  </td>
+                  <td><span class="badge bg-secondary">ENV101</span></td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="progress flex-grow-1 me-2" style="height: 20px;">
+                        <div class="progress-bar bg-danger" style="width: 87%">87%</div>
+                      </div>
+                      <strong class="text-danger">87%</strong>
+                    </div>
+                  </td>
+                  <td><span class="badge bg-danger">High Risk</span></td>
+                  <td>
+                    <span class="text-muted">2 hours ago</span>
+                    <br><small>Auto-detected</small>
+                  </td>
+                  <td>
+                    <span class="badge bg-warning">
+                      <i class="fas fa-flag"></i> Flagged
+                    </span>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button type="button" class="btn btn-outline-primary btn-sm" onclick="viewDetails(1)"
+                        title="View Details">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-warning btn-sm" onclick="viewReport(1)"
+                        title="View Report">
+                        <i class="fas fa-file-alt"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-success btn-sm" onclick="markResolved(1)"
+                        title="Mark Resolved">
+                        <i class="fas fa-check"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-secondary btn-sm" onclick="recheck(1)"
+                        title="Recheck">
+                        <i class="fas fa-sync"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr data-risk="high">
+                  <td><input type="checkbox" class="form-check-input case-checkbox" value="2"></td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div
+                        class="avatar-sm bg-danger rounded-circle d-flex align-items-center justify-content-center text-white me-2">
+                        AS
+                      </div>
+                      <div>
+                        <strong>Alice Smith</strong>
+                        <br><small class="text-muted">ST2024002</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <strong>Machine Learning Basics</strong>
+                    <br><small class="text-muted">Computer Science</small>
+                  </td>
+                  <td><span class="badge bg-secondary">CS201</span></td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="progress flex-grow-1 me-2" style="height: 20px;">
+                        <div class="progress-bar bg-danger" style="width: 92%">92%</div>
+                      </div>
+                      <strong class="text-danger">92%</strong>
+                    </div>
+                  </td>
+                  <td><span class="badge bg-danger">High Risk</span></td>
+                  <td>
+                    <span class="text-muted">5 hours ago</span>
+                    <br><small>Manual check</small>
+                  </td>
+                  <td>
+                    <span class="badge bg-danger">
+                      <i class="fas fa-exclamation-triangle"></i> Under Review
+                    </span>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button type="button" class="btn btn-outline-primary btn-sm" onclick="viewDetails(2)"
+                        title="View Details">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-warning btn-sm" onclick="viewReport(2)"
+                        title="View Report">
+                        <i class="fas fa-file-alt"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-success btn-sm" onclick="markResolved(2)"
+                        title="Mark Resolved">
+                        <i class="fas fa-check"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-secondary btn-sm" onclick="recheck(2)"
+                        title="Recheck">
+                        <i class="fas fa-sync"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Medium Risk Cases -->
+                <tr data-risk="medium">
+                  <td><input type="checkbox" class="form-check-input case-checkbox" value="3"></td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div
+                        class="avatar-sm bg-warning rounded-circle d-flex align-items-center justify-content-center text-white me-2">
+                        BJ
+                      </div>
+                      <div>
+                        <strong>Bob Johnson</strong>
+                        <br><small class="text-muted">ST2024003</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <strong>World War II Analysis</strong>
+                    <br><small class="text-muted">History</small>
+                  </td>
+                  <td><span class="badge bg-secondary">HIST301</span></td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="progress flex-grow-1 me-2" style="height: 20px;">
+                        <div class="progress-bar bg-warning" style="width: 45%">45%</div>
+                      </div>
+                      <strong class="text-warning">45%</strong>
+                    </div>
+                  </td>
+                  <td><span class="badge bg-warning">Medium Risk</span></td>
+                  <td>
+                    <span class="text-muted">1 day ago</span>
+                    <br><small>Auto-detected</small>
+                  </td>
+                  <td>
+                    <span class="badge bg-info">
+                      <i class="fas fa-eye"></i> Reviewed
+                    </span>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button type="button" class="btn btn-outline-primary btn-sm" onclick="viewDetails(3)"
+                        title="View Details">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-warning btn-sm" onclick="viewReport(3)"
+                        title="View Report">
+                        <i class="fas fa-file-alt"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-success btn-sm" onclick="markResolved(3)"
+                        title="Mark Resolved">
+                        <i class="fas fa-check"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-secondary btn-sm" onclick="recheck(3)"
+                        title="Recheck">
+                        <i class="fas fa-sync"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr data-risk="medium">
+                  <td><input type="checkbox" class="form-check-input case-checkbox" value="4"></td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div
+                        class="avatar-sm bg-warning rounded-circle d-flex align-items-center justify-content-center text-white me-2">
+                        CW
+                      </div>
+                      <div>
+                        <strong>Carol Williams</strong>
+                        <br><small class="text-muted">ST2024004</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <strong>Organic Chemistry Lab Report</strong>
+                    <br><small class="text-muted">Chemistry</small>
+                  </td>
+                  <td><span class="badge bg-secondary">CHEM201</span></td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="progress flex-grow-1 me-2" style="height: 20px;">
+                        <div class="progress-bar bg-warning" style="width: 38%">38%</div>
+                      </div>
+                      <strong class="text-warning">38%</strong>
+                    </div>
+                  </td>
+                  <td><span class="badge bg-warning">Medium Risk</span></td>
+                  <td>
+                    <span class="text-muted">2 days ago</span>
+                    <br><small>Auto-detected</small>
+                  </td>
+                  <td>
+                    <span class="badge bg-secondary">
+                      <i class="fas fa-clock"></i> Pending
+                    </span>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button type="button" class="btn btn-outline-primary btn-sm" onclick="viewDetails(4)"
+                        title="View Details">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-warning btn-sm" onclick="viewReport(4)"
+                        title="View Report">
+                        <i class="fas fa-file-alt"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-success btn-sm" onclick="markResolved(4)"
+                        title="Mark Resolved">
+                        <i class="fas fa-check"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-secondary btn-sm" onclick="recheck(4)"
+                        title="Recheck">
+                        <i class="fas fa-sync"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Resolved Cases -->
+                <tr data-risk="resolved" class="table-light">
+                  <td><input type="checkbox" class="form-check-input case-checkbox" value="5"></td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div
+                        class="avatar-sm bg-success rounded-circle d-flex align-items-center justify-content-center text-white me-2">
+                        DM
+                      </div>
+                      <div>
+                        <strong>David Miller</strong>
+                        <br><small class="text-muted">ST2024005</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <strong>Economic Theory Essay</strong>
+                    <br><small class="text-muted">Economics</small>
+                  </td>
+                  <td><span class="badge bg-secondary">ECON101</span></td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="progress flex-grow-1 me-2" style="height: 20px;">
+                        <div class="progress-bar bg-warning" style="width: 42%">42%</div>
+                      </div>
+                      <strong class="text-warning">42%</strong>
+                    </div>
+                  </td>
+                  <td><span class="badge bg-warning">Medium Risk</span></td>
+                  <td>
+                    <span class="text-muted">3 days ago</span>
+                    <br><small>Manual check</small>
+                  </td>
+                  <td>
+                    <span class="badge bg-success">
+                      <i class="fas fa-check"></i> Resolved
+                    </span>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button type="button" class="btn btn-outline-primary btn-sm" onclick="viewDetails(5)"
+                        title="View Details">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-warning btn-sm" onclick="viewReport(5)"
+                        title="View Report">
+                        <i class="fas fa-file-alt"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-secondary btn-sm" onclick="reopen(5)"
+                        title="Reopen Case">
+                        <i class="fas fa-undo"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="row align-items-center">
+            <div class="col-md-6">
+              <small class="text-muted">
+                Showing suspicious submissions with similarity >30% |
+                Auto-check runs every 6 hours
+              </small>
+            </div>
+            <div class="col-md-6 text-end">
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="refreshData()">
+                <i class="fas fa-refresh"></i> Refresh
+              </button>
+              <button type="button" class="btn btn-primary btn-sm" onclick="scheduleCheck()">
+                <i class="fas fa-clock"></i> Schedule Check
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Plagiarism Detail Modal -->
+<div class="modal fade" id="plagiarismDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Plagiarism Detection Report</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="detailContent">
+          <!-- Content will be loaded dynamically -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-warning" onclick="flagCase()">
+          <i class="fas fa-flag"></i> Flag Case
+        </button>
+        <button type="button" class="btn btn-success" onclick="resolveCase()">
+          <i class="fas fa-check"></i> Mark Resolved
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal fade" id="settingsModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Plagiarism Detection Settings</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="settingsForm">
+          <div class="mb-3">
+            <label class="form-label">Similarity Threshold</label>
+            <input type="range" class="form-range" id="thresholdSlider" min="10" max="90" value="30"
+              oninput="updateThresholdValue(this.value)">
+            <div class="d-flex justify-content-between">
+              <small>10%</small>
+              <strong id="thresholdValue">30%</strong>
+              <small>90%</small>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Auto-Check Frequency</label>
+            <select class="form-select" id="autoCheckFrequency">
+              <option value="disabled">Disabled</option>
+              <option value="hourly">Every Hour</option>
+              <option value="6hours" selected>Every 6 Hours</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Check Against</label>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="checkInternal" checked>
+              <label class="form-check-label" for="checkInternal">
+                Internal submissions (same assignment)
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="checkAllAssignments" checked>
+              <label class="form-check-label" for="checkAllAssignments">
+                All assignments in system
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="checkExternal">
+              <label class="form-check-label" for="checkExternal">
+                External sources (requires API key)
+              </label>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="autoFlag" checked>
+              <label class="form-check-label" for="autoFlag">
+                Automatically flag high-risk cases
+              </label>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="notifyTeachers" checked>
+              <label class="form-check-label" for="notifyTeachers">
+                Notify teachers of suspicious submissions
+              </label>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveSettings()">
+          <i class="fas fa-save"></i> Save Settings
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    var table = $('#plagiarismTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[4, 'desc']], // Sort by similarity score
+      columnDefs: [
+        { orderable: false, targets: [0, 8] }
+      ],
+      language: {
+        search: "Search cases:",
+        lengthMenu: "Show _MENU_ cases per page"
+      },
+      dom: 'Bfrtip',
+      buttons: [
+        {
+          extend: 'csv',
+          text: '<i class="fas fa-file-csv"></i> Export CSV',
+          className: 'btn btn-outline-secondary btn-sm'
+        },
+        {
+          text: '<i class="fas fa-file-pdf"></i> Export PDF',
+          className: 'btn btn-outline-secondary btn-sm',
+          action: function () {
+            exportReport();
+          }
+        }
+      ]
+    });
+
+    // Handle select all checkbox
+    $('#selectAll').on('change', function () {
+      $('.case-checkbox').prop('checked', this.checked);
+    });
+
+    // Handle individual checkboxes
+    $(document).on('change', '.case-checkbox', function () {
+      var totalCheckboxes = $('.case-checkbox').length;
+      var checkedCheckboxes = $('.case-checkbox:checked').length;
+      $('#selectAll').prop('checked', totalCheckboxes === checkedCheckboxes);
+    });
+
+    // Initialize Charts
+    initializePlagiarismCharts();
+  });
+
+  function initializePlagiarismCharts() {
+    // Plagiarism Trends Chart
+    var trendsOptions = {
+      series: [{
+        name: 'High Risk',
+        data: [12, 15, 8, 22, 18, 25, 19, 16, 24, 20, 18, 22, 25, 19, 21, 24, 18, 20, 23, 17, 25, 22, 19, 21, 24, 18, 20, 23, 17, 25]
+      }, {
+        name: 'Medium Risk',
+        data: [28, 32, 25, 35, 30, 42, 38, 33, 45, 40, 35, 41, 48, 35, 39, 45, 32, 38, 42, 36, 48, 41, 35, 39, 45, 32, 38, 42, 36, 48]
+      }, {
+        name: 'Low Risk',
+        data: [156, 178, 145, 189, 167, 198, 175, 163, 201, 184, 172, 195, 210, 178, 185, 203, 162, 178, 192, 168, 210, 195, 172, 185, 203, 162, 178, 192, 168, 210]
+      }],
+      chart: {
+        type: 'area',
+        height: 350,
+        stacked: true
+      },
+      colors: ['#dc3545', '#ffc107', '#28a745'],
+      xaxis: {
+        categories: Array.from({ length: 30 }, (_, i) => {
+          const date = new Date();
+          date.setDate(date.getDate() - (29 - i));
+          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        })
+      },
+      title: {
+        text: 'Daily Plagiarism Detection Results'
+      },
+      stroke: {
+        curve: 'smooth'
+      },
+      fill: {
+        type: 'gradient',
+        gradient: {
+          opacityFrom: 0.6,
+          opacityTo: 0.8
+        }
+      }
+    };
+
+    var trendsChart = new ApexCharts(document.querySelector("#plagiarismTrendsChart"), trendsOptions);
+    trendsChart.render();
+
+    // Risk Distribution Chart
+    var riskOptions = {
+      series: [24, 56, 767],
+      chart: {
+        type: 'donut',
+        height: 350
+      },
+      labels: ['High Risk (>70%)', 'Medium Risk (30-70%)', 'Low Risk (<30%)'],
+      colors: ['#dc3545', '#ffc107', '#28a745'],
+      title: {
+        text: 'Risk Level Distribution'
+      },
+      plotOptions: {
+        pie: {
+          donut: {
+            labels: {
+              show: true,
+              total: {
+                show: true,
+                label: 'Total Checked',
+                formatter: function () {
+                  return '847'
+                }
+              }
+            }
+          }
+        }
+      }
+    };
+
+    var riskChart = new ApexCharts(document.querySelector("#riskDistributionChart"), riskOptions);
+    riskChart.render();
+  }
+
+  // Function implementations
+  function runBatchCheck() {
+    if (confirm('Run plagiarism check on all recent submissions? This may take several minutes.')) {
+      // Show loading indicator
+      $('body').append('<div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style="background: rgba(0,0,0,0.5); z-index: 9999;"><div class="spinner-border text-white" role="status"></div></div>');
+
+      // Simulate batch check
+      setTimeout(function () {
+        $('#loadingOverlay').remove();
+        alert('Batch check completed! Found 8 new suspicious submissions.');
+        location.reload();
+      }, 3000);
+    }
+  }
+
+  function checkAllRecent() {
+    if (confirm('Check all submissions from the last 24 hours?')) {
+      alert('Checking recent submissions... You will be notified when complete.');
+    }
+  }
+
+  function flagAllHigh() {
+    var highRiskCount = $('tr[data-risk="high"]').length;
+    if (confirm(`Flag all ${highRiskCount} high-risk cases for manual review?`)) {
+      $('tr[data-risk="high"]').each(function () {
+        $(this).find('.badge').removeClass('bg-warning').addClass('bg-danger').html('<i class="fas fa-flag"></i> Flagged');
+      });
+      alert('High-risk cases have been flagged for review.');
+    }
+  }
+
+  function exportReport() {
+    window.open('{% url "assignments:report_export" %}?type=plagiarism&format=pdf', '_blank');
+  }
+
+  function showSettings() {
+    $('#settingsModal').modal('show');
+  }
+
+  function viewDetails(caseId) {
+    // Load detailed plagiarism report
+    var detailHtml = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Submission Details</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Student:</strong></td><td>John Doe (ST2024001)</td></tr>
+                    <tr><td><strong>Assignment:</strong></td><td>Climate Change Essay</td></tr>
+                    <tr><td><strong>Subject:</strong></td><td>Environmental Science (ENV101)</td></tr>
+                    <tr><td><strong>Submitted:</strong></td><td>2024-01-15 14:30</td></tr>
+                    <tr><td><strong>Word Count:</strong></td><td>1,245 words</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6>Detection Results</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Overall Similarity:</strong></td><td><span class="badge bg-danger">87%</span></td></tr>
+                    <tr><td><strong>Unique Content:</strong></td><td>13%</td></tr>
+                    <tr><td><strong>Sources Found:</strong></td><td>3 internal, 2 external</td></tr>
+                    <tr><td><strong>Risk Level:</strong></td><td><span class="badge bg-danger">High</span></td></tr>
+                    <tr><td><strong>Last Checked:</strong></td><td>2024-01-15 16:45</td></tr>
+                </table>
+            </div>
+        </div>
+        
+        <hr>
+        
+        <h6>Similar Sources</h6>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Source</th>
+                        <th>Similarity</th>
+                        <th>Matched Text</th>
+                        <th>Type</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Alice Smith - Climate Report (CS201)</td>
+                        <td><span class="badge bg-danger">45%</span></td>
+                        <td>Climate change impacts on biodiversity...</td>
+                        <td>Internal</td>
+                    </tr>
+                    <tr>
+                        <td>Wikipedia - Global Warming</td>
+                        <td><span class="badge bg-warning">32%</span></td>
+                        <td>The greenhouse effect is a natural process...</td>
+                        <td>External</td>
+                    </tr>
+                    <tr>
+                        <td>Bob Johnson - Environment Essay (ENV101)</td>
+                        <td><span class="badge bg-warning">10%</span></td>
+                        <td>Environmental policies must address...</td>
+                        <td>Internal</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="mt-3">
+            <h6>Actions Taken</h6>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item">
+                    <i class="fas fa-clock text-muted"></i>
+                    <strong>2024-01-15 16:45</strong> - Auto-detected high similarity
+                </li>
+                <li class="list-group-item">
+                    <i class="fas fa-flag text-warning"></i>
+                    <strong>2024-01-15 17:00</strong> - Flagged for manual review
+                </li>
+            </ul>
+        </div>
+    `;
+
+    $('#detailContent').html(detailHtml);
+    $('#plagiarismDetailModal').modal('show');
+  }
+
+  function viewReport(caseId) {
+    window.open(`{% url "assignments:plagiarism_check" pk=0 %}`.replace('0', caseId), '_blank');
+  }
+
+  function markResolved(caseId) {
+    if (confirm('Mark this case as resolved? This will remove it from the active list.')) {
+      var row = $(`input[value="${caseId}"]`).closest('tr');
+      row.addClass('table-light');
+      row.find('.badge').last().removeClass('bg-warning bg-danger').addClass('bg-success').html('<i class="fas fa-check"></i> Resolved');
+      alert('Case marked as resolved.');
+    }
+  }
+
+  function markSelectedResolved() {
+    var selectedCases = $('.case-checkbox:checked');
+    if (selectedCases.length === 0) {
+      alert('Please select at least one case.');
+      return;
+    }
+
+    if (confirm(`Mark ${selectedCases.length} selected case(s) as resolved?`)) {
+      selectedCases.each(function () {
+        var row = $(this).closest('tr');
+        row.addClass('table-light');
+        row.find('.badge').last().removeClass('bg-warning bg-danger').addClass('bg-success').html('<i class="fas fa-check"></i> Resolved');
+      });
+      alert('Selected cases have been marked as resolved.');
+    }
+  }
+
+  function flagSelected() {
+    var selectedCases = $('.case-checkbox:checked');
+    if (selectedCases.length === 0) {
+      alert('Please select at least one case.');
+      return;
+    }
+
+    if (confirm(`Flag ${selectedCases.length} selected case(s) for review?`)) {
+      selectedCases.each(function () {
+        var row = $(this).closest('tr');
+        row.find('.badge').last().removeClass('bg-warning bg-success').addClass('bg-danger').html('<i class="fas fa-flag"></i> Flagged');
+      });
+      alert('Selected cases have been flagged for review.');
+    }
+  }
+
+  function contactStudents() {
+    var selectedCases = $('.case-checkbox:checked');
+    if (selectedCases.length === 0) {
+      alert('Please select at least one case.');
+      return;
+    }
+
+    alert(`Sending academic integrity notifications to ${selectedCases.length} student(s)...`);
+  }
+
+  function recheck(caseId) {
+    if (confirm('Re-run plagiarism check for this submission?')) {
+      alert('Recheck initiated. Results will be updated shortly.');
+    }
+  }
+
+  function reopen(caseId) {
+    if (confirm('Reopen this resolved case?')) {
+      var row = $(`input[value="${caseId}"]`).closest('tr');
+      row.removeClass('table-light');
+      row.find('.badge').last().removeClass('bg-success').addClass('bg-warning').html('<i class="fas fa-flag"></i> Flagged');
+      alert('Case has been reopened.');
+    }
+  }
+
+  function refreshData() {
+    location.reload();
+  }
+
+  function scheduleCheck() {
+    alert('Plagiarism check scheduled for next available time slot.');
+  }
+
+  function updateThresholdValue(value) {
+    $('#thresholdValue').text(value + '%');
+  }
+
+  function saveSettings() {
+    var settings = {
+      threshold: $('#thresholdSlider').val(),
+      frequency: $('#autoCheckFrequency').val(),
+      checkInternal: $('#checkInternal').is(':checked'),
+      checkAllAssignments: $('#checkAllAssignments').is(':checked'),
+      checkExternal: $('#checkExternal').is(':checked'),
+      autoFlag: $('#autoFlag').is(':checked'),
+      notifyTeachers: $('#notifyTeachers').is(':checked')
+    };
+
+    console.log('Saving settings:', settings);
+    // TODO: Implement actual settings save
+
+    $('#settingsModal').modal('hide');
+    alert('Settings saved successfully!');
+  }
+
+  function flagCase() {
+    $('#plagiarismDetailModal').modal('hide');
+    alert('Case has been flagged for review.');
+  }
+
+  function resolveCase() {
+    $('#plagiarismDetailModal').modal('hide');
+    alert('Case has been marked as resolved.');
+  }
+</script>
+{% endblock %}

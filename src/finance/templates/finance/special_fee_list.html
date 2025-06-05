@@ -1,0 +1,360 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Special Fees - Finance{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-0">Special Fees</h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'finance:dashboard' %}">Finance</a></li>
+              <li class="breadcrumb-item active">Special Fees</li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <button class="btn btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#filterModal">
+            <i class="fas fa-filter me-2"></i>Filters
+          </button>
+          <a href="{% url 'finance:special-fee-create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Add Special Fee
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title">Total Special Fees</h6>
+              <h3 class="mb-0">{{ special_fees|length }}</h3>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-star fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title">Active Fees</h6>
+              <h3 class="mb-0">0</h3>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-check-circle fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title">Class-based</h6>
+              <h3 class="mb-0">0</h3>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-users fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title">Student-specific</h6>
+              <h3 class="mb-0">0</h3>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-user fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Special Fees Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">All Special Fees</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="specialFeesTable" class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Category</th>
+                  <th>Type</th>
+                  <th>Target</th>
+                  <th>Amount</th>
+                  <th>Due Date</th>
+                  <th>Term</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for special_fee in special_fees %}
+                <tr>
+                  <td>
+                    <div>
+                      <strong>{{ special_fee.name }}</strong>
+                      {% if special_fee.description %}
+                      <br><small class="text-muted">{{ special_fee.description|truncatechars:40 }}</small>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-light text-dark">{{ special_fee.fee_category.name }}</span>
+                  </td>
+                  <td>
+                    {% if special_fee.fee_type == 'class_based' %}
+                    <span class="badge bg-info">Class-based</span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark">Student-specific</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if special_fee.class_obj %}
+                    <div>
+                      <i class="fas fa-users text-muted me-1"></i>
+                      <small>{{ special_fee.class_obj }}</small>
+                    </div>
+                    {% elif special_fee.student %}
+                    <div>
+                      <i class="fas fa-user text-muted me-1"></i>
+                      <small>{{ special_fee.student.user.get_full_name }}</small>
+                      <br><small class="text-muted">{{ special_fee.student.admission_number }}</small>
+                    </div>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="fw-bold text-success">${{ special_fee.amount }}</span>
+                  </td>
+                  <td>
+                    <small>{{ special_fee.due_date|date:"M d, Y" }}</small>
+                    {% if special_fee.due_date < today %}
+                    <br><small class="text-danger">Overdue</small>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <small>{{ special_fee.term.name }}</small>
+                    <br><small class="text-muted">{{ special_fee.term.academic_year.name }}</small>
+                  </td>
+                  <td>
+                    {% if special_fee.is_active %}
+                    <span class="badge bg-success">Active</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Inactive</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                      <a href="{% url 'finance:special-fee-detail' special_fee.pk %}" class="btn btn-outline-primary"
+                        title="View Details">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      <button class="btn btn-outline-secondary" title="Edit"
+                        onclick="editSpecialFee({{ special_fee.pk }})">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      {% if special_fee.is_active %}
+                      <button class="btn btn-outline-warning" title="Deactivate"
+                        onclick="toggleFeeStatus({{ special_fee.pk }}, false)">
+                        <i class="fas fa-pause"></i>
+                      </button>
+                      {% else %}
+                      <button class="btn btn-outline-success" title="Activate"
+                        onclick="toggleFeeStatus({{ special_fee.pk }}, true)">
+                        <i class="fas fa-play"></i>
+                      </button>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="9" class="text-center text-muted py-4">
+                    <i class="fas fa-star fa-3x mb-3 opacity-50"></i>
+                    <p class="mb-0">No special fees found.</p>
+                    <a href="{% url 'finance:special-fee-create' %}" class="btn btn-primary mt-2">
+                      Create First Special Fee
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter Modal -->
+<div class="modal fade" id="filterModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Filter Special Fees</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="filterForm">
+          <div class="mb-3">
+            <label class="form-label">Fee Type</label>
+            <select class="form-select" id="filterType">
+              <option value="">All Types</option>
+              <option value="class_based">Class-based</option>
+              <option value="student_specific">Student-specific</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Status</label>
+            <select class="form-select" id="filterStatus">
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Due Date</label>
+            <select class="form-select" id="filterDueDate">
+              <option value="">All Dates</option>
+              <option value="overdue">Overdue</option>
+              <option value="this_month">This Month</option>
+              <option value="next_month">Next Month</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
+        <button type="button" class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script>
+  let specialFeesTable;
+
+  $(document).ready(function () {
+    specialFeesTable = $('#specialFeesTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[5, 'desc']], // Sort by due date
+      columnDefs: [
+        { orderable: false, targets: [8] },
+        { type: 'date', targets: [5] }
+      ],
+      language: {
+        search: "Search special fees:",
+        lengthMenu: "Show _MENU_ fees per page",
+        info: "Showing _START_ to _END_ of _TOTAL_ special fees",
+        emptyTable: "No special fees available"
+      }
+    });
+  });
+
+  function editSpecialFee(feeId) {
+    // Redirect to edit page
+    window.location.href = `/finance/special-fees/${feeId}/edit/`;
+  }
+
+  function toggleFeeStatus(feeId, newStatus) {
+    const action = newStatus ? 'activate' : 'deactivate';
+
+    if (confirm(`Are you sure you want to ${action} this special fee?`)) {
+      // AJAX call to toggle status
+      fetch(`/api/finance/special-fees/${feeId}/toggle-status/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ is_active: newStatus })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            location.reload();
+          } else {
+            alert('Error updating fee status');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error updating fee status');
+        });
+    }
+  }
+
+  function applyFilters() {
+    const type = $('#filterType').val();
+    const status = $('#filterStatus').val();
+    const dueDate = $('#filterDueDate').val();
+
+    // Apply DataTable filters
+    specialFeesTable.columns(2).search(type);
+    specialFeesTable.columns(7).search(status);
+
+    specialFeesTable.draw();
+    $('#filterModal').modal('hide');
+  }
+
+  function clearFilters() {
+    $('#filterForm')[0].reset();
+    specialFeesTable.search('').columns().search('').draw();
+    $('#filterModal').modal('hide');
+  }
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+</script>
+{% endblock %}

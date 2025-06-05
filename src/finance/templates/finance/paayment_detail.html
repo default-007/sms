@@ -1,0 +1,147 @@
+<!-- ================================ -->
+<!-- payment_detail.html -->
+<!-- ================================ -->
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment Details - {{ object.receipt_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-0">Payment Details</h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'finance:dashboard' %}">Finance</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'finance:payment-list' %}">Payments</a></li>
+              <li class="breadcrumb-item active">{{ object.receipt_number }}</li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <a href="{% url 'finance:payment-receipt' object.pk %}" class="btn btn-primary" target="_blank">
+            <i class="fas fa-print me-2"></i>Print Receipt
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Payment Information</h5>
+        </div>
+        <div class="card-body">
+          <div class="row mb-3">
+            <div class="col-sm-4"><strong>Receipt Number:</strong></div>
+            <div class="col-sm-8">{{ object.receipt_number }}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-sm-4"><strong>Amount:</strong></div>
+            <div class="col-sm-8">
+              <span class="fs-4 fw-bold text-success">${{ object.amount }}</span>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-sm-4"><strong>Payment Date:</strong></div>
+            <div class="col-sm-8">{{ object.payment_date|date:"F d, Y g:i A" }}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-sm-4"><strong>Payment Method:</strong></div>
+            <div class="col-sm-8">
+              <span class="badge bg-primary">{{ object.get_payment_method_display }}</span>
+            </div>
+          </div>
+          {% if object.transaction_id %}
+          <div class="row mb-3">
+            <div class="col-sm-4"><strong>Transaction ID:</strong></div>
+            <div class="col-sm-8"><code>{{ object.transaction_id }}</code></div>
+          </div>
+          {% endif %}
+          <div class="row mb-3">
+            <div class="col-sm-4"><strong>Status:</strong></div>
+            <div class="col-sm-8">
+              {% if object.status == 'completed' %}
+              <span class="badge bg-success">Completed</span>
+              {% else %}
+              <span class="badge bg-warning">{{ object.get_status_display }}</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-sm-4"><strong>Received By:</strong></div>
+            <div class="col-sm-8">
+              {% if object.received_by %}
+              {{ object.received_by.get_full_name }}
+              {% else %}
+              <span class="text-muted">System</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Invoice Details</h5>
+        </div>
+        <div class="card-body">
+          <div class="row mb-3">
+            <div class="col-sm-4"><strong>Invoice Number:</strong></div>
+            <div class="col-sm-8">
+              <a href="{% url 'finance:invoice-detail' object.invoice.pk %}">
+                {{ object.invoice.invoice_number }}
+              </a>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-sm-4"><strong>Student:</strong></div>
+            <div class="col-sm-8">
+              <strong>{{ object.invoice.student.user.get_full_name }}</strong>
+              <br><small class="text-muted">{{ object.invoice.student.admission_number }}</small>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-sm-4"><strong>Invoice Total:</strong></div>
+            <div class="col-sm-8">${{ object.invoice.net_amount }}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-sm-4"><strong>Total Paid:</strong></div>
+            <div class="col-sm-8">${{ object.invoice.paid_amount }}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-sm-4"><strong>Outstanding:</strong></div>
+            <div class="col-sm-8">
+              <span
+                class="fw-bold {% if object.invoice.outstanding_amount > 0 %}text-danger{% else %}text-success{% endif %}">
+                ${{ object.invoice.outstanding_amount }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if object.remarks %}
+      <div class="card mt-3">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Remarks</h5>
+        </div>
+        <div class="card-body">
+          <div class="bg-light p-3 rounded">
+            {{ object.remarks }}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

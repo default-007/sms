@@ -1,0 +1,543 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ exam.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'exams:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'exams:exam_list' %}">Exams</a></li>
+      <li class="breadcrumb-item active">{{ exam.name }}</li>
+    </ol>
+  </nav>
+
+  <!-- Exam Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h2 class="mb-1">{{ exam.name }}</h2>
+              <div class="d-flex align-items-center gap-3 text-muted">
+                <span><i class="fas fa-calendar me-1"></i>{{ exam.start_date|date:"M d" }} -
+                  {{ exam.end_date|date:"M d, Y" }}</span>
+                <span><i class="fas fa-tag me-1"></i>{{ exam.exam_type.name }}</span>
+                <span><i class="fas fa-graduation-cap me-1"></i>{{ exam.term.name }}</span>
+              </div>
+            </div>
+            <div class="d-flex gap-2">
+              {% if exam.status == 'DRAFT' %}
+              <span class="badge bg-secondary fs-6 px-3 py-2">
+                <i class="fas fa-edit me-1"></i>Draft
+              </span>
+              {% elif exam.status == 'SCHEDULED' %}
+              <span class="badge bg-primary fs-6 px-3 py-2">
+                <i class="fas fa-clock me-1"></i>Scheduled
+              </span>
+              {% elif exam.status == 'ONGOING' %}
+              <span class="badge bg-warning fs-6 px-3 py-2">
+                <i class="fas fa-play me-1"></i>Ongoing
+              </span>
+              {% elif exam.status == 'COMPLETED' %}
+              <span class="badge bg-success fs-6 px-3 py-2">
+                <i class="fas fa-check me-1"></i>Completed
+              </span>
+              {% endif %}
+
+              {% if exam.is_published %}
+              <span class="badge bg-success fs-6 px-3 py-2">
+                <i class="fas fa-eye me-1"></i>Published
+              </span>
+              {% else %}
+              <span class="badge bg-warning fs-6 px-3 py-2">
+                <i class="fas fa-eye-slash me-1"></i>Unpublished
+              </span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-8">
+              {% if exam.description %}
+              <div class="mb-3">
+                <h6>Description</h6>
+                <p class="text-muted">{{ exam.description }}</p>
+              </div>
+              {% endif %}
+
+              {% if exam.instructions %}
+              <div class="mb-3">
+                <h6>Instructions</h6>
+                <div class="alert alert-info">
+                  {{ exam.instructions|linebreaks }}
+                </div>
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-4">
+              <div class="card bg-light">
+                <div class="card-body">
+                  <h6 class="card-title">Exam Information</h6>
+                  <table class="table table-sm table-borderless">
+                    <tr>
+                      <td><strong>Academic Year:</strong></td>
+                      <td>{{ exam.academic_year.name }}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Term:</strong></td>
+                      <td>{{ exam.term.name }}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Type:</strong></td>
+                      <td>{{ exam.exam_type.name }} ({{ exam.exam_type.contribution_percentage }}%)</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Passing %:</strong></td>
+                      <td>{{ exam.passing_percentage }}%</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Total Students:</strong></td>
+                      <td>{{ exam.total_students }}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Completion:</strong></td>
+                      <td>
+                        <div class="progress" style="height: 15px;">
+                          <div
+                            class="progress-bar bg-{% if exam.completion_rate >= 80 %}success{% elif exam.completion_rate >= 50 %}warning{% else %}danger{% endif %}"
+                            style="width: {{ exam.completion_rate }}%">
+                            {{ exam.completion_rate|floatformat:0 }}%
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {% if can_edit or can_publish %}
+        <div class="card-footer">
+          <div class="d-flex gap-2">
+            {% if can_publish %}
+            <button type="button" class="btn btn-success" id="publishExamBtn">
+              <i class="fas fa-paper-plane me-2"></i>Publish Exam
+            </button>
+            {% endif %}
+
+            {% if can_edit %}
+            <a href="{% url 'exams:exam_schedules' exam.id %}" class="btn btn-primary">
+              <i class="fas fa-calendar me-2"></i>Manage Schedules
+            </a>
+            {% endif %}
+
+            {% if exam.status == 'COMPLETED' %}
+            <a href="{% url 'exams:exam_analytics' exam.id %}" class="btn btn-info">
+              <i class="fas fa-chart-line me-2"></i>View Analytics
+            </a>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Exam Schedules -->
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">
+        <i class="fas fa-calendar-alt me-2"></i>Exam Schedules
+      </h5>
+      {% if can_edit %}
+      <a href="{% url 'exams:create_exam_schedule' exam.id %}" class="btn btn-sm btn-primary">
+        <i class="fas fa-plus me-1"></i>Add Schedule
+      </a>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      {% if schedules %}
+      <div class="table-responsive">
+        <table id="schedulesTable" class="table table-hover">
+          <thead class="table-dark">
+            <tr>
+              <th>Date & Time</th>
+              <th>Class</th>
+              <th>Subject</th>
+              <th>Supervisor</th>
+              <th>Room</th>
+              <th>Marks</th>
+              <th>Duration</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for schedule in schedules %}
+            <tr>
+              <td>
+                <div class="fw-bold">{{ schedule.date|date:"M d, Y" }}</div>
+                <small class="text-muted">{{ schedule.start_time|time:"g:i A" }} -
+                  {{ schedule.end_time|time:"g:i A" }}</small>
+              </td>
+              <td>
+                <span class="badge bg-primary">{{ schedule.class_obj }}</span>
+              </td>
+              <td>{{ schedule.subject.name }}</td>
+              <td>
+                {% if schedule.supervisor %}
+                {{ schedule.supervisor.user.get_full_name }}
+                {% if schedule.additional_supervisors.count > 0 %}
+                <small class="text-muted d-block">
+                  +{{ schedule.additional_supervisors.count }} more
+                </small>
+                {% endif %}
+                {% else %}
+                <span class="text-muted">Not assigned</span>
+                {% endif %}
+              </td>
+              <td>{{ schedule.room|default:"-" }}</td>
+              <td>
+                <div>Total: {{ schedule.total_marks }}</div>
+                <small class="text-muted">Pass: {{ schedule.passing_marks }}
+                  ({{ schedule.passing_percentage|floatformat:1 }}%)</small>
+              </td>
+              <td>{{ schedule.duration_minutes }} min</td>
+              <td>
+                {% if schedule.is_completed %}
+                <span class="badge bg-success">
+                  <i class="fas fa-check me-1"></i>Completed
+                </span>
+                {% else %}
+                <span class="badge bg-warning">
+                  <i class="fas fa-clock me-1"></i>Pending
+                </span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="btn-group" role="group">
+                  {% if user.role == 'TEACHER' and schedule.supervisor.user == user and not schedule.is_completed %}
+                  <a href="{% url 'exams:result_entry' schedule.id %}" class="btn btn-sm btn-primary"
+                    data-bs-toggle="tooltip" title="Enter Results">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  {% endif %}
+
+                  <button type="button" class="btn btn-sm btn-outline-info view-schedule-btn"
+                    data-schedule-id="{{ schedule.id }}" data-bs-toggle="tooltip" title="View Details">
+                    <i class="fas fa-eye"></i>
+                  </button>
+
+                  {% if schedule.is_completed %}
+                  <button type="button" class="btn btn-sm btn-outline-success view-results-btn"
+                    data-schedule-id="{{ schedule.id }}" data-bs-toggle="tooltip" title="View Results">
+                    <i class="fas fa-chart-bar"></i>
+                  </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-4">
+        <i class="fas fa-calendar-plus fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">No Schedules Created</h5>
+        <p class="text-muted">Create exam schedules for different classes and subjects.</p>
+        {% if can_edit %}
+        <a href="{% url 'exams:create_exam_schedule' exam.id %}" class="btn btn-primary">
+          <i class="fas fa-plus me-2"></i>Create First Schedule
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Analytics Section -->
+  {% if analytics %}
+  <div class="row">
+    <!-- Performance Overview -->
+    <div class="col-lg-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header">
+          <h6 class="mb-0">Performance Overview</h6>
+        </div>
+        <div class="card-body">
+          {% if analytics.performance_summary %}
+          <div class="row text-center">
+            <div class="col-6 mb-3">
+              <div class="h4 mb-0 text-primary">{{ analytics.performance_summary.avg_percentage|floatformat:1 }}%</div>
+              <small class="text-muted">Average Score</small>
+            </div>
+            <div class="col-6 mb-3">
+              <div class="h4 mb-0 text-success">{{ analytics.performance_summary.pass_rate|floatformat:1 }}%</div>
+              <small class="text-muted">Pass Rate</small>
+            </div>
+            <div class="col-6">
+              <div class="h4 mb-0 text-info">{{ analytics.performance_summary.highest_percentage|floatformat:1 }}%</div>
+              <small class="text-muted">Highest Score</small>
+            </div>
+            <div class="col-6">
+              <div class="h4 mb-0 text-warning">{{ analytics.performance_summary.lowest_percentage|floatformat:1 }}%
+              </div>
+              <small class="text-muted">Lowest Score</small>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Grade Distribution Chart -->
+    <div class="col-lg-8 mb-4">
+      <div class="card h-100">
+        <div class="card-header">
+          <h6 class="mb-0">Grade Distribution</h6>
+        </div>
+        <div class="card-body">
+          <div id="gradeDistributionChart" style="height: 250px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subject Analysis -->
+  {% if analytics.subject_wise_analysis %}
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">Subject-wise Performance</h5>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="table-dark">
+            <tr>
+              <th>Subject</th>
+              <th>Average Marks</th>
+              <th>Average %</th>
+              <th>Pass Rate</th>
+              <th>Highest</th>
+              <th>Lowest</th>
+              <th>Total Attempts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for subject in analytics.subject_wise_analysis %}
+            <tr>
+              <td class="fw-bold">{{ subject.exam_schedule__subject__name }}</td>
+              <td>{{ subject.avg_marks|floatformat:1 }}</td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <span class="me-2">{{ subject.avg_percentage|floatformat:1 }}%</span>
+                  <div class="progress flex-grow-1" style="height: 8px;">
+                    <div
+                      class="progress-bar bg-{% if subject.avg_percentage >= 80 %}success{% elif subject.avg_percentage >= 60 %}primary{% elif subject.avg_percentage >= 40 %}warning{% else %}danger{% endif %}"
+                      style="width: {{ subject.avg_percentage }}%"></div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span
+                  class="badge bg-{% if subject.pass_rate >= 80 %}success{% elif subject.pass_rate >= 60 %}primary{% else %}danger{% endif %}">
+                  {{ subject.pass_rate|floatformat:1 }}%
+                </span>
+              </td>
+              <td>{{ subject.highest_marks|floatformat:1 }}</td>
+              <td>{{ subject.lowest_marks|floatformat:1 }}</td>
+              <td>{{ subject.total_attempts }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Top Performers -->
+  {% if analytics.top_performers %}
+  <div class="card">
+    <div class="card-header">
+      <h5 class="mb-0">Top Performers</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        {% for performer in analytics.top_performers %}
+        <div class="col-md-6 col-lg-4 mb-3">
+          <div
+            class="card border-{% if forloop.counter == 1 %}warning{% elif forloop.counter == 2 %}secondary{% elif forloop.counter == 3 %}dark{% else %}light{% endif %}">
+            <div class="card-body text-center">
+              <div class="position-relative">
+                {% if forloop.counter <= 3 %}
+                <div class="position-absolute top-0 start-0">
+                  <span
+                    class="badge bg-{% if forloop.counter == 1 %}warning{% elif forloop.counter == 2 %}secondary{% else %}dark{% endif %} rounded-circle p-2">
+                    #{{ forloop.counter }}
+                  </span>
+                </div>
+                {% endif %}
+                <h6 class="card-title mt-2">{{ performer.student__user__first_name }}
+                  {{ performer.student__user__last_name }}
+                </h6>
+                <p class="text-muted small">{{ performer.student__admission_number }}</p>
+                <p class="card-text">
+                  <span class="h5 text-primary">{{ performer.avg_percentage|floatformat:1 }}%</span><br>
+                  <small class="text-muted">{{ performer.subjects_count }} subjects</small>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% endif %}
+</div>
+
+<!-- Schedule Details Modal -->
+<div class="modal fade" id="scheduleDetailsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Schedule Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="scheduleDetailsContent">
+        <!-- Content will be loaded via AJAX -->
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable for schedules
+    $('#schedulesTable').DataTable({
+      responsive: true,
+      pageLength: 10,
+      order: [[0, 'asc']], // Order by date
+      columnDefs: [
+        { orderable: false, targets: [-1] } // Disable ordering on Actions column
+      ]
+    });
+
+    // Initialize tooltips
+    $('[data-bs-toggle="tooltip"]').tooltip();
+
+    // Grade Distribution Chart
+    {% if analytics.grade_distribution %}
+    const gradeData = {
+        {% for grade, count in analytics.grade_distribution.items %}
+    '{{ grade }}': { { count } },
+    {% endfor %}
+  };
+
+  const gradeOptions = {
+    series: Object.values(gradeData),
+    chart: {
+      type: 'donut',
+      height: 250
+    },
+    labels: Object.keys(gradeData),
+    colors: ['#28a745', '#17a2b8', '#ffc107', '#fd7e14', '#dc3545'],
+    legend: {
+      position: 'bottom'
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '65%'
+        }
+      }
+    },
+    dataLabels: {
+      enabled: true,
+      formatter: function (val) {
+        return Math.round(val) + '%';
+      }
+    }
+  };
+
+  const gradeChart = new ApexCharts(document.querySelector("#gradeDistributionChart"), gradeOptions);
+  gradeChart.render();
+  {% endif %}
+
+  // Publish Exam
+  $('#publishExamBtn').on('click', function () {
+    if (confirm('Are you sure you want to publish this exam? Once published, it cannot be unpublished.')) {
+      const btn = $(this);
+      const originalText = btn.html();
+
+      btn.html('<i class="fas fa-spinner fa-spin me-2"></i>Publishing...').prop('disabled', true);
+
+      $.ajax({
+        url: '/exams/ajax/publish-exam/{{ exam.id }}/',
+        type: 'POST',
+        headers: {
+          'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+        },
+        success: function (response) {
+          if (response.success) {
+            location.reload();
+          }
+        },
+        error: function (xhr) {
+          const response = JSON.parse(xhr.responseText);
+          alert('Error: ' + response.error);
+          btn.html(originalText).prop('disabled', false);
+        }
+      });
+    }
+  });
+
+  // View schedule details
+  $('.view-schedule-btn').on('click', function () {
+    const scheduleId = $(this).data('schedule-id');
+
+    // Load schedule details via AJAX
+    $('#scheduleDetailsContent').html('<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>');
+    $('#scheduleDetailsModal').modal('show');
+
+    // You can implement AJAX call to load detailed schedule information
+    setTimeout(() => {
+      $('#scheduleDetailsContent').html(`
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Schedule details functionality can be implemented based on your specific requirements.
+                </div>
+            `);
+    }, 500);
+  });
+
+  // View results
+  $('.view-results-btn').on('click', function () {
+    const scheduleId = $(this).data('schedule-id');
+    // Redirect to results view or open modal
+    window.open('/exams/schedules/' + scheduleId + '/results/', '_blank');
+  });
+});
+</script>
+{% endblock %}

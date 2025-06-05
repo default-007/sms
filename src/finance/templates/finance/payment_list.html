@@ -1,0 +1,569 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payments - Finance{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/datetime/1.5.1/css/dataTables.dateTime.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0 text-gray-800">Payments</h1>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'finance:dashboard' %}">Finance</a></li>
+          <li class="breadcrumb-item active">Payments</li>
+        </ol>
+      </nav>
+    </div>
+    <div>
+      <a href="{% url 'finance:payment-process' %}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Process Payment
+      </a>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card border-left-primary">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                Today's Collections
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">$0.00</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-left-success">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                This Month
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">$0.00</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-calendar fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-left-info">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                Total Payments
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ payments.count }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-receipt fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-left-warning">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                Pending Payments
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">0</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-clock fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter Row -->
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <div class="card shadow">
+        <div class="card-body py-2">
+          <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-2">
+              <label class="form-label small">Date From</label>
+              <input type="date" class="form-control form-control-sm" name="date_from"
+                value="{{ request.GET.date_from }}">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">Date To</label>
+              <input type="date" class="form-control form-control-sm" name="date_to" value="{{ request.GET.date_to }}">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">Payment Method</label>
+              <select class="form-select form-select-sm" name="payment_method">
+                <option value="">All Methods</option>
+                <option value="cash">Cash</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="credit_card">Credit Card</option>
+                <option value="debit_card">Debit Card</option>
+                <option value="mobile_payment">Mobile Payment</option>
+                <option value="cheque">Cheque</option>
+                <option value="online">Online Payment</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">Status</label>
+              <select class="form-select form-select-sm" name="status">
+                <option value="">All Status</option>
+                <option value="completed">Completed</option>
+                <option value="pending">Pending</option>
+                <option value="failed">Failed</option>
+                <option value="refunded">Refunded</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">Amount Range</label>
+              <select class="form-select form-select-sm" name="amount_range">
+                <option value="">All Amounts</option>
+                <option value="0-100">$0 - $100</option>
+                <option value="100-500">$100 - $500</option>
+                <option value="500-1000">$500 - $1,000</option>
+                <option value="1000+">$1,000+</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <button type="submit" class="btn btn-primary btn-sm w-100">
+                <i class="fas fa-filter me-1"></i>Filter
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payments Table -->
+  <div class="card shadow">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+      <h6 class="m-0 font-weight-bold text-primary">Payment Records</h6>
+      <div class="dropdown">
+        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          <i class="fas fa-cog me-1"></i>Actions
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="#" onclick="reconcilePayments()">
+              <i class="fas fa-balance-scale me-2"></i>Daily Reconciliation
+            </a></li>
+          <li><a class="dropdown-item" href="#" onclick="generateReport()">
+              <i class="fas fa-chart-bar me-2"></i>Payment Report
+            </a></li>
+          <li>
+            <hr class="dropdown-divider">
+          </li>
+          <li><a class="dropdown-item" href="#" onclick="exportPayments()">
+              <i class="fas fa-download me-2"></i>Export Data
+            </a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover" id="paymentsTable">
+          <thead class="table-light">
+            <tr>
+              <th>Receipt #</th>
+              <th>Student</th>
+              <th>Invoice</th>
+              <th>Amount</th>
+              <th>Method</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Received By</th>
+              <th width="120">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for payment in payments %}
+            <tr>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="flex-shrink-0">
+                    <div class="avatar avatar-sm rounded-circle bg-{{ payment.status|yesno:'success,warning,danger' }}">
+                      <i class="fas fa-receipt text-white"></i>
+                    </div>
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="mb-0">{{ payment.receipt_number }}</h6>
+                    {% if payment.transaction_id %}
+                    <small class="text-muted">{{ payment.transaction_id|truncatechars:15 }}</small>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div>
+                  <strong>{{ payment.invoice.student.user.get_full_name }}</strong>
+                  <br>
+                  <small class="text-muted">{{ payment.invoice.student.admission_number }}</small>
+                </div>
+              </td>
+              <td>
+                <div>
+                  <a href="{% url 'finance:invoice-detail' payment.invoice.pk %}" class="text-decoration-none">
+                    {{ payment.invoice.invoice_number }}
+                  </a>
+                  <br>
+                  <small class="text-muted">{{ payment.invoice.term }}</small>
+                </div>
+              </td>
+              <td>
+                <span class="font-weight-bold text-success h6">${{ payment.amount|floatformat:2 }}</span>
+              </td>
+              <td>
+                <span
+                  class="badge bg-{% if payment.payment_method == 'cash' %}warning{% elif payment.payment_method == 'online' %}info{% elif payment.payment_method == 'bank_transfer' %}primary{% else %}secondary{% endif %}">
+                  {{ payment.get_payment_method_display }}
+                </span>
+              </td>
+              <td>
+                <div>
+                  <strong>{{ payment.payment_date|date:"M d, Y" }}</strong>
+                  <br>
+                  <small class="text-muted">{{ payment.payment_date|time:"g:i A" }}</small>
+                </div>
+              </td>
+              <td>
+                {% if payment.status == 'completed' %}
+                <span class="badge bg-success">Completed</span>
+                {% elif payment.status == 'pending' %}
+                <span class="badge bg-warning">Pending</span>
+                {% elif payment.status == 'failed' %}
+                <span class="badge bg-danger">Failed</span>
+                {% elif payment.status == 'refunded' %}
+                <span class="badge bg-info">Refunded</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if payment.received_by %}
+                <div>
+                  <strong>{{ payment.received_by.get_full_name }}</strong>
+                  <br>
+                  <small class="text-muted">{{ payment.received_by.username }}</small>
+                </div>
+                {% else %}
+                <span class="text-muted">System</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="btn-group" role="group">
+                  <a href="{% url 'finance:payment-detail' payment.pk %}" class="btn btn-outline-info btn-sm"
+                    title="View Details">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  <a href="{% url 'finance:payment-receipt' payment.pk %}" class="btn btn-outline-success btn-sm"
+                    title="Print Receipt" target="_blank">
+                    <i class="fas fa-print"></i>
+                  </a>
+                  {% if payment.status == 'completed' and perms.finance.can_refund_payments %}
+                  <button class="btn btn-outline-warning btn-sm"
+                    onclick="initiateRefund({{ payment.pk }}, '{{ payment.receipt_number }}', {{ payment.amount }})"
+                    title="Refund">
+                    <i class="fas fa-undo"></i>
+                  </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="9" class="text-center py-4">
+                <div class="text-muted">
+                  <i class="fas fa-receipt fa-3x mb-3"></i>
+                  <p>No payments found.</p>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Refund Modal -->
+<div class="modal fade" id="refundModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Process Refund</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="refundForm">
+        <div class="modal-body">
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Refund Request</strong> - This action will create a refund record.
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Receipt Number</label>
+            <input type="text" class="form-control" id="refundReceiptNumber" readonly>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Original Amount</label>
+              <input type="text" class="form-control" id="originalAmount" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label required">Refund Amount</label>
+              <input type="number" class="form-control" id="refundAmount" step="0.01" min="0.01" required>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label required">Refund Reason</label>
+            <textarea class="form-control" id="refundReason" rows="3" required
+              placeholder="Please provide a detailed reason for this refund..."></textarea>
+          </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="confirmRefund" required>
+            <label class="form-check-label" for="confirmRefund">
+              I confirm that this refund is authorized and necessary
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-warning">
+            <i class="fas fa-undo me-2"></i>Process Refund
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Reconciliation Modal -->
+<div class="modal fade" id="reconciliationModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Daily Payment Reconciliation</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="reconciliationForm">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Reconciliation Date</label>
+              <input type="date" class="form-control" id="reconciliationDate" value="{{ today|date:'Y-m-d' }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Expected Cash Amount</label>
+              <input type="number" class="form-control" id="expectedCash" step="0.01" placeholder="0.00">
+            </div>
+          </div>
+
+          <div id="reconciliationResults" style="display: none;">
+            <!-- Results will be populated here -->
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="performReconciliation()">
+          <i class="fas fa-balance-scale me-2"></i>Reconcile
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    $('#paymentsTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[5, 'desc']], // Sort by date descending
+      columnDefs: [
+        {
+          orderable: false,
+          targets: [8]
+        }
+      ],
+      dom: 'Bfrtip',
+      buttons: [
+        {
+          extend: 'excel',
+          text: '<i class="fas fa-file-excel me-1"></i>Export Excel',
+          className: 'btn btn-success btn-sm',
+          exportOptions: {
+            columns: [0, 1, 2, 3, 4, 5, 6, 7]
+          }
+        },
+        {
+          extend: 'csv',
+          text: '<i class="fas fa-file-csv me-1"></i>Export CSV',
+          className: 'btn btn-info btn-sm',
+          exportOptions: {
+            columns: [0, 1, 2, 3, 4, 5, 6, 7]
+          }
+        }
+      ],
+      language: {
+        search: "_INPUT_",
+        searchPlaceholder: "Search payments..."
+      }
+    });
+
+    // Refund form submission
+    $('#refundForm').on('submit', function (e) {
+      e.preventDefault();
+      processRefund();
+    });
+  });
+
+  var currentPaymentId = null;
+
+  function initiateRefund(paymentId, receiptNumber, originalAmount) {
+    currentPaymentId = paymentId;
+    $('#refundReceiptNumber').val(receiptNumber);
+    $('#originalAmount').val('$' + originalAmount.toFixed(2));
+    $('#refundAmount').attr('max', originalAmount).val(originalAmount);
+    $('#refundReason').val('');
+    $('#confirmRefund').prop('checked', false);
+
+    new bootstrap.Modal(document.getElementById('refundModal')).show();
+  }
+
+  function processRefund() {
+    if (!$('#confirmRefund').is(':checked')) {
+      alert('Please confirm the refund before proceeding.');
+      return;
+    }
+
+    var refundAmount = parseFloat($('#refundAmount').val());
+    var originalAmount = parseFloat($('#originalAmount').val().replace('$', ''));
+
+    if (refundAmount > originalAmount) {
+      alert('Refund amount cannot exceed the original payment amount.');
+      return;
+    }
+
+    $.post('/finance/payments/' + currentPaymentId + '/refund/', {
+      'amount': refundAmount,
+      'reason': $('#refundReason').val(),
+      'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+    }).done(function (response) {
+      bootstrap.Modal.getInstance(document.getElementById('refundModal')).hide();
+      alert('Refund processed successfully!');
+      location.reload();
+    }).fail(function () {
+      alert('Error processing refund. Please try again.');
+    });
+  }
+
+  function reconcilePayments() {
+    new bootstrap.Modal(document.getElementById('reconciliationModal')).show();
+  }
+
+  function performReconciliation() {
+    var date = $('#reconciliationDate').val();
+    var expectedCash = $('#expectedCash').val();
+
+    $.post('/finance/payments/reconcile/', {
+      'date': date,
+      'expected_cash': expectedCash,
+      'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+    }).done(function (response) {
+      // Display reconciliation results
+      var resultsHtml = `
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="m-0">Reconciliation Results for ${date}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td>Total Collections:</td>
+                                    <td class="text-end font-weight-bold">$${response.total_collections}</td>
+                                </tr>
+                                <tr>
+                                    <td>Cash Collected:</td>
+                                    <td class="text-end font-weight-bold">$${response.cash_collected}</td>
+                                </tr>
+                                <tr>
+                                    <td>Expected Cash:</td>
+                                    <td class="text-end">$${expectedCash || '0.00'}</td>
+                                </tr>
+                                <tr class="${response.cash_variance !== null && response.cash_variance != 0 ? 'table-warning' : ''}">
+                                    <td>Cash Variance:</td>
+                                    <td class="text-end font-weight-bold">$${response.cash_variance || '0.00'}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Payment Methods:</h6>
+                            <div class="method-breakdown">
+                                <!-- Method breakdown will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+      $('#reconciliationResults').html(resultsHtml).show();
+    }).fail(function () {
+      alert('Error performing reconciliation. Please try again.');
+    });
+  }
+
+  function generateReport() {
+    window.open('/finance/reports/payments/', '_blank');
+  }
+
+  function exportPayments() {
+    var params = new URLSearchParams();
+
+    // Add current filter parameters
+    if ($('[name="date_from"]').val()) params.set('date_from', $('[name="date_from"]').val());
+    if ($('[name="date_to"]').val()) params.set('date_to', $('[name="date_to"]').val());
+    if ($('[name="payment_method"]').val()) params.set('payment_method', $('[name="payment_method"]').val());
+    if ($('[name="status"]').val()) params.set('status', $('[name="status"]').val());
+
+    window.location.href = '/finance/payments/export/?' + params.toString();
+  }
+</script>
+{% endblock %}

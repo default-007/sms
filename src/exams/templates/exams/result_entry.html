@@ -1,0 +1,641 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Enter Results - {{ schedule.exam.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+<style>
+  .result-row {
+    transition: all 0.3s ease;
+  }
+
+  .result-row:hover {
+    background-color: #f8f9fa;
+  }
+
+  .marks-input {
+    max-width: 100px;
+  }
+
+  .student-photo {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+  }
+
+  .save-indicator {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .save-indicator.show {
+    opacity: 1;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'exams:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'exams:exam_list' %}">Exams</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'exams:exam_detail' schedule.exam.id %}">{{ schedule.exam.name }}</a>
+      </li>
+      <li class="breadcrumb-item active">Enter Results</li>
+    </ol>
+  </nav>
+
+  <!-- Exam Information Header -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <h4 class="mb-1">{{ schedule.exam.name }} - Results Entry</h4>
+          <div class="text-muted">
+            <i class="fas fa-book me-2"></i>{{ schedule.subject.name }} •
+            <i class="fas fa-users me-2"></i>{{ schedule.class_obj }} •
+            <i class="fas fa-calendar me-2"></i>{{ schedule.date|date:"M d, Y" }}
+          </div>
+        </div>
+        <div class="col-md-4 text-end">
+          <div class="d-flex justify-content-end align-items-center gap-3">
+            <div class="text-center">
+              <div class="h5 mb-0 text-primary">{{ total_marks }}</div>
+              <small class="text-muted">Total Marks</small>
+            </div>
+            <div class="text-center">
+              <div class="h5 mb-0 text-success">{{ schedule.passing_marks }}</div>
+              <small class="text-muted">Passing Marks</small>
+            </div>
+            <div class="text-center">
+              <div class="h5 mb-0 text-info">{{ schedule.duration_minutes }}</div>
+              <small class="text-muted">Duration (min)</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if schedule.special_instructions %}
+    <div class="card-body">
+      <div class="alert alert-info mb-0">
+        <h6><i class="fas fa-info-circle me-2"></i>Special Instructions</h6>
+        {{ schedule.special_instructions|linebreaks }}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body text-center">
+          <h3 class="mb-1" id="totalStudents">{{ students|length }}</h3>
+          <small>Total Students</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-success text-white">
+        <div class="card-body text-center">
+          <h3 class="mb-1" id="resultsEntered">0</h3>
+          <small>Results Entered</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-warning text-white">
+        <div class="card-body text-center">
+          <h3 class="mb-1" id="absentCount">0</h3>
+          <small>Absent Students</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-info text-white">
+        <div class="card-body text-center">
+          <h3 class="mb-1" id="pendingCount">{{ students|length }}</h3>
+          <small>Pending</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Entry Form -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">
+        <i class="fas fa-edit me-2"></i>Enter Student Results
+      </h5>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="markAllPresentBtn">
+          <i class="fas fa-check me-1"></i>Mark All Present
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-warning" id="markAllAbsentBtn">
+          <i class="fas fa-times me-1"></i>Mark All Absent
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-info" id="bulkEntryBtn">
+          <i class="fas fa-upload me-1"></i>Bulk Entry
+        </button>
+      </div>
+    </div>
+
+    <form method="post" id="resultsForm">
+      {% csrf_token %}
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table id="resultsTable" class="table table-hover mb-0">
+            <thead class="table-dark sticky-top">
+              <tr>
+                <th width="5%">#</th>
+                <th width="10%">Photo</th>
+                <th width="25%">Student Name</th>
+                <th width="15%">Admission No.</th>
+                <th width="15%">Marks Obtained</th>
+                <th width="10%">Absent</th>
+                <th width="20%">Remarks</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for student in students %}
+              <tr class="result-row" data-student-id="{{ student.id }}">
+                <td class="align-middle">
+                  {{ forloop.counter }}
+                  <span class="save-indicator text-success ms-2">
+                    <i class="fas fa-check-circle"></i>
+                  </span>
+                </td>
+                <td class="align-middle">
+                  {% if student.user.profile_picture %}
+                  <img src="{{ student.user.profile_picture.url }}" alt="{{ student.user.get_full_name }}"
+                    class="rounded-circle student-photo">
+                  {% else %}
+                  <div
+                    class="rounded-circle student-photo bg-secondary d-flex align-items-center justify-content-center">
+                    <i class="fas fa-user text-white"></i>
+                  </div>
+                  {% endif %}
+                </td>
+                <td class="align-middle">
+                  <div class="fw-bold">{{ student.user.get_full_name }}</div>
+                  <small class="text-muted">{{ student.current_class }}</small>
+                </td>
+                <td class="align-middle">
+                  <span class="badge bg-secondary">{{ student.admission_number }}</span>
+                </td>
+                <td class="align-middle">
+                  <div class="input-group marks-input">
+                    <input type="number" name="marks_{{ student.id }}" class="form-control marks-field" min="0"
+                      max="{{ total_marks }}" step="0.5"
+                      {% if student.id in existing_results %}value="{{ existing_results.student.id.marks_obtained }}"
+                      {% endif %} data-student-id="{{ student.id }}" placeholder="0">
+                    <span class="input-group-text">/{{ total_marks }}</span>
+                  </div>
+                  <div class="invalid-feedback"></div>
+                </td>
+                <td class="align-middle text-center">
+                  <div class="form-check">
+                    <input type="checkbox" name="absent_{{ student.id }}" class="form-check-input absent-checkbox"
+                      data-student-id="{{ student.id }}"
+                      {% if student.id in existing_results and existing_results.student.id.is_absent %}checked{% endif %}>
+                    <label class="form-check-label">Absent</label>
+                  </div>
+                </td>
+                <td class="align-middle">
+                  <textarea name="remarks_{{ student.id }}" class="form-control form-control-sm remarks-field" rows="2"
+                    placeholder="Optional remarks..."
+                    data-student-id="{{ student.id }}">{% if student.id in existing_results %}{{ existing_results.student.id.remarks }}{% endif %}</textarea>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="text-muted">
+            <i class="fas fa-info-circle me-2"></i>
+            Results are auto-saved as you type. Review before final submission.
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary" id="previewBtn">
+              <i class="fas fa-eye me-2"></i>Preview Results
+            </button>
+            <button type="submit" class="btn btn-primary" id="submitBtn">
+              <i class="fas fa-save me-2"></i>Save All Results
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Bulk Entry Modal -->
+<div class="modal fade" id="bulkEntryModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Bulk Entry</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6">
+            <h6>Option 1: Set Same Marks for All</h6>
+            <div class="input-group mb-3">
+              <input type="number" class="form-control" id="bulkMarks" placeholder="Enter marks" min="0"
+                max="{{ total_marks }}">
+              <button type="button" class="btn btn-outline-primary" id="applyBulkMarks">Apply to All</button>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <h6>Option 2: CSV Import</h6>
+            <div class="mb-3">
+              <input type="file" class="form-control" id="csvFile" accept=".csv">
+              <div class="form-text">CSV format: admission_number, marks, remarks</div>
+            </div>
+            <button type="button" class="btn btn-outline-info" id="importCsv">Import CSV</button>
+          </div>
+        </div>
+
+        <hr>
+
+        <div class="row">
+          <div class="col-md-6">
+            <h6>Option 3: Percentage-based Entry</h6>
+            <div class="input-group mb-3">
+              <input type="number" class="form-control" id="bulkPercentage" placeholder="Enter percentage" min="0"
+                max="100">
+              <span class="input-group-text">%</span>
+              <button type="button" class="btn btn-outline-success" id="applyBulkPercentage">Apply to All</button>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <h6>Option 4: Random Distribution</h6>
+            <div class="d-flex gap-2">
+              <input type="number" class="form-control" id="randomMin" placeholder="Min" min="0"
+                max="{{ total_marks }}">
+              <input type="number" class="form-control" id="randomMax" placeholder="Max" min="0"
+                max="{{ total_marks }}">
+              <button type="button" class="btn btn-outline-warning" id="applyRandom">Generate</button>
+            </div>
+            <small class="text-muted">For testing purposes only</small>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Results Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="previewContent">
+          <!-- Preview content will be generated here -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" id="submitFromPreview">
+          <i class="fas fa-save me-2"></i>Save Results
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    const totalMarks = {{ total_marks }
+  };
+  const passingMarks = {{ schedule.passing_marks }};
+
+  // Initialize DataTable
+  $('#resultsTable').DataTable({
+    pageLength: 25,
+    order: [[2, 'asc']], // Order by student name
+    columnDefs: [
+      { orderable: false, targets: [1, 4, 5, 6] }
+    ],
+    dom: 'ft<"d-flex justify-content-between align-items-center"lp>',
+    language: {
+      search: "Search students:",
+      lengthMenu: "Show _MENU_ students per page"
+    }
+  });
+
+  // Auto-save functionality
+  let saveTimeout;
+  function autoSave() {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+      updateStats();
+      // You can implement AJAX auto-save here
+    }, 1000);
+  }
+
+  // Update statistics
+  function updateStats() {
+    let resultsEntered = 0;
+    let absentCount = 0;
+    let pendingCount = 0;
+
+    $('.marks-field').each(function () {
+      const value = $(this).val();
+      const isAbsent = $(`.absent-checkbox[data-student-id="${$(this).data('student-id')}"]`).is(':checked');
+
+      if (isAbsent) {
+        absentCount++;
+      } else if (value !== '') {
+        resultsEntered++;
+      } else {
+        pendingCount++;
+      }
+    });
+
+    $('#resultsEntered').text(resultsEntered);
+    $('#absentCount').text(absentCount);
+    $('#pendingCount').text(pendingCount);
+  }
+
+  // Marks input validation and calculations
+  $('.marks-field').on('input', function () {
+    const value = parseFloat($(this).val());
+    const studentId = $(this).data('student-id');
+    const row = $(this).closest('tr');
+
+    // Validation
+    if (value > totalMarks) {
+      $(this).addClass('is-invalid');
+      $(this).siblings('.invalid-feedback').text(`Maximum marks is ${totalMarks}`);
+    } else if (value < 0) {
+      $(this).addClass('is-invalid');
+      $(this).siblings('.invalid-feedback').text('Marks cannot be negative');
+    } else {
+      $(this).removeClass('is-invalid');
+      $(this).siblings('.invalid-feedback').text('');
+
+      // Show percentage and pass/fail
+      if (value >= 0) {
+        const percentage = ((value / totalMarks) * 100).toFixed(1);
+        const isPassing = value >= passingMarks;
+
+        // Update row styling
+        row.removeClass('table-success table-warning table-danger');
+        if (isPassing) {
+          row.addClass('table-success');
+        } else {
+          row.addClass('table-warning');
+        }
+
+        // Show save indicator
+        row.find('.save-indicator').addClass('show');
+        setTimeout(() => {
+          row.find('.save-indicator').removeClass('show');
+        }, 2000);
+      }
+    }
+
+    autoSave();
+  });
+
+  // Absent checkbox functionality
+  $('.absent-checkbox').on('change', function () {
+    const studentId = $(this).data('student-id');
+    const marksField = $(`.marks-field[data-student-id="${studentId}"]`);
+    const row = $(this).closest('tr');
+
+    if ($(this).is(':checked')) {
+      marksField.val('').prop('disabled', true);
+      row.removeClass('table-success table-warning').addClass('table-danger');
+    } else {
+      marksField.prop('disabled', false);
+      row.removeClass('table-danger');
+    }
+
+    autoSave();
+  });
+
+  // Bulk operations
+  $('#markAllPresentBtn').on('click', function () {
+    $('.absent-checkbox').prop('checked', false).trigger('change');
+  });
+
+  $('#markAllAbsentBtn').on('click', function () {
+    if (confirm('Are you sure you want to mark all students as absent?')) {
+      $('.absent-checkbox').prop('checked', true).trigger('change');
+    }
+  });
+
+  // Bulk entry modal
+  $('#bulkEntryBtn').on('click', function () {
+    $('#bulkEntryModal').modal('show');
+  });
+
+  // Apply bulk marks
+  $('#applyBulkMarks').on('click', function () {
+    const marks = $('#bulkMarks').val();
+    if (marks && marks >= 0 && marks <= totalMarks) {
+      $('.marks-field:not(:disabled)').val(marks).trigger('input');
+      $('#bulkEntryModal').modal('hide');
+    } else {
+      alert('Please enter valid marks between 0 and ' + totalMarks);
+    }
+  });
+
+  // Apply bulk percentage
+  $('#applyBulkPercentage').on('click', function () {
+    const percentage = $('#bulkPercentage').val();
+    if (percentage && percentage >= 0 && percentage <= 100) {
+      const marks = ((percentage / 100) * totalMarks).toFixed(1);
+      $('.marks-field:not(:disabled)').val(marks).trigger('input');
+      $('#bulkEntryModal').modal('hide');
+    } else {
+      alert('Please enter valid percentage between 0 and 100');
+    }
+  });
+
+  // Apply random marks
+  $('#applyRandom').on('click', function () {
+    const min = parseInt($('#randomMin').val()) || 0;
+    const max = parseInt($('#randomMax').val()) || totalMarks;
+
+    if (min <= max && min >= 0 && max <= totalMarks) {
+      $('.marks-field:not(:disabled)').each(function () {
+        const randomMarks = Math.floor(Math.random() * (max - min + 1)) + min;
+        $(this).val(randomMarks).trigger('input');
+      });
+      $('#bulkEntryModal').modal('hide');
+    } else {
+      alert('Please enter valid range');
+    }
+  });
+
+  // CSV Import
+  $('#importCsv').on('click', function () {
+    const fileInput = $('#csvFile')[0];
+    if (fileInput.files.length === 0) {
+      alert('Please select a CSV file');
+      return;
+    }
+
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+      const csv = e.target.result;
+      const lines = csv.split('\n');
+      let imported = 0;
+
+      lines.forEach((line, index) => {
+        if (index === 0 || !line.trim()) return; // Skip header and empty lines
+
+        const [admissionNo, marks, remarks] = line.split(',').map(item => item.trim());
+
+        // Find student by admission number
+        const studentRow = $(`tr:has(.badge:contains("${admissionNo}"))`);
+        if (studentRow.length) {
+          const studentId = studentRow.data('student-id');
+          $(`.marks-field[data-student-id="${studentId}"]`).val(marks).trigger('input');
+          if (remarks) {
+            $(`.remarks-field[data-student-id="${studentId}"]`).val(remarks);
+          }
+          imported++;
+        }
+      });
+
+      alert(`Imported results for ${imported} students`);
+      $('#bulkEntryModal').modal('hide');
+    };
+
+    reader.readAsText(file);
+  });
+
+  // Preview functionality
+  $('#previewBtn').on('click', function () {
+    generatePreview();
+    $('#previewModal').modal('show');
+  });
+
+  function generatePreview() {
+    let previewHtml = `
+            <div class="alert alert-info">
+                <h6>Exam: ${$('#resultsTable').data('exam-name') || '{{ schedule.exam.name }}'}</h6>
+                <p class="mb-0">Subject: {{ schedule.subject.name }} | Class: {{ schedule.class_obj }} | Total Marks: ${totalMarks}</p>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Student</th>
+                            <th>Admission No.</th>
+                            <th>Marks</th>
+                            <th>Percentage</th>
+                            <th>Status</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+    $('#resultsTable tbody tr').each(function () {
+      const studentName = $(this).find('td:eq(2) .fw-bold').text();
+      const admissionNo = $(this).find('.badge').text();
+      const marks = $(this).find('.marks-field').val() || '0';
+      const isAbsent = $(this).find('.absent-checkbox').is(':checked');
+      const remarks = $(this).find('.remarks-field').val() || '-';
+
+      const percentage = isAbsent ? 'N/A' : ((parseFloat(marks) / totalMarks) * 100).toFixed(1) + '%';
+      const status = isAbsent ? 'Absent' : (parseFloat(marks) >= passingMarks ? 'Pass' : 'Fail');
+      const statusClass = isAbsent ? 'danger' : (parseFloat(marks) >= passingMarks ? 'success' : 'warning');
+
+      previewHtml += `
+                <tr>
+                    <td>${studentName}</td>
+                    <td>${admissionNo}</td>
+                    <td>${isAbsent ? 'Absent' : marks + '/' + totalMarks}</td>
+                    <td>${percentage}</td>
+                    <td><span class="badge bg-${statusClass}">${status}</span></td>
+                    <td>${remarks}</td>
+                </tr>
+            `;
+    });
+
+    previewHtml += '</tbody></table></div>';
+    $('#previewContent').html(previewHtml);
+  }
+
+  // Submit from preview
+  $('#submitFromPreview').on('click', function () {
+    $('#previewModal').modal('hide');
+    $('#resultsForm').submit();
+  });
+
+  // Form submission
+  $('#resultsForm').on('submit', function (e) {
+    e.preventDefault();
+
+    // Validate all entries
+    let hasErrors = false;
+    $('.marks-field').each(function () {
+      if ($(this).hasClass('is-invalid')) {
+        hasErrors = true;
+      }
+    });
+
+    if (hasErrors) {
+      alert('Please correct the validation errors before submitting.');
+      return;
+    }
+
+    // Show loading state
+    $('#submitBtn').html('<i class="fas fa-spinner fa-spin me-2"></i>Saving Results...').prop('disabled', true);
+
+    // Submit form
+    this.submit();
+  });
+
+  // Initialize statistics
+  updateStats();
+
+  // Auto-save on remarks change
+  $('.remarks-field').on('input', autoSave);
+
+  // Keyboard shortcuts
+  $(document).on('keydown', function (e) {
+    // Ctrl + S to save
+    if (e.ctrlKey && e.key === 's') {
+      e.preventDefault();
+      $('#resultsForm').submit();
+    }
+
+    // Ctrl + P for preview
+    if (e.ctrlKey && e.key === 'p') {
+      e.preventDefault();
+      $('#previewBtn').click();
+    }
+  });
+});
+</script>
+{% endblock %}

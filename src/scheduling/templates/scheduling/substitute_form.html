@@ -1,0 +1,422 @@
+{% extends 'core/base.html' %}
+
+{% block title %}
+{% if object %}Edit Substitute Assignment{% else %}Create Substitute Assignment{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'scheduling:dashboard' %}">Scheduling</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'scheduling:substitute_list' %}">Substitutes</a></li>
+          <li class="breadcrumb-item active">
+            {% if object %}Edit Assignment{% else %}Create Assignment{% endif %}
+          </li>
+        </ol>
+      </nav>
+    </div>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-md-10 col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-user-plus me-2"></i>
+            {% if object %}Edit Substitute Assignment{% else %}Create Substitute Assignment{% endif %}
+          </h5>
+        </div>
+        <div class="card-body">
+          <form method="post" id="substituteForm">
+            {% csrf_token %}
+
+            <!-- Original Timetable Selection -->
+            <div class="row">
+              <div class="col-12">
+                <div class="mb-3">
+                  <label for="{{ form.original_timetable.id_for_label }}" class="form-label">
+                    Original Timetable Entry <span class="text-danger">*</span>
+                  </label>
+                  {{ form.original_timetable }}
+                  {% if form.original_timetable.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.original_timetable.errors.0 }}
+                  </div>
+                  {% endif %}
+                  <div class="form-text">Select the timetable entry that needs a substitute teacher</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Substitute Teacher and Date -->
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.substitute_teacher.id_for_label }}" class="form-label">
+                    Substitute Teacher <span class="text-danger">*</span>
+                  </label>
+                  {{ form.substitute_teacher }}
+                  {% if form.substitute_teacher.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.substitute_teacher.errors.0 }}
+                  </div>
+                  {% endif %}
+                  <div id="teacherAvailability" class="form-text"></div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.date.id_for_label }}" class="form-label">
+                    Date <span class="text-danger">*</span>
+                  </label>
+                  {{ form.date }}
+                  {% if form.date.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.date.errors.0 }}
+                  </div>
+                  {% endif %}
+                  <div class="form-text">Date when the substitute is needed</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reason and Notes -->
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.reason.id_for_label }}" class="form-label">
+                    Reason <span class="text-danger">*</span>
+                  </label>
+                  {{ form.reason }}
+                  {% if form.reason.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.reason.errors.0 }}
+                  </div>
+                  {% endif %}
+                  <div class="form-text">Why is a substitute needed?</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.notes.id_for_label }}" class="form-label">
+                    Additional Notes
+                  </label>
+                  {{ form.notes }}
+                  {% if form.notes.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.notes.errors.0 }}
+                  </div>
+                  {% endif %}
+                  <div class="form-text">Any special instructions or information</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Preview Section -->
+            <div class="alert alert-info" id="assignmentPreview" style="display: none;">
+              <h6 class="alert-heading">
+                <i class="fas fa-info-circle me-1"></i> Assignment Preview
+              </h6>
+              <div id="previewContent">
+                <!-- Content will be populated by JavaScript -->
+              </div>
+            </div>
+
+            <!-- Conflict Check Results -->
+            <div id="conflictResults" style="display: none;">
+              <!-- Will be populated by AJAX -->
+            </div>
+
+            <!-- Substitute Suggestions -->
+            <div id="substituteSuggestions" style="display: none;">
+              <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                  <h6 class="card-title mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Suggested Substitute Teachers
+                  </h6>
+                </div>
+                <div class="card-body" id="suggestionsContent">
+                  <!-- Will be populated by AJAX -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="d-flex justify-content-between mt-4">
+              <a href="{% url 'scheduling:substitute_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Cancel
+              </a>
+              <div>
+                <button type="button" class="btn btn-info me-2" id="getSuggestionsBtn" onclick="getSuggestions()">
+                  <i class="fas fa-search me-1"></i> Get Suggestions
+                </button>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-save me-1"></i>
+                  {% if object %}Update Assignment{% else %}Create Assignment{% endif %}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Help Card -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-question-circle me-2"></i>Guidelines for Substitute Assignment
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h6>Selection Criteria:</h6>
+              <ul class="small">
+                <li>Choose teachers qualified for the subject</li>
+                <li>Check substitute's availability for the time slot</li>
+                <li>Consider teacher's experience with the grade level</li>
+                <li>Verify if substitute has taught the class before</li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <h6>Best Practices:</h6>
+              <ul class="small">
+                <li>Provide clear reason for the substitution</li>
+                <li>Include any special instructions in notes</li>
+                <li>Get approval before the assignment date</li>
+                <li>Inform the substitute teacher in advance</li>
+                <li>Check for schedule conflicts</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Add Bootstrap classes to form fields
+    $('#id_original_timetable').addClass('form-select');
+    $('#id_substitute_teacher').addClass('form-select');
+    $('#id_date').addClass('form-control');
+    $('#id_reason').addClass('form-control');
+    $('#id_notes').addClass('form-control');
+
+    // Set date input type
+    $('#id_date').attr('type', 'date');
+
+    // Update preview when form changes
+    $('#substituteForm input, #substituteForm select, #substituteForm textarea').on('change input', updatePreview);
+
+    // Check conflicts when teacher or date changes
+    $('#id_substitute_teacher, #id_date, #id_original_timetable').on('change', function () {
+      checkConflicts();
+      updateTeacherAvailability();
+    });
+
+    // Initial updates
+    updatePreview();
+    updateTeacherAvailability();
+
+    // Pre-fill date if provided in URL
+    var urlParams = new URLSearchParams(window.location.search);
+    var dateParam = urlParams.get('date');
+    if (dateParam) {
+      $('#id_date').val(dateParam);
+    }
+
+    // Pre-select timetable if provided in URL
+    var timetableParam = urlParams.get('timetable_id');
+    if (timetableParam) {
+      $('#id_original_timetable').val(timetableParam);
+      $('#id_original_timetable').trigger('change');
+    }
+  });
+
+  function updatePreview() {
+    var originalTimetable = $('#id_original_timetable option:selected').text();
+    var substituteTeacher = $('#id_substitute_teacher option:selected').text();
+    var date = $('#id_date').val();
+    var reason = $('#id_reason').val();
+
+    if (originalTimetable && originalTimetable !== '---------' &&
+      substituteTeacher && substituteTeacher !== '---------' &&
+      date && reason) {
+
+      var previewContent =
+        '<strong>Original:</strong> ' + originalTimetable + '<br>' +
+        '<strong>Substitute:</strong> ' + substituteTeacher + '<br>' +
+        '<strong>Date:</strong> ' + new Date(date).toLocaleDateString() + '<br>' +
+        '<strong>Reason:</strong> ' + reason;
+
+      $('#previewContent').html(previewContent);
+      $('#assignmentPreview').show();
+    } else {
+      $('#assignmentPreview').hide();
+    }
+  }
+
+  function updateTeacherAvailability() {
+    var teacherId = $('#id_substitute_teacher').val();
+    var date = $('#id_date').val();
+    var originalTimetableId = $('#id_original_timetable').val();
+
+    if (teacherId && date && originalTimetableId) {
+      // Show loading
+      $('#teacherAvailability').html('<span class="text-info">Checking availability...</span>');
+
+      // Simulate AJAX call to check availability
+      setTimeout(function () {
+        // This would be replaced with actual AJAX call
+        var isAvailable = Math.random() > 0.3; // 70% chance of being available
+
+        if (isAvailable) {
+          $('#teacherAvailability').html('<span class="text-success"><i class="fas fa-check me-1"></i>Teacher is available</span>');
+        } else {
+          $('#teacherAvailability').html('<span class="text-danger"><i class="fas fa-times me-1"></i>Teacher has conflicts at this time</span>');
+        }
+      }, 1000);
+    } else {
+      $('#teacherAvailability').html('');
+    }
+  }
+
+  function checkConflicts() {
+    var teacherId = $('#id_substitute_teacher').val();
+    var date = $('#id_date').val();
+    var originalTimetableId = $('#id_original_timetable').val();
+
+    if (!teacherId || !date || !originalTimetableId) {
+      $('#conflictResults').hide();
+      return;
+    }
+
+    // Show loading
+    $('#conflictResults').html(
+      '<div class="alert alert-info">' +
+      '<i class="fas fa-spinner fa-spin me-2"></i>Checking for conflicts...' +
+      '</div>'
+    ).show();
+
+    // Simulate AJAX conflict check
+    setTimeout(function () {
+      var hasConflicts = Math.random() > 0.7; // 30% chance of conflicts
+
+      if (hasConflicts) {
+        $('#conflictResults').html(
+          '<div class="alert alert-warning">' +
+          '<i class="fas fa-exclamation-triangle me-2"></i>' +
+          '<strong>Potential Conflicts Found:</strong><br>' +
+          'The substitute teacher has another class scheduled at this time.<br>' +
+          '<small>Please choose a different teacher or resolve the conflict.</small>' +
+          '</div>'
+        );
+      } else {
+        $('#conflictResults').html(
+          '<div class="alert alert-success">' +
+          '<i class="fas fa-check-circle me-2"></i>' +
+          '<strong>No Conflicts:</strong> The substitute teacher is available at this time.' +
+          '</div>'
+        );
+      }
+    }, 1500);
+  }
+
+  function getSuggestions() {
+    var originalTimetableId = $('#id_original_timetable').val();
+    var date = $('#id_date').val();
+
+    if (!originalTimetableId || !date) {
+      alert('Please select the original timetable entry and date first.');
+      return;
+    }
+
+    // Show loading
+    $('#suggestionsContent').html(
+      '<div class="text-center">' +
+      '<i class="fas fa-spinner fa-spin me-2"></i>Finding suitable substitute teachers...' +
+      '</div>'
+    );
+    $('#substituteSuggestions').show();
+
+    // Simulate AJAX call to get suggestions
+    setTimeout(function () {
+      // Mock suggestions data
+      var suggestions = [
+        {
+          name: 'Dr. Sarah Johnson',
+          qualification: 'M.Ed Mathematics',
+          score: 95,
+          hasExperience: true,
+          isAvailable: true
+        },
+        {
+          name: 'Prof. Michael Chen',
+          qualification: 'B.Sc Physics',
+          score: 88,
+          hasExperience: false,
+          isAvailable: true
+        },
+        {
+          name: 'Ms. Emily Davis',
+          qualification: 'M.A Education',
+          score: 82,
+          hasExperience: true,
+          isAvailable: true
+        }
+      ];
+
+      var html = '';
+      suggestions.forEach(function (teacher, index) {
+        html +=
+          '<div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">' +
+          '<div>' +
+          '<strong>' + teacher.name + '</strong><br>' +
+          '<small class="text-muted">' + teacher.qualification + '</small><br>' +
+          '<div class="mt-1">' +
+          (teacher.hasExperience ? '<span class="badge bg-success me-1">Has Experience</span>' : '') +
+          (teacher.isAvailable ? '<span class="badge bg-info">Available</span>' : '<span class="badge bg-warning">Busy</span>') +
+          '</div>' +
+          '</div>' +
+          '<div class="text-end">' +
+          '<div class="badge bg-primary mb-2">Score: ' + teacher.score + '%</div><br>' +
+          '<button class="btn btn-outline-primary btn-sm" onclick="selectSuggestion(\'' + teacher.name + '\')">' +
+          'Select' +
+          '</button>' +
+          '</div>' +
+          '</div>';
+      });
+
+      $('#suggestionsContent').html(html);
+    }, 2000);
+  }
+
+  function selectSuggestion(teacherName) {
+    // In real implementation, this would select the teacher by ID
+    // For now, we'll just show an alert
+    alert('Selected: ' + teacherName + '\n\nIn a real implementation, this would select the teacher in the dropdown.');
+    $('#substituteSuggestions').hide();
+  }
+
+  // Form validation
+  $('#substituteForm').on('submit', function (e) {
+    var date = new Date($('#id_date').val());
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (date < today) {
+      e.preventDefault();
+      alert('Cannot create substitute assignment for past dates.');
+      return false;
+    }
+  });
+</script>
+{% endblock %}

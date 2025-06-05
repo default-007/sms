@@ -1,0 +1,452 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Bulk Create Time Slots{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'scheduling:dashboard' %}">Scheduling</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'scheduling:timeslot_list' %}">Time Slots</a></li>
+          <li class="breadcrumb-item active">Bulk Create</li>
+        </ol>
+      </nav>
+    </div>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-md-10 col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-plus-circle me-2"></i>Bulk Create Time Slots
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Bulk Creation:</strong> Create multiple time slots quickly by specifying the pattern and schedule.
+            This will generate time slots for all selected days based on your configuration.
+          </div>
+
+          <form method="post" id="bulkTimeslotForm">
+            {% csrf_token %}
+
+            <!-- School Schedule Configuration -->
+            <div class="card border-primary mb-4">
+              <div class="card-header bg-primary text-white">
+                <h6 class="card-title mb-0">School Schedule Configuration</h6>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="start_time" class="form-label">
+                        School Start Time <span class="text-danger">*</span>
+                      </label>
+                      <input type="time" class="form-control" id="start_time" name="start_time" value="08:00" required>
+                      <div class="form-text">When does the first period begin?</div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="end_time" class="form-label">
+                        School End Time <span class="text-danger">*</span>
+                      </label>
+                      <input type="time" class="form-control" id="end_time" name="end_time" value="15:30" required>
+                      <div class="form-text">When does the last period end?</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-4">
+                    <div class="mb-3">
+                      <label for="period_duration" class="form-label">
+                        Period Duration (minutes) <span class="text-danger">*</span>
+                      </label>
+                      <input type="number" class="form-control" id="period_duration" name="period_duration" value="45"
+                        min="15" max="120" required>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="mb-3">
+                      <label for="break_duration" class="form-label">
+                        Break Duration (minutes) <span class="text-danger">*</span>
+                      </label>
+                      <input type="number" class="form-control" id="break_duration" name="break_duration" value="15"
+                        min="5" max="30" required>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="mb-3">
+                      <label for="lunch_duration" class="form-label">
+                        Lunch Duration (minutes) <span class="text-danger">*</span>
+                      </label>
+                      <input type="number" class="form-control" id="lunch_duration" name="lunch_duration" value="45"
+                        min="30" max="90" required>
+                    </div>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="lunch_after_period" class="form-label">
+                        Lunch After Period <span class="text-danger">*</span>
+                      </label>
+                      <select class="form-select" id="lunch_after_period" name="lunch_after_period" required>
+                        <option value="3">Period 3</option>
+                        <option value="4" selected>Period 4</option>
+                        <option value="5">Period 5</option>
+                        <option value="6">Period 6</option>
+                      </select>
+                      <div class="form-text">After which period should lunch break be scheduled?</div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="max_periods" class="form-label">
+                        Maximum Periods Per Day <span class="text-danger">*</span>
+                      </label>
+                      <input type="number" class="form-control" id="max_periods" name="max_periods" value="8" min="4"
+                        max="12" required>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Working Days Selection -->
+            <div class="card border-info mb-4">
+              <div class="card-header bg-info text-white">
+                <h6 class="card-title mb-0">Working Days</h6>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  {% for day_value, day_name in days_of_week %}
+                  <div class="col-md-4 col-lg-2">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="days" value="{{ day_value }}"
+                        id="day_{{ day_value }}" {% if day_value < 5 %}checked{% endif %}>
+                      <label class="form-check-label" for="day_{{ day_value }}">
+                        {{ day_name }}
+                      </label>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+                <div class="form-text mt-2">Select the days when classes are held</div>
+              </div>
+            </div>
+
+            <!-- Advanced Options -->
+            <div class="card border-secondary mb-4">
+              <div class="card-header">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-cog me-2"></i>Advanced Options
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-check mb-3">
+                      <input class="form-check-input" type="checkbox" id="include_breaks" name="include_breaks" checked>
+                      <label class="form-check-label" for="include_breaks">
+                        Create break periods
+                      </label>
+                      <div class="form-text">Generate break time slots between periods</div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-check mb-3">
+                      <input class="form-check-input" type="checkbox" id="auto_naming" name="auto_naming" checked>
+                      <label class="form-check-label" for="auto_naming">
+                        Auto-generate names
+                      </label>
+                      <div class="form-text">Automatically name periods (Period 1, Period 2, etc.)</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-check mb-3">
+                      <input class="form-check-input" type="checkbox" id="replace_existing" name="replace_existing">
+                      <label class="form-check-label" for="replace_existing">
+                        Replace existing time slots
+                      </label>
+                      <div class="form-text">Delete existing time slots and create new ones</div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-check mb-3">
+                      <input class="form-check-input" type="checkbox" id="activate_all" name="activate_all" checked>
+                      <label class="form-check-label" for="activate_all">
+                        Activate all time slots
+                      </label>
+                      <div class="form-text">Set all created time slots as active</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Preview Section -->
+            <div class="card border-success mb-4" id="previewCard" style="display: none;">
+              <div class="card-header bg-success text-white">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-eye me-2"></i>Preview
+                </h6>
+              </div>
+              <div class="card-body">
+                <div id="previewContent">
+                  <!-- Preview will be populated by JavaScript -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="d-flex justify-content-between">
+              <a href="{% url 'scheduling:timeslot_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Cancel
+              </a>
+              <div>
+                <button type="button" class="btn btn-info me-2" onclick="generatePreview()">
+                  <i class="fas fa-eye me-1"></i> Preview
+                </button>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-plus-circle me-1"></i> Create Time Slots
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Help Card -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-question-circle me-2"></i>Bulk Creation Guidelines
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h6>Configuration Tips:</h6>
+              <ul class="small">
+                <li>Standard period duration is 40-50 minutes</li>
+                <li>Break periods are typically 10-15 minutes</li>
+                <li>Lunch breaks should be 30-60 minutes</li>
+                <li>Consider time for student transitions</li>
+                <li>Plan for assembly or special periods</li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <h6>Common Schedules:</h6>
+              <ul class="small">
+                <li><strong>Elementary:</strong> 6-7 periods, longer breaks</li>
+                <li><strong>Middle School:</strong> 7-8 periods, 45-50 minutes each</li>
+                <li><strong>High School:</strong> 6-8 periods, block scheduling possible</li>
+                <li><strong>College:</strong> Flexible periods, 60-90 minutes</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Auto-calculate and update preview when inputs change
+    $('#bulkTimeslotForm input, #bulkTimeslotForm select, #bulkTimeslotForm input[type="checkbox"]').on('change input', function () {
+      if ($('#previewCard').is(':visible')) {
+        generatePreview();
+      }
+    });
+
+    // Validate form inputs
+    $('#bulkTimeslotForm').on('submit', function (e) {
+      if (!validateForm()) {
+        e.preventDefault();
+        return false;
+      }
+    });
+  });
+
+  function generatePreview() {
+    if (!validateForm()) {
+      return;
+    }
+
+    var startTime = $('#start_time').val();
+    var endTime = $('#end_time').val();
+    var periodDuration = parseInt($('#period_duration').val());
+    var breakDuration = parseInt($('#break_duration').val());
+    var lunchDuration = parseInt($('#lunch_duration').val());
+    var lunchAfterPeriod = parseInt($('#lunch_after_period').val());
+    var maxPeriods = parseInt($('#max_periods').val());
+    var includeBreaks = $('#include_breaks').is(':checked');
+    var selectedDays = [];
+
+    $('input[name="days"]:checked').each(function () {
+      selectedDays.push({
+        value: $(this).val(),
+        name: $(this).next('label').text()
+      });
+    });
+
+    if (selectedDays.length === 0) {
+      alert('Please select at least one working day.');
+      return;
+    }
+
+    var schedule = generateSchedule(startTime, periodDuration, breakDuration, lunchDuration, lunchAfterPeriod, maxPeriods, includeBreaks);
+    var previewHtml = createPreviewHTML(schedule, selectedDays);
+
+    $('#previewContent').html(previewHtml);
+    $('#previewCard').show();
+  }
+
+  function generateSchedule(startTime, periodDuration, breakDuration, lunchDuration, lunchAfterPeriod, maxPeriods, includeBreaks) {
+    var schedule = [];
+    var currentTime = parseTime(startTime);
+    var periodNumber = 1;
+
+    for (var i = 1; i <= maxPeriods; i++) {
+      // Add class period
+      var endTime = addMinutes(currentTime, periodDuration);
+      schedule.push({
+        type: 'period',
+        number: periodNumber,
+        name: 'Period ' + periodNumber,
+        startTime: formatTime(currentTime),
+        endTime: formatTime(endTime),
+        duration: periodDuration
+      });
+
+      currentTime = endTime;
+      periodNumber++;
+
+      // Add break after period
+      if (i < maxPeriods && includeBreaks) {
+        if (i === lunchAfterPeriod) {
+          // Lunch break
+          var lunchEnd = addMinutes(currentTime, lunchDuration);
+          schedule.push({
+            type: 'break',
+            name: 'Lunch Break',
+            startTime: formatTime(currentTime),
+            endTime: formatTime(lunchEnd),
+            duration: lunchDuration
+          });
+          currentTime = lunchEnd;
+        } else {
+          // Regular break
+          var breakEnd = addMinutes(currentTime, breakDuration);
+          schedule.push({
+            type: 'break',
+            name: 'Break',
+            startTime: formatTime(currentTime),
+            endTime: formatTime(breakEnd),
+            duration: breakDuration
+          });
+          currentTime = breakEnd;
+        }
+      }
+    }
+
+    return schedule;
+  }
+
+  function createPreviewHTML(schedule, selectedDays) {
+    var html = '<div class="row">';
+
+    // Summary
+    html += '<div class="col-md-6">';
+    html += '<h6>Summary:</h6>';
+    html += '<ul>';
+    html += '<li><strong>Days:</strong> ' + selectedDays.map(d => d.name).join(', ') + '</li>';
+    html += '<li><strong>Periods:</strong> ' + schedule.filter(s => s.type === 'period').length + '</li>';
+    html += '<li><strong>Breaks:</strong> ' + schedule.filter(s => s.type === 'break').length + '</li>';
+    html += '<li><strong>Total Slots:</strong> ' + (schedule.length * selectedDays.length) + '</li>';
+    html += '<li><strong>School Hours:</strong> ' + schedule[0].startTime + ' - ' + schedule[schedule.length - 1].endTime + '</li>';
+    html += '</ul>';
+    html += '</div>';
+
+    // Sample day schedule
+    html += '<div class="col-md-6">';
+    html += '<h6>Sample Day Schedule:</h6>';
+    html += '<div class="table-responsive">';
+    html += '<table class="table table-sm table-bordered">';
+    html += '<thead class="table-light">';
+    html += '<tr><th>Time</th><th>Period</th><th>Type</th></tr>';
+    html += '</thead>';
+    html += '<tbody>';
+
+    schedule.forEach(function (slot) {
+      var badgeClass = slot.type === 'period' ? 'bg-primary' : 'bg-warning';
+      html += '<tr>';
+      html += '<td>' + slot.startTime + ' - ' + slot.endTime + '</td>';
+      html += '<td>' + slot.name + '</td>';
+      html += '<td><span class="badge ' + badgeClass + '">' + slot.type + '</span></td>';
+      html += '</tr>';
+    });
+
+    html += '</tbody>';
+    html += '</table>';
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
+
+    return html;
+  }
+
+  function validateForm() {
+    var startTime = $('#start_time').val();
+    var endTime = $('#end_time').val();
+    var periodDuration = parseInt($('#period_duration').val());
+    var selectedDays = $('input[name="days"]:checked').length;
+
+    if (!startTime || !endTime) {
+      alert('Please set both start and end times.');
+      return false;
+    }
+
+    if (parseTime(startTime) >= parseTime(endTime)) {
+      alert('End time must be after start time.');
+      return false;
+    }
+
+    if (selectedDays === 0) {
+      alert('Please select at least one working day.');
+      return false;
+    }
+
+    if (periodDuration < 15 || periodDuration > 120) {
+      alert('Period duration must be between 15 and 120 minutes.');
+      return false;
+    }
+
+    return true;
+  }
+
+  function parseTime(timeStr) {
+    var parts = timeStr.split(':');
+    return new Date(1970, 0, 1, parseInt(parts[0]), parseInt(parts[1]));
+  }
+
+  function addMinutes(time, minutes) {
+    return new Date(time.getTime() + minutes * 60000);
+  }
+
+  function formatTime(time) {
+    return time.toTimeString().substr(0, 5);
+  }
+</script>
+{% endblock %}

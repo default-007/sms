@@ -1,0 +1,599 @@
+{% extends "base.html" %}
+{% load static %}
+{% load accounts_tags %}
+
+{% block title %}Security Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<style>
+  .security-alert {
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+
+    70% {
+      box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+    }
+
+    100% {
+      box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+  }
+
+  .threat-level-high {
+    border-left: 4px solid #dc3545;
+  }
+
+  .threat-level-medium {
+    border-left: 4px solid #ffc107;
+  }
+
+  .threat-level-low {
+    border-left: 4px solid #28a745;
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-md-8">
+      <h1 class="h3 mb-0 text-gray-800">
+        <i class="fas fa-shield-alt text-primary me-2"></i>Security Dashboard
+      </h1>
+      <p class="text-muted">Monitor system security and user activities for the last {{ days }} days</p>
+    </div>
+    <div class="col-md-4">
+      <div class="btn-group float-end" role="group">
+        <a href="?days=7" class="btn btn-outline-primary {% if days == 7 %}active{% endif %}">7 Days</a>
+        <a href="?days=30" class="btn btn-outline-primary {% if days == 30 %}active{% endif %}">30 Days</a>
+        <a href="?days=90" class="btn btn-outline-primary {% if days == 90 %}active{% endif %}">90 Days</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Security Status Overview -->
+  <div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div
+        class="card border-left-danger shadow h-100 py-2 {% if security_data.locked_accounts > 0 %}security-alert{% endif %}">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Locked Accounts</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ security_data.locked_accounts }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-lock fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-warning shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Failed Login Attempts</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ security_data.failed_login_attempts }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-info shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Password Changes</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ security_data.password_changes }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-key fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-success shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Account Unlocks</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ security_data.account_unlocks }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-unlock fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Security Alerts -->
+  {% if security_data.suspicious_ip_count > 0 %}
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="alert alert-danger border-left-danger" role="alert">
+        <h4 class="alert-heading">
+          <i class="fas fa-exclamation-triangle me-2"></i>Security Alert!
+        </h4>
+        <p>{{ security_data.suspicious_ip_count }} suspicious IP address(es) detected with multiple failed login
+          attempts.</p>
+        <hr>
+        <p class="mb-0">
+          <a href="#suspicious-ips" class="alert-link">View details below</a> or
+          <a href="#" class="alert-link" onclick="blockSuspiciousIPs()">Block suspicious IPs</a>
+        </p>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Charts Row -->
+  <div class="row">
+    <!-- Security Events Timeline -->
+    <div class="col-xl-8 col-lg-7">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+          <h6 class="m-0 font-weight-bold text-primary">Security Events Timeline</h6>
+          <div class="dropdown no-arrow">
+            <a class="dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+              <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+            </a>
+            <div class="dropdown-menu dropdown-menu-right shadow">
+              <a class="dropdown-item" href="#" onclick="exportSecurityReport()">Export Report</a>
+              <a class="dropdown-item" href="#" onclick="refreshSecurityData()">Refresh Data</a>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="securityEventsChart"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Threat Level Indicator -->
+    <div class="col-xl-4 col-lg-5">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Current Threat Level</h6>
+        </div>
+        <div class="card-body text-center">
+          <div id="threatLevelGauge"></div>
+          <div class="mt-3">
+            <span class="badge bg-warning fs-6 p-2">MEDIUM RISK</span>
+            <p class="text-muted mt-2">Based on recent security events and patterns</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Security Events Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+          <h6 class="m-0 font-weight-bold text-primary">Recent Security Events</h6>
+          <div class="btn-group" role="group">
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="filterEvents('all')">All</button>
+            <button type="button" class="btn btn-sm btn-outline-danger"
+              onclick="filterEvents('critical')">Critical</button>
+            <button type="button" class="btn btn-sm btn-outline-warning" onclick="filterEvents('high')">High</button>
+            <button type="button" class="btn btn-sm btn-outline-info" onclick="filterEvents('medium')">Medium</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="securityEventsTable" class="table table-bordered table-hover">
+              <thead class="table-dark">
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Event</th>
+                  <th>User</th>
+                  <th>IP Address</th>
+                  <th>Severity</th>
+                  <th>Details</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for event in security_events %}
+                <tr
+                  class="{% if event.severity == 'critical' %}threat-level-high{% elif event.severity == 'high' %}threat-level-medium{% elif event.severity == 'medium' %}threat-level-low{% endif %}">
+                  <td>
+                    <span class="text-nowrap">{{ event.timestamp|date:"M d, H:i" }}</span>
+                    <small class="text-muted d-block">{{ event.timestamp|time_since_filter }}</small>
+                  </td>
+                  <td>
+                    <i
+                      class="fas fa-{% if event.action == 'login' %}sign-in-alt{% elif event.action == 'account_lock' %}lock{% elif event.action == 'password_change' %}key{% else %}shield-alt{% endif %} me-2"></i>
+                    <span class="fw-bold">{{ event.get_action_display }}</span>
+                  </td>
+                  <td>
+                    {% if event.user %}
+                    <div class="d-flex align-items-center">
+                      <img class="rounded-circle me-2" src="{% user_avatar_url event.user 24 %}" width="24" height="24">
+                      <div>
+                        <div class="fw-bold small">{{ event.user|user_display_name_filter }}</div>
+                        <div class="text-muted small">{{ event.user.username }}</div>
+                      </div>
+                    </div>
+                    {% else %}
+                    <span class="text-muted">System</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <code class="small">{{ event.ip_address|default:"N/A" }}</code>
+                    {% if event.ip_address in security_data.suspicious_ips %}
+                    <span class="badge bg-danger ms-1">Suspicious</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if event.severity == 'critical' %}
+                    <span class="badge bg-danger">Critical</span>
+                    {% elif event.severity == 'high' %}
+                    <span class="badge bg-warning">High</span>
+                    {% elif event.severity == 'medium' %}
+                    <span class="badge bg-info">Medium</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Low</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <small class="text-truncate" style="max-width: 200px;">{{ event.description }}</small>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                      <button type="button" class="btn btn-outline-primary" onclick="viewEventDetails({{ event.id }})"
+                        data-bs-toggle="tooltip" title="View Details">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      {% if event.ip_address %}
+                      <button type="button" class="btn btn-outline-danger" onclick="blockIP('{{ event.ip_address }}')"
+                        data-bs-toggle="tooltip" title="Block IP">
+                        <i class="fas fa-ban"></i>
+                      </button>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Suspicious IPs and Attack Patterns -->
+  <div class="row">
+    <!-- Suspicious IP Addresses -->
+    <div class="col-xl-6 col-lg-6" id="suspicious-ips">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-danger">Suspicious IP Addresses</h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="suspiciousIPsTable" class="table table-bordered table-sm">
+              <thead class="table-light">
+                <tr>
+                  <th>IP Address</th>
+                  <th>Failed Attempts</th>
+                  <th>Unique Users</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for ip in security_data.top_failure_ips %}
+                <tr>
+                  <td><code>{{ ip.ip_address }}</code></td>
+                  <td>
+                    <span class="badge bg-danger">{{ ip.attempt_count }}</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-warning">{{ ip.unique_users }}</span>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                      <button type="button" class="btn btn-outline-info" onclick="analyzeIP('{{ ip.ip_address }}')"
+                        data-bs-toggle="tooltip" title="Analyze">
+                        <i class="fas fa-search"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-danger" onclick="blockIP('{{ ip.ip_address }}')"
+                        data-bs-toggle="tooltip" title="Block">
+                        <i class="fas fa-ban"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security Recommendations -->
+    <div class="col-xl-6 col-lg-6">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Security Recommendations</h6>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            <div class="list-group-item d-flex justify-content-between align-items-start">
+              <div class="ms-2 me-auto">
+                <div class="fw-bold">Enable Two-Factor Authentication</div>
+                <small class="text-muted">{{ security_data.users_requiring_password_change }} users need 2FA
+                  setup</small>
+              </div>
+              <span class="badge bg-warning rounded-pill">High</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between align-items-start">
+              <div class="ms-2 me-auto">
+                <div class="fw-bold">Review Failed Login Patterns</div>
+                <small class="text-muted">Implement rate limiting for suspicious IPs</small>
+              </div>
+              <span class="badge bg-info rounded-pill">Medium</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between align-items-start">
+              <div class="ms-2 me-auto">
+                <div class="fw-bold">Password Policy Update</div>
+                <small class="text-muted">Enforce stronger password requirements</small>
+              </div>
+              <span class="badge bg-secondary rounded-pill">Low</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between align-items-start">
+              <div class="ms-2 me-auto">
+                <div class="fw-bold">Security Audit</div>
+                <small class="text-muted">Schedule regular security assessments</small>
+              </div>
+              <span class="badge bg-success rounded-pill">Info</span>
+            </div>
+          </div>
+          <div class="mt-3">
+            <button type="button" class="btn btn-primary btn-sm" onclick="generateSecurityReport()">
+              <i class="fas fa-file-alt me-2"></i>Generate Full Report
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Security Event Details Modal -->
+<div class="modal fade" id="eventDetailsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Security Event Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="eventDetailsContent">
+        <!-- Content loaded dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary">Take Action</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chart Data -->
+{{ security_data|json_script:"security-data" }}
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const securityData = JSON.parse(document.getElementById('security-data').textContent);
+
+    // Security Events Timeline Chart
+    const eventsOptions = {
+      series: [{
+        name: 'Failed Logins',
+        data: [65, 59, 80, 81, 56, 55, 40]
+      }, {
+        name: 'Password Changes',
+        data: [28, 48, 40, 19, 86, 27, 90]
+      }, {
+        name: 'Account Locks',
+        data: [5, 2, 8, 3, 12, 7, 4]
+      }],
+      chart: {
+        type: 'line',
+        height: 350,
+        zoom: { enabled: true }
+      },
+      colors: ['#e74a3b', '#f6c23e', '#36b9cc'],
+      stroke: { width: 3, curve: 'smooth' },
+      xaxis: {
+        categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+      },
+      yaxis: {
+        title: { text: 'Number of Events' }
+      },
+      legend: { position: 'top' }
+    };
+
+    const eventsChart = new ApexCharts(document.querySelector("#securityEventsChart"), eventsOptions);
+    eventsChart.render();
+
+    // Threat Level Gauge
+    const gaugeOptions = {
+      series: [67],
+      chart: {
+        height: 280,
+        type: 'radialBar',
+      },
+      plotOptions: {
+        radialBar: {
+          hollow: { size: '50%' },
+          dataLabels: {
+            name: {
+              fontSize: '16px',
+              fontWeight: 'bold'
+            },
+            value: {
+              fontSize: '20px',
+              fontWeight: 'bold',
+              formatter: function (val) {
+                return val + '%'
+              }
+            }
+          }
+        }
+      },
+      colors: ['#f6c23e'],
+      labels: ['Threat Level']
+    };
+
+    const gaugeChart = new ApexCharts(document.querySelector("#threatLevelGauge"), gaugeOptions);
+    gaugeChart.render();
+
+    // Initialize DataTables
+    const securityTable = $('#securityEventsTable').DataTable({
+      pageLength: 25,
+      order: [[0, 'desc']],
+      columnDefs: [
+        { orderable: false, targets: [6] },
+        { searchable: false, targets: [6] }
+      ],
+      language: {
+        search: "Filter events:",
+        lengthMenu: "Show _MENU_ events per page"
+      }
+    });
+
+    $('#suspiciousIPsTable').DataTable({
+      pageLength: 10,
+      order: [[1, 'desc']],
+      columnDefs: [
+        { orderable: false, targets: [3] }
+      ]
+    });
+
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Filter functions
+    window.filterEvents = function (severity) {
+      if (severity === 'all') {
+        securityTable.columns(4).search('').draw();
+      } else {
+        securityTable.columns(4).search(severity).draw();
+      }
+    };
+  });
+
+  // Action functions
+  function viewEventDetails(eventId) {
+    // Load event details via AJAX
+    fetch(`/api/security/events/${eventId}/`)
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('eventDetailsContent').innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Event ID:</strong> ${data.id}<br>
+                        <strong>User:</strong> ${data.user || 'N/A'}<br>
+                        <strong>Action:</strong> ${data.action}<br>
+                        <strong>Severity:</strong> <span class="badge bg-${data.severity === 'critical' ? 'danger' : data.severity === 'high' ? 'warning' : 'info'}">${data.severity}</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Timestamp:</strong> ${data.timestamp}<br>
+                        <strong>IP Address:</strong> <code>${data.ip_address || 'N/A'}</code><br>
+                        <strong>User Agent:</strong> ${data.user_agent || 'N/A'}<br>
+                    </div>
+                </div>
+                <hr>
+                <strong>Description:</strong><br>
+                <p>${data.description}</p>
+                <strong>Additional Data:</strong><br>
+                <pre class="bg-light p-2 rounded"><code>${JSON.stringify(data.extra_data, null, 2)}</code></pre>
+            `;
+        new bootstrap.Modal(document.getElementById('eventDetailsModal')).show();
+      })
+      .catch(error => {
+        console.error('Error loading event details:', error);
+      });
+  }
+
+  function blockIP(ipAddress) {
+    if (confirm(`Are you sure you want to block IP address ${ipAddress}?`)) {
+      // Implement IP blocking logic
+      fetch('/api/security/block-ip/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ ip_address: ipAddress })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert(`IP address ${ipAddress} has been blocked.`);
+            location.reload();
+          } else {
+            alert('Failed to block IP address.');
+          }
+        });
+    }
+  }
+
+  function analyzeIP(ipAddress) {
+    // Open IP analysis in new tab (could integrate with threat intelligence services)
+    window.open(`https://www.virustotal.com/vtapi/v2/ip-address/report?apikey=YOUR_API_KEY&ip=${ipAddress}`, '_blank');
+  }
+
+  function blockSuspiciousIPs() {
+    if (confirm('Block all suspicious IP addresses? This action cannot be undone.')) {
+      // Implement bulk IP blocking
+      console.log('Blocking suspicious IPs...');
+    }
+  }
+
+  function exportSecurityReport() {
+    window.location.href = '/security/export-report/';
+  }
+
+  function refreshSecurityData() {
+    location.reload();
+  }
+
+  function generateSecurityReport() {
+    window.open('/security/generate-report/', '_blank');
+  }
+</script>
+{% endblock %}

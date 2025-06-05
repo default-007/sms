@@ -1,0 +1,764 @@
+{% extends "base.html" %}
+{% load assignment_tags %}
+
+{% block title %}Bulk Grade - {{ assignment.title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/select/1.7.0/css/select.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0">
+        <i class="fas fa-tasks text-primary"></i>
+        Bulk Grade Assignment
+      </h1>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'assignments:assignment_list' %}">Assignments</a></li>
+          <li class="breadcrumb-item"><a
+              href="{% url 'assignments:assignment_detail' pk=assignment.pk %}">{{ assignment.title|truncatechars:30 }}</a>
+          </li>
+          <li class="breadcrumb-item active">Bulk Grade</li>
+        </ol>
+      </nav>
+    </div>
+    <div class="btn-group">
+      <a href="{% url 'assignments:assignment_detail' pk=assignment.pk %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Assignment
+      </a>
+      <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#helpModal">
+        <i class="fas fa-question-circle"></i> Help
+      </button>
+    </div>
+  </div>
+
+  <!-- Assignment Info -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-primary">
+        <div class="card-header bg-primary text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-info-circle"></i>
+            Assignment Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-8">
+              <h6><strong>{{ assignment.title }}</strong></h6>
+              <p class="text-muted">{{ assignment.description|truncatechars:200 }}</p>
+              <div class="row">
+                <div class="col-sm-6">
+                  <small class="text-muted">Subject:</small> {{ assignment.subject.name }}<br>
+                  <small class="text-muted">Class:</small> {{ assignment.class_id }}<br>
+                  <small class="text-muted">Due Date:</small> {{ assignment.due_date|date:"M d, Y H:i" }}
+                </div>
+                <div class="col-sm-6">
+                  <small class="text-muted">Total Marks:</small> {{ assignment.total_marks }}<br>
+                  <small class="text-muted">Passing Marks:</small> {{ assignment.passing_marks|default:"Not set" }}<br>
+                  <small class="text-muted">Submissions:</small> {{ submissions.count }}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="text-center">
+                <div class="mb-2">
+                  <span class="badge bg-info fs-6">{{ submissions|length }} Submissions</span>
+                </div>
+                <div class="progress mb-2">
+                  {% with graded_count=submissions|length|sub:ungraded_count %}
+                  {% with progress_percent=graded_count|mul:100|div:submissions|length %}
+                  <div class="progress-bar bg-success" style="width: {{ progress_percent }}%">
+                    {{ graded_count }} Graded
+                  </div>
+                  <div class="progress-bar bg-warning" style="width: {{ 100|sub:progress_percent }}%">
+                    {{ ungraded_count }} Pending
+                  </div>
+                  {% endwith %}
+                  {% endwith %}
+                </div>
+                <small class="text-muted">Grading Progress</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Grading Tools -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-tools text-warning"></i>
+            Bulk Grading Tools
+          </h5>
+        </div>
+        <div class="card-body">
+          <form id="bulkGradingForm" class="row g-3">
+            {% csrf_token %}
+            <div class="col-md-3">
+              <label class="form-label">Grading Method</label>
+              <select class="form-select" id="gradingMethod" onchange="toggleGradingOptions()">
+                <option value="individual">Individual Grading</option>
+                <option value="bulk_same">Same Grade for All</option>
+                <option value="csv_upload">CSV Upload</option>
+                <option value="formula">Grade Formula</option>
+              </select>
+            </div>
+
+            <!-- Bulk Same Grade Options -->
+            <div class="col-md-2" id="bulkGradeOptions" style="display: none;">
+              <label class="form-label">Grade/Score</label>
+              <input type="number" class="form-control" id="bulkGrade" min="0" max="{{ assignment.total_marks }}"
+                placeholder="Enter score">
+            </div>
+
+            <!-- CSV Upload Options -->
+            <div class="col-md-3" id="csvUploadOptions" style="display: none;">
+              <label class="form-label">Upload CSV File</label>
+              <input type="file" class="form-control" id="csvFile" accept=".csv">
+              <small class="text-muted">Format: Student ID, Grade, Comments</small>
+            </div>
+
+            <!-- Formula Options -->
+            <div class="col-md-3" id="formulaOptions" style="display: none;">
+              <label class="form-label">Grade Formula</label>
+              <select class="form-select" id="gradeFormula">
+                <option value="curve">Apply Curve (+5 to all)</option>
+                <option value="percentage">Percentage of Max</option>
+                <option value="rank">Rank Based</option>
+              </select>
+            </div>
+
+            <div class="col-md-2">
+              <label class="form-label">Default Comments</label>
+              <input type="text" class="form-control" id="defaultComments" placeholder="Optional feedback">
+            </div>
+
+            <div class="col-md-2">
+              <label class="form-label">&nbsp;</label>
+              <div class="d-grid">
+                <button type="button" class="btn btn-primary" onclick="applyBulkGrading()">
+                  <i class="fas fa-magic"></i> Apply
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Submissions Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-list text-success"></i>
+            Submissions for Grading
+          </h5>
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-primary" onclick="selectAllVisible()">
+              <i class="fas fa-check-square"></i> Select All
+            </button>
+            <button type="button" class="btn btn-outline-secondary" onclick="selectNone()">
+              <i class="fas fa-square"></i> Clear
+            </button>
+            <button type="button" class="btn btn-outline-info" onclick="selectUngraded()">
+              <i class="fas fa-hourglass-half"></i> Select Ungraded
+            </button>
+            <div class="btn-group btn-group-sm">
+              <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" id="saveGradesBtn"
+                disabled>
+                <i class="fas fa-save"></i> Save Grades
+              </button>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" onclick="saveGrades(true)">Save & Send Notifications</a></li>
+                <li><a class="dropdown-item" onclick="saveGrades(false)">Save Without Notifications</a></li>
+                <li>
+                  <hr class="dropdown-divider">
+                </li>
+                <li><a class="dropdown-item" onclick="previewGrades()">Preview Before Saving</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="submissionsTable" class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th width="40">
+                    <input type="checkbox" id="selectAllCheckbox" class="form-check-input">
+                  </th>
+                  <th>Student</th>
+                  <th>Admission No.</th>
+                  <th>Submitted</th>
+                  <th>Status</th>
+                  <th>Current Grade</th>
+                  <th width="120">New Grade</th>
+                  <th width="200">Comments</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for submission in submissions %}
+                <tr data-submission-id="{{ submission.id }}"
+                  class="{% if not submission.marks_obtained %}table-warning{% endif %}">
+                  <td>
+                    <input type="checkbox" class="form-check-input submission-select" value="{{ submission.id }}">
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div
+                        class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center text-white me-2">
+                        {{ submission.student.user.first_name.0 }}{{ submission.student.user.last_name.0 }}
+                      </div>
+                      <div>
+                        <strong>{{ submission.student.user.get_full_name }}</strong>
+                        {% if submission.is_late %}
+                        <br><small class="text-danger">
+                          <i class="fas fa-clock"></i> Late Submission
+                        </small>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </td>
+                  <td>{{ submission.student.admission_number }}</td>
+                  <td>
+                    <span class="text-muted">{{ submission.submission_date|date:"M d, H:i" }}</span>
+                    <br><small>{{ submission.submission_date|timesince }} ago</small>
+                  </td>
+                  <td>
+                    {% if submission.status == 'graded' %}
+                    <span class="badge bg-success">Graded</span>
+                    {% elif submission.status == 'submitted' %}
+                    <span class="badge bg-warning">Pending</span>
+                    {% elif submission.status == 'late' %}
+                    <span class="badge bg-danger">Late</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if submission.marks_obtained %}
+                    <strong>{{ submission.marks_obtained }}/{{ assignment.total_marks }}</strong>
+                    <br><small class="text-muted">{{ submission.percentage|floatformat:1 }}%</small>
+                    {% if submission.grade %}
+                    <br><span class="badge bg-info">{{ submission.grade }}</span>
+                    {% endif %}
+                    {% else %}
+                    <span class="text-muted">Not graded</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <input type="number" class="form-control form-control-sm grade-input"
+                      data-submission-id="{{ submission.id }}" min="0" max="{{ assignment.total_marks }}"
+                      value="{{ submission.marks_obtained|default:'' }}" placeholder="0-{{ assignment.total_marks }}">
+                  </td>
+                  <td>
+                    <textarea class="form-control form-control-sm comments-input"
+                      data-submission-id="{{ submission.id }}" rows="2"
+                      placeholder="Comments...">{{ submission.teacher_remarks|default:'' }}</textarea>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <a href="{% url 'assignments:submission_detail' pk=submission.pk %}"
+                        class="btn btn-outline-primary btn-sm" title="View Details">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      {% if submission.attachment %}
+                      <a href="{% url 'assignments:submission_download' pk=submission.pk %}"
+                        class="btn btn-outline-secondary btn-sm" title="Download">
+                        <i class="fas fa-download"></i>
+                      </a>
+                      {% endif %}
+                      <button type="button" class="btn btn-outline-danger btn-sm"
+                        onclick="clearGrade({{ submission.id }})" title="Clear Grade">
+                        <i class="fas fa-eraser"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="9" class="text-center py-4">
+                    <div class="text-muted">
+                      <i class="fas fa-inbox fa-3x mb-3"></i>
+                      <h5>No Submissions Found</h5>
+                      <p>This assignment has no submissions yet.</p>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="row align-items-center">
+            <div class="col-md-6">
+              <small class="text-muted">
+                Total: {{ submissions|length }} submissions |
+                Graded: <span id="gradedCount">{{ submissions|length|sub:ungraded_count }}</span> |
+                Pending: <span id="pendingCount">{{ ungraded_count }}</span>
+              </small>
+            </div>
+            <div class="col-md-6 text-end">
+              <button type="button" class="btn btn-outline-secondary" onclick="downloadTemplate()">
+                <i class="fas fa-download"></i> Download Template
+              </button>
+              <button type="button" class="btn btn-primary" onclick="saveGrades(true)" id="finalSaveBtn">
+                <i class="fas fa-check"></i> Save All Grades
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Help Modal -->
+<div class="modal fade" id="helpModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Bulk Grading Help</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <h6>Grading Methods:</h6>
+        <ul>
+          <li><strong>Individual Grading:</strong> Enter grades manually for each student</li>
+          <li><strong>Same Grade for All:</strong> Apply the same grade to all selected submissions</li>
+          <li><strong>CSV Upload:</strong> Upload a CSV file with grades (Format: Student ID, Grade, Comments)</li>
+          <li><strong>Grade Formula:</strong> Apply mathematical formulas to calculate grades</li>
+        </ul>
+
+        <h6>Tips:</h6>
+        <ul>
+          <li>Use the selection tools to quickly select groups of submissions</li>
+          <li>The yellow highlighting indicates ungraded submissions</li>
+          <li>You can clear individual grades using the eraser button</li>
+          <li>Preview your changes before saving to avoid mistakes</li>
+          <li>Use the download template to get the correct CSV format</li>
+        </ul>
+
+        <h6>Keyboard Shortcuts:</h6>
+        <ul>
+          <li><kbd>Ctrl + A</kbd>: Select all submissions</li>
+          <li><kbd>Ctrl + S</kbd>: Save grades</li>
+          <li><kbd>Tab</kbd>: Move between grade inputs</li>
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Grade Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="previewContent">
+          <!-- Preview content will be loaded here -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="confirmSaveGrades()">
+          <i class="fas fa-save"></i> Confirm & Save
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/select/1.7.0/js/dataTables.select.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    var table = $('#submissionsTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[3, 'asc']], // Sort by submission date
+      columnDefs: [
+        { orderable: false, targets: [0, 6, 7, 8] }
+      ],
+      language: {
+        search: "Search students:",
+        lengthMenu: "Show _MENU_ submissions per page"
+      }
+    });
+
+    // Handle select all checkbox
+    $('#selectAllCheckbox').on('change', function () {
+      $('.submission-select').prop('checked', this.checked);
+      updateGradeButtonStatus();
+    });
+
+    // Handle individual checkboxes
+    $(document).on('change', '.submission-select', function () {
+      updateGradeButtonStatus();
+
+      // Update select all checkbox
+      var totalCheckboxes = $('.submission-select').length;
+      var checkedCheckboxes = $('.submission-select:checked').length;
+      $('#selectAllCheckbox').prop('checked', totalCheckboxes === checkedCheckboxes);
+    });
+
+    // Handle grade input changes
+    $(document).on('input', '.grade-input', function () {
+      var submissionId = $(this).data('submission-id');
+      var grade = $(this).val();
+      var maxGrade = {{ assignment.total_marks }
+    };
+
+    // Validate grade
+    if (grade < 0 || grade > maxGrade) {
+      $(this).addClass('is-invalid');
+      return;
+    } else {
+      $(this).removeClass('is-invalid');
+    }
+
+    // Calculate percentage and update display
+    if (grade !== '') {
+      var percentage = (grade / maxGrade * 100).toFixed(1);
+      $(this).attr('title', percentage + '%');
+    }
+
+    updateGradeButtonStatus();
+  });
+
+  // Handle comments input
+  $(document).on('input', '.comments-input', function () {
+    updateGradeButtonStatus();
+  });
+
+  // Keyboard shortcuts
+  $(document).on('keydown', function (e) {
+    if (e.ctrlKey && e.key === 'a') {
+      e.preventDefault();
+      selectAllVisible();
+    } else if (e.ctrlKey && e.key === 's') {
+      e.preventDefault();
+      saveGrades(true);
+    }
+  });
+});
+
+  function updateGradeButtonStatus() {
+    var hasChanges = false;
+
+    // Check if any grades have been entered
+    $('.grade-input').each(function () {
+      if ($(this).val() !== '') {
+        hasChanges = true;
+        return false;
+      }
+    });
+
+    // Check if any comments have been entered
+    if (!hasChanges) {
+      $('.comments-input').each(function () {
+        if ($(this).val().trim() !== '') {
+          hasChanges = true;
+          return false;
+        }
+      });
+    }
+
+    $('#saveGradesBtn').prop('disabled', !hasChanges);
+    $('#finalSaveBtn').prop('disabled', !hasChanges);
+  }
+
+  function toggleGradingOptions() {
+    var method = $('#gradingMethod').val();
+
+    // Hide all options first
+    $('#bulkGradeOptions, #csvUploadOptions, #formulaOptions').hide();
+
+    // Show relevant options
+    switch (method) {
+      case 'bulk_same':
+        $('#bulkGradeOptions').show();
+        break;
+      case 'csv_upload':
+        $('#csvUploadOptions').show();
+        break;
+      case 'formula':
+        $('#formulaOptions').show();
+        break;
+    }
+  }
+
+  function selectAllVisible() {
+    $('.submission-select').prop('checked', true);
+    $('#selectAllCheckbox').prop('checked', true);
+    updateGradeButtonStatus();
+  }
+
+  function selectNone() {
+    $('.submission-select').prop('checked', false);
+    $('#selectAllCheckbox').prop('checked', false);
+    updateGradeButtonStatus();
+  }
+
+  function selectUngraded() {
+    $('.submission-select').prop('checked', false);
+
+    // Select only ungraded submissions (rows with table-warning class)
+    $('.table-warning .submission-select').prop('checked', true);
+
+    // Update select all checkbox
+    var totalCheckboxes = $('.submission-select').length;
+    var checkedCheckboxes = $('.submission-select:checked').length;
+    $('#selectAllCheckbox').prop('checked', totalCheckboxes === checkedCheckboxes);
+
+    updateGradeButtonStatus();
+  }
+
+  function applyBulkGrading() {
+    var method = $('#gradingMethod').val();
+    var selectedSubmissions = $('.submission-select:checked');
+
+    if (selectedSubmissions.length === 0) {
+      alert('Please select at least one submission.');
+      return;
+    }
+
+    switch (method) {
+      case 'bulk_same':
+        var grade = $('#bulkGrade').val();
+        var comments = $('#defaultComments').val();
+
+        if (!grade) {
+          alert('Please enter a grade.');
+          return;
+        }
+
+        selectedSubmissions.each(function () {
+          var submissionId = $(this).val();
+          $('input[data-submission-id="' + submissionId + '"]').val(grade);
+          if (comments) {
+            $('textarea[data-submission-id="' + submissionId + '"]').val(comments);
+          }
+        });
+        break;
+
+      case 'csv_upload':
+        var fileInput = $('#csvFile')[0];
+        if (!fileInput.files[0]) {
+          alert('Please select a CSV file.');
+          return;
+        }
+
+        // Process CSV file
+        processCsvFile(fileInput.files[0]);
+        break;
+
+      case 'formula':
+        var formula = $('#gradeFormula').val();
+        applyGradeFormula(formula, selectedSubmissions);
+        break;
+    }
+
+    updateGradeButtonStatus();
+  }
+
+  function processCsvFile(file) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      var csv = e.target.result;
+      var lines = csv.split('\n');
+
+      for (var i = 1; i < lines.length; i++) { // Skip header
+        var columns = lines[i].split(',');
+        if (columns.length >= 2) {
+          var studentId = columns[0].trim();
+          var grade = columns[1].trim();
+          var comments = columns[2] ? columns[2].trim() : '';
+
+          // Find the submission by student ID and update
+          var gradeInput = $('input[data-submission-id]').filter(function () {
+            var row = $(this).closest('tr');
+            var admissionNo = row.find('td:eq(2)').text().trim();
+            return admissionNo === studentId;
+          });
+
+          if (gradeInput.length > 0) {
+            gradeInput.val(grade);
+            if (comments) {
+              gradeInput.closest('tr').find('.comments-input').val(comments);
+            }
+          }
+        }
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function applyGradeFormula(formula, selectedSubmissions) {
+    switch (formula) {
+      case 'curve':
+        selectedSubmissions.each(function () {
+          var submissionId = $(this).val();
+          var gradeInput = $('input[data-submission-id="' + submissionId + '"]');
+          var currentGrade = parseFloat(gradeInput.val()) || 0;
+          var newGrade = Math.min(currentGrade + 5, {{ assignment.total_marks }});
+        gradeInput.val(newGrade);
+    });
+    break;
+            
+        case 'percentage':
+    var maxGrade = {{ assignment.total_marks }
+  };
+  selectedSubmissions.each(function () {
+    var submissionId = $(this).val();
+    var gradeInput = $('input[data-submission-id="' + submissionId + '"]');
+    var currentGrade = parseFloat(gradeInput.val()) || 0;
+    var percentage = (currentGrade / maxGrade * 100).toFixed(0);
+    gradeInput.val(percentage);
+  });
+  break;
+    }
+}
+
+  function clearGrade(submissionId) {
+    $('input[data-submission-id="' + submissionId + '"]').val('');
+    $('textarea[data-submission-id="' + submissionId + '"]').val('');
+    updateGradeButtonStatus();
+  }
+
+  function previewGrades() {
+    var gradeData = collectGradeData();
+    if (gradeData.length === 0) {
+      alert('No grades to preview.');
+      return;
+    }
+
+    var previewHtml = '<div class="table-responsive"><table class="table table-sm">';
+    previewHtml += '<thead><tr><th>Student</th><th>Grade</th><th>Percentage</th><th>Comments</th></tr></thead><tbody>';
+
+    gradeData.forEach(function (item) {
+      var percentage = (item.grade / {{ assignment.total_marks }
+    } * 100).toFixed(1);
+    previewHtml += '<tr>';
+    previewHtml += '<td>' + item.studentName + '</td>';
+    previewHtml += '<td>' + item.grade + '/' + {{ assignment.total_marks }
+  } + '</td>';
+  previewHtml += '<td>' + percentage + '%</td>';
+  previewHtml += '<td>' + (item.comments || 'No comments') + '</td>';
+  previewHtml += '</tr>';
+    });
+
+  previewHtml += '</tbody></table></div>';
+  $('#previewContent').html(previewHtml);
+  $('#previewModal').modal('show');
+}
+
+  function collectGradeData() {
+    var gradeData = [];
+
+    $('.grade-input').each(function () {
+      var grade = $(this).val();
+      if (grade !== '') {
+        var submissionId = $(this).data('submission-id');
+        var row = $(this).closest('tr');
+        var studentName = row.find('td:eq(1) strong').text();
+        var comments = row.find('.comments-input').val();
+
+        gradeData.push({
+          submissionId: submissionId,
+          studentName: studentName,
+          grade: parseFloat(grade),
+          comments: comments
+        });
+      }
+    });
+
+    return gradeData;
+  }
+
+  function saveGrades(sendNotifications) {
+    var gradeData = collectGradeData();
+
+    if (gradeData.length === 0) {
+      alert('No grades to save.');
+      return;
+    }
+
+    if (confirm('Save ' + gradeData.length + ' grade(s)?' +
+      (sendNotifications ? ' Notifications will be sent to students.' : ''))) {
+
+      // TODO: Implement actual AJAX submission
+      console.log('Saving grades:', gradeData);
+      console.log('Send notifications:', sendNotifications);
+
+      // Simulate successful save
+      alert('Grades saved successfully!');
+
+      // Update UI to reflect saved grades
+      gradeData.forEach(function (item) {
+        var row = $('input[data-submission-id="' + item.submissionId + '"]').closest('tr');
+        row.removeClass('table-warning');
+        row.find('.badge').removeClass('bg-warning').addClass('bg-success').text('Graded');
+      });
+
+      // Update counters
+      var gradedCount = parseInt($('#gradedCount').text()) + gradeData.length;
+      var pendingCount = parseInt($('#pendingCount').text()) - gradeData.length;
+      $('#gradedCount').text(gradedCount);
+      $('#pendingCount').text(pendingCount);
+
+      updateGradeButtonStatus();
+    }
+  }
+
+  function confirmSaveGrades() {
+    $('#previewModal').modal('hide');
+    saveGrades(true);
+  }
+
+  function downloadTemplate() {
+    // Create CSV template
+    var csvContent = "Student ID,Grade,Comments\n";
+
+    $('.submission-select').each(function () {
+      var row = $(this).closest('tr');
+      var admissionNo = row.find('td:eq(2)').text().trim();
+      csvContent += admissionNo + ",,\n";
+    });
+
+    // Download the CSV
+    var blob = new Blob([csvContent], { type: 'text/csv' });
+    var url = window.URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'grading_template.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+</script>
+{% endblock %}

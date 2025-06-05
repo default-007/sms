@@ -1,0 +1,515 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Room Utilization - {{ room.number }}{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Room Utilization - {{ room.number }}</h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:dashboard' %}">Scheduling</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:room_list' %}">Rooms</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:room_detail' room.pk %}">{{ room.number }}</a>
+              </li>
+              <li class="breadcrumb-item active">Utilization</li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <!-- Term Selector -->
+          <div class="dropdown me-2">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-calendar me-1"></i>
+              {% if term %}{{ term }}{% else %}Select Term{% endif %}
+            </button>
+            <ul class="dropdown-menu">
+              {% for available_term in available_terms %}
+              <li>
+                <a class="dropdown-item" href="?term_id={{ available_term.pk }}">
+                  {{ available_term }}
+                </a>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          <a href="{% url 'scheduling:room_calendar' room.pk %}{% if term %}?term_id={{ term.pk }}{% endif %}"
+            class="btn btn-primary">
+            <i class="fas fa-calendar me-1"></i> View Calendar
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if not term %}
+  <!-- No Term Selected -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <i class="fas fa-calendar-alt fa-3x text-muted mb-3"></i>
+          <h5 class="text-muted">No Term Selected</h5>
+          <p class="text-muted">Please select a term to view room utilization data.</p>
+          <div class="dropdown">
+            <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              Select Term
+            </button>
+            <ul class="dropdown-menu">
+              {% for available_term in available_terms %}
+              <li>
+                <a class="dropdown-item" href="?term_id={{ available_term.pk }}">
+                  {{ available_term }}
+                </a>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title">Total Periods</h6>
+              <h3 class="mb-0">{{ utilization_data.total_available_periods|default:"0" }}</h3>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-clock fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title">Used Periods</h6>
+              <h3 class="mb-0">{{ utilization_data.used_periods|default:"0" }}</h3>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-check-circle fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title">Free Periods</h6>
+              <h3 class="mb-0">{{ utilization_data.free_periods|default:"0" }}</h3>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-calendar-plus fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title">Utilization Rate</h6>
+              <h3 class="mb-0">{{ utilization_data.utilization_rate|default:"0" }}%</h3>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-chart-pie fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Utilization Chart -->
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-chart-pie me-2"></i>Utilization Overview
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="utilizationChart"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weekly Schedule Heatmap -->
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-th me-2"></i>Weekly Schedule Heatmap
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="scheduleHeatmap"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Schedule -->
+  {% if calendar_data %}
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-calendar-week me-2"></i>Detailed Schedule
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered table-sm">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 100px;">Period</th>
+                  <th>Monday</th>
+                  <th>Tuesday</th>
+                  <th>Wednesday</th>
+                  <th>Thursday</th>
+                  <th>Friday</th>
+                </tr>
+              </thead>
+              <tbody id="scheduleTableBody">
+                <!-- Will be populated by JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Room Information -->
+  <div class="row mt-4">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-info-circle me-2"></i>Room Information
+          </h6>
+        </div>
+        <div class="card-body">
+          <table class="table table-borderless table-sm">
+            <tr>
+              <td class="fw-bold">Room:</td>
+              <td>{{ room.number }} - {{ room.name }}</td>
+            </tr>
+            <tr>
+              <td class="fw-bold">Type:</td>
+              <td><span class="badge bg-info">{{ room.get_room_type_display }}</span></td>
+            </tr>
+            <tr>
+              <td class="fw-bold">Capacity:</td>
+              <td>{{ room.capacity }} students</td>
+            </tr>
+            <tr>
+              <td class="fw-bold">Building:</td>
+              <td>{{ room.building|default:"Not specified" }}</td>
+            </tr>
+            <tr>
+              <td class="fw-bold">Floor:</td>
+              <td>{{ room.floor|default:"Not specified" }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Utilization Analysis -->
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-chart-line me-2"></i>Utilization Analysis
+          </h6>
+        </div>
+        <div class="card-body">
+          {% with rate=utilization_data.utilization_rate|default:0|floatformat:1 %}
+          {% if rate|floatformat:0 == "0" %}
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Underutilized:</strong> This room is not being used during the selected term.
+          </div>
+          {% elif rate < 30 %}
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Low Utilization ({{ rate }}%):</strong> This room has capacity for more bookings.
+          </div>
+          {% elif rate < 70 %}
+          <div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>
+            <strong>Good Utilization ({{ rate }}%):</strong> This room is being used efficiently.
+          </div>
+          {% elif rate < 90 %}
+          <div class="alert alert-warning">
+            <i class="fas fa-clock me-2"></i>
+            <strong>High Utilization ({{ rate }}%):</strong> This room is heavily used with limited availability.
+          </div>
+          {% else %}
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Overutilized ({{ rate }}%):</strong> This room may be overbooked or double-booked.
+          </div>
+          {% endif %}
+          {% endwith %}
+
+          <div class="mt-3">
+            <h6>Recommendations:</h6>
+            <ul class="small mb-0">
+              {% with rate=utilization_data.utilization_rate|default:0 %}
+              {% if rate < 50 %}
+              <li>Consider scheduling more classes in this room</li>
+              <li>Check if room type matches class requirements</li>
+              <li>Review room capacity vs class sizes</li>
+              {% elif rate > 80 %}
+              <li>Consider finding alternative rooms for some classes</li>
+              <li>Check for scheduling conflicts</li>
+              <li>Review if all bookings are necessary</li>
+              {% else %}
+              <li>Utilization is optimal</li>
+              <li>Monitor for any scheduling conflicts</li>
+              {% endif %}
+              {% endwith %}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    {% if term and utilization_data %}
+    // Utilization Pie Chart
+    var utilizationOptions = {
+      series: [{{ utilization_data.used_periods |default: 0 }}, {{ utilization_data.free_periods|default: 0
+  }}],
+    chart: {
+    type: 'pie',
+    height: 350
+  },
+    labels: ['Used Periods', 'Free Periods'],
+    colors: ['#28a745', '#ffc107'],
+    legend: {
+    position: 'bottom'
+  },
+    plotOptions: {
+    pie: {
+      dataLabels: {
+        offset: -5
+      }
+    }
+  },
+    dataLabels: {
+    formatter: function (val, opts) {
+      return opts.w.config.series[opts.seriesIndex] + " periods";
+    }
+  }
+    };
+
+  var utilizationChart = new ApexCharts(document.querySelector("#utilizationChart"), utilizationOptions);
+  utilizationChart.render();
+
+  // Schedule Heatmap (Weekly View)
+  {% if calendar_data %}
+  var scheduleData = {{ calendar_data| safe }};
+  renderScheduleHeatmap(scheduleData);
+  renderScheduleTable(scheduleData);
+  {% else %}
+  // Show empty heatmap
+  var heatmapOptions = {
+    series: [{
+      name: 'Bookings',
+      data: []
+    }],
+    chart: {
+      height: 350,
+      type: 'heatmap',
+    },
+    plotOptions: {
+      heatmap: {
+        shadeIntensity: 0.5,
+        colorScale: {
+          ranges: [{
+            from: 0,
+            to: 0,
+            name: 'Free',
+            color: '#f8f9fa'
+          }, {
+            from: 1,
+            to: 1,
+            name: 'Booked',
+            color: '#28a745'
+          }]
+        }
+      }
+    },
+    title: {
+      text: 'No schedule data available'
+    }
+  };
+
+  var heatmapChart = new ApexCharts(document.querySelector("#scheduleHeatmap"), heatmapOptions);
+  heatmapChart.render();
+  {% endif %}
+  {% endif %}
+});
+
+  function renderScheduleHeatmap(scheduleData) {
+    // Create heatmap data structure
+    var days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+    var periods = [];
+    var maxPeriod = 8; // Default max periods
+
+    // Get all periods
+    for (var day in scheduleData) {
+      scheduleData[day].forEach(function (booking) {
+        if (booking.period > maxPeriod) {
+          maxPeriod = booking.period;
+        }
+      });
+    }
+
+    // Create series data
+    var series = [];
+    for (var p = 1; p <= maxPeriod; p++) {
+      var periodData = [];
+      days.forEach(function (day) {
+        var hasBooking = false;
+        if (scheduleData[day]) {
+          hasBooking = scheduleData[day].some(function (booking) {
+            return booking.period === p;
+          });
+        }
+        periodData.push({ x: day, y: hasBooking ? 1 : 0 });
+      });
+      series.push({
+        name: 'Period ' + p,
+        data: periodData
+      });
+    }
+
+    var heatmapOptions = {
+      series: series,
+      chart: {
+        height: 350,
+        type: 'heatmap',
+      },
+      plotOptions: {
+        heatmap: {
+          shadeIntensity: 0.5,
+          colorScale: {
+            ranges: [{
+              from: 0,
+              to: 0,
+              name: 'Free',
+              color: '#e9ecef'
+            }, {
+              from: 1,
+              to: 1,
+              name: 'Booked',
+              color: '#28a745'
+            }]
+          }
+        }
+      },
+      dataLabels: {
+        enabled: false
+      },
+      stroke: {
+        width: 1
+      }
+    };
+
+    var heatmapChart = new ApexCharts(document.querySelector("#scheduleHeatmap"), heatmapOptions);
+    heatmapChart.render();
+  }
+
+  function renderScheduleTable(scheduleData) {
+    var days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+    var tbody = document.getElementById('scheduleTableBody');
+    if (!tbody) return;
+
+    // Get max period number
+    var maxPeriod = 8;
+    for (var day in scheduleData) {
+      scheduleData[day].forEach(function (booking) {
+        if (booking.period > maxPeriod) {
+          maxPeriod = booking.period;
+        }
+      });
+    }
+
+    // Create table rows
+    for (var p = 1; p <= maxPeriod; p++) {
+      var row = document.createElement('tr');
+
+      // Period number cell
+      var periodCell = document.createElement('td');
+      periodCell.className = 'fw-bold bg-light';
+      periodCell.textContent = 'Period ' + p;
+      row.appendChild(periodCell);
+
+      // Day cells
+      days.forEach(function (day) {
+        var cell = document.createElement('td');
+        var booking = null;
+
+        if (scheduleData[day]) {
+          booking = scheduleData[day].find(function (b) {
+            return b.period === p;
+          });
+        }
+
+        if (booking) {
+          cell.innerHTML = '<div class="small">' +
+            '<strong>' + booking.class + '</strong><br>' +
+            booking.subject + '<br>' +
+            '<span class="text-muted">' + booking.teacher + '</span>' +
+            '</div>';
+          cell.className = 'bg-success bg-opacity-10';
+        } else {
+          cell.innerHTML = '<div class="text-center text-muted small">Free</div>';
+        }
+
+        row.appendChild(cell);
+      });
+
+      tbody.appendChild(row);
+    }
+  }
+</script>
+{% endblock %}

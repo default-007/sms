@@ -1,0 +1,960 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ term.name }} - Term Details{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<style>
+  .progress-ring {
+    width: 120px;
+    height: 120px;
+  }
+
+  .progress-ring circle {
+    stroke-width: 8;
+    fill: transparent;
+    r: 52;
+    cx: 60;
+    cy: 60;
+  }
+
+  .progress-ring .bg {
+    stroke: #e9ecef;
+  }
+
+  .progress-ring .progress {
+    stroke: #198754;
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+    transition: stroke-dasharray 0.5s ease;
+  }
+
+  .stat-card {
+    border-radius: 0.5rem;
+    border: 1px solid #dee2e6;
+    transition: all 0.3s ease;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  }
+
+  .timeline-section {
+    position: relative;
+    padding-left: 2rem;
+  }
+
+  .timeline-section::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, #0d6efd, #198754);
+    border-radius: 1.5px;
+  }
+
+  .date-range-bar {
+    background: linear-gradient(90deg, #e9ecef 0%, #0d6efd 50%, #e9ecef 100%);
+    height: 8px;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .current-position {
+    position: absolute;
+    top: -2px;
+    width: 12px;
+    height: 12px;
+    background: #dc3545;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'academics:term-list' %}">Terms</a></li>
+              <li class="breadcrumb-item"><a
+                  href="{% url 'academics:academic-year-detail' term.academic_year.id %}">{{ term.academic_year.name }}</a>
+              </li>
+              <li class="breadcrumb-item active">{{ term.name }}</li>
+            </ol>
+          </nav>
+          <h2 class="mb-0">
+            {{ term.name }}
+            {% if term.is_current %}
+            <span class="badge bg-success ms-2">Current Term</span>
+            {% endif %}
+          </h2>
+          <p class="text-muted mb-0">{{ term.academic_year.name }} • Term {{ term.term_number }}</p>
+        </div>
+        <div>
+          <a href="{% url 'academics:term-list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Terms
+          </a>
+          {% if perms.academics.change_term %}
+          <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editTermModal">
+            <i class="fas fa-edit"></i> Edit Term
+          </button>
+          {% endif %}
+          {% if not term.is_current and perms.academics.change_term %}
+          <button class="btn btn-success" onclick="setCurrentTerm({{ term.id }})">
+            <i class="fas fa-check-circle"></i> Set as Current
+          </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Term Progress & Overview -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-calendar-check text-primary"></i> Term Overview
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-8">
+              <div class="timeline-section">
+                <div class="mb-3">
+                  <h6 class="text-primary">Duration & Timeline</h6>
+                  <div class="row">
+                    <div class="col-sm-6">
+                      <div class="mb-2">
+                        <label class="form-label fw-bold small">Start Date</label>
+                        <p class="mb-0">{{ term.start_date|date:"F d, Y" }}</p>
+                      </div>
+                    </div>
+                    <div class="col-sm-6">
+                      <div class="mb-2">
+                        <label class="form-label fw-bold small">End Date</label>
+                        <p class="mb-0">{{ term.end_date|date:"F d, Y" }}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label fw-bold small">Progress Timeline</label>
+                    <div class="date-range-bar" id="progressBar">
+                      <div class="current-position" id="currentPosition"></div>
+                    </div>
+                    <div class="d-flex justify-content-between small text-muted mt-1">
+                      <span>{{ term.start_date|date:"M d" }}</span>
+                      <span id="progressText">Loading...</span>
+                      <span>{{ term.end_date|date:"M d" }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <h6 class="text-success">Academic Information</h6>
+                  <div class="row">
+                    <div class="col-sm-6">
+                      <div class="mb-2">
+                        <label class="form-label fw-bold small">Academic Year</label>
+                        <p class="mb-0">{{ term.academic_year.name }}</p>
+                      </div>
+                    </div>
+                    <div class="col-sm-6">
+                      <div class="mb-2">
+                        <label class="form-label fw-bold small">Total Duration</label>
+                        <p class="mb-0">{{ term.get_duration_days }} days</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h6 class="text-info">Status Information</h6>
+                  <div class="row">
+                    <div class="col-sm-6">
+                      <div class="mb-2">
+                        <label class="form-label fw-bold small">Current Status</label>
+                        <p class="mb-0" id="termStatus">
+                          <span class="badge bg-secondary">Loading...</span>
+                        </p>
+                      </div>
+                    </div>
+                    <div class="col-sm-6">
+                      <div class="mb-2">
+                        <label class="form-label fw-bold small">Days Remaining</label>
+                        <p class="mb-0" id="daysRemaining">Loading...</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4 text-center">
+              <div class="mb-3">
+                <h6 class="text-muted">Term Progress</h6>
+                <svg class="progress-ring">
+                  <circle class="bg" stroke-dasharray="327 327" stroke-dashoffset="0"></circle>
+                  <circle class="progress" id="progressCircle" stroke-dasharray="327 327" stroke-dashoffset="327">
+                  </circle>
+                  <text x="50%" y="50%" text-anchor="middle" dy="0.3em" class="h4" fill="#198754"
+                    id="progressPercentage">0%</text>
+                </svg>
+              </div>
+              <div id="termProgressChart"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      {% if summary %}
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-chart-bar text-success"></i> Quick Statistics
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-2">
+            <div class="col-6">
+              <div class="stat-card text-center p-3">
+                <h4 class="text-primary mb-1">{{ summary.statistics.classes_count }}</h4>
+                <small class="text-muted">Classes</small>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="stat-card text-center p-3">
+                <h4 class="text-success mb-1">{{ summary.statistics.students_count }}</h4>
+                <small class="text-muted">Students</small>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="stat-card text-center p-3">
+                <h4 class="text-info mb-1">{{ summary.statistics.attendance_records }}</h4>
+                <small class="text-muted">Attendance</small>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="stat-card text-center p-3">
+                <h4 class="text-warning mb-1">{{ summary.statistics.assignments }}</h4>
+                <small class="text-muted">Assignments</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-3 pt-3 border-top">
+            <div id="statisticsChart"></div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Term Activities Tabs -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <ul class="nav nav-tabs card-header-tabs" id="termTabs">
+            <li class="nav-item">
+              <a class="nav-link active" id="attendance-tab" data-bs-toggle="tab" href="#attendance" role="tab">
+                <i class="fas fa-calendar-check"></i> Attendance
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" id="exams-tab" data-bs-toggle="tab" href="#exams" role="tab">
+                <i class="fas fa-clipboard-list"></i> Exams
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" id="assignments-tab" data-bs-toggle="tab" href="#assignments" role="tab">
+                <i class="fas fa-tasks"></i> Assignments
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" id="finances-tab" data-bs-toggle="tab" href="#finances" role="tab">
+                <i class="fas fa-money-bill-wave"></i> Finances
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" id="analytics-tab" data-bs-toggle="tab" href="#analytics" role="tab">
+                <i class="fas fa-chart-line"></i> Analytics
+              </a>
+            </li>
+          </ul>
+        </div>
+        <div class="card-body">
+          <div class="tab-content" id="termTabsContent">
+            <!-- Attendance Tab -->
+            <div class="tab-pane fade show active" id="attendance" role="tabpanel">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">Attendance Records</h6>
+                <button class="btn btn-outline-primary btn-sm">
+                  <i class="fas fa-download"></i> Export Data
+                </button>
+              </div>
+              <div class="table-responsive">
+                <table id="attendanceTable" class="table table-striped table-hover">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Class</th>
+                      <th>Subject</th>
+                      <th>Present</th>
+                      <th>Absent</th>
+                      <th>Late</th>
+                      <th>Attendance Rate</th>
+                      <th>Marked By</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- Data will be loaded via AJAX -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Exams Tab -->
+            <div class="tab-pane fade" id="exams" role="tabpanel">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">Examination Schedule</h6>
+                <button class="btn btn-outline-success btn-sm">
+                  <i class="fas fa-plus"></i> Schedule Exam
+                </button>
+              </div>
+              <div class="table-responsive">
+                <table id="examsTable" class="table table-striped table-hover">
+                  <thead>
+                    <tr>
+                      <th>Exam Name</th>
+                      <th>Type</th>
+                      <th>Class</th>
+                      <th>Subject</th>
+                      <th>Date & Time</th>
+                      <th>Duration</th>
+                      <th>Room</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- Data will be loaded via AJAX -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Assignments Tab -->
+            <div class="tab-pane fade" id="assignments" role="tabpanel">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">Assignments</h6>
+                <button class="btn btn-outline-info btn-sm">
+                  <i class="fas fa-chart-bar"></i> View Statistics
+                </button>
+              </div>
+              <div class="table-responsive">
+                <table id="assignmentsTable" class="table table-striped table-hover">
+                  <thead>
+                    <tr>
+                      <th>Assignment</th>
+                      <th>Class</th>
+                      <th>Subject</th>
+                      <th>Teacher</th>
+                      <th>Assigned Date</th>
+                      <th>Due Date</th>
+                      <th>Submissions</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- Data will be loaded via AJAX -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Finances Tab -->
+            <div class="tab-pane fade" id="finances" role="tabpanel">
+              <div class="row mb-3">
+                <div class="col-md-8">
+                  <h6 class="mb-0">Financial Overview</h6>
+                </div>
+                <div class="col-md-4 text-end">
+                  <button class="btn btn-outline-warning btn-sm">
+                    <i class="fas fa-file-invoice-dollar"></i> Generate Report
+                  </button>
+                </div>
+              </div>
+
+              <div class="row mb-4">
+                <div class="col-md-3">
+                  <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                      <h4 class="mb-1" id="totalDue">$0</h4>
+                      <small>Total Due</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                      <h4 class="mb-1" id="totalCollected">$0</h4>
+                      <small>Collected</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                      <h4 class="mb-1" id="totalPending">$0</h4>
+                      <small>Pending</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                      <h4 class="mb-1" id="collectionRate">0%</h4>
+                      <small>Collection Rate</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table id="financesTable" class="table table-striped table-hover">
+                  <thead>
+                    <tr>
+                      <th>Invoice #</th>
+                      <th>Student</th>
+                      <th>Class</th>
+                      <th>Amount</th>
+                      <th>Due Date</th>
+                      <th>Status</th>
+                      <th>Payment Date</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- Data will be loaded via AJAX -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Analytics Tab -->
+            <div class="tab-pane fade" id="analytics" role="tabpanel">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="card">
+                    <div class="card-header">
+                      <h6 class="card-title mb-0">Attendance Trends</h6>
+                    </div>
+                    <div class="card-body">
+                      <div id="attendanceTrendChart"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="card">
+                    <div class="card-header">
+                      <h6 class="card-title mb-0">Performance Distribution</h6>
+                    </div>
+                    <div class="card-body">
+                      <div id="performanceChart"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row mt-3">
+                <div class="col-12">
+                  <div class="card">
+                    <div class="card-header">
+                      <h6 class="card-title mb-0">Term Summary Analytics</h6>
+                    </div>
+                    <div class="card-body">
+                      <div id="termSummaryChart"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Term Modal -->
+{% if perms.academics.change_term %}
+<div class="modal fade" id="editTermModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Term</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" id="editTermForm">
+        <div class="modal-body">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="name" class="form-label">Term Name</label>
+            <input type="text" class="form-control" id="name" name="name" value="{{ term.name }}" required>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="start_date" class="form-label">Start Date</label>
+                <input type="date" class="form-control" id="start_date" name="start_date"
+                  value="{{ term.start_date|date:'Y-m-d' }}" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="end_date" class="form-label">End Date</label>
+                <input type="date" class="form-control" id="end_date" name="end_date"
+                  value="{{ term.end_date|date:'Y-m-d' }}" required>
+              </div>
+            </div>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="is_current" name="is_current"
+              {% if term.is_current %}checked{% endif %}>
+            <label class="form-check-label" for="is_current">Current Term</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Update Term</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  $(document).ready(function () {
+    calculateProgress();
+    loadTabData('attendance');
+    renderStatisticsChart();
+
+    // Tab change handler
+    $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+      const target = $(e.target).attr("href").substring(1);
+      loadTabData(target);
+    });
+  });
+
+  function calculateProgress() {
+    const startDate = new Date('{{ term.start_date|date:"Y-m-d" }}');
+    const endDate = new Date('{{ term.end_date|date:"Y-m-d" }}');
+    const today = new Date();
+
+    let progress = 0;
+    let status = 'Not Started';
+    let daysRemaining = 0;
+
+    if (today < startDate) {
+      progress = 0;
+      status = 'Not Started';
+      daysRemaining = Math.ceil((startDate - today) / (1000 * 60 * 60 * 24));
+      document.getElementById('daysRemaining').textContent = `${daysRemaining} days until start`;
+    } else if (today > endDate) {
+      progress = 100;
+      status = 'Completed';
+      const daysPast = Math.ceil((today - endDate) / (1000 * 60 * 60 * 24));
+      document.getElementById('daysRemaining').textContent = `Ended ${daysPast} days ago`;
+    } else {
+      const totalDays = (endDate - startDate) / (1000 * 60 * 60 * 24);
+      const elapsedDays = (today - startDate) / (1000 * 60 * 60 * 24);
+      progress = (elapsedDays / totalDays) * 100;
+      status = 'In Progress';
+      daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+      document.getElementById('daysRemaining').textContent = `${daysRemaining} days remaining`;
+    }
+
+    // Update progress circle
+    const circumference = 2 * Math.PI * 52;
+    const offset = circumference - (progress / 100) * circumference;
+    document.getElementById('progressCircle').style.strokeDashoffset = offset;
+    document.getElementById('progressPercentage').textContent = Math.round(progress) + '%';
+
+    // Update progress bar
+    const progressBar = document.getElementById('currentPosition');
+    progressBar.style.left = `calc(${progress}% - 6px)`;
+
+    // Update status
+    const statusColors = {
+      'Not Started': 'secondary',
+      'In Progress': 'primary',
+      'Completed': 'success'
+    };
+    document.getElementById('termStatus').innerHTML =
+      `<span class="badge bg-${statusColors[status]}">${status}</span>`;
+
+    document.getElementById('progressText').textContent = `${Math.round(progress)}% Complete`;
+  }
+
+  function loadTabData(tab) {
+    switch (tab) {
+      case 'attendance':
+        loadAttendanceData();
+        break;
+      case 'exams':
+        loadExamsData();
+        break;
+      case 'assignments':
+        loadAssignmentsData();
+        break;
+      case 'finances':
+        loadFinancesData();
+        break;
+      case 'analytics':
+        loadAnalyticsData();
+        break;
+    }
+  }
+
+  function loadAttendanceData() {
+    if ($.fn.DataTable.isDataTable('#attendanceTable')) {
+      $('#attendanceTable').DataTable().destroy();
+    }
+
+    $('#attendanceTable').DataTable({
+      ajax: {
+        url: '/api/attendance/?term={{ term.id }}',
+        dataSrc: 'results'
+      },
+      columns: [
+        { data: 'date' },
+        { data: 'class.display_name' },
+        { data: 'subject.name' },
+        { data: 'present_count' },
+        { data: 'absent_count' },
+        { data: 'late_count' },
+        {
+          data: null,
+          render: function (data) {
+            const total = data.present_count + data.absent_count + data.late_count;
+            const rate = total > 0 ? (data.present_count / total * 100) : 0;
+            return `${rate.toFixed(1)}%`;
+          }
+        },
+        { data: 'marked_by.full_name' }
+      ],
+      responsive: true,
+      order: [[0, 'desc']]
+    });
+  }
+
+  function loadExamsData() {
+    if ($.fn.DataTable.isDataTable('#examsTable')) {
+      $('#examsTable').DataTable().destroy();
+    }
+
+    $('#examsTable').DataTable({
+      ajax: {
+        url: '/api/exams/?term={{ term.id }}',
+        dataSrc: 'results'
+      },
+      columns: [
+        { data: 'name' },
+        { data: 'exam_type.name' },
+        { data: 'class.display_name' },
+        { data: 'subject.name' },
+        {
+          data: null,
+          render: function (data) {
+            return `${data.date} ${data.start_time}`;
+          }
+        },
+        { data: 'duration' },
+        { data: 'room' },
+        {
+          data: 'status',
+          render: function (data) {
+            const colors = {
+              'Scheduled': 'primary',
+              'Ongoing': 'warning',
+              'Completed': 'success',
+              'Cancelled': 'danger'
+            };
+            return `<span class="badge bg-${colors[data] || 'secondary'}">${data}</span>`;
+          }
+        },
+        {
+          data: null,
+          orderable: false,
+          render: function (data) {
+            return `
+                        <div class="btn-group btn-group-sm">
+                            <a href="/exams/${data.id}/" class="btn btn-outline-primary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </div>
+                    `;
+          }
+        }
+      ],
+      responsive: true
+    });
+  }
+
+  function loadAssignmentsData() {
+    if ($.fn.DataTable.isDataTable('#assignmentsTable')) {
+      $('#assignmentsTable').DataTable().destroy();
+    }
+
+    $('#assignmentsTable').DataTable({
+      ajax: {
+        url: '/api/assignments/?term={{ term.id }}',
+        dataSrc: 'results'
+      },
+      columns: [
+        { data: 'title' },
+        { data: 'class.display_name' },
+        { data: 'subject.name' },
+        { data: 'teacher.full_name' },
+        { data: 'assigned_date' },
+        { data: 'due_date' },
+        {
+          data: null,
+          render: function (data) {
+            return `${data.submissions_count}/${data.total_students}`;
+          }
+        },
+        {
+          data: 'status',
+          render: function (data) {
+            const colors = {
+              'Draft': 'secondary',
+              'Published': 'primary',
+              'Closed': 'success'
+            };
+            return `<span class="badge bg-${colors[data] || 'secondary'}">${data}</span>`;
+          }
+        }
+      ],
+      responsive: true,
+      order: [[4, 'desc']]
+    });
+  }
+
+  function loadFinancesData() {
+    // Load financial summary
+    fetch(`/api/finance/term-summary/?term={{ term.id }}`)
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('totalDue').textContent = `$${data.total_due || 0}`;
+        document.getElementById('totalCollected').textContent = `$${data.total_collected || 0}`;
+        document.getElementById('totalPending').textContent = `$${data.total_pending || 0}`;
+        document.getElementById('collectionRate').textContent = `${data.collection_rate || 0}%`;
+      })
+      .catch(error => console.error('Error loading financial summary:', error));
+
+    if ($.fn.DataTable.isDataTable('#financesTable')) {
+      $('#financesTable').DataTable().destroy();
+    }
+
+    $('#financesTable').DataTable({
+      ajax: {
+        url: '/api/finance/invoices/?term={{ term.id }}',
+        dataSrc: 'results'
+      },
+      columns: [
+        { data: 'invoice_number' },
+        { data: 'student.full_name' },
+        { data: 'student.current_class.display_name' },
+        {
+          data: 'net_amount',
+          render: function (data) {
+            return `$${data}`;
+          }
+        },
+        { data: 'due_date' },
+        {
+          data: 'status',
+          render: function (data) {
+            const colors = {
+              'Unpaid': 'warning',
+              'Partially Paid': 'info',
+              'Paid': 'success',
+              'Overdue': 'danger'
+            };
+            return `<span class="badge bg-${colors[data] || 'secondary'}">${data}</span>`;
+          }
+        },
+        { data: 'payment_date' },
+        {
+          data: null,
+          orderable: false,
+          render: function (data) {
+            return `
+                        <div class="btn-group btn-group-sm">
+                            <a href="/finance/invoices/${data.id}/" class="btn btn-outline-primary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </div>
+                    `;
+          }
+        }
+      ],
+      responsive: true
+    });
+  }
+
+  function loadAnalyticsData() {
+    // Load analytics charts
+    renderAttendanceTrendChart();
+    renderPerformanceChart();
+    renderTermSummaryChart();
+  }
+
+  function renderStatisticsChart() {
+    {% if summary %}
+    const options = {
+      series: [
+        {{ summary.statistics.classes_count }},
+      {{ summary.statistics.students_count }
+  },
+  { { summary.statistics.attendance_records } },
+  { { summary.statistics.assignments } }
+        ],
+  chart: {
+    type: 'donut',
+      height: 200
+  },
+  labels: ['Classes', 'Students', 'Attendance', 'Assignments'],
+    colors: ['#0d6efd', '#198754', '#17a2b8', '#ffc107'],
+      legend: {
+    show: false
+  }
+    };
+
+  const chart = new ApexCharts(document.querySelector("#statisticsChart"), options);
+  chart.render();
+  {% endif %}
+}
+
+  function renderAttendanceTrendChart() {
+    // Sample data - replace with actual API call
+    const options = {
+      series: [{
+        name: 'Attendance Rate',
+        data: [95, 93, 96, 92, 94, 97, 91]
+      }],
+      chart: {
+        type: 'line',
+        height: 250
+      },
+      xaxis: {
+        categories: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7']
+      },
+      yaxis: {
+        min: 85,
+        max: 100
+      },
+      colors: ['#198754']
+    };
+
+    const chart = new ApexCharts(document.querySelector("#attendanceTrendChart"), options);
+    chart.render();
+  }
+
+  function renderPerformanceChart() {
+    const options = {
+      series: [25, 45, 20, 10],
+      chart: {
+        type: 'donut',
+        height: 250
+      },
+      labels: ['Excellent', 'Good', 'Fair', 'Needs Improvement'],
+      colors: ['#198754', '#0d6efd', '#ffc107', '#dc3545']
+    };
+
+    const chart = new ApexCharts(document.querySelector("#performanceChart"), options);
+    chart.render();
+  }
+
+  function renderTermSummaryChart() {
+    const options = {
+      series: [{
+        name: 'Students',
+        data: [120, 115, 130, 125, 140, 135, 145]
+      }, {
+        name: 'Attendance Rate',
+        data: [95, 93, 96, 92, 94, 97, 91]
+      }],
+      chart: {
+        type: 'line',
+        height: 300
+      },
+      xaxis: {
+        categories: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7']
+      },
+      yaxis: [{
+        title: {
+          text: 'Students'
+        }
+      }, {
+        opposite: true,
+        title: {
+          text: 'Attendance Rate (%)'
+        }
+      }]
+    };
+
+    const chart = new ApexCharts(document.querySelector("#termSummaryChart"), options);
+    chart.render();
+  }
+
+  function setCurrentTerm(termId) {
+    if (confirm('Are you sure you want to set this as the current term?')) {
+      fetch(`/api/terms/${termId}/set-current/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+          'Content-Type': 'application/json'
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            location.reload();
+          } else {
+            alert('Error setting current term: ' + data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error setting current term');
+        });
+    }
+  }
+</script>
+{% endblock %}

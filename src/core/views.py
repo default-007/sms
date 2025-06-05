@@ -539,7 +539,7 @@ class AnalyticsView(SchoolAdminMixin, TemplateView):
         context = super().get_context_data(**kwargs)
 
         # Get current academic year and term
-        from academics.models import AcademicYear, Term
+        from src.academics.models import AcademicYear, Term
 
         current_year = AcademicYear.objects.filter(is_current=True).first()
         current_term = Term.objects.filter(is_current=True).first()

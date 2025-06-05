@@ -1,0 +1,302 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Fee Structures{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-sm-6">
+      <h1 class="h3 mb-3">Fee Structures</h1>
+    </div>
+    <div class="col-sm-6 text-end">
+      <a href="{% url 'finance:fee-structure-create' %}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Add Fee Structure
+      </a>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <form method="get" class="row g-3">
+        <div class="col-md-3">
+          <label for="academic_year" class="form-label">Academic Year</label>
+          <select name="academic_year" id="academic_year" class="form-select">
+            <option value="">All Years</option>
+            {% for year in academic_years %}
+            <option value="{{ year.id }}"
+              {% if request.GET.academic_year == year.id|stringformat:"s" %}selected{% endif %}>
+              {{ year.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="term" class="form-label">Term</label>
+          <select name="term" id="term" class="form-select">
+            <option value="">All Terms</option>
+            {% for term in terms %}
+            <option value="{{ term.id }}" {% if request.GET.term == term.id|stringformat:"s" %}selected{% endif %}>
+              {{ term.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="section" class="form-label">Section</label>
+          <select name="section" id="section" class="form-select">
+            <option value="">All Sections</option>
+            {% for section in sections %}
+            <option value="{{ section.id }}"
+              {% if request.GET.section == section.id|stringformat:"s" %}selected{% endif %}>
+              {{ section.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">&nbsp;</label>
+          <div class="d-grid">
+            <button type="submit" class="btn btn-outline-primary">
+              <i class="fas fa-filter me-2"></i>Filter
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Fee Structures Table -->
+  <div class="card">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table id="feeStructuresTable" class="table table-striped table-hover">
+          <thead>
+            <tr>
+              <th>Fee Category</th>
+              <th>Level</th>
+              <th>Academic Year</th>
+              <th>Term</th>
+              <th>Amount</th>
+              <th>Due Date</th>
+              <th>Late Fee %</th>
+              <th>Grace Period</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for structure in structures %}
+            <tr>
+              <td>
+                <strong>{{ structure.fee_category.name }}</strong>
+                {% if structure.fee_category.description %}
+                <br><small class="text-muted">{{ structure.fee_category.description|truncatewords:10 }}</small>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge bg-secondary">
+                  {{ structure.applicable_level }}
+                </span>
+              </td>
+              <td>{{ structure.academic_year.name }}</td>
+              <td>{{ structure.term.name }}</td>
+              <td>
+                <strong class="text-success">${{ structure.amount|floatformat:2 }}</strong>
+              </td>
+              <td>{{ structure.due_date|date:"M d, Y" }}</td>
+              <td>
+                {% if structure.late_fee_percentage > 0 %}
+                {{ structure.late_fee_percentage }}%
+                {% else %}
+                <span class="text-muted">No late fee</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if structure.grace_period_days > 0 %}
+                {{ structure.grace_period_days }} days
+                {% else %}
+                <span class="text-muted">No grace period</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if structure.is_active %}
+                <span class="badge bg-success">Active</span>
+                {% else %}
+                <span class="badge bg-secondary">Inactive</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm" role="group">
+                  <a href="{% url 'finance:fee-structure-detail' structure.pk %}" class="btn btn-outline-primary"
+                    title="View Details">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  <a href="{% url 'finance:fee-structure-edit' structure.pk %}" class="btn btn-outline-secondary"
+                    title="Edit">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <button type="button" class="btn btn-outline-danger" title="Delete"
+                    onclick="confirmDelete({{ structure.pk }}, '{{ structure.fee_category.name }}')">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="10" class="text-center text-muted py-4">
+                <i class="fas fa-file-invoice fa-3x mb-3 d-block"></i>
+                No fee structures found.
+                <a href="{% url 'finance:fee-structure-create' %}">Create one now</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Statistics -->
+  {% if structures %}
+  <div class="row mt-4">
+    <div class="col-md-4">
+      <div class="card bg-light">
+        <div class="card-body text-center">
+          <h6 class="card-title">Total Structures</h6>
+          <h4 class="text-primary">{{ structures|length }}</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card bg-light">
+        <div class="card-body text-center">
+          <h6 class="card-title">Active Structures</h6>
+          <h4 class="text-success">{{ structures|length }}</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card bg-light">
+        <div class="card-body text-center">
+          <h6 class="card-title">Total Value</h6>
+          <h4 class="text-info">
+            ${% for structure in structures %}{{ structure.amount|add:0 }}{% empty %}0{% endfor %}
+          </h4>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete the fee structure for <strong id="deleteItemName"></strong>?</p>
+        <div class="alert alert-warning">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          This action cannot be undone and may affect existing invoices.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form id="deleteForm" method="post" style="display: inline;">
+          {% csrf_token %}
+          <input type="hidden" name="_method" value="DELETE">
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-trash me-2"></i>Delete
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    $('#feeStructuresTable').DataTable({
+      "pageLength": 25,
+      "order": [[2, "desc"], [3, "desc"]], // Sort by Academic Year and Term
+      "columnDefs": [
+        {
+          "targets": [9], // Actions column
+          "orderable": false,
+          "searchable": false
+        }
+      ],
+      "language": {
+        "search": "Search fee structures:",
+        "lengthMenu": "Show _MENU_ structures per page",
+        "info": "Showing _START_ to _END_ of _TOTAL_ fee structures",
+        "emptyTable": "No fee structures found",
+        "zeroRecords": "No matching fee structures found"
+      },
+      "responsive": true,
+      "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip'
+    });
+
+    // Filter change handlers
+    $('#academic_year, #term, #section').change(function () {
+      // Auto-submit form when filters change
+      $(this).closest('form').submit();
+    });
+  });
+
+  function confirmDelete(id, name) {
+    $('#deleteItemName').text(name);
+    $('#deleteForm').attr('action', '/finance/fee-structures/' + id + '/delete/');
+
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+  }
+
+  // Export functionality
+  function exportToCSV() {
+    const table = $('#feeStructuresTable').DataTable();
+    const data = table.buttons.exportData({
+      columns: ':visible:not(:last-child)' // Exclude actions column
+    });
+
+    // Create CSV content
+    let csvContent = "data:text/csv;charset=utf-8,";
+
+    // Add headers
+    csvContent += data.header.join(",") + "\n";
+
+    // Add data rows
+    data.body.forEach(function (rowArray) {
+      csvContent += rowArray.join(",") + "\n";
+    });
+
+    // Download file
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "fee_structures_" + new Date().getTime() + ".csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+</script>
+{% endblock %}

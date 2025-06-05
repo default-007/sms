@@ -1,0 +1,397 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Fee Structure Details - {{ object.fee_category.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-0">
+            <i class="fas fa-cog me-2"></i>Fee Structure Details
+            {% if object.is_active %}
+            <span class="badge bg-success ms-2">Active</span>
+            {% else %}
+            <span class="badge bg-secondary ms-2">Inactive</span>
+            {% endif %}
+          </h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'finance:dashboard' %}">Finance</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'finance:fee-structure-list' %}">Fee Structures</a></li>
+              <li class="breadcrumb-item active">{{ object.fee_category.name }}</li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <a href="{% url 'finance:fee-structure-list' %}" class="btn btn-secondary me-2">
+            <i class="fas fa-arrow-left me-2"></i>Back to List
+          </a>
+          <a href="{% url 'finance:fee-structure-edit' object.pk %}" class="btn btn-primary">
+            <i class="fas fa-edit me-2"></i>Edit Structure
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Fee Structure Information -->
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Structure Details</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label text-muted">Fee Category</label>
+            <div class="fw-bold">{{ object.fee_category.name }}</div>
+            <small class="text-muted">{{ object.fee_category.description|default:"No description" }}</small>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted">Academic Period</label>
+            <div>
+              <strong>{{ object.academic_year.name }}</strong>
+              <br><span class="text-primary">{{ object.term.name }}</span>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted">Applicable Level</label>
+            <div>
+              {% if object.grade %}
+              <span class="badge bg-info">Grade Level</span>
+              <br><strong>{{ object.grade }}</strong>
+              {% elif object.section %}
+              <span class="badge bg-warning text-dark">Section Level</span>
+              <br><strong>{{ object.section }}</strong>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-6">
+              <label class="form-label text-muted">Amount</label>
+              <div class="fw-bold text-success fs-3">${{ object.amount }}</div>
+            </div>
+            <div class="col-6">
+              <label class="form-label text-muted">Due Date</label>
+              <div class="fw-bold">{{ object.due_date|date:"M d, Y" }}</div>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-6">
+              <label class="form-label text-muted">Late Fee</label>
+              <div>
+                {% if object.late_fee_percentage > 0 %}
+                <span class="fw-bold text-warning">{{ object.late_fee_percentage }}%</span>
+                {% else %}
+                <span class="text-muted">None</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-6">
+              <label class="form-label text-muted">Grace Period</label>
+              <div>
+                {% if object.grace_period_days > 0 %}
+                <span class="fw-bold">{{ object.grace_period_days }} day{{ object.grace_period_days|pluralize }}</span>
+                {% else %}
+                <span class="text-muted">None</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-6">
+              <label class="form-label text-muted">Created</label>
+              <div class="small">{{ object.created_at|date:"M d, Y" }}</div>
+            </div>
+            <div class="col-6">
+              <label class="form-label text-muted">Created By</label>
+              <div class="small">
+                {% if object.created_by %}
+                {{ object.created_by.get_full_name }}
+                {% else %}
+                System
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Information -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Category Properties</h5>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-6">
+              <div class="border-end">
+                {% if object.fee_category.is_mandatory %}
+                <i class="fas fa-exclamation-circle text-danger fa-2x mb-2"></i>
+                <div class="fw-bold text-danger">Mandatory</div>
+                {% else %}
+                <i class="fas fa-question-circle text-secondary fa-2x mb-2"></i>
+                <div class="fw-bold text-secondary">Optional</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-6">
+              {% if object.fee_category.is_recurring %}
+              <i class="fas fa-sync text-success fa-2x mb-2"></i>
+              <div class="fw-bold text-success">Recurring</div>
+              <small class="text-muted">{{ object.fee_category.get_frequency_display }}</small>
+              {% else %}
+              <i class="fas fa-calendar-times text-info fa-2x mb-2"></i>
+              <div class="fw-bold text-info">One Time</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Usage and Statistics -->
+    <div class="col-lg-8">
+      <!-- Statistics Cards -->
+      <div class="row mb-4">
+        <div class="col-md-3">
+          <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+              <h3 class="mb-1">{{ affected_students_count|default:"0" }}</h3>
+              <small>Affected Students</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-success text-white">
+            <div class="card-body text-center">
+              <h3 class="mb-1">{{ invoices_generated|default:"0" }}</h3>
+              <small>Invoices Generated</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-info text-white">
+            <div class="card-body text-center">
+              <h3 class="mb-1">${{ total_billed|default:"0.00" }}</h3>
+              <small>Total Billed</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+              <h3 class="mb-1">{{ collection_rate|default:"0" }}%</h3>
+              <small>Collection Rate</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Related Invoices -->
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Related Invoice Items</h5>
+          <span class="badge bg-primary">{{ related_invoice_items.count }} items</span>
+        </div>
+        <div class="card-body">
+          {% if related_invoice_items %}
+          <div class="table-responsive">
+            <table class="table table-sm table-hover">
+              <thead>
+                <tr>
+                  <th>Invoice #</th>
+                  <th>Student</th>
+                  <th>Amount</th>
+                  <th>Discount</th>
+                  <th>Net Amount</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in related_invoice_items|slice:":15" %}
+                <tr>
+                  <td>
+                    <a href="{% url 'finance:invoice-detail' item.invoice.pk %}" class="text-decoration-none">
+                      {{ item.invoice.invoice_number }}
+                    </a>
+                  </td>
+                  <td>
+                    <div>
+                      <strong>{{ item.invoice.student.user.get_full_name }}</strong>
+                      <br><small class="text-muted">{{ item.invoice.student.admission_number }}</small>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="fw-bold">${{ item.amount }}</span>
+                  </td>
+                  <td>
+                    {% if item.discount_amount > 0 %}
+                    <span class="text-success">-${{ item.discount_amount }}</span>
+                    {% else %}
+                    <span class="text-muted">$0.00</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="fw-bold text-primary">${{ item.net_amount }}</span>
+                  </td>
+                  <td>
+                    {% if item.invoice.status == 'paid' %}
+                    <span class="badge bg-success">Paid</span>
+                    {% elif item.invoice.status == 'partially_paid' %}
+                    <span class="badge bg-warning text-dark">Partial</span>
+                    {% elif item.invoice.status == 'overdue' %}
+                    <span class="badge bg-danger">Overdue</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Unpaid</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <a href="{% url 'finance:invoice-detail' item.invoice.pk %}" class="btn btn-sm btn-outline-primary">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% if related_invoice_items.count > 15 %}
+          <div class="text-center mt-3">
+            <small class="text-muted">Showing first 15 of {{ related_invoice_items.count }} invoice items</small>
+            <br>
+            <a href="{% url 'finance:invoice-list' %}?fee_structure={{ object.pk }}"
+              class="btn btn-sm btn-outline-primary mt-2">
+              View All Related Invoices
+            </a>
+          </div>
+          {% endif %}
+          {% else %}
+          <div class="text-center py-4">
+            <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+            <p class="text-muted mb-0">No invoices have been generated using this fee structure yet.</p>
+            {% if object.is_active %}
+            <small class="text-muted">Invoices will be created during the next billing cycle.</small>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Affected Students Preview -->
+      {% if object.grade %}
+      <div class="card mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Affected Students ({{ object.grade }})</h5>
+          <span class="badge bg-info">{{ affected_students.count }} students</span>
+        </div>
+        <div class="card-body">
+          {% if affected_students %}
+          <div class="row">
+            {% for student in affected_students|slice:":12" %}
+            <div class="col-md-6 col-lg-4 mb-2">
+              <div class="d-flex align-items-center">
+                <i class="fas fa-user-circle text-muted me-2"></i>
+                <div>
+                  <small class="fw-bold">{{ student.user.get_full_name }}</small>
+                  <br><small class="text-muted">{{ student.admission_number }}</small>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% if affected_students.count > 12 %}
+          <div class="text-center mt-3">
+            <small class="text-muted">Showing first 12 of {{ affected_students.count }} affected students</small>
+          </div>
+          {% endif %}
+          {% else %}
+          <div class="text-center py-3">
+            <i class="fas fa-users fa-2x text-muted mb-2"></i>
+            <p class="text-muted mb-0">No students found for this level.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Animate statistics cards
+    $('.card h3').each(function () {
+      const $this = $(this);
+      const text = $this.text();
+
+      // Handle currency values
+      if (text.includes('$')) {
+        const value = parseFloat(text.replace('$', '').replace(',', ''));
+        if (!isNaN(value)) {
+          $({ countNum: 0 }).animate({
+            countNum: value
+          }, {
+            duration: 1500,
+            easing: 'linear',
+            step: function () {
+              $this.text('$' + Math.floor(this.countNum).toLocaleString());
+            },
+            complete: function () {
+              $this.text('$' + value.toLocaleString());
+            }
+          });
+        }
+      }
+      // Handle percentage values
+      else if (text.includes('%')) {
+        const value = parseFloat(text.replace('%', ''));
+        if (!isNaN(value)) {
+          $({ countNum: 0 }).animate({
+            countNum: value
+          }, {
+            duration: 1500,
+            easing: 'linear',
+            step: function () {
+              $this.text(Math.floor(this.countNum) + '%');
+            },
+            complete: function () {
+              $this.text(value + '%');
+            }
+          });
+        }
+      }
+      // Handle regular numbers
+      else {
+        const value = parseInt(text);
+        if (!isNaN(value)) {
+          $({ countNum: 0 }).animate({
+            countNum: value
+          }, {
+            duration: 1500,
+            easing: 'linear',
+            step: function () {
+              $this.text(Math.floor(this.countNum));
+            },
+            complete: function () {
+              $this.text(value);
+            }
+          });
+        }
+      }
+    });
+  });
+</script>
+{% endblock %}

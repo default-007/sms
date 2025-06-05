@@ -1,0 +1,750 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Finance Analytics - Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Finance Analytics</h2>
+          <p class="text-muted mb-0">Real-time financial insights and performance metrics</p>
+        </div>
+        <div>
+          <div class="btn-group me-2">
+            <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="fas fa-clock"></i> <span id="selectedPeriod">Last 30 Days</span>
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#" onclick="changePeriod(7, 'Last 7 Days')">Last 7 Days</a></li>
+              <li><a class="dropdown-item" href="#" onclick="changePeriod(30, 'Last 30 Days')">Last 30 Days</a></li>
+              <li><a class="dropdown-item" href="#" onclick="changePeriod(90, 'Last 3 Months')">Last 3 Months</a></li>
+              <li><a class="dropdown-item" href="#" onclick="changePeriod(365, 'Last Year')">Last Year</a></li>
+            </ul>
+          </div>
+          <button class="btn btn-outline-success me-2" id="refreshAnalytics">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+          <button class="btn btn-primary" onclick="exportAnalytics()">
+            <i class="fas fa-download"></i> Export
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Real-time Metrics Row -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-primary text-white h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h6 class="card-title mb-1">Today's Collections</h6>
+              <h3 class="mb-0" id="todayCollections">$0.00</h3>
+              <small class="opacity-75">
+                <span id="todayTransactions">0</span> transactions
+              </small>
+            </div>
+            <div class="fs-1 opacity-50">
+              <i class="fas fa-cash-register"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-success text-white h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h6 class="card-title mb-1">Collection Rate</h6>
+              <h3 class="mb-0" id="collectionRate">0%</h3>
+              <small class="opacity-75">
+                Target: <span id="targetRate">85%</span>
+              </small>
+            </div>
+            <div class="fs-1 opacity-50">
+              <i class="fas fa-percentage"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-warning text-white h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h6 class="card-title mb-1">Outstanding</h6>
+              <h3 class="mb-0" id="totalOutstanding">$0.00</h3>
+              <small class="opacity-75">
+                <span id="overdueCount">0</span> overdue
+              </small>
+            </div>
+            <div class="fs-1 opacity-50">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-info text-white h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h6 class="card-title mb-1">Avg. Payment</h6>
+              <h3 class="mb-0" id="avgPayment">$0.00</h3>
+              <small class="opacity-75">
+                vs Last Period: <span id="avgPaymentTrend">+0%</span>
+              </small>
+            </div>
+            <div class="fs-1 opacity-50">
+              <i class="fas fa-chart-line"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Charts Row -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Collection Trends</h5>
+          <div class="btn-group btn-group-sm" role="group">
+            <input type="radio" class="btn-check" name="trendView" id="dailyTrend" autocomplete="off" checked>
+            <label class="btn btn-outline-primary" for="dailyTrend">Daily</label>
+
+            <input type="radio" class="btn-check" name="trendView" id="weeklyTrend" autocomplete="off">
+            <label class="btn btn-outline-primary" for="weeklyTrend">Weekly</label>
+
+            <input type="radio" class="btn-check" name="trendView" id="monthlyTrend" autocomplete="off">
+            <label class="btn btn-outline-primary" for="monthlyTrend">Monthly</label>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="collectionTrendsChart" style="height: 400px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Payment Methods Distribution</h5>
+        </div>
+        <div class="card-body">
+          <div id="paymentMethodsChart" style="height: 400px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Secondary Charts Row -->
+  <div class="row mb-4">
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Collection Performance by Section</h5>
+        </div>
+        <div class="card-body">
+          <div id="sectionPerformanceChart" style="height: 350px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Fee Categories Performance</h5>
+        </div>
+        <div class="card-body">
+          <div id="feeCategoriesChart" style="height: 350px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Time-based Analysis -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Peak Collection Times</h5>
+        </div>
+        <div class="card-body">
+          <div id="peakTimesChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Collection Efficiency</h5>
+        </div>
+        <div class="card-body d-flex align-items-center justify-content-center">
+          <div id="efficiencyGauge" style="height: 300px; width: 100%;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Tables Row -->
+  <div class="row mb-4">
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Top Performing Sections</h5>
+          <button class="btn btn-sm btn-outline-primary" onclick="viewAllSections()">
+            View All <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="topSectionsTable" class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Section</th>
+                  <th>Collection Rate</th>
+                  <th>Amount</th>
+                  <th>Trend</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Populated via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Recent Large Payments</h5>
+          <button class="btn btn-sm btn-outline-primary" onclick="viewAllPayments()">
+            View All <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="largePaymentsTable" class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Amount</th>
+                  <th>Method</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Populated via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerts and Notifications -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Financial Alerts & Insights</h5>
+        </div>
+        <div class="card-body">
+          <div id="financialAlerts">
+            <!-- Populated via JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.41.0/apexcharts.min.js"></script>
+
+<script>
+  // Global variables
+  let currentPeriod = 30;
+  let charts = {};
+  let analyticsData = {};
+
+  $(document).ready(function () {
+    initializeAnalytics();
+    setupEventHandlers();
+    loadAnalyticsData();
+
+    // Auto-refresh every 5 minutes
+    setInterval(loadAnalyticsData, 300000);
+  });
+
+  function initializeAnalytics() {
+    // Initialize all chart containers
+    charts.collectionTrends = null;
+    charts.paymentMethods = null;
+    charts.sectionPerformance = null;
+    charts.feeCategories = null;
+    charts.peakTimes = null;
+    charts.efficiency = null;
+  }
+
+  function setupEventHandlers() {
+    // Refresh button
+    $('#refreshAnalytics').on('click', function () {
+      loadAnalyticsData();
+    });
+
+    // Trend view toggles
+    $('input[name="trendView"]').on('change', function () {
+      updateCollectionTrendsChart();
+    });
+  }
+
+  function loadAnalyticsData() {
+    showLoadingState();
+
+    const params = new URLSearchParams({
+      period: currentPeriod,
+      include_trends: true,
+      include_breakdowns: true
+    });
+
+    $.get(`/finance/analytics/data/?${params.toString()}`)
+      .done(function (data) {
+        analyticsData = data;
+        updateDashboard(data);
+        updateCharts(data);
+        updateTables(data);
+        updateAlerts(data);
+      })
+      .fail(function () {
+        showErrorState();
+      });
+  }
+
+  function showLoadingState() {
+    $('.card-body').each(function () {
+      if ($(this).find('#collectionTrendsChart, #paymentMethodsChart').length > 0) {
+        $(this).html('<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Loading analytics...</p></div>');
+      }
+    });
+  }
+
+  function showErrorState() {
+    $('.card-body').each(function () {
+      if ($(this).find('.fa-spinner').length > 0) {
+        $(this).html('<div class="alert alert-danger">Error loading analytics data. Please try again.</div>');
+      }
+    });
+  }
+
+  function updateDashboard(data) {
+    // Update key metrics
+    $('#todayCollections').text(`$${formatNumber(data.metrics.today_collections)}`);
+    $('#todayTransactions').text(data.metrics.today_transactions);
+    $('#collectionRate').text(`${data.metrics.collection_rate}%`);
+    $('#totalOutstanding').text(`$${formatNumber(data.metrics.total_outstanding)}`);
+    $('#overdueCount').text(data.metrics.overdue_count);
+    $('#avgPayment').text(`$${formatNumber(data.metrics.avg_payment)}`);
+
+    // Update trend indicators
+    const trend = data.metrics.avg_payment_trend || 0;
+    const trendElement = $('#avgPaymentTrend');
+    trendElement.text(`${trend > 0 ? '+' : ''}${trend}%`);
+    trendElement.removeClass('text-success text-danger').addClass(trend >= 0 ? 'text-success' : 'text-danger');
+  }
+
+  function updateCharts(data) {
+    // Collection Trends Chart
+    updateCollectionTrendsChart();
+
+    // Payment Methods Chart
+    const paymentMethodsOptions = {
+      series: data.payment_methods.map(method => method.amount),
+      chart: {
+        type: 'donut',
+        height: 400
+      },
+      labels: data.payment_methods.map(method => method.name),
+      colors: ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6f42c1', '#fd7e14'],
+      legend: {
+        position: 'bottom'
+      },
+      dataLabels: {
+        enabled: true,
+        formatter: function (val) {
+          return val.toFixed(1) + '%';
+        }
+      }
+    };
+
+    if (charts.paymentMethods) {
+      charts.paymentMethods.destroy();
+    }
+    charts.paymentMethods = new ApexCharts(document.querySelector("#paymentMethodsChart"), paymentMethodsOptions);
+    charts.paymentMethods.render();
+
+    // Section Performance Chart
+    const sectionPerformanceOptions = {
+      series: [{
+        name: 'Collection Rate (%)',
+        data: data.section_performance.map(section => section.collection_rate)
+      }],
+      chart: {
+        type: 'bar',
+        height: 350
+      },
+      xaxis: {
+        categories: data.section_performance.map(section => section.name)
+      },
+      yaxis: {
+        title: {
+          text: 'Collection Rate (%)'
+        },
+        max: 100
+      },
+      colors: ['#198754'],
+      dataLabels: {
+        enabled: true,
+        formatter: function (val) {
+          return val.toFixed(1) + '%';
+        }
+      }
+    };
+
+    if (charts.sectionPerformance) {
+      charts.sectionPerformance.destroy();
+    }
+    charts.sectionPerformance = new ApexCharts(document.querySelector("#sectionPerformanceChart"), sectionPerformanceOptions);
+    charts.sectionPerformance.render();
+
+    // Fee Categories Chart
+    const feeCategoriesOptions = {
+      series: [{
+        name: 'Expected',
+        data: data.fee_categories.map(cat => cat.expected)
+      }, {
+        name: 'Collected',
+        data: data.fee_categories.map(cat => cat.collected)
+      }],
+      chart: {
+        type: 'bar',
+        height: 350
+      },
+      xaxis: {
+        categories: data.fee_categories.map(cat => cat.name)
+      },
+      yaxis: {
+        labels: {
+          formatter: function (val) {
+            return '$' + formatNumber(val);
+          }
+        }
+      },
+      colors: ['#6c757d', '#198754']
+    };
+
+    if (charts.feeCategories) {
+      charts.feeCategories.destroy();
+    }
+    charts.feeCategories = new ApexCharts(document.querySelector("#feeCategoriesChart"), feeCategoriesOptions);
+    charts.feeCategories.render();
+
+    // Peak Times Chart
+    const peakTimesOptions = {
+      series: [{
+        name: 'Collections',
+        data: data.peak_times.map(time => ({
+          x: time.hour,
+          y: time.amount
+        }))
+      }],
+      chart: {
+        type: 'heatmap',
+        height: 300
+      },
+      xaxis: {
+        title: {
+          text: 'Hour of Day'
+        }
+      },
+      yaxis: {
+        title: {
+          text: 'Day of Week'
+        }
+      },
+      colors: ['#0d6efd']
+    };
+
+    if (charts.peakTimes) {
+      charts.peakTimes.destroy();
+    }
+    charts.peakTimes = new ApexCharts(document.querySelector("#peakTimesChart"), peakTimesOptions);
+    charts.peakTimes.render();
+
+    // Efficiency Gauge
+    const efficiencyOptions = {
+      series: [data.metrics.collection_rate],
+      chart: {
+        type: 'radialBar',
+        height: 300
+      },
+      plotOptions: {
+        radialBar: {
+          startAngle: -135,
+          endAngle: 135,
+          dataLabels: {
+            name: {
+              fontSize: '16px',
+              color: '#0d6efd',
+              offsetY: 120
+            },
+            value: {
+              offsetY: 76,
+              fontSize: '22px',
+              color: '#0d6efd',
+              formatter: function (val) {
+                return val + '%';
+              }
+            }
+          }
+        }
+      },
+      fill: {
+        type: 'gradient',
+        gradient: {
+          shade: 'dark',
+          shadeIntensity: 0.15,
+          inverseColors: false,
+          opacityFrom: 1,
+          opacityTo: 1,
+          stops: [0, 50, 65, 91]
+        },
+      },
+      stroke: {
+        dashArray: 4
+      },
+      labels: ['Collection Efficiency']
+    };
+
+    if (charts.efficiency) {
+      charts.efficiency.destroy();
+    }
+    charts.efficiency = new ApexCharts(document.querySelector("#efficiencyGauge"), efficiencyOptions);
+    charts.efficiency.render();
+  }
+
+  function updateCollectionTrendsChart() {
+    if (!analyticsData.trends) return;
+
+    const selectedView = $('input[name="trendView"]:checked').attr('id');
+    let trendsData = analyticsData.trends.daily;
+
+    if (selectedView === 'weeklyTrend') {
+      trendsData = analyticsData.trends.weekly || analyticsData.trends.daily;
+    } else if (selectedView === 'monthlyTrend') {
+      trendsData = analyticsData.trends.monthly || analyticsData.trends.daily;
+    }
+
+    const collectionTrendsOptions = {
+      series: [{
+        name: 'Collections',
+        data: trendsData.map(item => ({
+          x: item.date,
+          y: item.amount
+        }))
+      }, {
+        name: 'Transactions',
+        data: trendsData.map(item => ({
+          x: item.date,
+          y: item.count * 10 // Scale for visibility
+        }))
+      }],
+      chart: {
+        type: 'line',
+        height: 400,
+        toolbar: { show: true }
+      },
+      xaxis: {
+        type: 'datetime'
+      },
+      yaxis: [{
+        title: {
+          text: 'Collections ($)'
+        },
+        labels: {
+          formatter: function (val) {
+            return '$' + formatNumber(val);
+          }
+        }
+      }, {
+        opposite: true,
+        title: {
+          text: 'Transactions (x10)'
+        }
+      }],
+      colors: ['#0d6efd', '#198754'],
+      stroke: {
+        curve: 'smooth',
+        width: 3
+      },
+      markers: {
+        size: 5
+      }
+    };
+
+    if (charts.collectionTrends) {
+      charts.collectionTrends.destroy();
+    }
+    charts.collectionTrends = new ApexCharts(document.querySelector("#collectionTrendsChart"), collectionTrendsOptions);
+    charts.collectionTrends.render();
+  }
+
+  function updateTables(data) {
+    // Top Sections Table
+    const topSectionsTableBody = $('#topSectionsTable tbody');
+    topSectionsTableBody.empty();
+
+    data.section_performance.slice(0, 5).forEach(section => {
+      const trend = section.trend > 0 ?
+        `<i class="fas fa-arrow-up text-success"></i> ${section.trend}%` :
+        `<i class="fas fa-arrow-down text-danger"></i> ${Math.abs(section.trend)}%`;
+
+      topSectionsTableBody.append(`
+            <tr>
+                <td><strong>${section.name}</strong></td>
+                <td><span class="badge bg-success">${section.collection_rate}%</span></td>
+                <td>$${formatNumber(section.collected)}</td>
+                <td>${trend}</td>
+            </tr>
+        `);
+    });
+
+    // Large Payments Table
+    const largePaymentsTableBody = $('#largePaymentsTable tbody');
+    largePaymentsTableBody.empty();
+
+    data.large_payments.slice(0, 5).forEach(payment => {
+      largePaymentsTableBody.append(`
+            <tr>
+                <td><strong>${payment.student_name}</strong></td>
+                <td>$${formatNumber(payment.amount)}</td>
+                <td><span class="badge bg-secondary">${payment.method}</span></td>
+                <td>${formatDate(payment.date)}</td>
+            </tr>
+        `);
+    });
+  }
+
+  function updateAlerts(data) {
+    const alertsContainer = $('#financialAlerts');
+    alertsContainer.empty();
+
+    if (data.alerts && data.alerts.length > 0) {
+      data.alerts.forEach(alert => {
+        const alertClass = getAlertClass(alert.type);
+        const alertIcon = getAlertIcon(alert.type);
+
+        alertsContainer.append(`
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    <i class="${alertIcon}"></i>
+                    <strong>${alert.title}:</strong> ${alert.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `);
+      });
+    } else {
+      alertsContainer.append(`
+            <div class="alert alert-info" role="alert">
+                <i class="fas fa-info-circle"></i>
+                <strong>All Good!</strong> No financial alerts at this time.
+            </div>
+        `);
+    }
+  }
+
+  // Utility functions
+  function formatNumber(num) {
+    return parseFloat(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function formatDate(dateStr) {
+    return new Date(dateStr).toLocaleDateString();
+  }
+
+  function getAlertClass(type) {
+    const classMap = {
+      'warning': 'alert-warning',
+      'danger': 'alert-danger',
+      'info': 'alert-info',
+      'success': 'alert-success'
+    };
+    return classMap[type] || 'alert-info';
+  }
+
+  function getAlertIcon(type) {
+    const iconMap = {
+      'warning': 'fas fa-exclamation-triangle',
+      'danger': 'fas fa-times-circle',
+      'info': 'fas fa-info-circle',
+      'success': 'fas fa-check-circle'
+    };
+    return iconMap[type] || 'fas fa-info-circle';
+  }
+
+  function changePeriod(days, label) {
+    currentPeriod = days;
+    $('#selectedPeriod').text(label);
+    loadAnalyticsData();
+  }
+
+  function exportAnalytics() {
+    const params = new URLSearchParams({
+      period: currentPeriod,
+      format: 'excel'
+    });
+    window.open(`/finance/analytics/export/?${params.toString()}`);
+  }
+
+  function viewAllSections() {
+    window.location.href = '/finance/reports/collection/?view=sections';
+  }
+
+  function viewAllPayments() {
+    window.location.href = '/finance/payments/';
+  }
+</script>
+
+<style>
+  .card-title {
+    font-weight: 600;
+  }
+
+  .table td {
+    vertical-align: middle;
+  }
+
+  .btn-check:checked+.btn {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+  }
+</style>
+{% endblock %}

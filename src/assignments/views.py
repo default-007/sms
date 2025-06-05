@@ -9,7 +9,13 @@ from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMix
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, Prefetch, Q, Sum
-from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
+from django.http import (
+    FileResponse,
+    Http404,
+    HttpResponse,
+    HttpResponseForbidden,
+    JsonResponse,
+)
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -25,11 +31,14 @@ from django.views.generic import (
     View,
 )
 
+from src.academics.models import Class
 from src.assignments.services.analytics_service import AssignmentAnalyticsService
 from src.core.mixins import (
     StudentMixin,
     TeacherMixin,
 )
+from src.students.models import Student
+from src.subjects.models import Subject
 
 from .filters import AssignmentFilter, AssignmentSubmissionFilter
 from .forms import (

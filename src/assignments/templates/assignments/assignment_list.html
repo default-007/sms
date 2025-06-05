@@ -1,0 +1,446 @@
+{% extends "base.html" %}
+{% load assignment_tags %}
+
+{% block title %}Assignments{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <!-- Header Section -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h2 class="mb-1">Assignments</h2>
+          <p class="text-muted mb-0">Manage and track assignment progress</p>
+        </div>
+        {% if user.teacher %}
+        <div>
+          <a href="{% url 'assignments:assignment_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Create Assignment
+          </a>
+          <div class="btn-group ms-2">
+            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="fas fa-cog me-2"></i>Actions
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="{% url 'assignments:bulk_publish' %}">Bulk Publish</a></li>
+              <li><a class="dropdown-item" href="{% url 'assignments:bulk_close' %}">Bulk Close</a></li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li><a class="dropdown-item" href="{% url 'assignments:assignment_export' %}">Export Assignments</a></li>
+            </ul>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Stats Cards (for teachers) -->
+      {% if user.teacher and stats %}
+      <div class="row mb-4">
+        <div class="col-md-3">
+          <div class="card bg-primary text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h4 class="mb-0">{{ stats.total }}</h4>
+                  <p class="mb-0">Total Assignments</p>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-clipboard-list fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-success text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h4 class="mb-0">{{ stats.published }}</h4>
+                  <p class="mb-0">Published</p>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-check-circle fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-warning text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h4 class="mb-0">{{ stats.draft }}</h4>
+                  <p class="mb-0">Draft</p>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-edit fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-danger text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h4 class="mb-0">{{ stats.overdue }}</h4>
+                  <p class="mb-0">Overdue</p>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-exclamation-triangle fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Filters Card -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-filter me-2"></i>Filters
+            <button class="btn btn-sm btn-outline-secondary float-end" type="button" data-bs-toggle="collapse"
+              data-bs-target="#filterCollapse">
+              <i class="fas fa-chevron-down"></i>
+            </button>
+          </h5>
+        </div>
+        <div class="collapse" id="filterCollapse">
+          <div class="card-body">
+            <form method="get" class="row g-3">
+              <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                  <option value="">All Status</option>
+                  {% for value, label in status_choices %}
+                  <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Subject</label>
+                <select name="subject" class="form-select">
+                  <option value="">All Subjects</option>
+                  {% for subject in subjects %}
+                  <option value="{{ subject.id }}"
+                    {% if request.GET.subject == subject.id|stringformat:"s" %}selected{% endif %}>{{ subject.name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Class</label>
+                <select name="class" class="form-select">
+                  <option value="">All Classes</option>
+                  {% for class in classes %}
+                  <option value="{{ class.id }}"
+                    {% if request.GET.class == class.id|stringformat:"s" %}selected{% endif %}>{{ class }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                  <button type="submit" class="btn btn-primary">Apply Filters</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Assignments Table -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-list me-2"></i>Assignments List
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="assignmentsTable" class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  {% if user.teacher %}
+                  <th>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="selectAll">
+                    </div>
+                  </th>
+                  {% endif %}
+                  <th>Assignment</th>
+                  <th>Subject</th>
+                  {% if not user.student %}
+                  <th>Class</th>
+                  {% endif %}
+                  <th>Due Date</th>
+                  <th>Status</th>
+                  <th>Submissions</th>
+                  <th>Progress</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for assignment in assignments %}
+                <tr>
+                  {% if user.teacher %}
+                  <td>
+                    <div class="form-check">
+                      <input class="form-check-input assignment-checkbox" type="checkbox" value="{{ assignment.id }}">
+                    </div>
+                  </td>
+                  {% endif %}
+                  <td>
+                    <div>
+                      <h6 class="mb-1">
+                        <a href="{% url 'assignments:assignment_detail' assignment.pk %}" class="text-decoration-none">
+                          {{ assignment.title }}
+                        </a>
+                      </h6>
+                      <small class="text-muted">{{ assignment.description|truncatechars:100 }}</small>
+                      <div class="mt-1">
+                        {% assignment_difficulty_icon assignment.difficulty_level %}
+                        {% if assignment.total_marks %}
+                        <span class="badge bg-light text-dark">{{ assignment.total_marks }} marks</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-primary">{{ assignment.subject.code }}</span>
+                    <small class="d-block text-muted">{{ assignment.subject.name }}</small>
+                  </td>
+                  {% if not user.student %}
+                  <td>{{ assignment.class_id }}</td>
+                  {% endif %}
+                  <td>
+                    <div>
+                      {{ assignment.due_date|date:"M d, Y" }}
+                      <small class="d-block">{{ assignment.due_date|date:"g:i A" }}</small>
+                      {% assignment_deadline_warning assignment %}
+                    </div>
+                  </td>
+                  <td>{% assignment_status_badge assignment %}</td>
+                  <td>
+                    <span class="fw-bold">{{ assignment.submission_count }}</span>
+                    {% if user.teacher %}
+                    <small class="d-block text-muted">
+                      {{ assignment.graded_submission_count }} graded
+                    </small>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% assignment_completion_bar assignment %}
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <a href="{% url 'assignments:assignment_detail' assignment.pk %}" class="btn btn-outline-primary"
+                        title="View Details">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      {% if user.teacher and assignment.teacher == user.teacher %}
+                      <a href="{% url 'assignments:assignment_edit' assignment.pk %}" class="btn btn-outline-secondary"
+                        title="Edit">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                      <a href="{% url 'assignments:assignment_analytics' assignment.pk %}" class="btn btn-outline-info"
+                        title="Analytics">
+                        <i class="fas fa-chart-bar"></i>
+                      </a>
+                      {% endif %}
+                      {% if user.student %}
+                      <div>
+                        {% get_student_submission assignment user.student as submission %}
+                        {% if not submission %}
+                        {% if not assignment.is_overdue or assignment.allow_late_submission %}
+                        <a href="{% url 'assignments:submission_create' assignment.pk %}"
+                          class="btn btn-success btn-sm">
+                          <i class="fas fa-upload me-1"></i>Submit
+                        </a>
+                        {% endif %}
+                        {% else %}
+                        <a href="{% url 'assignments:submission_detail' submission.pk %}" class="btn btn-info btn-sm">
+                          <i class="fas fa-eye me-1"></i>View Submission
+                        </a>
+                        {% endif %}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="{% if user.teacher %}9{% elif user.student %}7{% else %}8{% endif %}"
+                    class="text-center py-4">
+                    <div class="text-muted">
+                      <i class="fas fa-clipboard-list fa-3x mb-3"></i>
+                      <h5>No assignments found</h5>
+                      <p>{% if user.teacher %}Create your first assignment to get started.{% else %}No assignments
+                        available at the moment.{% endif %}</p>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      {% if is_paginated %}
+      <nav aria-label="Assignments pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+          {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page=1">First</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+          </li>
+          {% endif %}
+
+          {% for page_num in page_obj.paginator.page_range %}
+          {% if page_num == page_obj.number %}
+          <li class="page-item active">
+            <span class="page-link">{{ page_num }}</span>
+          </li>
+          {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_num }}">{{ page_num }}</a>
+          </li>
+          {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Actions Modal -->
+{% if user.teacher %}
+<div class="modal fade" id="bulkActionsModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Bulk Actions</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Select an action to perform on <span id="selectedCount">0</span> selected assignments:</p>
+        <div class="d-grid gap-2">
+          <button type="button" class="btn btn-success" id="bulkPublish">
+            <i class="fas fa-paper-plane me-2"></i>Publish Assignments
+          </button>
+          <button type="button" class="btn btn-warning" id="bulkClose">
+            <i class="fas fa-lock me-2"></i>Close Assignments
+          </button>
+          <button type="button" class="btn btn-info" id="bulkExtendDeadline">
+            <i class="fas fa-calendar-plus me-2"></i>Extend Deadline
+          </button>
+          <button type="button" class="btn btn-danger" id="bulkDelete">
+            <i class="fas fa-trash me-2"></i>Delete Assignments
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    $('#assignmentsTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[{% if user.teacher %}5{% else %}4{% endif %}, 'desc' ]], // Order by due date
+    columnDefs: [
+    {% if user.teacher %}
+  { orderable: false, targets: [0, -1] }, // Disable sorting for checkbox and actions
+  {% else %}
+  { orderable: false, targets: [-1] }, // Disable sorting for actions column
+  {% endif %}
+        ],
+  dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip',
+    language: {
+    search: "Search assignments:",
+      lengthMenu: "Show _MENU_ assignments per page",
+        info: "Showing _START_ to _END_ of _TOTAL_ assignments",
+          emptyTable: "No assignments available"
+  }
+    });
+
+  {% if user.teacher %}
+  // Select all checkbox functionality
+  $('#selectAll').change(function () {
+    $('.assignment-checkbox').prop('checked', this.checked);
+    updateBulkActionsButton();
+  });
+
+  $('.assignment-checkbox').change(function () {
+    updateBulkActionsButton();
+  });
+
+  function updateBulkActionsButton() {
+    const selectedCount = $('.assignment-checkbox:checked').length;
+    $('#selectedCount').text(selectedCount);
+
+    if (selectedCount > 0) {
+      if (!$('#bulkActionsBtn').length) {
+        $('.card-header h5').append(`
+                    <button id="bulkActionsBtn" class="btn btn-outline-primary btn-sm float-end" data-bs-toggle="modal" data-bs-target="#bulkActionsModal">
+                        <i class="fas fa-tasks me-1"></i>Bulk Actions (${selectedCount})
+                    </button>
+                `);
+      } else {
+        $('#bulkActionsBtn').html(`<i class="fas fa-tasks me-1"></i>Bulk Actions (${selectedCount})`);
+      }
+    } else {
+      $('#bulkActionsBtn').remove();
+    }
+  }
+
+  // Bulk action handlers
+  $('#bulkPublish').click(function () {
+    const selectedIds = $('.assignment-checkbox:checked').map(function () {
+      return $(this).val();
+    }).get();
+
+    if (confirm(`Are you sure you want to publish ${selectedIds.length} assignments?`)) {
+      // Submit form or make AJAX request
+      window.location.href = '{% url "assignments:bulk_publish" %}?ids=' + selectedIds.join(',');
+    }
+  });
+
+  // Similar handlers for other bulk actions...
+  {% endif %}
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+{% endblock %}

@@ -1,0 +1,685 @@
+{% extends "base.html" %}
+{% load assignment_tags %}
+
+{% block title %}Submission - {{ submission.assignment.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-8">
+      <!-- Header Section -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-2">
+                  <li class="breadcrumb-item"><a href="{% url 'assignments:assignment_list' %}">Assignments</a></li>
+                  <li class="breadcrumb-item"><a
+                      href="{% url 'assignments:assignment_detail' submission.assignment.pk %}">{{ submission.assignment.title|truncatechars:30 }}</a>
+                  </li>
+                  {% if user.teacher %}
+                  <li class="breadcrumb-item"><a
+                      href="{% url 'assignments:submission_list' submission.assignment.pk %}">Submissions</a></li>
+                  {% endif %}
+                  <li class="breadcrumb-item active">Submission Details</li>
+                </ol>
+              </nav>
+              <h4 class="mb-1">{{ submission.assignment.title }}</h4>
+              <p class="text-muted mb-0">Submission by {{ submission.student.user.get_full_name }}</p>
+            </div>
+            <div>
+              {% submission_status_badge submission %}
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Submission Info Grid -->
+          <div class="row">
+            <div class="col-md-6">
+              <div class="info-group">
+                <h6 class="text-muted mb-3">Student Information</h6>
+                <div class="d-flex align-items-center mb-3">
+                  <div class="avatar me-3">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                      style="width: 48px; height: 48px;">
+                      {{ submission.student.user.get_full_name|slice:":1" }}
+                    </div>
+                  </div>
+                  <div>
+                    <h6 class="mb-1">{{ submission.student.user.get_full_name }}</h6>
+                    <small class="text-muted">{{ submission.student.admission_number }}</small>
+                    <div><small class="text-muted">{{ submission.student.current_class_id }}</small></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="info-group">
+                <h6 class="text-muted mb-3">Submission Details</h6>
+                <div class="row text-sm">
+                  <div class="col-6">
+                    <strong>Submitted:</strong><br>
+                    <span>{{ submission.submission_date|date:"F d, Y" }}</span><br>
+                    <small class="text-muted">{{ submission.submission_date|date:"g:i A" }}</small>
+                  </div>
+                  <div class="col-6">
+                    <strong>Method:</strong><br>
+                    <span>{{ submission.get_submission_method_display }}</span>
+                    {% if submission.is_late %}
+                    <br><span class="badge bg-warning">{{ submission.days_late }}
+                      day{{ submission.days_late|pluralize }} late</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submission Content -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-file-alt me-2"></i>Submission Content
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if submission.content %}
+          <div class="submission-text mb-4">
+            <h6 class="text-muted mb-2">Text Submission</h6>
+            <div class="border rounded p-3 bg-light">
+              {{ submission.content|linebreaks }}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if submission.attachment %}
+          <div class="submission-file">
+            <h6 class="text-muted mb-2">File Attachment</h6>
+            <div class="border rounded p-3">
+              <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                  {% file_icon submission.attachment.name %}
+                  <div class="ms-3">
+                    <h6 class="mb-1">{{ submission.attachment.name }}</h6>
+                    <small class="text-muted">{{ submission.file_size_mb }} MB</small>
+                  </div>
+                </div>
+                <div class="btn-group">
+                  <a href="{{ submission.attachment.url }}" class="btn btn-outline-primary" target="_blank">
+                    <i class="fas fa-eye me-1"></i>View
+                  </a>
+                  <a href="{% url 'assignments:submission_download' submission.pk %}" class="btn btn-primary">
+                    <i class="fas fa-download me-1"></i>Download
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if submission.student_remarks %}
+          <div class="student-remarks mt-4">
+            <h6 class="text-muted mb-2">Student Notes</h6>
+            <div class="alert alert-info">
+              {{ submission.student_remarks|linebreaks }}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if not submission.content and not submission.attachment %}
+          <div class="text-center text-muted py-4">
+            <i class="fas fa-file-slash fa-3x mb-3"></i>
+            <h6>No Content Submitted</h6>
+            <p>This submission appears to be empty.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Grading Section -->
+      {% if user.teacher and submission.assignment.teacher == user.teacher %}
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            <i class="fas fa-clipboard-check me-2"></i>Grading
+          </h5>
+          {% if submission.status != 'graded' %}
+          <a href="{% url 'assignments:submission_grade' submission.pk %}" class="btn btn-primary">
+            <i class="fas fa-edit me-1"></i>Grade Submission
+          </a>
+          {% else %}
+          <a href="{% url 'assignments:submission_grade' submission.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-edit me-1"></i>Edit Grade
+          </a>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          {% if submission.marks_obtained is not None %}
+          <!-- Graded Submission -->
+          <div class="row mb-4">
+            <div class="col-md-3">
+              <div class="text-center">
+                <h3
+                  class="mb-1 {% if submission.percentage >= 80 %}text-success{% elif submission.percentage >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                  {{ submission.marks_obtained }}/{{ submission.assignment.total_marks }}
+                </h3>
+                <p class="text-muted mb-0">Total Score</p>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-center">
+                <h3 class="mb-1">{{ submission.percentage|floatformat:1 }}%</h3>
+                <p class="text-muted mb-0">Percentage</p>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-center">
+                {% grade_badge submission.percentage %}
+                <p class="text-muted mb-0 mt-1">Grade</p>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-center">
+                {% if submission.is_passed %}
+                <i class="fas fa-check-circle fa-2x text-success"></i>
+                <p class="text-muted mb-0">Passed</p>
+                {% else %}
+                <i class="fas fa-times-circle fa-2x text-danger"></i>
+                <p class="text-muted mb-0">Failed</p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          {% if submission.original_marks and submission.late_penalty_applied %}
+          <div class="alert alert-warning">
+            <strong>Late Penalty Applied:</strong> Original score was
+            {{ submission.original_marks }}/{{ submission.assignment.total_marks }},
+            reduced by {{ submission.assignment.late_penalty_percentage }}% for late submission.
+          </div>
+          {% endif %}
+
+          <div class="grading-details">
+            <div class="row">
+              <div class="col-md-6">
+                <h6 class="text-muted mb-2">Graded By</h6>
+                <p>{{ submission.graded_by.user.get_full_name }}</p>
+              </div>
+              <div class="col-md-6">
+                <h6 class="text-muted mb-2">Graded On</h6>
+                <p>{{ submission.graded_at|date:"F d, Y g:i A" }}</p>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <!-- Ungraded Submission -->
+          <div class="text-center py-4">
+            <i class="fas fa-clock fa-3x text-muted mb-3"></i>
+            <h6>Awaiting Grading</h6>
+            <p class="text-muted">This submission hasn't been graded yet.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Feedback Section -->
+      {% if submission.teacher_remarks or submission.strengths or submission.improvements %}
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-comments me-2"></i>Teacher Feedback
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if submission.teacher_remarks %}
+          <div class="feedback-section mb-4">
+            <h6 class="text-muted mb-2">General Comments</h6>
+            <div class="border-start border-primary ps-3">
+              {{ submission.teacher_remarks|linebreaks }}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="row">
+            {% if submission.strengths %}
+            <div class="col-md-6">
+              <div class="feedback-section">
+                <h6 class="text-success mb-2">
+                  <i class="fas fa-thumbs-up me-1"></i>Strengths
+                </h6>
+                <div class="alert alert-success">
+                  {{ submission.strengths|linebreaks }}
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if submission.improvements %}
+            <div class="col-md-6">
+              <div class="feedback-section">
+                <h6 class="text-warning mb-2">
+                  <i class="fas fa-arrow-up me-1"></i>Areas for Improvement
+                </h6>
+                <div class="alert alert-warning">
+                  {{ submission.improvements|linebreaks }}
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Rubric Grades -->
+      {% if rubric_grades %}
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-list-check me-2"></i>Rubric Assessment
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered">
+              <thead class="table-light">
+                <tr>
+                  <th>Criteria</th>
+                  <th>Points Earned</th>
+                  <th>Max Points</th>
+                  <th>Percentage</th>
+                  <th>Feedback</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for grade in rubric_grades %}
+                <tr>
+                  <td>
+                    <strong>{{ grade.rubric.criteria_name }}</strong>
+                    <br><small class="text-muted">{{ grade.rubric.description }}</small>
+                  </td>
+                  <td class="text-center">{{ grade.points_earned }}</td>
+                  <td class="text-center">{{ grade.rubric.max_points }}</td>
+                  <td class="text-center">
+                    {% with percentage=grade.points_earned|mul:100|div:grade.rubric.max_points %}
+                    <span
+                      class="{% if percentage >= 80 %}text-success{% elif percentage >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                      {{ percentage|floatformat:0 }}%
+                    </span>
+                    {% endwith %}
+                  </td>
+                  <td>{{ grade.feedback|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+      <!-- Quick Actions -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-bolt me-2"></i>Quick Actions
+          </h6>
+        </div>
+        <div class="card-body">
+          {% if user.teacher and submission.assignment.teacher == user.teacher %}
+          <!-- Teacher Actions -->
+          <div class="d-grid gap-2">
+            {% if submission.status != 'graded' %}
+            <a href="{% url 'assignments:submission_grade' submission.pk %}" class="btn btn-primary">
+              <i class="fas fa-clipboard-check me-2"></i>Grade Submission
+            </a>
+            {% else %}
+            <a href="{% url 'assignments:submission_grade' submission.pk %}" class="btn btn-outline-primary">
+              <i class="fas fa-edit me-2"></i>Edit Grade
+            </a>
+            {% endif %}
+
+            {% if submission.attachment %}
+            <a href="{% url 'assignments:submission_download' submission.pk %}" class="btn btn-outline-info">
+              <i class="fas fa-download me-2"></i>Download File
+            </a>
+            {% endif %}
+
+            <button class="btn btn-outline-warning" onclick="checkPlagiarism()">
+              <i class="fas fa-search me-2"></i>Check Plagiarism
+            </button>
+
+            <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#feedbackModal">
+              <i class="fas fa-comment me-2"></i>Add Feedback
+            </button>
+          </div>
+          {% elif user.student and submission.student == user.student %}
+          <!-- Student Actions -->
+          <div class="d-grid gap-2">
+            {% if submission.attachment %}
+            <a href="{% url 'assignments:submission_download' submission.pk %}" class="btn btn-primary">
+              <i class="fas fa-download me-2"></i>Download My File
+            </a>
+            {% endif %}
+
+            {% if submission.status != 'graded' and not submission.assignment.is_overdue %}
+            <a href="{% url 'assignments:submission_edit' submission.pk %}" class="btn btn-outline-warning">
+              <i class="fas fa-edit me-2"></i>Edit Submission
+            </a>
+            {% endif %}
+
+            <a href="{% url 'assignments:assignment_detail' submission.assignment.pk %}"
+              class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-2"></i>Back to Assignment
+            </a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Submission Timeline -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-history me-2"></i>Submission History
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-marker bg-primary"></div>
+              <div class="timeline-content">
+                <h6 class="mb-1">Submission Created</h6>
+                <small class="text-muted">{{ submission.created_at|date:"M d, Y g:i A" }}</small>
+              </div>
+            </div>
+
+            {% if submission.updated_at != submission.created_at %}
+            <div class="timeline-item">
+              <div class="timeline-marker bg-info"></div>
+              <div class="timeline-content">
+                <h6 class="mb-1">Submission Updated</h6>
+                <small class="text-muted">{{ submission.updated_at|date:"M d, Y g:i A" }}</small>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if submission.graded_at %}
+            <div class="timeline-item">
+              <div class="timeline-marker bg-success"></div>
+              <div class="timeline-content">
+                <h6 class="mb-1">Graded by {{ submission.graded_by.user.get_full_name }}</h6>
+                <small class="text-muted">{{ submission.graded_at|date:"M d, Y g:i A" }}</small>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Plagiarism Check Results -->
+      {% if submission.plagiarism_checked %}
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-shield-alt me-2"></i>Plagiarism Check
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="text-center mb-3">
+            <h3 class="mb-1 {% plagiarism_color submission.plagiarism_score %}">
+              {{ submission.plagiarism_score|floatformat:1 }}%
+            </h3>
+            <p class="text-muted mb-0">Similarity Score</p>
+          </div>
+
+          {% if submission.plagiarism_score > 30 %}
+          <div class="alert alert-warning">
+            <strong>High Similarity Detected</strong><br>
+            This submission shows high similarity to other content. Manual review recommended.
+          </div>
+          {% elif submission.plagiarism_score > 10 %}
+          <div class="alert alert-info">
+            <strong>Moderate Similarity</strong><br>
+            Some similarity detected. This may be normal for academic content.
+          </div>
+          {% else %}
+          <div class="alert alert-success">
+            <strong>Low Similarity</strong><br>
+            This submission appears to be original content.
+          </div>
+          {% endif %}
+
+          {% if submission.plagiarism_report %}
+          <button class="btn btn-sm btn-outline-info w-100" data-bs-toggle="modal" data-bs-target="#plagiarismModal">
+            <i class="fas fa-eye me-1"></i>View Detailed Report
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Assignment Details -->
+      <div class="card">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-info-circle me-2"></i>Assignment Details
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="assignment-info">
+            <div class="info-item mb-2">
+              <strong>Subject:</strong> {{ submission.assignment.subject.name }}
+            </div>
+            <div class="info-item mb-2">
+              <strong>Class:</strong> {{ submission.assignment.class_id }}
+            </div>
+            <div class="info-item mb-2">
+              <strong>Total Marks:</strong> {{ submission.assignment.total_marks }}
+            </div>
+            <div class="info-item mb-2">
+              <strong>Due Date:</strong> {{ submission.assignment.due_date|date:"M d, Y g:i A" }}
+            </div>
+            <div class="info-item">
+              <strong>Teacher:</strong> {{ submission.assignment.teacher.user.get_full_name }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Feedback Modal -->
+<div class="modal fade" id="feedbackModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Teacher Feedback</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="feedbackForm">
+          <div class="mb-3">
+            <label class="form-label">General Comments</label>
+            <textarea class="form-control" id="teacherRemarks" rows="4"
+              placeholder="Overall feedback about the submission...">{{ submission.teacher_remarks }}</textarea>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Strengths</label>
+                <textarea class="form-control" id="strengths" rows="3"
+                  placeholder="What did the student do well?">{{ submission.strengths }}</textarea>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Areas for Improvement</label>
+                <textarea class="form-control" id="improvements" rows="3"
+                  placeholder="What can be improved?">{{ submission.improvements }}</textarea>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveFeedback()">Save Feedback</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Plagiarism Report Modal -->
+{% if submission.plagiarism_report %}
+<div class="modal fade" id="plagiarismModal" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Plagiarism Report</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <div class="text-center">
+              <h3 class="{% plagiarism_color submission.plagiarism_score %}">
+                {{ submission.plagiarism_score|floatformat:1 }}%
+              </h3>
+              <p class="text-muted">Overall Similarity</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="text-center">
+              <h3>{{ submission.plagiarism_report.total_comparisons|default:0 }}</h3>
+              <p class="text-muted">Comparisons Made</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="text-center">
+              <h3>{{ submission.plagiarism_report.average_similarity|default:0|floatformat:1 }}%</h3>
+              <p class="text-muted">Average Similarity</p>
+            </div>
+          </div>
+        </div>
+
+        {% if submission.plagiarism_report.detailed_similarities %}
+        <h6>Similar Content Found:</h6>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Similarity</th>
+                <th>Matched Content</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for similarity in submission.plagiarism_report.detailed_similarities %}
+              <tr>
+                <td>
+                  <span
+                    class="{% if similarity.similarity_percentage > 50 %}text-danger{% elif similarity.similarity_percentage > 30 %}text-warning{% else %}text-info{% endif %}">
+                    {{ similarity.similarity_percentage }}%
+                  </span>
+                </td>
+                <td>{{ similarity.matched_content|truncatechars:100 }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function checkPlagiarism() {
+    const button = event.target;
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Checking...';
+    button.disabled = true;
+
+    fetch('{% url "assignments:plagiarism_check" submission.pk %}', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        alert(`Plagiarism check completed. Similarity score: ${data.plagiarism_score}%`);
+        location.reload();
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error occurred while checking plagiarism.');
+        button.innerHTML = originalContent;
+        button.disabled = false;
+      });
+  }
+
+  function saveFeedback() {
+    const remarks = document.getElementById('teacherRemarks').value;
+    const strengths = document.getElementById('strengths').value;
+    const improvements = document.getElementById('improvements').value;
+
+    // Implement feedback saving logic
+    console.log('Saving feedback:', { remarks, strengths, improvements });
+
+    $('#feedbackModal').modal('hide');
+    alert('Feedback saved successfully!');
+    location.reload();
+  }
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .timeline {
+    position: relative;
+    padding-left: 20px;
+  }
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .timeline-marker {
+    position: absolute;
+    left: -30px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+
+  .timeline-content h6 {
+    margin-bottom: 5px;
+  }
+
+  .info-item {
+    line-height: 1.5;
+  }
+
+  .submission-text {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+</style>
+{% endblock %}

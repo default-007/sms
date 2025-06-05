@@ -1,0 +1,364 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ department.name }} - Department Details{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-0">{{ department.name }}</h2>
+          <p class="text-muted mb-0">Department Information & Management</p>
+        </div>
+        <div>
+          <a href="{% url 'academics:department-list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Departments
+          </a>
+          {% if perms.academics.change_department %}
+          <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editDepartmentModal">
+            <i class="fas fa-edit"></i> Edit Department
+          </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Department Info Cards -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-info-circle text-primary"></i> Department Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label fw-bold">Department Name</label>
+                <p class="form-control-plaintext">{{ department.name }}</p>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold">Department Head</label>
+                <p class="form-control-plaintext">
+                  {% if department.head %}
+                  <span class="badge bg-success">
+                    {{ department.head.user.first_name }} {{ department.head.user.last_name }}
+                  </span>
+                  {% else %}
+                  <span class="badge bg-warning">Not Assigned</span>
+                  {% endif %}
+                </p>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold">Status</label>
+                <p class="form-control-plaintext">
+                  {% if department.is_active %}
+                  <span class="badge bg-success">Active</span>
+                  {% else %}
+                  <span class="badge bg-danger">Inactive</span>
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label fw-bold">Creation Date</label>
+                <p class="form-control-plaintext">{{ department.creation_date|date:"F d, Y" }}</p>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold">Last Updated</label>
+                <p class="form-control-plaintext">{{ department.updated_at|date:"F d, Y g:i A" }}</p>
+              </div>
+            </div>
+          </div>
+          {% if department.description %}
+          <div class="mb-3">
+            <label class="form-label fw-bold">Description</label>
+            <p class="form-control-plaintext">{{ department.description }}</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-chart-pie text-success"></i> Quick Statistics
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="text-center mb-3">
+            <div id="departmentStatsChart"></div>
+          </div>
+          <div class="row text-center">
+            <div class="col-6">
+              <h4 class="text-primary mb-0">{{ department.get_teachers_count }}</h4>
+              <small class="text-muted">Teachers</small>
+            </div>
+            <div class="col-6">
+              <h4 class="text-info mb-0">{{ department.get_subjects_count }}</h4>
+              <small class="text-muted">Subjects</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Teachers Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-users text-primary"></i> Department Teachers
+          </h5>
+          {% if perms.teachers.add_teacher %}
+          <button class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-plus"></i> Assign Teacher
+          </button>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="teachersTable" class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Employee ID</th>
+                  <th>Specialization</th>
+                  <th>Experience</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Teachers data will be loaded via AJAX -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subjects Section -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-book text-success"></i> Department Subjects
+          </h5>
+          {% if perms.subjects.add_subject %}
+          <button class="btn btn-sm btn-outline-success">
+            <i class="fas fa-plus"></i> Add Subject
+          </button>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="subjectsTable" class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Subject Name</th>
+                  <th>Subject Code</th>
+                  <th>Credit Hours</th>
+                  <th>Type</th>
+                  <th>Grade Level</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Subjects data will be loaded via AJAX -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Department Modal -->
+{% if perms.academics.change_department %}
+<div class="modal fade" id="editDepartmentModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Department</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" id="editDepartmentForm">
+        <div class="modal-body">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="name" class="form-label">Department Name</label>
+            <input type="text" class="form-control" id="name" name="name" value="{{ department.name }}" required>
+          </div>
+          <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <textarea class="form-control" id="description" name="description"
+              rows="3">{{ department.description }}</textarea>
+          </div>
+          <div class="mb-3">
+            <label for="head" class="form-label">Department Head</label>
+            <select class="form-select" id="head" name="head">
+              <option value="">Select Department Head</option>
+              <!-- Options will be populated via AJAX -->
+            </select>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
+              {% if department.is_active %}checked{% endif %}>
+            <label class="form-check-label" for="is_active">Active Department</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Update Department</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTables
+    $('#teachersTable').DataTable({
+      ajax: {
+        url: '{% url "api:teachers-list" %}?department={{ department.id }}',
+        dataSrc: 'results'
+      },
+      columns: [
+        {
+          data: null,
+          render: function (data) {
+            return data.user.first_name + ' ' + data.user.last_name;
+          }
+        },
+        { data: 'employee_id' },
+        { data: 'specialization' },
+        { data: 'experience_years' },
+        {
+          data: 'status',
+          render: function (data) {
+            const badgeClass = data === 'Active' ? 'bg-success' : 'bg-danger';
+            return `<span class="badge ${badgeClass}">${data}</span>`;
+          }
+        },
+        {
+          data: null,
+          orderable: false,
+          render: function (data) {
+            return `
+                        <div class="btn-group btn-group-sm">
+                            <a href="/teachers/${data.id}/" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </div>
+                    `;
+          }
+        }
+      ],
+      responsive: true,
+      language: {
+        emptyTable: "No teachers assigned to this department"
+      }
+    });
+
+    $('#subjectsTable').DataTable({
+      ajax: {
+        url: '{% url "api:subjects-list" %}?department={{ department.id }}',
+        dataSrc: 'results'
+      },
+      columns: [
+        { data: 'name' },
+        { data: 'code' },
+        { data: 'credit_hours' },
+        {
+          data: 'is_elective',
+          render: function (data) {
+            return data ? 'Elective' : 'Core';
+          }
+        },
+        { data: 'grade_level' },
+        {
+          data: 'is_active',
+          render: function (data) {
+            const badgeClass = data ? 'bg-success' : 'bg-danger';
+            const text = data ? 'Active' : 'Inactive';
+            return `<span class="badge ${badgeClass}">${text}</span>`;
+          }
+        },
+        {
+          data: null,
+          orderable: false,
+          render: function (data) {
+            return `
+                        <div class="btn-group btn-group-sm">
+                            <a href="/subjects/${data.id}/" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </div>
+                    `;
+          }
+        }
+      ],
+      responsive: true,
+      language: {
+        emptyTable: "No subjects assigned to this department"
+      }
+    });
+
+    // Department Statistics Chart
+    const options = {
+      series: [{{ department.get_teachers_count }}, {{ department.get_subjects_count }
+  }],
+    chart: {
+    type: 'donut',
+    height: 200
+  },
+    labels: ['Teachers', 'Subjects'],
+    colors: ['#0d6efd', '#198754'],
+    legend: {
+    show: false
+  },
+    plotOptions: {
+    pie: {
+      donut: {
+        size: '70%'
+      }
+    }
+  },
+    dataLabels: {
+    enabled: false
+  }
+    };
+
+  const chart = new ApexCharts(document.querySelector("#departmentStatsChart"), options);
+  chart.render();
+});
+</script>
+{% endblock %}

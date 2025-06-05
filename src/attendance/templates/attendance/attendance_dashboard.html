@@ -4,32 +4,9 @@
 {% block title %}Attendance Dashboard{% endblock %}
 
 {% block extra_css %}
-<style>
-  .stat-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    border-radius: 15px;
-  }
-
-  .stat-card.success {
-    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-  }
-
-  .stat-card.warning {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  }
-
-  .stat-card.danger {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  }
-
-  .chart-container {
-    position: relative;
-    height: 400px;
-    width: 100%;
-  }
-</style>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
 {% endblock %}
 
 {% block content %}
@@ -38,17 +15,23 @@
   <div class="row mb-4">
     <div class="col-12">
       <div class="d-flex justify-content-between align-items-center">
-        <h1>Attendance Dashboard</h1>
         <div>
-          <select id="timeRangeFilter" class="form-select d-inline-block w-auto">
+          <h1 class="h3 mb-0">Attendance Dashboard</h1>
+          <p class="text-muted mb-0">Real-time attendance analytics and insights</p>
+        </div>
+        <div class="d-flex gap-2">
+          <select id="timeRangeFilter" class="form-select" style="width: auto;">
             <option value="7">Last 7 days</option>
             <option value="30" selected>Last 30 days</option>
             <option value="90">Last 3 months</option>
             <option value="365">Last year</option>
           </select>
-          <a href="{% url 'attendance:mark-attendance' %}" class="btn btn-primary ms-2">
-            <i class="fas fa-plus"></i> Mark Attendance
+          <a href="{% url 'attendance:mark-attendance' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Mark Attendance
           </a>
+          <button class="btn btn-outline-secondary" onclick="refreshDashboard()">
+            <i class="fas fa-sync-alt me-1"></i> Refresh
+          </button>
         </div>
       </div>
     </div>
@@ -56,61 +39,84 @@
 
   <!-- Statistics Cards -->
   <div class="row mb-4">
-    <div class="col-md-3">
-      <div class="card stat-card success">
+    <div class="col-xl-3 col-md-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
         <div class="card-body">
-          <div class="d-flex justify-content-between">
-            <div>
-              <h4 id="totalStudents">{{ stats.total_students }}</h4>
-              <p class="mb-0">Total Students</p>
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <div class="bg-primary bg-gradient rounded p-3">
+                <i class="fas fa-users text-white fa-2x"></i>
+              </div>
             </div>
-            <div class="align-self-center">
-              <i class="fas fa-users fa-2x"></i>
+            <div class="flex-grow-1 ms-3">
+              <div class="h4 mb-0" id="totalStudents">{{ stats.total_students }}</div>
+              <div class="text-muted small">Total Students</div>
+              <div class="d-flex align-items-center">
+                <span class="badge bg-light text-dark">Active</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <div class="col-md-3">
-      <div class="card stat-card">
+
+    <div class="col-xl-3 col-md-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
         <div class="card-body">
-          <div class="d-flex justify-content-between">
-            <div>
-              <h4 id="avgAttendance">{{ stats.average_attendance|floatformat:1 }}%</h4>
-              <p class="mb-0">Average Attendance</p>
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <div class="bg-success bg-gradient rounded p-3">
+                <i class="fas fa-percentage text-white fa-2x"></i>
+              </div>
             </div>
-            <div class="align-self-center">
-              <i class="fas fa-percentage fa-2x"></i>
+            <div class="flex-grow-1 ms-3">
+              <div class="h4 mb-0" id="avgAttendance">{{ stats.average_attendance|floatformat:1 }}%</div>
+              <div class="text-muted small">Average Attendance</div>
+              <div class="progress mt-1" style="height: 4px;">
+                <div class="progress-bar bg-success" style="width: {{ stats.average_attendance }}%"></div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <div class="col-md-3">
-      <div class="card stat-card warning">
+
+    <div class="col-xl-3 col-md-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
         <div class="card-body">
-          <div class="d-flex justify-content-between">
-            <div>
-              <h4 id="totalAbsent">{{ stats.total_absent }}</h4>
-              <p class="mb-0">Total Absent Today</p>
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <div class="bg-danger bg-gradient rounded p-3">
+                <i class="fas fa-user-times text-white fa-2x"></i>
+              </div>
             </div>
-            <div class="align-self-center">
-              <i class="fas fa-user-times fa-2x"></i>
+            <div class="flex-grow-1 ms-3">
+              <div class="h4 mb-0" id="totalAbsent">{{ stats.total_absent }}</div>
+              <div class="text-muted small">Absent Today</div>
+              <div class="d-flex align-items-center">
+                <span class="badge bg-danger">Requires Attention</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <div class="col-md-3">
-      <div class="card stat-card danger">
+
+    <div class="col-xl-3 col-md-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
         <div class="card-body">
-          <div class="d-flex justify-content-between">
-            <div>
-              <h4 id="classesMarked">{{ stats.classes_marked_today }}</h4>
-              <p class="mb-0">Classes Marked Today</p>
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <div class="bg-info bg-gradient rounded p-3">
+                <i class="fas fa-check-circle text-white fa-2x"></i>
+              </div>
             </div>
-            <div class="align-self-center">
-              <i class="fas fa-check-circle fa-2x"></i>
+            <div class="flex-grow-1 ms-3">
+              <div class="h4 mb-0" id="classesMarked">{{ stats.classes_marked_today }}</div>
+              <div class="text-muted small">Classes Marked Today</div>
+              <div class="d-flex align-items-center">
+                <small class="text-muted">Updated: <span id="lastUpdate">Just now</span></small>
+              </div>
             </div>
           </div>
         </div>
@@ -120,71 +126,109 @@
 
   <!-- Charts Row -->
   <div class="row mb-4">
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">
-          <h5>Attendance Trend</h5>
+    <div class="col-lg-8 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white border-0 pb-0">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Attendance Trend Analysis</h5>
+            <div class="btn-group btn-group-sm" role="group">
+              <input type="radio" class="btn-check" name="trendView" id="lineView" checked>
+              <label class="btn btn-outline-primary" for="lineView">Line</label>
+              <input type="radio" class="btn-check" name="trendView" id="areaView">
+              <label class="btn btn-outline-primary" for="areaView">Area</label>
+            </div>
+          </div>
         </div>
         <div class="card-body">
-          <div class="chart-container">
-            <canvas id="attendanceTrendChart"></canvas>
-          </div>
+          <div id="attendanceTrendChart" style="height: 350px;"></div>
         </div>
       </div>
     </div>
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">
-          <h5>Class-wise Attendance</h5>
+
+    <div class="col-lg-4 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white border-0 pb-0">
+          <h5 class="card-title mb-0">Status Distribution</h5>
         </div>
         <div class="card-body">
-          <div class="chart-container">
-            <canvas id="classAttendanceChart"></canvas>
-          </div>
+          <div id="statusDistributionChart" style="height: 350px;"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Detailed Analytics -->
-  <div class="row">
-    <div class="col-md-8">
-      <div class="card">
-        <div class="card-header">
-          <h5>Low Attendance Students</h5>
+  <!-- Class Performance & Alerts -->
+  <div class="row mb-4">
+    <div class="col-lg-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white border-0 pb-0">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Class Performance</h5>
+            <button class="btn btn-sm btn-outline-primary" onclick="refreshClassData()">
+              <i class="fas fa-sync-alt me-1"></i> Refresh
+            </button>
+          </div>
         </div>
         <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-striped">
-              <thead>
+          <div id="classPerformanceChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white border-0 pb-0">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Low Attendance Alerts</h5>
+            <span class="badge bg-warning">{{ low_attendance_students|length }} Students</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+            <table class="table table-sm">
+              <thead class="table-light sticky-top">
                 <tr>
                   <th>Student</th>
                   <th>Class</th>
-                  <th>Attendance %</th>
-                  <th>Total Days</th>
-                  <th>Present</th>
-                  <th>Absent</th>
+                  <th>Rate</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {% for student in low_attendance_students %}
                 <tr>
-                  <td>{{ student.name }}</td>
-                  <td>{{ student.class_name }}</td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div
+                        class="avatar-sm bg-warning bg-gradient rounded-circle d-flex align-items-center justify-content-center me-2">
+                        <i class="fas fa-user text-white"></i>
+                      </div>
+                      <div>
+                        <div class="fw-semibold">{{ student.name }}</div>
+                        <small class="text-muted">{{ student.absent_days }} days absent</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-light text-dark">{{ student.class_name }}</span>
+                  </td>
                   <td>
                     <span
-                      class="badge bg-{% if student.attendance_percentage < 60 %}danger{% elif student.attendance_percentage < 80 %}warning{% else %}success{% endif %}">
+                      class="badge {% if student.attendance_percentage < 60 %}bg-danger{% elif student.attendance_percentage < 80 %}bg-warning{% else %}bg-success{% endif %}">
                       {{ student.attendance_percentage|floatformat:1 }}%
                     </span>
                   </td>
-                  <td>{{ student.total_days }}</td>
-                  <td class="text-success">{{ student.present_days }}</td>
-                  <td class="text-danger">{{ student.absent_days }}</td>
                   <td>
                     <a href="{% url 'attendance:student-report' student.id %}" class="btn btn-sm btn-outline-primary">
-                      View Report
+                      <i class="fas fa-chart-line"></i>
                     </a>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="4" class="text-center text-muted py-3">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    All students have good attendance
                   </td>
                 </tr>
                 {% endfor %}
@@ -194,159 +238,448 @@
         </div>
       </div>
     </div>
-    <div class="col-md-4">
-      <div class="card">
-        <div class="card-header">
-          <h5>Attendance Status Distribution</h5>
+  </div>
+
+  <!-- Recent Activity & Quick Actions -->
+  <div class="row">
+    <div class="col-lg-8 mb-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-0 pb-0">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Recent Attendance Records</h5>
+            <a href="{% url 'attendance:record-list' %}" class="btn btn-sm btn-outline-primary">
+              View All <i class="fas fa-arrow-right ms-1"></i>
+            </a>
+          </div>
         </div>
         <div class="card-body">
-          <div class="chart-container">
-            <canvas id="statusDistributionChart"></canvas>
+          <div class="table-responsive">
+            <table id="recentRecordsTable" class="table table-hover" style="width:100%">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Class</th>
+                  <th>Students</th>
+                  <th>Rate</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Data will be loaded via AJAX -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4 mb-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-0 pb-0">
+          <h5 class="card-title mb-0">Quick Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <a href="{% url 'attendance:mark-attendance' %}" class="btn btn-primary">
+              <i class="fas fa-plus me-2"></i> Mark New Attendance
+            </a>
+            <button class="btn btn-outline-secondary" onclick="exportReports()">
+              <i class="fas fa-download me-2"></i> Export Reports
+            </button>
+            <button class="btn btn-outline-info" onclick="sendNotifications()">
+              <i class="fas fa-bell me-2"></i> Send Alerts
+            </button>
+            <a href="{% url 'attendance:record-list' %}" class="btn btn-outline-dark">
+              <i class="fas fa-list me-2"></i> View All Records
+            </a>
+          </div>
+
+          <hr>
+
+          <div class="text-center">
+            <h6 class="text-muted">Today's Progress</h6>
+            <div class="position-relative d-inline-block">
+              <div id="todayProgressChart" style="height: 120px; width: 120px;"></div>
+            </div>
+            <div class="mt-2">
+              <small class="text-muted">Classes marked: <span id="progressText">0/0</span></small>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 </div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay"
+  class="d-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center"
+  style="z-index: 9999;">
+  <div class="text-center text-white">
+    <div class="spinner-border text-light mb-3" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <div>Loading dashboard data...</div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script
-  src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
 <script>
-  // Initialize charts
   document.addEventListener('DOMContentLoaded', function () {
-    // Attendance Trend Chart
-    const trendCtx = document.getElementById('attendanceTrendChart').getContext('2d');
-    const trendChart = new Chart(trendCtx, {
-      type: 'line',
-      data: {
-        labels: {{ trend_data.dates | safe }},
-    datasets: [{
-      label: 'Attendance %',
-      data: {{ trend_data.percentages | safe }},
-    borderColor: 'rgb(75, 192, 192)',
-    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-    tension: 0.1,
-    fill: true
-            }]
-        },
-    options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-      y: {
-        beginAtZero: true,
-        max: 100,
-        ticks: {
-          callback: function (value) {
-            return value + '%';
-          }
-        }
-      }
-    },
-    plugins: {
-      tooltip: {
-        callbacks: {
-          label: function (context) {
-            return 'Attendance: ' + context.parsed.y.toFixed(1) + '%';
-          }
-        }
-      }
-    }
-  }
+    // Initialize charts
+    initializeDashboard();
+
+    // Time range filter
+    document.getElementById('timeRangeFilter').addEventListener('change', function () {
+      const days = this.value;
+      showLoading();
+      window.location.href = `?days=${days}`;
     });
 
-  // Class Attendance Chart
-  const classCtx = document.getElementById('classAttendanceChart').getContext('2d');
-  const classChart = new Chart(classCtx, {
-    type: 'bar',
-    data: {
-      labels: {{ class_data.labels | safe }},
-  datasets: [{
-    label: 'Attendance %',
-    data: {{ class_data.percentages | safe }},
-    backgroundColor: [
-    'rgba(255, 99, 132, 0.8)',
-    'rgba(54, 162, 235, 0.8)',
-    'rgba(255, 205, 86, 0.8)',
-    'rgba(75, 192, 192, 0.8)',
-    'rgba(153, 102, 255, 0.8)',
-    'rgba(255, 159, 64, 0.8)'
-  ],
-    borderColor: [
-    'rgba(255, 99, 132, 1)',
-    'rgba(54, 162, 235, 1)',
-    'rgba(255, 205, 86, 1)',
-    'rgba(75, 192, 192, 1)',
-    'rgba(153, 102, 255, 1)',
-    'rgba(255, 159, 64, 1)'
-  ],
-    borderWidth: 1
-            }]
-        },
-  options: {
-    responsive: true,
-      maintainAspectRatio: false,
-        scales: {
-      y: {
-        beginAtZero: true,
-          max: 100,
-            ticks: {
-          callback: function(value) {
-            return value + '%';
-          }
-        }
+    // Trend view toggles
+    document.querySelectorAll('input[name="trendView"]').forEach(input => {
+      input.addEventListener('change', function () {
+        updateTrendChart(this.id === 'areaView');
+      });
+    });
+  });
+
+  function initializeDashboard() {
+    initializeAttendanceTrendChart();
+    initializeStatusDistributionChart();
+    initializeClassPerformanceChart();
+    initializeTodayProgressChart();
+    initializeRecentRecordsTable();
+    updateLastUpdateTime();
+  }
+
+  // Attendance Trend Chart
+  let trendChart;
+  function initializeAttendanceTrendChart() {
+    const options = {
+      series: [{
+        name: 'Attendance %',
+        data: {{ trend_data.percentages | safe }}
+  }],
+  chart: {
+    type: 'line',
+      height: 350,
+        toolbar: {
+      show: true,
+        tools: {
+        download: true,
+          selection: true,
+            zoom: true,
+              zoomin: true,
+                zoomout: true,
+                  pan: true,
+                    reset: true
       }
     },
-    plugins: {
-      tooltip: {
-        callbacks: {
-          label: function(context) {
-            return 'Attendance: ' + context.parsed.y.toFixed(1) + '%';
-          }
-        }
+    animations: {
+      enabled: true,
+        easing: 'easeinout',
+          speed: 800
+    }
+  },
+  dataLabels: {
+    enabled: false
+  },
+  stroke: {
+    curve: 'smooth',
+      width: 3
+  },
+  xaxis: {
+    categories: { { trend_data.dates | safe } },
+    title: {
+      text: 'Date'
+    }
+  },
+  yaxis: {
+    title: {
+      text: 'Attendance Percentage'
+    },
+    min: 0,
+      max: 100,
+        labels: {
+      formatter: function(val) {
+        return val.toFixed(1) + '%';
       }
     }
+  },
+  grid: {
+    borderColor: '#e7e7e7',
+      row: {
+      colors: ['#f3f3f3', 'transparent'],
+        opacity: 0.5
+    }
+  },
+  colors: ['#0d6efd'],
+    tooltip: {
+    y: {
+      formatter: function(val) {
+        return val.toFixed(1) + '%';
+      }
+    }
+  },
+  fill: {
+    type: 'gradient',
+      gradient: {
+      shade: 'dark',
+        gradientToColors: ['#6610f2'],
+          shadeIntensity: 1,
+            type: 'horizontal',
+              opacityFrom: 1,
+                opacityTo: 1,
+                  stops: [0, 100]
+    }
   }
+    };
+
+  trendChart = new ApexCharts(document.querySelector("#attendanceTrendChart"), options);
+  trendChart.render();
+}
+
+  function updateTrendChart(isArea) {
+    trendChart.updateOptions({
+      chart: {
+        type: isArea ? 'area' : 'line'
+      },
+      fill: {
+        type: isArea ? 'gradient' : 'solid',
+        opacity: isArea ? 0.7 : 1
+      }
     });
+  }
 
   // Status Distribution Chart
-  const statusCtx = document.getElementById('statusDistributionChart').getContext('2d');
-  const statusChart = new Chart(statusCtx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Present', 'Absent', 'Late', 'Excused'],
-      datasets: [{
-        data: {{ status_data.values | safe }},
-    backgroundColor: [
-      'rgba(75, 192, 192, 0.8)',
-      'rgba(255, 99, 132, 0.8)',
-      'rgba(255, 205, 86, 0.8)',
-      'rgba(54, 162, 235, 0.8)'
-    ],
-    borderWidth: 2
-  }]
+  function initializeStatusDistributionChart() {
+    const statusData = {{ status_data.values| safe
+  }};
+  const options = {
+    series: statusData,
+    chart: {
+      type: 'donut',
+      height: 350
+    },
+    labels: ['Present', 'Absent', 'Late', 'Excused'],
+    colors: ['#198754', '#dc3545', '#ffc107', '#0dcaf0'],
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '70%',
+          labels: {
+            show: true,
+            total: {
+              show: true,
+              label: 'Total',
+              formatter: function () {
+                return statusData.reduce((a, b) => a + b, 0);
+              }
+            }
+          }
+        }
+      }
+    },
+    legend: {
+      position: 'bottom',
+      horizontalAlign: 'center'
+    },
+    responsive: [{
+      breakpoint: 480,
+      options: {
+        chart: {
+          width: 200
         },
-  options: {
-    responsive: true,
-      maintainAspectRatio: false,
-        plugins: {
-      legend: {
-        position: 'bottom'
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }]
+  };
+
+  const statusChart = new ApexCharts(document.querySelector("#statusDistributionChart"), options);
+  statusChart.render();
+}
+
+  // Class Performance Chart
+  function initializeClassPerformanceChart() {
+    const options = {
+      series: [{
+        name: 'Attendance %',
+        data: {{ class_data.percentages | safe }}
+  }],
+  chart: {
+    type: 'bar',
+      height: 300,
+        toolbar: {
+      show: false
+    }
+  },
+  plotOptions: {
+    bar: {
+      borderRadius: 8,
+        horizontal: true,
+          distributed: true
+    }
+  },
+  dataLabels: {
+    enabled: true,
+      formatter: function(val) {
+        return val.toFixed(1) + '%';
+      }
+  },
+  xaxis: {
+    categories: { { class_data.labels | safe } },
+    max: 100
+  },
+  colors: ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6610f2', '#fd7e14'],
+    tooltip: {
+    y: {
+      formatter: function(val) {
+        return val.toFixed(1) + '%';
       }
     }
   }
-    });
+    };
 
-  // Time range filter
-  document.getElementById('timeRangeFilter').addEventListener('change', function () {
-    // Reload data based on selected time range
-    const days = this.value;
-    window.location.href = `?days=${days}`;
-  });
-});
+  const classChart = new ApexCharts(document.querySelector("#classPerformanceChart"), options);
+  classChart.render();
+}
+
+  // Today's Progress Chart
+  function initializeTodayProgressChart() {
+    const totalClasses = 10; // This should come from backend
+    const markedClasses = {{ stats.classes_marked_today }
+  };
+  const percentage = (markedClasses / totalClasses) * 100;
+
+  const options = {
+    series: [percentage],
+    chart: {
+      type: 'radialBar',
+      height: 120
+    },
+    plotOptions: {
+      radialBar: {
+        hollow: {
+          size: '60%'
+        },
+        dataLabels: {
+          showOn: 'always',
+          name: {
+            show: false
+          },
+          value: {
+            show: true,
+            fontSize: '14px',
+            fontWeight: 600,
+            formatter: function (val) {
+              return Math.round(val) + '%';
+            }
+          }
+        }
+      }
+    },
+    colors: ['#0d6efd'],
+    stroke: {
+      lineCap: 'round'
+    }
+  };
+
+  const progressChart = new ApexCharts(document.querySelector("#todayProgressChart"), options);
+  progressChart.render();
+
+  document.getElementById('progressText').textContent = `${markedClasses}/${totalClasses}`;
+}
+
+  // Recent Records DataTable
+  function initializeRecentRecordsTable() {
+    $('#recentRecordsTable').DataTable({
+      ajax: {
+        url: '/api/attendance/recent-records/',
+        dataSrc: ''
+      },
+      columns: [
+        { data: 'date' },
+        { data: 'class_name' },
+        { data: 'total_students' },
+        {
+          data: 'attendance_percentage',
+          render: function (data) {
+            const badgeClass = data >= 80 ? 'bg-success' : data >= 60 ? 'bg-warning' : 'bg-danger';
+            return `<span class="badge ${badgeClass}">${data.toFixed(1)}%</span>`;
+          }
+        },
+        {
+          data: 'is_marked',
+          render: function (data) {
+            return data ?
+              '<span class="badge bg-success"><i class="fas fa-check me-1"></i>Marked</span>' :
+              '<span class="badge bg-warning"><i class="fas fa-clock me-1"></i>Pending</span>';
+          }
+        }
+      ],
+      pageLength: 5,
+      searching: false,
+      info: false,
+      ordering: false,
+      responsive: true,
+      language: {
+        emptyTable: "No recent records available"
+      }
+    });
+  }
+
+  // Utility Functions
+  function showLoading() {
+    document.getElementById('loadingOverlay').classList.remove('d-none');
+  }
+
+  function hideLoading() {
+    document.getElementById('loadingOverlay').classList.add('d-none');
+  }
+
+  function refreshDashboard() {
+    showLoading();
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+  }
+
+  function refreshClassData() {
+    // Implement class data refresh
+    console.log('Refreshing class data...');
+  }
+
+  function exportReports() {
+    // Implement export functionality
+    console.log('Exporting reports...');
+  }
+
+  function sendNotifications() {
+    // Implement notification sending
+    console.log('Sending notifications...');
+  }
+
+  function updateLastUpdateTime() {
+    const now = new Date();
+    document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
+  }
+
+  // Auto-refresh every 5 minutes
+  setInterval(function () {
+    updateLastUpdateTime();
+    // You could also refresh specific data here
+  }, 300000);
 </script>
 {% endblock %}

@@ -1,0 +1,201 @@
+<!-- ================================ -->
+<!-- invoice_generate.html -->
+<!-- ================================ -->
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Generate Invoice - Finance{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+  rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-0">Generate Invoice</h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'finance:dashboard' %}">Finance</a></li>
+              <li class="breadcrumb-item active">Generate Invoice</li>
+            </ol>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Invoice Generation</h5>
+        </div>
+        <div class="card-body">
+          <form method="post" id="invoiceForm">
+            {% csrf_token %}
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Academic Year <span class="text-danger">*</span></label>
+                <select name="academic_year_id" class="form-select" id="academicYear" required>
+                  <option value="">Select Academic Year</option>
+                  {% for year in academic_years %}
+                  <option value="{{ year.id }}">{{ year.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Term <span class="text-danger">*</span></label>
+                <select name="term_id" class="form-select" id="term" required>
+                  <option value="">Select Term</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Student <span class="text-danger">*</span></label>
+              <select name="student_id" class="form-select" id="student" required>
+                <option value="">Search and select student...</option>
+              </select>
+            </div>
+
+            <div id="feePreview" class="card border-info mb-3" style="display: none;">
+              <div class="card-header bg-light">
+                <h6 class="card-title mb-0">Fee Preview</h6>
+              </div>
+              <div class="card-body">
+                <div id="feeBreakdown"></div>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+              <a href="{% url 'finance:invoice-list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Invoices
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-file-invoice me-2"></i>Generate Invoice
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+  $(document).ready(function () {
+    $('#student').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Search for a student...',
+      allowClear: true,
+      width: '100%',
+      ajax: {
+        url: '{% url "finance:search-students" %}',
+        dataType: 'json',
+        delay: 250,
+        data: function (params) {
+          return {
+            q: params.term
+          };
+        },
+        processResults: function (data) {
+          return {
+            results: data.students.map(student => ({
+              id: student.id,
+              text: `${student.name} (${student.admission_number})`
+            }))
+          };
+        }
+      }
+    });
+
+    $('#academicYear').on('change', function () {
+      const yearId = $(this).val();
+      $('#term').empty().append('<option value="">Select Term</option>');
+
+      if (yearId) {
+        $.get(`/api/terms/?academic_year=${yearId}`, function (data) {
+          data.forEach(term => {
+            $('#term').append(`<option value="${term.id}">${term.name}</option>`);
+          });
+        });
+      }
+    });
+
+    $('#student, #academicYear, #term').on('change', function () {
+      const studentId = $('#student').val();
+      const yearId = $('#academicYear').val();
+      const termId = $('#term').val();
+
+      if (studentId && yearId && termId) {
+        $.post('{% url "finance:calculate-fees" %}', {
+          student_id: studentId,
+          academic_year_id: yearId,
+          term_id: termId,
+          csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val()
+        }, function (data) {
+          displayFeePreview(data);
+        });
+      }
+    });
+
+    function displayFeePreview(feeData) {
+      let html = `
+            <div class="row">
+                <div class="col-md-8">
+                    <h6>Fee Breakdown</h6>
+                    <ul class="list-group list-group-flush">
+        `;
+
+      feeData.base_fees.forEach(fee => {
+        html += `<li class="list-group-item d-flex justify-content-between">
+                <span>${fee.category}</span>
+                <span class="fw-bold">$${fee.amount}</span>
+            </li>`;
+      });
+
+      feeData.special_fees.forEach(fee => {
+        html += `<li class="list-group-item d-flex justify-content-between">
+                <span>${fee.name} (Special)</span>
+                <span class="fw-bold">$${fee.amount}</span>
+            </li>`;
+      });
+
+      html += `</ul></div>
+                <div class="col-md-4">
+                    <div class="bg-light p-3 rounded">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Total Amount:</span>
+                            <span class="fw-bold">$${feeData.total_amount}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Discount:</span>
+                            <span class="text-success">-$${feeData.discount_amount}</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold">Net Amount:</span>
+                            <span class="fw-bold text-primary">$${feeData.net_amount}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+      $('#feeBreakdown').html(html);
+      $('#feePreview').show();
+    }
+  });
+</script>
+{% endblock %}

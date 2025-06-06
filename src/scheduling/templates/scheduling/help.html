@@ -1,0 +1,525 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Scheduling Help & Documentation{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Scheduling Help & Documentation</h1>
+        <div class="input-group" style="width: 300px;">
+          <input type="text" class="form-control" placeholder="Search help topics..." id="helpSearch">
+          <button class="btn btn-outline-secondary" type="button">
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-3">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">Quick Navigation</h6>
+        </div>
+        <div class="card-body p-0">
+          <div class="list-group list-group-flush">
+            <a href="#getting-started" class="list-group-item list-group-item-action">
+              <i class="fas fa-play-circle text-primary"></i> Getting Started
+            </a>
+            <a href="#timetable-management" class="list-group-item list-group-item-action">
+              <i class="fas fa-calendar-alt text-success"></i> Timetable Management
+            </a>
+            <a href="#optimization" class="list-group-item list-group-item-action">
+              <i class="fas fa-chart-line text-info"></i> Optimization
+            </a>
+            <a href="#conflicts" class="list-group-item list-group-item-action">
+              <i class="fas fa-exclamation-triangle text-warning"></i> Conflict Resolution
+            </a>
+            <a href="#substitutes" class="list-group-item list-group-item-action">
+              <i class="fas fa-user-plus text-secondary"></i> Substitute Teachers
+            </a>
+            <a href="#analytics" class="list-group-item list-group-item-action">
+              <i class="fas fa-chart-bar text-purple"></i> Analytics & Reports
+            </a>
+            <a href="#troubleshooting" class="list-group-item list-group-item-action">
+              <i class="fas fa-wrench text-danger"></i> Troubleshooting
+            </a>
+            <a href="#faq" class="list-group-item list-group-item-action">
+              <i class="fas fa-question-circle text-dark"></i> FAQ
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-3">
+        <div class="card-header">
+          <h6 class="card-title mb-0">Contact Support</h6>
+        </div>
+        <div class="card-body">
+          <p class="small text-muted">Need additional help?</p>
+          <button class="btn btn-sm btn-primary w-100 mb-2">
+            <i class="fas fa-envelope"></i> Email Support
+          </button>
+          <button class="btn btn-sm btn-success w-100">
+            <i class="fas fa-phone"></i> Call Support
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-9">
+      <div class="help-content">
+        <!-- Getting Started -->
+        <section id="getting-started" class="mb-5">
+          <div class="card">
+            <div class="card-header bg-primary text-white">
+              <h4 class="card-title mb-0">
+                <i class="fas fa-play-circle"></i> Getting Started
+              </h4>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <h5>1. Set up Time Slots</h5>
+                  <p>Before creating timetables, you need to define your school's time slots:</p>
+                  <ul>
+                    <li>Go to <strong>Time Slots</strong> section</li>
+                    <li>Create periods for each day of the week</li>
+                    <li>Define start time, end time, and duration</li>
+                    <li>Mark break periods appropriately</li>
+                  </ul>
+
+                  <h5>2. Manage Rooms</h5>
+                  <p>Set up your school's physical spaces:</p>
+                  <ul>
+                    <li>Add room numbers and names</li>
+                    <li>Specify room types (classroom, laboratory, etc.)</li>
+                    <li>Set capacity and available equipment</li>
+                    <li>Mark rooms as available or unavailable</li>
+                  </ul>
+                </div>
+                <div class="col-md-6">
+                  <h5>3. Create Timetables</h5>
+                  <p>There are several ways to create timetables:</p>
+                  <ul>
+                    <li><strong>Manual Creation:</strong> Create individual entries</li>
+                    <li><strong>Bulk Creation:</strong> Create multiple entries at once</li>
+                    <li><strong>Auto Generation:</strong> Use optimization algorithms</li>
+                    <li><strong>Copy from Template:</strong> Use predefined templates</li>
+                  </ul>
+
+                  <div class="alert alert-info">
+                    <strong>Tip:</strong> Start with a small subset of classes and gradually expand to the entire
+                    school.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Timetable Management -->
+        <section id="timetable-management" class="mb-5">
+          <div class="card">
+            <div class="card-header bg-success text-white">
+              <h4 class="card-title mb-0">
+                <i class="fas fa-calendar-alt"></i> Timetable Management
+              </h4>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-12">
+                  <h5>Creating Individual Timetable Entries</h5>
+                  <ol>
+                    <li>Navigate to <strong>Timetables > Create New</strong></li>
+                    <li>Select the class, subject, and teacher</li>
+                    <li>Choose the time slot and room</li>
+                    <li>Set effective dates (usually the term dates)</li>
+                    <li>Save the entry</li>
+                  </ol>
+
+                  <h5>Bulk Operations</h5>
+                  <p>For efficiency, use bulk operations:</p>
+                  <ul>
+                    <li><strong>Bulk Create:</strong> Create multiple timetables from a template</li>
+                    <li><strong>Copy Between Terms:</strong> Copy existing timetables to new terms</li>
+                    <li><strong>Bulk Update:</strong> Modify multiple entries simultaneously</li>
+                  </ul>
+
+                  <div class="alert alert-warning">
+                    <strong>Important:</strong> Always check for conflicts after bulk operations.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Optimization -->
+        <section id="optimization" class="mb-5">
+          <div class="card">
+            <div class="card-header bg-info text-white">
+              <h4 class="card-title mb-0">
+                <i class="fas fa-chart-line"></i> Timetable Optimization
+              </h4>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <h5>Genetic Algorithm</h5>
+                  <p>Best for complex scheduling with many constraints:</p>
+                  <ul>
+                    <li>Population Size: 50-100 for most schools</li>
+                    <li>Generations: 100-200 for good results</li>
+                    <li>Mutation Rate: 0.1 (10%) works well</li>
+                  </ul>
+
+                  <h5>Greedy Algorithm</h5>
+                  <p>Faster but less optimal:</p>
+                  <ul>
+                    <li>Good for simple schedules</li>
+                    <li>Quick results for small schools</li>
+                    <li>Use when time is limited</li>
+                  </ul>
+                </div>
+                <div class="col-md-6">
+                  <h5>Optimization Process</h5>
+                  <ol>
+                    <li>Go to <strong>Generate Timetable</strong></li>
+                    <li>Select the term and grades</li>
+                    <li>Choose optimization algorithm</li>
+                    <li>Adjust parameters if needed</li>
+                    <li>Start generation (runs in background)</li>
+                    <li>Monitor progress in Generation History</li>
+                  </ol>
+
+                  <div class="alert alert-success">
+                    <strong>Best Practice:</strong> Run optimization during off-hours as it can take 30-60 minutes for
+                    large schools.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Conflicts -->
+        <section id="conflicts" class="mb-5">
+          <div class="card">
+            <div class="card-header bg-warning text-white">
+              <h4 class="card-title mb-0">
+                <i class="fas fa-exclamation-triangle"></i> Conflict Resolution
+              </h4>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <h5>Types of Conflicts</h5>
+                  <ul>
+                    <li><strong>Teacher Conflicts:</strong> Teacher assigned to multiple classes at same time</li>
+                    <li><strong>Room Conflicts:</strong> Multiple classes assigned to same room</li>
+                    <li><strong>Class Conflicts:</strong> Class has multiple subjects at same time</li>
+                  </ul>
+
+                  <h5>Automatic Resolution</h5>
+                  <p>The system can automatically resolve minor conflicts:</p>
+                  <ul>
+                    <li>Find alternative time slots</li>
+                    <li>Suggest alternative rooms</li>
+                    <li>Propose teacher swaps</li>
+                  </ul>
+                </div>
+                <div class="col-md-6">
+                  <h5>Manual Resolution Steps</h5>
+                  <ol>
+                    <li>Go to <strong>Conflict Management</strong></li>
+                    <li>Review detected conflicts</li>
+                    <li>Click <strong>Resolve</strong> on specific conflicts</li>
+                    <li>Choose from suggested alternatives</li>
+                    <li>Apply the resolution</li>
+                  </ol>
+
+                  <div class="alert alert-info">
+                    <strong>Tip:</strong> Use the auto-resolve feature for quick fixes, but review results carefully.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Substitutes -->
+        <section id="substitutes" class="mb-5">
+          <div class="card">
+            <div class="card-header bg-secondary text-white">
+              <h4 class="card-title mb-0">
+                <i class="fas fa-user-plus"></i> Substitute Teacher Management
+              </h4>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <h5>Creating Substitute Assignments</h5>
+                  <ol>
+                    <li>Go to <strong>Substitutes > Create New</strong></li>
+                    <li>Select the original timetable entry</li>
+                    <li>Choose the substitute teacher</li>
+                    <li>Specify the date and reason</li>
+                    <li>Submit for approval</li>
+                  </ol>
+
+                  <h5>Smart Suggestions</h5>
+                  <p>The system suggests suitable substitutes based on:</p>
+                  <ul>
+                    <li>Subject expertise</li>
+                    <li>Availability</li>
+                    <li>Previous experience with the class</li>
+                  </ul>
+                </div>
+                <div class="col-md-6">
+                  <h5>Approval Workflow</h5>
+                  <p>Substitute assignments follow an approval process:</p>
+                  <ol>
+                    <li>Request submitted</li>
+                    <li>Administrator reviews</li>
+                    <li>Approval or rejection</li>
+                    <li>Automatic notifications sent</li>
+                  </ol>
+
+                  <div class="alert alert-success">
+                    <strong>Automation:</strong> Set up automatic reminders for upcoming substitute assignments.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Analytics -->
+        <section id="analytics" class="mb-5">
+          <div class="card">
+            <div class="card-header" style="background-color: #6f42c1; color: white;">
+              <h4 class="card-title mb-0">
+                <i class="fas fa-chart-bar"></i> Analytics & Reports
+              </h4>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <h5>Available Analytics</h5>
+                  <ul>
+                    <li><strong>Teacher Workload:</strong> Periods per day, balance analysis</li>
+                    <li><strong>Room Utilization:</strong> Usage rates, efficiency metrics</li>
+                    <li><strong>Conflict Analysis:</strong> Conflict patterns and trends</li>
+                    <li><strong>Optimization Score:</strong> Overall timetable quality</li>
+                    <li><strong>Subject Distribution:</strong> Timing patterns for subjects</li>
+                  </ul>
+
+                  <h5>Scheduled Reports</h5>
+                  <p>Automatic report generation:</p>
+                  <ul>
+                    <li>Daily validation reports</li>
+                    <li>Weekly analytics summary</li>
+                    <li>Monthly performance reports</li>
+                  </ul>
+                </div>
+                <div class="col-md-6">
+                  <h5>Understanding Metrics</h5>
+                  <p><strong>Optimization Score Components:</strong></p>
+                  <ul>
+                    <li>Workload Balance (25%)</li>
+                    <li>Room Utilization (20%)</li>
+                    <li>Conflict Minimization (25%)</li>
+                    <li>Subject Distribution (15%)</li>
+                    <li>Room Assignment (15%)</li>
+                  </ul>
+
+                  <div class="alert alert-info">
+                    <strong>Target Scores:</strong>
+                    <br>• A (90-100%): Excellent
+                    <br>• B (80-89%): Good
+                    <br>• C (70-79%): Acceptable
+                    <br>• Below 70%: Needs improvement
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Troubleshooting -->
+        <section id="troubleshooting" class="mb-5">
+          <div class="card">
+            <div class="card-header bg-danger text-white">
+              <h4 class="card-title mb-0">
+                <i class="fas fa-wrench"></i> Troubleshooting
+              </h4>
+            </div>
+            <div class="card-body">
+              <div class="accordion" id="troubleshootingAccordion">
+                <div class="accordion-item">
+                  <h5 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#issue1">
+                      Optimization fails or takes too long
+                    </button>
+                  </h5>
+                  <div id="issue1" class="accordion-collapse collapse show" data-bs-parent="#troubleshootingAccordion">
+                    <div class="accordion-body">
+                      <strong>Possible causes and solutions:</strong>
+                      <ul>
+                        <li>Too many constraints: Review and relax some constraints</li>
+                        <li>Insufficient resources: Check teacher-subject assignments and room availability</li>
+                        <li>Large population size: Reduce to 30-50 for faster results</li>
+                        <li>Complex schedule: Start with fewer grades and expand gradually</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <h5 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                      data-bs-target="#issue2">
+                      Many conflicts after optimization
+                    </button>
+                  </h5>
+                  <div id="issue2" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+                    <div class="accordion-body">
+                      <strong>Steps to resolve:</strong>
+                      <ul>
+                        <li>Check teacher availability and assignments</li>
+                        <li>Verify room capacities match class sizes</li>
+                        <li>Review subject requirements and equipment needs</li>
+                        <li>Use manual conflict resolution tools</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <h5 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                      data-bs-target="#issue3">
+                      Poor optimization score
+                    </button>
+                  </h5>
+                  <div id="issue3" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+                    <div class="accordion-body">
+                      <strong>Improvement strategies:</strong>
+                      <ul>
+                        <li>Balance teacher workloads across days</li>
+                        <li>Improve room utilization by avoiding conflicts</li>
+                        <li>Schedule core subjects in morning periods</li>
+                        <li>Assign rooms to all timetable entries</li>
+                        <li>Minimize consecutive periods for the same subject</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- FAQ -->
+        <section id="faq" class="mb-5">
+          <div class="card">
+            <div class="card-header bg-dark text-white">
+              <h4 class="card-title mb-0">
+                <i class="fas fa-question-circle"></i> Frequently Asked Questions
+              </h4>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <h5>Q: How long does optimization take?</h5>
+                  <p>A: Typically 15-60 minutes depending on school size and complexity. Larger schools with more
+                    constraints take longer.</p>
+
+                  <h5>Q: Can I modify generated timetables?</h5>
+                  <p>A: Yes, you can manually edit any timetable entry after generation. Changes are automatically
+                    validated for conflicts.</p>
+
+                  <h5>Q: What happens to old timetables when generating new ones?</h5>
+                  <p>A: Old timetables for the selected term are replaced. Previous terms remain unchanged.</p>
+                </div>
+                <div class="col-md-6">
+                  <h5>Q: How do I handle special events or assemblies?</h5>
+                  <p>A: Create special time slots marked as assemblies or events, then assign them as needed in the
+                    timetable.</p>
+
+                  <h5>Q: Can teachers specify their preferred time slots?</h5>
+                  <p>A: Yes, use scheduling constraints to define teacher preferences and availability.</p>
+
+                  <h5>Q: What's the difference between hard and soft constraints?</h5>
+                  <p>A: Hard constraints must be satisfied (e.g., teacher availability). Soft constraints are
+                    preferences that can be violated if necessary.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Smooth scrolling for navigation links
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+    });
+  });
+
+  // Search functionality
+  document.getElementById('helpSearch').addEventListener('input', function (e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const sections = document.querySelectorAll('.help-content section');
+
+    sections.forEach(section => {
+      const text = section.textContent.toLowerCase();
+      if (text.includes(searchTerm) || searchTerm === '') {
+        section.style.display = 'block';
+      } else {
+        section.style.display = 'none';
+      }
+    });
+  });
+
+  // Highlight active section in navigation
+  window.addEventListener('scroll', function () {
+    const sections = document.querySelectorAll('.help-content section');
+    const navLinks = document.querySelectorAll('.list-group-item');
+
+    let currentSection = '';
+
+    sections.forEach(section => {
+      const rect = section.getBoundingClientRect();
+      if (rect.top <= 100 && rect.bottom >= 100) {
+        currentSection = section.id;
+      }
+    });
+
+    navLinks.forEach(link => {
+      link.classList.remove('active');
+      if (link.getAttribute('href') === '#' + currentSection) {
+        link.classList.add('active');
+      }
+    });
+  });
+</script>
+{% endblock %}

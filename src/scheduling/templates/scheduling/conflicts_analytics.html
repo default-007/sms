@@ -1,0 +1,617 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Conflict Analytics - Scheduling{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="h3 mb-0">Conflict Analytics</h1>
+          <p class="text-muted mb-0">Analyze scheduling conflicts and their patterns</p>
+        </div>
+        <div>
+          <div class="d-flex gap-2">
+            <select class="form-select" id="termSelect" onchange="changeTerm()">
+              {% for term_option in available_terms %}
+              <option value="{{ term_option.id }}" {% if term_option == term %}selected{% endif %}>
+                {{ term_option.name }}
+              </option>
+              {% endfor %}
+            </select>
+            <button class="btn btn-outline-primary" onclick="refreshData()">
+              <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+            <button class="btn btn-success" onclick="exportData()">
+              <i class="fas fa-download"></i> Export
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if conflict_data %}
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-danger text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ conflict_data.teacher_conflicts }}</h4>
+              <p class="card-text">Teacher Conflicts</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-user-times fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ conflict_data.room_conflicts }}</h4>
+              <p class="card-text">Room Conflicts</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-door-closed fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ conflict_data.unassigned_rooms }}</h4>
+              <p class="card-text">Unassigned Rooms</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-question-circle fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-secondary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ conflict_data.substitute_frequency|length }}</h4>
+              <p class="card-text">Active Substitutes</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-user-plus fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Conflict Trends Chart -->
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Conflict Trends Over Time</h5>
+        </div>
+        <div class="card-body">
+          <div id="conflictTrendsChart"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Conflict Types Distribution -->
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Conflict Types</h5>
+        </div>
+        <div class="card-body">
+          <div id="conflictTypesChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Peak Conflict Times -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Peak Conflict Times Heatmap</h5>
+        </div>
+        <div class="card-body">
+          <div id="conflictHeatmapChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Conflict Data -->
+  <div class="row mt-4">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Teacher Double Bookings</h5>
+        </div>
+        <div class="card-body">
+          {% if conflict_data.conflict_details.teacher_double_bookings %}
+          <div class="table-responsive">
+            <table id="teacherConflictsTable" class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Teacher</th>
+                  <th>Day</th>
+                  <th>Period</th>
+                  <th>Conflicts</th>
+                  <th>Severity</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for conflict in conflict_data.conflict_details.teacher_double_bookings %}
+                <tr>
+                  <td>
+                    <div>
+                      <strong>{{ conflict.teacher__user__first_name }} {{ conflict.teacher__user__last_name }}</strong>
+                    </div>
+                  </td>
+                  <td>{{ conflict.time_slot__day_of_week|date:"l" }}</td>
+                  <td>{{ conflict.time_slot__period_number }}</td>
+                  <td>
+                    <span class="badge bg-danger">{{ conflict.conflict_count }}</span>
+                  </td>
+                  <td>
+                    {% if conflict.conflict_count >= 3 %}
+                    <span class="badge bg-danger">High</span>
+                    {% elif conflict.conflict_count >= 2 %}
+                    <span class="badge bg-warning">Medium</span>
+                    {% else %}
+                    <span class="badge bg-info">Low</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-primary"
+                      onclick="viewConflictDetails('teacher', {{ conflict.teacher }}, {{ conflict.time_slot__day_of_week }}, {{ conflict.time_slot__period_number }})">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center text-muted py-4">
+            <i class="fas fa-check-circle fa-3x mb-3"></i>
+            <p>No teacher conflicts found</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Room Double Bookings</h5>
+        </div>
+        <div class="card-body">
+          {% if conflict_data.conflict_details.room_double_bookings %}
+          <div class="table-responsive">
+            <table id="roomConflictsTable" class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Room</th>
+                  <th>Day</th>
+                  <th>Period</th>
+                  <th>Conflicts</th>
+                  <th>Capacity Issue</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for conflict in conflict_data.conflict_details.room_double_bookings %}
+                <tr>
+                  <td>
+                    <div>
+                      <strong>{{ conflict.room__number }}</strong>
+                      <small class="d-block text-muted">{{ conflict.room__name }}</small>
+                    </div>
+                  </td>
+                  <td>{{ conflict.time_slot__day_of_week|date:"l" }}</td>
+                  <td>{{ conflict.time_slot__period_number }}</td>
+                  <td>
+                    <span class="badge bg-warning">{{ conflict.conflict_count }}</span>
+                  </td>
+                  <td>
+                    {% if conflict.capacity_exceeded %}
+                    <span class="badge bg-danger">Yes</span>
+                    {% else %}
+                    <span class="badge bg-success">No</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-primary"
+                      onclick="viewConflictDetails('room', {{ conflict.room }}, {{ conflict.time_slot__day_of_week }}, {{ conflict.time_slot__period_number }})">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center text-muted py-4">
+            <i class="fas fa-check-circle fa-3x mb-3"></i>
+            <p>No room conflicts found</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Substitute Teacher Analysis -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Substitute Teacher Frequency Analysis</h5>
+        </div>
+        <div class="card-body">
+          {% if conflict_data.substitute_frequency %}
+          <div class="table-responsive">
+            <table id="substituteFrequencyTable" class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Substitute Teacher</th>
+                  <th>Total Assignments</th>
+                  <th>This Month</th>
+                  <th>Average per Week</th>
+                  <th>Success Rate</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for substitute in conflict_data.substitute_frequency %}
+                <tr>
+                  <td>
+                    <div>
+                      <strong>{{ substitute.substitute_teacher__user__first_name }}
+                        {{ substitute.substitute_teacher__user__last_name }}</strong>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-primary">{{ substitute.substitute_count }}</span>
+                  </td>
+                  <td>{{ substitute.this_month_count|default:0 }}</td>
+                  <td>{{ substitute.weekly_average|floatformat:1 }}</td>
+                  <td>
+                    <div class="progress" style="height: 20px;">
+                      <div class="progress-bar bg-success" style="width: {{ substitute.success_rate|default:100 }}%">
+                        {{ substitute.success_rate|default:100|floatformat:0 }}%
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    {% if substitute.substitute_count >= 10 %}
+                    <span class="badge bg-warning">High Frequency</span>
+                    {% elif substitute.substitute_count >= 5 %}
+                    <span class="badge bg-info">Moderate</span>
+                    {% else %}
+                    <span class="badge bg-success">Normal</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-primary"
+                      onclick="viewSubstituteHistory({{ substitute.substitute_teacher__id }})">
+                      <i class="fas fa-history"></i>
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center text-muted py-4">
+            <i class="fas fa-info-circle fa-3x mb-3"></i>
+            <p>No substitute assignments found</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
+          <h4>No Conflict Data Available</h4>
+          <p class="text-muted">No conflict data found for the selected term.</p>
+          <a href="{% url 'scheduling:conflict_management' %}" class="btn btn-primary">
+            View Conflict Management
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Conflict Details Modal -->
+<div class="modal fade" id="conflictDetailsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Conflict Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="conflictDetailsContent">
+          <!-- Conflict details will be loaded here -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="resolveConflict()">Resolve Conflict</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTables
+    $('#teacherConflictsTable').DataTable({
+      responsive: true,
+      pageLength: 10,
+      order: [[3, 'desc']] // Order by conflict count
+    });
+
+    $('#roomConflictsTable').DataTable({
+      responsive: true,
+      pageLength: 10,
+      order: [[3, 'desc']] // Order by conflict count
+    });
+
+    $('#substituteFrequencyTable').DataTable({
+      responsive: true,
+      pageLength: 15,
+      order: [[1, 'desc']] // Order by total assignments
+    });
+
+    // Initialize charts if data is available
+    {% if conflict_data %}
+    initializeCharts();
+    {% endif %}
+  });
+
+  function initializeCharts() {
+    // Conflict Trends Chart (simulated data - replace with actual data)
+    const conflictTrendsChart = new ApexCharts(document.querySelector("#conflictTrendsChart"), {
+      series: [
+        {
+          name: 'Teacher Conflicts',
+          data: [5, 8, 12, 7, 15, 10, 6, 9, 11, 8, 4, 7]
+        },
+        {
+          name: 'Room Conflicts',
+          data: [3, 6, 8, 5, 10, 7, 4, 6, 8, 5, 3, 5]
+        },
+        {
+          name: 'Unassigned Rooms',
+          data: [10, 12, 15, 8, 20, 18, 12, 14, 16, 10, 8, 12]
+        }
+      ],
+      chart: {
+        type: 'line',
+        height: 350
+      },
+      xaxis: {
+        categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+      },
+      yaxis: {
+        title: {
+          text: 'Number of Conflicts'
+        }
+      },
+      colors: ['#ef4444', '#f59e0b', '#6b7280'],
+      stroke: {
+        curve: 'smooth'
+      }
+    });
+    conflictTrendsChart.render();
+
+    // Conflict Types Distribution
+    const conflictTypesData = [
+      {{ conflict_data.teacher_conflicts }},
+  { { conflict_data.room_conflicts } },
+  { { conflict_data.unassigned_rooms } }
+    ];
+
+  const conflictTypesChart = new ApexCharts(document.querySelector("#conflictTypesChart"), {
+    series: conflictTypesData,
+    chart: {
+      type: 'donut',
+      height: 350
+    },
+    labels: ['Teacher Conflicts', 'Room Conflicts', 'Unassigned Rooms'],
+    colors: ['#ef4444', '#f59e0b', '#6b7280'],
+    legend: {
+      position: 'bottom'
+    }
+  });
+  conflictTypesChart.render();
+
+  // Conflict Heatmap (simulated data - replace with actual conflict time data)
+  const heatmapData = [];
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+  for (let day = 0; day < 5; day++) {
+    const dayData = {
+      name: days[day],
+      data: []
+    };
+
+    for (let period = 1; period <= 8; period++) {
+      // Simulate conflict data
+      const conflicts = Math.floor(Math.random() * 5);
+      dayData.data.push({
+        x: `Period ${period}`,
+        y: conflicts
+      });
+    }
+
+    heatmapData.push(dayData);
+  }
+
+  const conflictHeatmapChart = new ApexCharts(document.querySelector("#conflictHeatmapChart"), {
+    series: heatmapData,
+    chart: {
+      type: 'heatmap',
+      height: 350
+    },
+    colors: ['#ef4444'],
+    xaxis: {
+      type: 'category'
+    },
+    yaxis: {
+      labels: {
+        style: {
+          fontSize: '12px'
+        }
+      }
+    },
+    title: {
+      text: 'Conflicts by Day and Period'
+    }
+  });
+  conflictHeatmapChart.render();
+}
+
+  function changeTerm() {
+    const termId = document.getElementById('termSelect').value;
+    window.location.href = `?term_id=${termId}`;
+  }
+
+  function refreshData() {
+    window.location.reload();
+  }
+
+  function exportData() {
+    const termId = document.getElementById('termSelect').value;
+    window.open(`/scheduling/analytics/conflicts/export/?term_id=${termId}`, '_blank');
+  }
+
+  function viewConflictDetails(type, entityId, day, period) {
+    const termId = document.getElementById('termSelect').value;
+
+    fetch(`/scheduling/analytics/conflict-details/${type}/${entityId}/${day}/${period}/?term_id=${termId}`)
+      .then(response => response.json())
+      .then(data => {
+        let content = `<h6>${type.charAt(0).toUpperCase() + type.slice(1)} Conflict Details</h6>`;
+        content += '<div class="table-responsive">';
+        content += '<table class="table table-sm table-bordered">';
+        content += '<thead><tr><th>Class</th><th>Subject</th><th>Teacher</th><th>Room</th><th>Time</th></tr></thead>';
+        content += '<tbody>';
+
+        data.conflicting_entries.forEach(entry => {
+          content += `<tr>
+                    <td>${entry.class}</td>
+                    <td>${entry.subject}</td>
+                    <td>${entry.teacher}</td>
+                    <td>${entry.room || 'Unassigned'}</td>
+                    <td>${entry.time_slot}</td>
+                </tr>`;
+        });
+
+        content += '</tbody></table></div>';
+
+        if (data.suggestions && data.suggestions.length > 0) {
+          content += '<h6 class="mt-3">Resolution Suggestions:</h6>';
+          content += '<ul>';
+          data.suggestions.forEach(suggestion => {
+            content += `<li>${suggestion}</li>`;
+          });
+          content += '</ul>';
+        }
+
+        document.getElementById('conflictDetailsContent').innerHTML = content;
+        $('#conflictDetailsModal').modal('show');
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to load conflict details');
+      });
+  }
+
+  function viewSubstituteHistory(teacherId) {
+    const termId = document.getElementById('termSelect').value;
+
+    fetch(`/scheduling/analytics/substitute-history/${teacherId}/?term_id=${termId}`)
+      .then(response => response.json())
+      .then(data => {
+        let content = `<h6>${data.teacher_name} - Substitute History</h6>`;
+        content += '<div class="table-responsive">';
+        content += '<table class="table table-sm table-striped">';
+        content += '<thead><tr><th>Date</th><th>Original Teacher</th><th>Class</th><th>Subject</th><th>Reason</th><th>Status</th></tr></thead>';
+        content += '<tbody>';
+
+        data.assignments.forEach(assignment => {
+          content += `<tr>
+                    <td>${assignment.date}</td>
+                    <td>${assignment.original_teacher}</td>
+                    <td>${assignment.class}</td>
+                    <td>${assignment.subject}</td>
+                    <td>${assignment.reason}</td>
+                    <td><span class="badge bg-${assignment.status === 'completed' ? 'success' : 'warning'}">${assignment.status}</span></td>
+                </tr>`;
+        });
+
+        content += '</tbody></table></div>';
+
+        document.getElementById('conflictDetailsContent').innerHTML = content;
+        $('#conflictDetailsModal').modal('show');
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to load substitute history');
+      });
+  }
+
+  function resolveConflict() {
+    // Implement conflict resolution logic
+    alert('Conflict resolution feature will be implemented');
+  }
+</script>
+{% endblock %}

@@ -1,446 +1,618 @@
-<!-- students/templates/students/student_detail.html -->
 {% extends "base.html" %}
 {% load static %}
+{% load student_tags %}
 
-{% block title %}Student Details - {{ student.get_full_name }}{% endblock %}
+{% block title %}{{ student.get_full_name }} - Student Profile{% endblock %}
+
+{% block extra_css %}
+<style>
+  .profile-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .info-card {
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    transition: transform 0.2s;
+  }
+
+  .info-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .stat-card {
+    background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 1rem;
+  }
+
+  .family-tree {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4">
-  <h1 class="mt-4">Student Details</h1>
-  <ol class="breadcrumb mb-4">
-    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
-    <li class="breadcrumb-item"><a href="{% url 'students:student-list' %}">Students</a></li>
-    <li class="breadcrumb-item active">{{ student.get_full_name }}</li>
-  </ol>
-
-  <div class="row">
-    <div class="col-xl-4">
-      <div class="card mb-4">
-        <div class="card-header">
-          <h5 class="card-title mb-0">Profile</h5>
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'students:student-list' %}">Students</a></li>
+              <li class="breadcrumb-item active">{{ student.get_full_name }}</li>
+            </ol>
+          </nav>
         </div>
-        <div class="card-body text-center">
-          {% if student.photo %}
-          <img src="{{ student.photo.url }}" alt="{{ student.get_full_name }}" class="img-fluid rounded-circle mb-3"
-            style="width: 150px; height: 150px; object-fit: cover;">
-          {% else %}
-          <img src="{% static 'images/default_avatar.png' %}" alt="{{ student.get_full_name }}"
-            class="img-fluid rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
-          {% endif %}
-          <h5 class="mb-1">{{ student.get_full_name }}</h5>
-          <p class="text-muted mb-3">{{ student.admission_number }}</p>
-
-          <p class="mb-1">
-            <span class="badge 
-                            {% if student.status == 'Active' %}bg-success
-                            {% elif student.status == 'Inactive' %}bg-secondary
-                            {% elif student.status == 'Graduated' %}bg-info
-                            {% elif student.status == 'Suspended' %}bg-warning
-                            {% elif student.status == 'Expelled' %}bg-danger
-                            {% endif %}">
-              {{ student.status }}
-            </span>
-          </p>
-
-          <div class="mt-4">
-            {% if perms.students.change_student %}
-            <a href="{% url 'students:student-update' student.id %}" class="btn btn-primary">
-              <i class="fas fa-edit"></i> Edit
-            </a>
-            {% endif %}
-            {% if perms.students.generate_student_id %}
-            <a href="{% url 'students:student-id-card' student.id %}" class="btn btn-info">
-              <i class="fas fa-id-card"></i> ID Card
-            </a>
-            {% endif %}
-            {% if perms.students.delete_student %}
-            <a href="{% url 'students:student-delete' student.id %}" class="btn btn-danger">
-              <i class="fas fa-trash"></i> Delete
-            </a>
-            {% endif %}
-          </div>
-        </div>
-        <ul class="list-group list-group-flush">
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span><i class="fas fa-envelope me-2"></i> Email</span>
-            <span class="text-muted">{{ student.user.email }}</span>
-          </li>
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span><i class="fas fa-phone me-2"></i> Phone</span>
-            <span class="text-muted">{{ student.user.phone_number|default:"Not provided" }}</span>
-          </li>
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span><i class="fas fa-graduation-cap me-2"></i> Class</span>
-            <span class="text-muted">{{ student.current_class|default:"Not assigned" }}</span>
-          </li>
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span><i class="fas fa-list-ol me-2"></i> Roll Number</span>
-            <span class="text-muted">{{ student.roll_number|default:"Not assigned" }}</span>
-          </li>
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span><i class="fas fa-tint me-2"></i> Blood Group</span>
-            <span class="text-muted">{{ student.blood_group }}</span>
-          </li>
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span><i class="fas fa-calendar-alt me-2"></i> Admission Date</span>
-            <span class="text-muted">{{ student.admission_date }}</span>
-          </li>
-        </ul>
-      </div>
-
-      <!-- Parents Information -->
-      <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <h5 class="card-title mb-0">Parents/Guardians</h5>
-          {% if perms.students.add_studentparentrelation %}
-          <a href="{% url 'students:relation-create-for-student' student.id %}" class="btn btn-sm btn-primary">
-            <i class="fas fa-plus"></i> Add
+        <div class="btn-group">
+          {% if can_edit %}
+          <a href="{% url 'students:student-update' student.pk %}" class="btn btn-primary">
+            <i class="fas fa-edit me-2"></i>Edit Profile
           </a>
           {% endif %}
-        </div>
-        <div class="card-body">
-          {% for parent in parents %}
-          <div class="d-flex align-items-center mb-3">
-            <div class="flex-shrink-0">
-              {% if parent.photo %}
-              <img src="{{ parent.photo.url }}" alt="{{ parent.get_full_name }}" class="rounded-circle" width="48"
-                height="48">
-              {% else %}
-              <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
-                style="width: 48px; height: 48px;">
-                <i class="fas fa-user"></i>
-              </div>
+          <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="fas fa-cog me-2"></i>Actions
+            </button>
+            <ul class="dropdown-menu">
+              {% if can_generate_id %}
+              <li><a class="dropdown-item" href="{% url 'students:student-id-card' student.pk %}">
+                  <i class="fas fa-id-card me-2"></i>Generate ID Card
+                </a></li>
               {% endif %}
-            </div>
-            <div class="flex-grow-1 ms-3">
-              <h6 class="mb-0">{{ parent.get_full_name }}</h6>
-              <p class="mb-0 text-muted small">{{ parent.relation_with_student }}</p>
-              <p class="mb-0 text-muted small">{{ parent.user.phone_number|default:"" }}</p>
-            </div>
-            <div>
-              <a href="{% url 'students:parent-detail' parent.id %}" class="btn btn-sm btn-info">
-                <i class="fas fa-eye"></i>
-              </a>
-            </div>
-          </div>
-          {% empty %}
-          <p class="text-muted">No parent information available.</p>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-
-    <!-- Parents Information -->
-    <div class="card mb-4">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0">Parents/Guardians</h5>
-        {% if perms.students.add_studentparentrelation %}
-        <a href="{% url 'students:relation-create-for-student' student.id %}" class="btn btn-sm btn-primary">
-          <i class="fas fa-plus"></i> Add
-        </a>
-        {% endif %}
-      </div>
-      <div class="card-body">
-        {% for parent in parents %}
-        <div class="d-flex align-items-center mb-3">
-          <div class="flex-shrink-0">
-            {% if parent.photo %}
-            <img src="{{ parent.photo.url }}" alt="{{ parent.get_full_name }}" class="rounded-circle" width="48"
-              height="48">
-            {% else %}
-            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
-              style="width: 48px; height: 48px;">
-              <i class="fas fa-user"></i>
-            </div>
-            {% endif %}
-          </div>
-          <div class="flex-grow-1 ms-3">
-            <h6 class="mb-0">{{ parent.get_full_name }}</h6>
-            <p class="mb-0 text-muted small">{{ parent.relation_with_student }}</p>
-            <p class="mb-0 text-muted small">{{ parent.user.phone_number|default:"" }}</p>
-          </div>
-          <div>
-            <a href="{% url 'parent-detail' parent.id %}" class="btn btn-sm btn-info">
-              <i class="fas fa-eye"></i>
-            </a>
+              <li><a class="dropdown-item" href="{% url 'students:relation-create-for-student' student.pk %}">
+                  <i class="fas fa-user-plus me-2"></i>Add Parent/Guardian
+                </a></li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li><a class="dropdown-item" href="{% url 'students:student-status-update' student.pk %}">
+                  <i class="fas fa-toggle-on me-2"></i>Change Status
+                </a></li>
+              {% if can_delete %}
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li><a class="dropdown-item text-danger" href="{% url 'students:student-delete' student.pk %}">
+                  <i class="fas fa-trash me-2"></i>Delete Student
+                </a></li>
+              {% endif %}
+            </ul>
           </div>
         </div>
-        {% empty %}
-        <p class="text-muted">No parent information available.</p>
-        {% endfor %}
       </div>
     </div>
   </div>
 
-  <div class="col-xl-8">
+  <!-- Profile Header -->
+  <div class="profile-header">
+    <div class="row align-items-center">
+      <div class="col-md-3 text-center">
+        {% if student.photo %}
+        <img src="{{ student.photo.url }}" class="rounded-circle border border-white border-3" width="120" height="120"
+          alt="{{ student.get_full_name }}">
+        {% else %}
+        <div
+          class="bg-light rounded-circle border border-white border-3 d-flex align-items-center justify-content-center mx-auto"
+          style="width: 120px; height: 120px;">
+          <i class="fas fa-user fa-3x text-muted"></i>
+        </div>
+        {% endif %}
+      </div>
+      <div class="col-md-6">
+        <h2 class="mb-2">{{ student.get_full_name }}</h2>
+        <div class="row g-3">
+          <div class="col-6">
+            <div class="d-flex align-items-center">
+              <i class="fas fa-id-badge me-2"></i>
+              <div>
+                <small class="opacity-75">Admission Number</small>
+                <div class="fw-bold">{{ student.admission_number }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="d-flex align-items-center">
+              <i class="fas fa-graduation-cap me-2"></i>
+              <div>
+                <small class="opacity-75">Class</small>
+                <div class="fw-bold">
+                  {% if student.current_class %}
+                  {{ student.current_class }}
+                  {% else %}
+                  Not Assigned
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="d-flex align-items-center">
+              <i class="fas fa-calendar me-2"></i>
+              <div>
+                <small class="opacity-75">Age</small>
+                <div class="fw-bold">
+                  {% if student.age %}
+                  {{ student.age }} years
+                  {% else %}
+                  Not specified
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="d-flex align-items-center">
+              <i class="fas fa-tint me-2"></i>
+              <div>
+                <small class="opacity-75">Blood Group</small>
+                <div class="fw-bold">{{ student.blood_group }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 text-center">
+        <div class="stat-card mb-3">
+          <h4 class="mb-1">{{ attendance_percentage|floatformat:1 }}%</h4>
+          <small>Attendance Rate</small>
+        </div>
+        {{ student.status|student_status_badge }}
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
     <!-- Personal Information -->
-    <div class="card mb-4">
-      <div class="card-header">
-        <h5 class="card-title mb-0">Personal Information</h5>
+    <div class="col-md-8">
+      <div class="card info-card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-user me-2"></i>Personal Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label text-muted">Full Name</label>
+              <div class="fw-bold">{{ student.get_full_name }}</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-muted">Email Address</label>
+              <div class="fw-bold">
+                {% if student.user.email %}
+                <a href="mailto:{{ student.user.email }}">{{ student.user.email }}</a>
+                {% else %}
+                <span class="text-muted">Not provided</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-muted">Date of Birth</label>
+              <div class="fw-bold">
+                {% if student.user.date_of_birth %}
+                {{ student.user.date_of_birth|date:"F d, Y" }}
+                {% else %}
+                <span class="text-muted">Not provided</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-muted">Phone Number</label>
+              <div class="fw-bold">
+                {% if student.user.phone_number %}
+                {{ student.user.phone_number|format_phone_number }}
+                {% else %}
+                <span class="text-muted">Not provided</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-muted">Nationality</label>
+              <div class="fw-bold">{{ student.nationality|default:"Not specified" }}</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-muted">Religion</label>
+              <div class="fw-bold">{{ student.religion|default:"Not specified" }}</div>
+            </div>
+            <div class="col-12">
+              <label class="form-label text-muted">Address</label>
+              <div class="fw-bold">
+                {% if student.get_full_address != "No address provided" %}
+                {{ student.get_full_address }}
+                {% else %}
+                <span class="text-muted">No address provided</span>
+                {% endif %}
+              </div>
+            </div>
+            {% if student.medical_conditions %}
+            <div class="col-12">
+              <label class="form-label text-muted">Medical Conditions</label>
+              <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                {{ student.medical_conditions }}
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
       </div>
-      <div class="card-body">
-        <div class="row mb-3">
-          <div class="col-md-4">
-            <h6>Full Name</h6>
-            <p>{{ student.get_full_name }}</p>
-          </div>
-          <div class="col-md-4">
-            <h6>Date of Birth</h6>
-            <p>{{ student.user.date_of_birth|default:"Not provided" }}</p>
-          </div>
-          <div class="col-md-4">
-            <h6>Gender</h6>
-            <p>{{ student.user.get_gender_display|default:"Not specified" }}</p>
+
+      <!-- Academic Information -->
+      <div class="card info-card mb-4">
+        <div class="card-header bg-success text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-graduation-cap me-2"></i>Academic Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label text-muted">Admission Date</label>
+              <div class="fw-bold">{{ student.admission_date|date:"F d, Y" }}</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-muted">Registration Number</label>
+              <div class="fw-bold">{{ student.registration_number|default:"Not assigned" }}</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-muted">Roll Number</label>
+              <div class="fw-bold">{{ student.roll_number|default:"Not assigned" }}</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-muted">Current Status</label>
+              <div>{{ student.status|student_status_badge }}</div>
+            </div>
+            {% if student.previous_school %}
+            <div class="col-12">
+              <label class="form-label text-muted">Previous School</label>
+              <div class="fw-bold">{{ student.previous_school }}</div>
+            </div>
+            {% endif %}
           </div>
         </div>
+      </div>
 
-        <div class="row mb-3">
-          <div class="col-md-4">
-            <h6>Nationality</h6>
-            <p>{{ student.nationality|default:"Not provided" }}</p>
-          </div>
-          <div class="col-md-4">
-            <h6>Religion</h6>
-            <p>{{ student.religion|default:"Not provided" }}</p>
-          </div>
-          <div class="col-md-4">
-            <h6>Registration Number</h6>
-            <p>{{ student.registration_number|default:"Not provided" }}</p>
-          </div>
+      <!-- Emergency Contact -->
+      <div class="card info-card">
+        <div class="card-header bg-danger text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-phone me-2"></i>Emergency Contact
+          </h5>
         </div>
-
-        <div class="row mb-3">
-          <div class="col-md-12">
-            <h6>Address</h6>
-            <p>{{ student.get_full_address }}</p>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="col-md-12">
-            <h6>Medical Conditions</h6>
-            <p>{{ student.medical_conditions|default:"No medical conditions reported" }}</p>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label text-muted">Contact Name</label>
+              <div class="fw-bold">{{ student.emergency_contact_name }}</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-muted">Contact Number</label>
+              <div class="fw-bold">
+                <a href="tel:{{ student.emergency_contact_number }}">
+                  {{ student.emergency_contact_number|format_phone_number }}
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Emergency Contact -->
-    <div class="card mb-4">
-      <div class="card-header">
-        <h5 class="card-title mb-0">Emergency Contact</h5>
-      </div>
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-6">
-            <h6>Contact Name</h6>
-            <p>{{ student.emergency_contact_name }}</p>
+    <!-- Sidebar -->
+    <div class="col-md-4">
+      <!-- Profile Completion -->
+      <div class="card info-card mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">Profile Completion</h6>
+        </div>
+        <div class="card-body">
+          {% with completion=student|student_profile_completion %}
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span>Progress</span>
+            <span class="fw-bold">{{ completion }}%</span>
           </div>
-          <div class="col-md-6">
-            <h6>Contact Number</h6>
-            <p>{{ student.emergency_contact_number }}</p>
+          <div class="progress mb-3">
+            <div class="progress-bar 
+                                    {% if completion >= 90 %}bg-success
+                                    {% elif completion >= 70 %}bg-warning
+                                    {% else %}bg-danger{% endif %}" style="width: {{ completion }}%"></div>
+          </div>
+          {% if completion < 100 %}
+          <small class="text-muted">
+            Complete missing information to improve profile.
+          </small>
+          {% endif %}
+          {% endwith %}
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card info-card mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">Quick Actions</h6>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            {% if can_edit %}
+            <a href="{% url 'students:student-update' student.pk %}" class="btn btn-outline-primary btn-sm">
+              <i class="fas fa-edit me-2"></i>Edit Profile
+            </a>
+            {% endif %}
+            <a href="{% url 'students:relation-create-for-student' student.pk %}"
+              class="btn btn-outline-success btn-sm">
+              <i class="fas fa-user-plus me-2"></i>Add Parent/Guardian
+            </a>
+            {% if can_generate_id %}
+            <a href="{% url 'students:student-id-card' student.pk %}" class="btn btn-outline-info btn-sm">
+              <i class="fas fa-id-card me-2"></i>Generate ID Card
+            </a>
+            {% endif %}
+            <a href="{% url 'students:student-family-tree' student.pk %}" class="btn btn-outline-secondary btn-sm">
+              <i class="fas fa-sitemap me-2"></i>View Family Tree
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Siblings -->
+      {% with siblings=student|get_student_siblings %}
+      {% if siblings %}
+      <div class="card info-card mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-users me-2"></i>Siblings
+            <span class="badge bg-primary">{{ siblings|length }}</span>
+          </h6>
+        </div>
+        <div class="card-body">
+          {% for sibling in siblings %}
+          <div class="d-flex align-items-center mb-2">
+            {% if sibling.photo %}
+            <img src="{{ sibling.photo.url }}" class="rounded-circle me-3" width="30" height="30">
+            {% else %}
+            <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center me-3"
+              style="width: 30px; height: 30px;">
+              <i class="fas fa-user text-white small"></i>
+            </div>
+            {% endif %}
+            <div class="flex-grow-1">
+              <a href="{% url 'students:student-detail' sibling.pk %}" class="text-decoration-none">
+                <div class="fw-bold">{{ sibling.get_full_name }}</div>
+                <small class="text-muted">{{ sibling.admission_number }}</small>
+              </a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      {% endwith %}
+
+      <!-- Recent Activity -->
+      <div class="card info-card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">Recent Activity</h6>
+        </div>
+        <div class="card-body">
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-marker bg-primary"></div>
+              <div class="timeline-content">
+                <small class="text-muted">{{ student.created_at|timesince }} ago</small>
+                <div>Student profile created</div>
+              </div>
+            </div>
+            {% if student.updated_at != student.created_at %}
+            <div class="timeline-item">
+              <div class="timeline-marker bg-info"></div>
+              <div class="timeline-content">
+                <small class="text-muted">{{ student.updated_at|timesince }} ago</small>
+                <div>Profile last updated</div>
+              </div>
+            </div>
+            {% endif %}
           </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Academic Information -->
-    <div class="card mb-4">
-      <ul class="nav nav-tabs" id="academicTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-          <button class="nav-link active" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance"
-            type="button" role="tab" aria-controls="attendance" aria-selected="true">Attendance</button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" id="exams-tab" data-bs-toggle="tab" data-bs-target="#exams" type="button" role="tab"
-            aria-controls="exams" aria-selected="false">Exams</button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" id="fees-tab" data-bs-toggle="tab" data-bs-target="#fees" type="button" role="tab"
-            aria-controls="fees" aria-selected="false">Fees</button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" id="documents-tab" data-bs-toggle="tab" data-bs-target="#documents" type="button"
-            role="tab" aria-controls="documents" aria-selected="false">Documents</button>
-        </li>
-      </ul>
-      <div class="card-body">
-        <div class="tab-content" id="academicTabsContent">
-          <!-- Attendance Tab -->
-          <div class="tab-pane fade show active" id="attendance" role="tabpanel" aria-labelledby="attendance-tab">
-            {% if attendance_percentage is not None %}
-            <div class="row mb-4">
-              <div class="col-md-6">
-                <div class="card bg-light">
-                  <div class="card-body text-center">
-                    <h3 class="display-4">{{ attendance_percentage }}%</h3>
-                    <p class="mb-0">Attendance Percentage</p>
+  <!-- Family Information -->
+  {% if parent_relations %}
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card info-card">
+        <div class="card-header bg-info text-white">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-users me-2"></i>Family Information
+              <span class="badge bg-light text-dark">{{ parent_relations|length }}
+                relationship{{ parent_relations|length|pluralize }}</span>
+            </h5>
+            <a href="{% url 'students:relation-create-for-student' student.pk %}" class="btn btn-light btn-sm">
+              <i class="fas fa-plus me-2"></i>Add Relationship
+            </a>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% for relation in parent_relations %}
+            <div class="col-md-6 mb-4">
+              <div class="family-tree">
+                <div class="d-flex align-items-center mb-3">
+                  {% if relation.parent.photo %}
+                  <img src="{{ relation.parent.photo.url }}" class="rounded-circle me-3" width="50" height="50">
+                  {% else %}
+                  <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3"
+                    style="width: 50px; height: 50px;">
+                    {{ relation.parent.relation_with_student|parent_relation_icon }}
+                  </div>
+                  {% endif %}
+                  <div class="flex-grow-1">
+                    <h6 class="mb-1">
+                      <a href="{% url 'students:parent-detail' relation.parent.pk %}" class="text-decoration-none">
+                        {{ relation.parent.get_full_name }}
+                      </a>
+                      {% if relation.is_primary_contact %}
+                      <span class="badge bg-warning text-dark">Primary</span>
+                      {% endif %}
+                    </h6>
+                    <span class="badge bg-secondary">{{ relation.parent.relation_with_student }}</span>
+                  </div>
+                  <div class="btn-group btn-group-sm">
+                    <a href="{% url 'students:relation-update' relation.pk %}" class="btn btn-outline-primary">
+                      <i class="fas fa-edit"></i>
+                    </a>
+                    <a href="{% url 'students:relation-delete' relation.pk %}" class="btn btn-outline-danger">
+                      <i class="fas fa-trash"></i>
+                    </a>
+                  </div>
+                </div>
+
+                <div class="row g-2 small">
+                  <div class="col-6">
+                    <strong>Email:</strong><br>
+                    {% if relation.parent.user.email %}
+                    <a href="mailto:{{ relation.parent.user.email }}">{{ relation.parent.user.email }}</a>
+                    {% else %}
+                    <span class="text-muted">Not provided</span>
+                    {% endif %}
+                  </div>
+                  <div class="col-6">
+                    <strong>Phone:</strong><br>
+                    {% if relation.parent.user.phone_number %}
+                    <a href="tel:{{ relation.parent.user.phone_number }}">
+                      {{ relation.parent.user.phone_number|format_phone_number }}
+                    </a>
+                    {% else %}
+                    <span class="text-muted">Not provided</span>
+                    {% endif %}
+                  </div>
+                  <div class="col-6">
+                    <strong>Occupation:</strong><br>
+                    {{ relation.parent.occupation|default:"Not specified" }}
+                  </div>
+                  <div class="col-6">
+                    <strong>Emergency Priority:</strong><br>
+                    <span class="badge bg-info">Priority {{ relation.emergency_contact_priority }}</span>
+                  </div>
+                </div>
+
+                <div class="mt-3">
+                  <strong>Permissions:</strong><br>
+                  <div class="mt-2">
+                    {% if relation.can_pickup %}
+                    <span class="badge bg-success me-1">Can Pickup</span>
+                    {% endif %}
+                    {% if relation.financial_responsibility %}
+                    <span class="badge bg-warning text-dark me-1">Financial Responsibility</span>
+                    {% endif %}
+                    {% if relation.access_to_grades %}
+                    <span class="badge bg-info me-1">Grade Access</span>
+                    {% endif %}
+                    {% if relation.access_to_attendance %}
+                    <span class="badge bg-primary me-1">Attendance Access</span>
+                    {% endif %}
+                    {% if relation.access_to_financial_info %}
+                    <span class="badge bg-dark me-1">Financial Info Access</span>
+                    {% endif %}
                   </div>
                 </div>
               </div>
             </div>
-
-            {% if recent_attendance %}
-            <h6>Recent Attendance</h6>
-            <div class="table-responsive">
-              <table class="table table-sm table-bordered">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Status</th>
-                    <th>Remarks</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for attendance in recent_attendance %}
-                  <tr>
-                    <td>{{ attendance.date }}</td>
-                    <td>
-                      <span
-                        class="badge {% if attendance.status == 'Present' %}bg-success{% elif attendance.status == 'Absent' %}bg-danger{% elif attendance.status == 'Late' %}bg-warning{% else %}bg-info{% endif %}">
-                        {{ attendance.status }}
-                      </span>
-                    </td>
-                    <td>{{ attendance.remarks|default:"" }}</td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-            {% else %}
-            <p class="text-muted">No recent attendance records found.</p>
-            {% endif %}
-            {% else %}
-            <p class="text-muted">Attendance information not available.</p>
-            {% endif %}
-          </div>
-
-          <!-- Exams Tab -->
-          <div class="tab-pane fade" id="exams" role="tabpanel" aria-labelledby="exams-tab">
-            {% if recent_exam_results %}
-            <h6>Recent Exam Results</h6>
-            <div class="table-responsive">
-              <table class="table table-sm table-bordered">
-                <thead>
-                  <tr>
-                    <th>Exam</th>
-                    <th>Subject</th>
-                    <th>Marks</th>
-                    <th>Grade</th>
-                    <th>Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for result in recent_exam_results %}
-                  <tr>
-                    <td>{{ result.exam_schedule.exam.name }}</td>
-                    <td>{{ result.exam_schedule.subject.name }}</td>
-                    <td>
-                      {{ result.marks_obtained }} / {{ result.exam_schedule.total_marks }}
-                      ({{ result.percentage|floatformat:2 }}%)
-                    </td>
-                    <td>{{ result.grade }}</td>
-                    <td>{{ result.entry_date|date }}</td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-            {% else %}
-            <p class="text-muted">No exam results found.</p>
-            {% endif %}
-          </div>
-
-          <!-- Fees Tab -->
-          <div class="tab-pane fade" id="fees" role="tabpanel" aria-labelledby="fees-tab">
-            {% if recent_invoices %}
-            <h6>Recent Fee Invoices</h6>
-            <div class="table-responsive">
-              <table class="table table-sm table-bordered">
-                <thead>
-                  <tr>
-                    <th>Invoice #</th>
-                    <th>Date</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for invoice in recent_invoices %}
-                  <tr>
-                    <td>{{ invoice.invoice_number }}</td>
-                    <td>{{ invoice.issue_date }}</td>
-                    <td>{{ invoice.total_amount }}</td>
-                    <td>
-                      <span class="badge 
-                                                    {% if invoice.status == 'Paid' %}bg-success
-                                                    {% elif invoice.status == 'Unpaid' %}bg-danger
-                                                    {% elif invoice.status == 'Partially Paid' %}bg-warning
-                                                    {% elif invoice.status == 'Overdue' %}bg-danger
-                                                    {% else %}bg-secondary{% endif %}">
-                        {{ invoice.status }}
-                      </span>
-                    </td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-            {% else %}
-            <p class="text-muted">No fee information found.</p>
-            {% endif %}
-          </div>
-
-          <!-- Documents Tab -->
-          <div class="tab-pane fade" id="documents" role="tabpanel" aria-labelledby="documents-tab">
-            <!-- This tab would show documents related to the student -->
-            <p class="text-muted">No documents found.</p>
+            {% endfor %}
           </div>
         </div>
       </div>
     </div>
-
-    <!-- Siblings Information -->
-    {% if siblings %}
-    <div class="card mb-4">
-      <div class="card-header">
-        <h5 class="card-title mb-0">Siblings</h5>
-      </div>
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-sm">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Class</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for sibling in siblings %}
-              <tr>
-                <td>{{ sibling.get_full_name }}</td>
-                <td>{{ sibling.current_class|default:"Not assigned" }}</td>
-                <td>
-                  <span class="badge {% if sibling.status == 'Active' %}bg-success{% else %}bg-secondary{% endif %}">
-                    {{ sibling.status }}
-                  </span>
-                </td>
-                <td>
-                  <a href="{% url 'student-detail' sibling.id %}" class="btn btn-sm btn-info">
-                    <i class="fas fa-eye"></i>
-                  </a>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-    {% endif %}
   </div>
+  {% else %}
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card info-card">
+        <div class="card-body text-center py-5">
+          <i class="fas fa-users fa-3x text-muted mb-3"></i>
+          <h5 class="text-muted">No Family Information</h5>
+          <p class="text-muted">No parent or guardian relationships have been added for this student.</p>
+          <a href="{% url 'students:relation-create-for-student' student.pk %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Add Parent/Guardian
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 </div>
-</div>
+
+<style>
+  .timeline {
+    position: relative;
+    padding-left: 30px;
+  }
+
+  .timeline-item {
+    position: relative;
+    padding-bottom: 20px;
+  }
+
+  .timeline-marker {
+    position: absolute;
+    left: -35px;
+    top: 5px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: -31px;
+    top: 15px;
+    width: 2px;
+    height: calc(100% - 5px);
+    background-color: #e9ecef;
+  }
+
+  .timeline-content {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+    border-left: 3px solid #007bff;
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Add smooth scrolling for anchor links
+    $('a[href^="#"]').on('click', function (event) {
+      var target = $(this.getAttribute('href'));
+      if (target.length) {
+        event.preventDefault();
+        $('html, body').stop().animate({
+          scrollTop: target.offset().top - 70
+        }, 1000);
+      }
+    });
+
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  });
+</script>
 {% endblock %}

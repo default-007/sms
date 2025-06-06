@@ -1,632 +1,665 @@
-<!-- students/templates/students/student_form.html -->
 {% extends "base.html" %}
 {% load static %}
-{% load widget_tweaks %}
+{% load student_tags %}
 
-{% block title %}{{ title|default:"Student Form" }}{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/select2.min.css' %}" rel="stylesheet">
 <style>
-  .profile-upload {
-    width: 150px;
-    height: 150px;
-    border: 2px dashed #dee2e6;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
-
-  .profile-upload:hover {
-    border-color: #007bff;
-    background-color: #f8f9fa;
-  }
-
-  .profile-preview {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 8px;
-  }
-
   .form-section {
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
-    padding: 20px;
+    background: #f8f9fa;
+    border-left: 4px solid #007bff;
+    padding: 1rem;
+    margin-bottom: 2rem;
+    border-radius: 0 10px 10px 0;
   }
 
-  .section-title {
-    color: #495057;
-    border-bottom: 2px solid #007bff;
-    padding-bottom: 10px;
-    margin-bottom: 20px;
+  .form-section h5 {
+    color: #007bff;
+    margin-bottom: 1rem;
   }
 
-  .required-field {
-    position: relative;
-  }
-
-  .required-field label::after {
+  .required-field::after {
     content: " *";
     color: #dc3545;
   }
 
   .help-text {
-    font-size: 0.875em;
+    font-size: 0.875rem;
     color: #6c757d;
-    margin-top: 5px;
+    margin-top: 0.25rem;
   }
 
-  .progress-bar-custom {
-    background: linear-gradient(90deg, #007bff 0%, #28a745 100%);
+  .image-preview {
+    max-width: 150px;
+    max-height: 150px;
+    border: 2px dashed #dee2e6;
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+  }
+
+  .form-floating-custom {
+    position: relative;
+  }
+
+  .form-floating-custom label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    padding: 1rem 0.75rem;
+    pointer-events: none;
+    border: 1px solid transparent;
+    transform-origin: 0 0;
+    transition: opacity 0.1s ease-in-out, transform 0.1s ease-in-out;
+    color: #6c757d;
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4">
-  <h1 class="mt-4">{{ title|default:"Student Form" }}</h1>
-  <ol class="breadcrumb mb-4">
-    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
-    <li class="breadcrumb-item"><a href="{% url 'students:student-list' %}">Students</a></li>
-    <li class="breadcrumb-item active">{{ title|default:"Form" }}</li>
-  </ol>
-
-  {% if messages %}
-  {% for message in messages %}
-  <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-    {{ message }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-  </div>
-  {% endfor %}
-  {% endif %}
-
-  <div class="row">
-    <div class="col-xl-12">
-      <!-- Progress Indicator -->
-      <div class="card mb-4">
-        <div class="card-body">
-          <h6 class="card-title">Form Completion</h6>
-          <div class="progress" style="height: 8px;">
-            <div class="progress-bar progress-bar-custom" role="progressbar" style="width: 0%" id="formProgress"></div>
-          </div>
-          <small class="text-muted">Fill all required fields to complete</small>
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'students:student-list' %}">Students</a></li>
+              {% if form.instance.pk %}
+              <li class="breadcrumb-item"><a
+                  href="{% url 'students:student-detail' form.instance.pk %}">{{ form.instance.get_full_name }}</a></li>
+              <li class="breadcrumb-item active">Edit</li>
+              {% else %}
+              <li class="breadcrumb-item active">Add New Student</li>
+              {% endif %}
+            </ol>
+          </nav>
+          <h2 class="mb-1">
+            <i class="fas fa-user-plus text-primary me-2"></i>
+            {{ title }}
+          </h2>
+          <p class="text-muted mb-0">Fill in the student information below. Fields marked with * are required.</p>
+        </div>
+        <div>
+          <a href="{% url 'students:student-list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to List
+          </a>
         </div>
       </div>
+    </div>
+  </div>
 
-      <form method="post" enctype="multipart/form-data" id="studentForm" novalidate>
-        {% csrf_token %}
+  <form method="post" enctype="multipart/form-data" id="studentForm" novalidate>
+    {% csrf_token %}
 
-        <!-- Basic Information Section -->
-        <div class="form-section">
-          <h5 class="section-title">
-            <i class="fas fa-user me-2"></i>Basic Information
-          </h5>
-          <div class="row">
-            <div class="col-md-6">
-              <div class="mb-3 required-field">
-                <label for="{{ form.first_name.id_for_label }}" class="form-label">First Name</label>
-                {{ form.first_name|add_class:"form-control" }}
+    <!-- Form Errors -->
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger">
+      <i class="fas fa-exclamation-triangle me-2"></i>
+      <strong>Please correct the following errors:</strong>
+      {{ form.non_field_errors }}
+    </div>
+    {% endif %}
+
+    <div class="row">
+      <!-- Main Form -->
+      <div class="col-lg-8">
+        <!-- Personal Information -->
+        <div class="card mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-user me-2"></i>Personal Information
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="form-floating">
+                  {{ form.first_name }}
+                  <label for="{{ form.first_name.id_for_label }}" class="required-field">First Name</label>
+                </div>
                 {% if form.first_name.errors %}
-                <div class="invalid-feedback d-block">{{ form.first_name.errors.0 }}</div>
-                {% endif %}
-                {% if form.first_name.help_text %}
-                <div class="help-text">{{ form.first_name.help_text }}</div>
+                <div class="text-danger small">{{ form.first_name.errors }}</div>
                 {% endif %}
               </div>
-            </div>
-            <div class="col-md-6">
-              <div class="mb-3 required-field">
-                <label for="{{ form.last_name.id_for_label }}" class="form-label">Last Name</label>
-                {{ form.last_name|add_class:"form-control" }}
+              <div class="col-md-6">
+                <div class="form-floating">
+                  {{ form.last_name }}
+                  <label for="{{ form.last_name.id_for_label }}" class="required-field">Last Name</label>
+                </div>
                 {% if form.last_name.errors %}
-                <div class="invalid-feedback d-block">{{ form.last_name.errors.0 }}</div>
+                <div class="text-danger small">{{ form.last_name.errors }}</div>
                 {% endif %}
               </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-md-6">
-              <div class="mb-3 required-field">
-                <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
-                {{ form.email|add_class:"form-control" }}
+              <div class="col-md-6">
+                <div class="form-floating">
+                  {{ form.email }}
+                  <label for="{{ form.email.id_for_label }}" class="required-field">Email Address</label>
+                </div>
                 {% if form.email.errors %}
-                <div class="invalid-feedback d-block">{{ form.email.errors.0 }}</div>
+                <div class="text-danger small">{{ form.email.errors }}</div>
                 {% endif %}
+                <div class="help-text">This will be used for login and communications</div>
               </div>
-            </div>
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="{{ form.phone_number.id_for_label }}" class="form-label">Phone Number</label>
-                {{ form.phone_number|add_class:"form-control" }}
+              <div class="col-md-6">
+                <div class="form-floating">
+                  {{ form.phone_number }}
+                  <label for="{{ form.phone_number.id_for_label }}">Phone Number</label>
+                </div>
                 {% if form.phone_number.errors %}
-                <div class="invalid-feedback d-block">{{ form.phone_number.errors.0 }}</div>
+                <div class="text-danger small">{{ form.phone_number.errors }}</div>
                 {% endif %}
               </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-md-4">
-              <div class="mb-3">
+              <div class="col-md-6">
                 <label for="{{ form.date_of_birth.id_for_label }}" class="form-label">Date of Birth</label>
-                {{ form.date_of_birth|add_class:"form-control" }}
+                {{ form.date_of_birth }}
                 {% if form.date_of_birth.errors %}
-                <div class="invalid-feedback d-block">{{ form.date_of_birth.errors.0 }}</div>
+                <div class="text-danger small">{{ form.date_of_birth.errors }}</div>
                 {% endif %}
               </div>
-            </div>
-            <div class="col-md-4">
-              <div class="mb-3">
+              <div class="col-md-6">
                 <label for="{{ form.gender.id_for_label }}" class="form-label">Gender</label>
-                {{ form.gender|add_class:"form-control" }}
+                {{ form.gender }}
                 {% if form.gender.errors %}
-                <div class="invalid-feedback d-block">{{ form.gender.errors.0 }}</div>
+                <div class="text-danger small">{{ form.gender.errors }}</div>
                 {% endif %}
               </div>
-            </div>
-            <div class="col-md-4">
-              <div class="mb-3">
-                <label for="{{ form.blood_group.id_for_label }}" class="form-label">Blood Group</label>
-                {{ form.blood_group|add_class:"form-control" }}
-                {% if form.blood_group.errors %}
-                <div class="invalid-feedback d-block">{{ form.blood_group.errors.0 }}</div>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="{{ form.nationality.id_for_label }}" class="form-label">Nationality</label>
-                {{ form.nationality|add_class:"form-control" }}
+              <div class="col-md-6">
+                <div class="form-floating">
+                  {{ form.nationality }}
+                  <label for="{{ form.nationality.id_for_label }}">Nationality</label>
+                </div>
                 {% if form.nationality.errors %}
-                <div class="invalid-feedback d-block">{{ form.nationality.errors.0 }}</div>
+                <div class="text-danger small">{{ form.nationality.errors }}</div>
                 {% endif %}
               </div>
-            </div>
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="{{ form.religion.id_for_label }}" class="form-label">Religion</label>
-                {{ form.religion|add_class:"form-control" }}
+              <div class="col-md-6">
+                <div class="form-floating">
+                  {{ form.religion }}
+                  <label for="{{ form.religion.id_for_label }}">Religion</label>
+                </div>
                 {% if form.religion.errors %}
-                <div class="invalid-feedback d-block">{{ form.religion.errors.0 }}</div>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-
-          <!-- Profile Photo -->
-          <div class="row">
-            <div class="col-md-3">
-              <div class="mb-3">
-                <label class="form-label">Profile Photo</label>
-                <div class="profile-upload" onclick="document.getElementById('{{ form.photo.id_for_label }}').click()">
-                  {% if form.instance.photo %}
-                  <img src="{{ form.instance.photo.url }}" alt="Profile" class="profile-preview" id="profilePreview">
-                  {% else %}
-                  <div class="text-center" id="uploadPlaceholder">
-                    <i class="fas fa-camera fa-2x text-muted"></i>
-                    <div class="mt-2 text-muted">Upload Photo</div>
-                  </div>
-                  {% endif %}
-                </div>
-                {{ form.photo|add_class:"d-none" }}
-                {% if form.photo.errors %}
-                <div class="invalid-feedback d-block">{{ form.photo.errors.0 }}</div>
-                {% endif %}
-              </div>
-            </div>
-            <div class="col-md-9">
-              <div class="row">
-                {% if form.password %}
-                <div class="col-md-6">
-                  <div class="mb-3">
-                    <label for="{{ form.password.id_for_label }}" class="form-label">Password</label>
-                    {{ form.password|add_class:"form-control" }}
-                    {% if form.password.help_text %}
-                    <div class="help-text">{{ form.password.help_text }}</div>
-                    {% endif %}
-                    {% if form.password.errors %}
-                    <div class="invalid-feedback d-block">{{ form.password.errors.0 }}</div>
-                    {% endif %}
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="mb-3">
-                    <label for="{{ form.confirm_password.id_for_label }}" class="form-label">Confirm Password</label>
-                    {{ form.confirm_password|add_class:"form-control" }}
-                    {% if form.confirm_password.errors %}
-                    <div class="invalid-feedback d-block">{{ form.confirm_password.errors.0 }}</div>
-                    {% endif %}
-                  </div>
-                </div>
+                <div class="text-danger small">{{ form.religion.errors }}</div>
                 {% endif %}
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Academic Information Section -->
-        <div class="form-section">
-          <h5 class="section-title">
-            <i class="fas fa-graduation-cap me-2"></i>Academic Information
-          </h5>
-          <div class="row">
-            <div class="col-md-4">
-              <div class="mb-3 required-field">
-                <label for="{{ form.admission_number.id_for_label }}" class="form-label">Admission Number</label>
-                {{ form.admission_number|add_class:"form-control" }}
+        <!-- Academic Information -->
+        <div class="card mb-4">
+          <div class="card-header bg-success text-white">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-graduation-cap me-2"></i>Academic Information
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="form-floating">
+                  {{ form.admission_number }}
+                  <label for="{{ form.admission_number.id_for_label }}" class="required-field">Admission Number</label>
+                </div>
                 {% if form.admission_number.errors %}
-                <div class="invalid-feedback d-block">{{ form.admission_number.errors.0 }}</div>
+                <div class="text-danger small">{{ form.admission_number.errors }}</div>
                 {% endif %}
+                <div class="help-text">Unique identifier for the student</div>
               </div>
-            </div>
-            <div class="col-md-4">
-              <div class="mb-3 required-field">
-                <label for="{{ form.admission_date.id_for_label }}" class="form-label">Admission Date</label>
-                {{ form.admission_date|add_class:"form-control" }}
+              <div class="col-md-6">
+                <label for="{{ form.admission_date.id_for_label }}" class="form-label required-field">Admission
+                  Date</label>
+                {{ form.admission_date }}
                 {% if form.admission_date.errors %}
-                <div class="invalid-feedback d-block">{{ form.admission_date.errors.0 }}</div>
+                <div class="text-danger small">{{ form.admission_date.errors }}</div>
                 {% endif %}
               </div>
-            </div>
-            <div class="col-md-4">
-              <div class="mb-3">
-                <label for="{{ form.roll_number.id_for_label }}" class="form-label">Roll Number</label>
-                {{ form.roll_number|add_class:"form-control" }}
-                {% if form.roll_number.errors %}
-                <div class="invalid-feedback d-block">{{ form.roll_number.errors.0 }}</div>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-md-6">
-              <div class="mb-3">
+              <div class="col-md-6">
                 <label for="{{ form.current_class.id_for_label }}" class="form-label">Current Class</label>
-                {{ form.current_class|add_class:"form-control select2" }}
+                {{ form.current_class }}
                 {% if form.current_class.errors %}
-                <div class="invalid-feedback d-block">{{ form.current_class.errors.0 }}</div>
+                <div class="text-danger small">{{ form.current_class.errors }}</div>
                 {% endif %}
               </div>
-            </div>
-            <div class="col-md-6">
-              <div class="mb-3">
+              <div class="col-md-6">
+                <div class="form-floating">
+                  {{ form.roll_number }}
+                  <label for="{{ form.roll_number.id_for_label }}">Roll Number</label>
+                </div>
+                {% if form.roll_number.errors %}
+                <div class="text-danger small">{{ form.roll_number.errors }}</div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="{{ form.blood_group.id_for_label }}" class="form-label">Blood Group</label>
+                {{ form.blood_group }}
+                {% if form.blood_group.errors %}
+                <div class="text-danger small">{{ form.blood_group.errors }}</div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
                 <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
-                {{ form.status|add_class:"form-control" }}
+                {{ form.status }}
                 {% if form.status.errors %}
-                <div class="invalid-feedback d-block">{{ form.status.errors.0 }}</div>
+                <div class="text-danger small">{{ form.status.errors }}</div>
                 {% endif %}
               </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-md-12">
-              <div class="mb-3">
-                <label for="{{ form.previous_school.id_for_label }}" class="form-label">Previous School</label>
-                {{ form.previous_school|add_class:"form-control" }}
+              <div class="col-12">
+                <div class="form-floating">
+                  {{ form.previous_school }}
+                  <label for="{{ form.previous_school.id_for_label }}">Previous School</label>
+                </div>
                 {% if form.previous_school.errors %}
-                <div class="invalid-feedback d-block">{{ form.previous_school.errors.0 }}</div>
+                <div class="text-danger small">{{ form.previous_school.errors }}</div>
                 {% endif %}
               </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Contact Information Section -->
-        <div class="form-section">
-          <h5 class="section-title">
-            <i class="fas fa-address-card me-2"></i>Contact Information
-          </h5>
-          <div class="row">
-            <div class="col-md-12">
-              <div class="mb-3">
-                <label for="{{ form.address_line.id_for_label }}" class="form-label">Address</label>
-                {{ form.address_line|add_class:"form-control" }}
-                {% if form.address_line.errors %}
-                <div class="invalid-feedback d-block">{{ form.address_line.errors.0 }}</div>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-md-4">
-              <div class="mb-3">
-                <label for="{{ form.city.id_for_label }}" class="form-label">City</label>
-                {{ form.city|add_class:"form-control" }}
-                {% if form.city.errors %}
-                <div class="invalid-feedback d-block">{{ form.city.errors.0 }}</div>
-                {% endif %}
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="mb-3">
-                <label for="{{ form.state.id_for_label }}" class="form-label">State</label>
-                {{ form.state|add_class:"form-control" }}
-                {% if form.state.errors %}
-                <div class="invalid-feedback d-block">{{ form.state.errors.0 }}</div>
-                {% endif %}
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="mb-3">
-                <label for="{{ form.postal_code.id_for_label }}" class="form-label">Postal Code</label>
-                {{ form.postal_code|add_class:"form-control" }}
-                {% if form.postal_code.errors %}
-                <div class="invalid-feedback d-block">{{ form.postal_code.errors.0 }}</div>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-md-12">
-              <div class="mb-3">
-                <label for="{{ form.country.id_for_label }}" class="form-label">Country</label>
-                {{ form.country|add_class:"form-control" }}
-                {% if form.country.errors %}
-                <div class="invalid-feedback d-block">{{ form.country.errors.0 }}</div>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Emergency Contact Section -->
-        <div class="form-section">
-          <h5 class="section-title">
-            <i class="fas fa-exclamation-triangle me-2"></i>Emergency Contact
-          </h5>
-          <div class="row">
-            <div class="col-md-6">
-              <div class="mb-3 required-field">
-                <label for="{{ form.emergency_contact_name.id_for_label }}" class="form-label">Emergency Contact
-                  Name</label>
-                {{ form.emergency_contact_name|add_class:"form-control" }}
-                {% if form.emergency_contact_name.errors %}
-                <div class="invalid-feedback d-block">{{ form.emergency_contact_name.errors.0 }}</div>
-                {% endif %}
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="mb-3 required-field">
-                <label for="{{ form.emergency_contact_number.id_for_label }}" class="form-label">Emergency Contact
-                  Number</label>
-                {{ form.emergency_contact_number|add_class:"form-control" }}
-                {% if form.emergency_contact_number.errors %}
-                <div class="invalid-feedback d-block">{{ form.emergency_contact_number.errors.0 }}</div>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Medical Information Section -->
-        <div class="form-section">
-          <h5 class="section-title">
-            <i class="fas fa-heartbeat me-2"></i>Medical Information
-          </h5>
-          <div class="row">
-            <div class="col-md-12">
-              <div class="mb-3">
+              <div class="col-12">
                 <label for="{{ form.medical_conditions.id_for_label }}" class="form-label">Medical Conditions</label>
-                {{ form.medical_conditions|add_class:"form-control" }}
-                <div class="help-text">List any known medical conditions, allergies, or special requirements</div>
+                {{ form.medical_conditions }}
                 {% if form.medical_conditions.errors %}
-                <div class="invalid-feedback d-block">{{ form.medical_conditions.errors.0 }}</div>
+                <div class="text-danger small">{{ form.medical_conditions.errors }}</div>
+                {% endif %}
+                <div class="help-text">Please mention any allergies, chronic conditions, or special medical needs</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Address Information -->
+        <div class="card mb-4">
+          <div class="card-header bg-info text-white">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-map-marker-alt me-2"></i>Address Information
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <label for="{{ form.address_line.id_for_label }}" class="form-label">Street Address</label>
+                {{ form.address_line }}
+                {% if form.address_line.errors %}
+                <div class="text-danger small">{{ form.address_line.errors }}</div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <div class="form-floating">
+                  {{ form.city }}
+                  <label for="{{ form.city.id_for_label }}">City</label>
+                </div>
+                {% if form.city.errors %}
+                <div class="text-danger small">{{ form.city.errors }}</div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <div class="form-floating">
+                  {{ form.state }}
+                  <label for="{{ form.state.id_for_label }}">State/Province</label>
+                </div>
+                {% if form.state.errors %}
+                <div class="text-danger small">{{ form.state.errors }}</div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <div class="form-floating">
+                  {{ form.postal_code }}
+                  <label for="{{ form.postal_code.id_for_label }}">Postal Code</label>
+                </div>
+                {% if form.postal_code.errors %}
+                <div class="text-danger small">{{ form.postal_code.errors }}</div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <div class="form-floating">
+                  {{ form.country }}
+                  <label for="{{ form.country.id_for_label }}">Country</label>
+                </div>
+                {% if form.country.errors %}
+                <div class="text-danger small">{{ form.country.errors }}</div>
                 {% endif %}
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Emergency Contact -->
+        <div class="card mb-4">
+          <div class="card-header bg-danger text-white">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-phone me-2"></i>Emergency Contact
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="form-floating">
+                  {{ form.emergency_contact_name }}
+                  <label for="{{ form.emergency_contact_name.id_for_label }}" class="required-field">Contact
+                    Name</label>
+                </div>
+                {% if form.emergency_contact_name.errors %}
+                <div class="text-danger small">{{ form.emergency_contact_name.errors }}</div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <div class="form-floating">
+                  {{ form.emergency_contact_number }}
+                  <label for="{{ form.emergency_contact_number.id_for_label }}" class="required-field">Contact
+                    Number</label>
+                </div>
+                {% if form.emergency_contact_number.errors %}
+                <div class="text-danger small">{{ form.emergency_contact_number.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Account Settings -->
+        {% if not form.instance.pk %}
+        <div class="card mb-4">
+          <div class="card-header bg-warning text-dark">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-key me-2"></i>Account Settings
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="form-floating">
+                  {{ form.password }}
+                  <label for="{{ form.password.id_for_label }}">Password</label>
+                </div>
+                {% if form.password.errors %}
+                <div class="text-danger small">{{ form.password.errors }}</div>
+                {% endif %}
+                <div class="help-text">Leave blank to auto-generate a secure password</div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-floating">
+                  {{ form.confirm_password }}
+                  <label for="{{ form.confirm_password.id_for_label }}">Confirm Password</label>
+                </div>
+                {% if form.confirm_password.errors %}
+                <div class="text-danger small">{{ form.confirm_password.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Sidebar -->
+      <div class="col-lg-4">
+        <!-- Photo Upload -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h6 class="card-title mb-0">
+              <i class="fas fa-camera me-2"></i>Profile Photo
+            </h6>
+          </div>
+          <div class="card-body text-center">
+            <div class="image-preview mb-3" id="imagePreview">
+              {% if form.instance.photo %}
+              <img src="{{ form.instance.photo.url }}" class="img-fluid rounded" alt="Current photo">
+              {% else %}
+              <i class="fas fa-user fa-4x text-muted mb-2"></i>
+              <p class="text-muted">No photo uploaded</p>
+              {% endif %}
+            </div>
+            {{ form.photo }}
+            {% if form.photo.errors %}
+            <div class="text-danger small">{{ form.photo.errors }}</div>
+            {% endif %}
+            <div class="help-text">Supported formats: JPG, PNG, GIF (Max: 2MB)</div>
           </div>
         </div>
 
         <!-- Form Actions -->
-        <div class="form-section">
-          <div class="d-flex justify-content-between">
-            <div>
-              <a href="{% url 'students:student-list' %}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left me-2"></i>Cancel
+        <div class="card mb-4">
+          <div class="card-header">
+            <h6 class="card-title mb-0">Actions</h6>
+          </div>
+          <div class="card-body">
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-2"></i>{{ button_label }}
+              </button>
+              <button type="button" class="btn btn-outline-secondary" onclick="validateForm()">
+                <i class="fas fa-check me-2"></i>Validate Form
+              </button>
+              <a href="{% url 'students:student-list' %}" class="btn btn-outline-danger">
+                <i class="fas fa-times me-2"></i>Cancel
               </a>
-            </div>
-            <div>
-              <button type="button" class="btn btn-outline-primary me-2" id="saveAsDraft">
-                <i class="fas fa-save me-2"></i>Save as Draft
-              </button>
-              <button type="submit" class="btn btn-primary" id="submitBtn">
-                <i class="fas fa-check me-2"></i>{{ button_label|default:"Save Student" }}
-              </button>
             </div>
           </div>
         </div>
-      </form>
+
+        <!-- Form Progress -->
+        <div class="card">
+          <div class="card-header">
+            <h6 class="card-title mb-0">Form Completion</h6>
+          </div>
+          <div class="card-body">
+            <div class="progress mb-2">
+              <div class="progress-bar" id="formProgress" style="width: 0%"></div>
+            </div>
+            <div class="d-flex justify-content-between">
+              <small>Required fields</small>
+              <small id="progressText">0%</small>
+            </div>
+            <div class="mt-3">
+              <h6>Required Fields:</h6>
+              <ul class="list-unstyled small" id="requiredFieldsList">
+                <li><i class="fas fa-square text-muted me-2"></i>First Name</li>
+                <li><i class="fas fa-square text-muted me-2"></i>Last Name</li>
+                <li><i class="fas fa-square text-muted me-2"></i>Email</li>
+                <li><i class="fas fa-square text-muted me-2"></i>Admission Number</li>
+                <li><i class="fas fa-square text-muted me-2"></i>Admission Date</li>
+                <li><i class="fas fa-square text-muted me-2"></i>Emergency Contact Name</li>
+                <li><i class="fas fa-square text-muted me-2"></i>Emergency Contact Number</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
+  </form>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/select2.min.js' %}"></script>
 <script>
   $(document).ready(function () {
-    // Initialize Select2
-    $('.select2').select2({
-      theme: 'bootstrap4',
-      width: '100%'
+    // Form validation and progress tracking
+    updateFormProgress();
+
+    // Update progress on field changes
+    $('input, select, textarea').on('input change', function () {
+      updateFormProgress();
     });
 
-    // Profile photo preview
-    $('#{{ form.photo.id_for_label }}').change(function () {
-      const file = this.files[0];
+    // Photo preview functionality
+    $('#{{ form.photo.id_for_label }}').on('change', function (event) {
+      const file = event.target.files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = function (e) {
-          $('#profilePreview').remove();
-          $('#uploadPlaceholder').hide();
-          $('.profile-upload').prepend(
-            '<img src="' + e.target.result + '" alt="Profile" class="profile-preview" id="profilePreview">'
-          );
+          $('#imagePreview').html('<img src="' + e.target.result + '" class="img-fluid rounded" alt="Preview">');
         };
         reader.readAsDataURL(file);
       }
     });
 
-    // Form progress tracking
-    function updateProgress() {
-      const totalFields = $('input[required], select[required]').length;
-      const filledFields = $('input[required]:not([value=""]), select[required]:not([value=""])').length;
-      const progress = (filledFields / totalFields) * 100;
-
-      $('#formProgress').css('width', progress + '%');
-
-      if (progress === 100) {
-        $('#formProgress').addClass('bg-success').removeClass('bg-primary');
-      }
-    }
-
-    // Track form changes
-    $('input, select, textarea').on('change keyup', updateProgress);
-    updateProgress(); // Initial check
-
-    // Auto-save functionality
-    let autoSaveTimeout;
-    function autoSave() {
-      clearTimeout(autoSaveTimeout);
-      autoSaveTimeout = setTimeout(function () {
-        // Save form data to localStorage
-        const formData = {};
-        $('#studentForm').find('input, select, textarea').each(function () {
-          if (this.type !== 'file' && this.type !== 'password') {
-            formData[this.name] = $(this).val();
-          }
-        });
-        localStorage.setItem('studentFormDraft', JSON.stringify(formData));
-
-        // Show auto-save indicator
-        const autoSaveIndicator = $('<small class="text-success ms-2" id="autoSaveIndicator">Auto-saved</small>');
-        $('#submitBtn').parent().prepend(autoSaveIndicator);
-        setTimeout(() => autoSaveIndicator.fadeOut(), 2000);
-      }, 2000);
-    }
-
-    // Enable auto-save
-    $('#studentForm input, #studentForm select, #studentForm textarea').on('input change', autoSave);
-
-    // Load draft data
-    const draftData = localStorage.getItem('studentFormDraft');
-    if (draftData && !$('#studentForm').find('input[name="id"]').val()) {
-      const data = JSON.parse(draftData);
-      for (const [key, value] of Object.entries(data)) {
-        $(`[name="${key}"]`).val(value);
-      }
-      updateProgress();
-    }
-
-    // Save as draft button
-    $('#saveAsDraft').click(function () {
-      // Save current form state
-      autoSave();
-
-      // Show confirmation
-      alert('Form saved as draft!');
-    });
-
-    // Form validation
+    // Form submission with validation
     $('#studentForm').on('submit', function (e) {
-      let isValid = true;
-
-      // Remove previous validation classes
-      $('.is-invalid').removeClass('is-invalid');
-
-      // Validate required fields
-      $('input[required], select[required]').each(function () {
-        if (!$(this).val()) {
-          $(this).addClass('is-invalid');
-          isValid = false;
-        }
-      });
-
-      // Validate email format
-      const email = $('input[name="email"]').val();
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (email && !emailRegex.test(email)) {
-        $('input[name="email"]').addClass('is-invalid');
-        isValid = false;
-      }
-
-      // Validate password confirmation
-      const password = $('input[name="password"]').val();
-      const confirmPassword = $('input[name="confirm_password"]').val();
-      if (password && password !== confirmPassword) {
-        $('input[name="confirm_password"]').addClass('is-invalid');
-        isValid = false;
-      }
-
-      if (!isValid) {
+      if (!validateForm()) {
         e.preventDefault();
-        alert('Please correct the errors in the form before submitting.');
-
-        // Scroll to first error
-        const firstError = $('.is-invalid').first();
-        if (firstError.length) {
-          $('html, body').animate({
-            scrollTop: firstError.offset().top - 100
-          }, 500);
-        }
+        showValidationErrors();
       } else {
-        // Clear draft on successful submission
-        localStorage.removeItem('studentFormDraft');
+        // Show loading state
+        $('button[type="submit"]').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Saving...');
       }
     });
 
-    // Real-time validation
-    $('input[name="email"]').on('blur', function () {
-      const email = $(this).val();
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Auto-generate admission number if empty
+    $('#{{ form.admission_number.id_for_label }}').on('blur', function () {
+      if (!this.value) {
+        generateAdmissionNumber();
+      }
+    });
 
-      if (email && !emailRegex.test(email)) {
+    // Password confirmation validation
+    $('#{{ form.confirm_password.id_for_label }}').on('input', function () {
+      const password = $('#{{ form.password.id_for_label }}').val();
+      const confirmPassword = this.value;
+
+      if (password && confirmPassword && password !== confirmPassword) {
+        this.setCustomValidity('Passwords do not match');
         $(this).addClass('is-invalid');
-        if (!$(this).next('.invalid-feedback').length) {
-          $(this).after('<div class="invalid-feedback">Please enter a valid email address.</div>');
-        }
       } else {
+        this.setCustomValidity('');
         $(this).removeClass('is-invalid');
-        $(this).next('.invalid-feedback').remove();
       }
     });
 
-    // Password strength indicator
-    $('input[name="password"]').on('input', function () {
-      const password = $(this).val();
-      let strength = 0;
+    // Phone number formatting
+    $('#{{ form.phone_number.id_for_label }}, #{{ form.emergency_contact_number.id_for_label }}').on('input', function () {
+      this.value = formatPhoneNumber(this.value);
+    });
 
-      if (password.length >= 8) strength++;
-      if (password.match(/[a-z]+/)) strength++;
-      if (password.match(/[A-Z]+/)) strength++;
-      if (password.match(/[0-9]+/)) strength++;
-      if (password.match(/[^a-zA-Z0-9]+/)) strength++;
-
-      const strengthText = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'][Math.min(strength, 4)];
-      const strengthColor = ['danger', 'warning', 'info', 'success', 'success'][Math.min(strength, 4)];
-
-      let strengthIndicator = $(this).parent().find('.password-strength');
-      if (strengthIndicator.length === 0) {
-        strengthIndicator = $('<div class="password-strength mt-1"></div>');
-        $(this).parent().append(strengthIndicator);
+    // Email validation
+    $('#{{ form.email.id_for_label }}').on('blur', function () {
+      if (this.value) {
+        checkEmailExists(this.value);
       }
-
-      strengthIndicator.html(`<small class="text-${strengthColor}">Password strength: ${strengthText}</small>`);
     });
   });
+
+  function updateFormProgress() {
+    const requiredFields = [
+      '#{{ form.first_name.id_for_label }}',
+      '#{{ form.last_name.id_for_label }}',
+      '#{{ form.email.id_for_label }}',
+      '#{{ form.admission_number.id_for_label }}',
+      '#{{ form.admission_date.id_for_label }}',
+      '#{{ form.emergency_contact_name.id_for_label }}',
+      '#{{ form.emergency_contact_number.id_for_label }}'
+    ];
+
+    let completedFields = 0;
+    const totalFields = requiredFields.length;
+
+    requiredFields.forEach((fieldId, index) => {
+      const field = $(fieldId);
+      const listItem = $('#requiredFieldsList li').eq(index);
+
+      if (field.val() && field.val().trim() !== '') {
+        completedFields++;
+        listItem.find('i').removeClass('fa-square text-muted').addClass('fa-check-square text-success');
+      } else {
+        listItem.find('i').removeClass('fa-check-square text-success').addClass('fa-square text-muted');
+      }
+    });
+
+    const progress = Math.round((completedFields / totalFields) * 100);
+    $('#formProgress').css('width', progress + '%');
+    $('#progressText').text(progress + '%');
+
+    // Update progress bar color
+    if (progress < 50) {
+      $('#formProgress').removeClass('bg-warning bg-success').addClass('bg-danger');
+    } else if (progress < 100) {
+      $('#formProgress').removeClass('bg-danger bg-success').addClass('bg-warning');
+    } else {
+      $('#formProgress').removeClass('bg-danger bg-warning').addClass('bg-success');
+    }
+  }
+
+  function validateForm() {
+    let isValid = true;
+    const requiredFields = [
+      '#{{ form.first_name.id_for_label }}',
+      '#{{ form.last_name.id_for_label }}',
+      '#{{ form.email.id_for_label }}',
+      '#{{ form.admission_number.id_for_label }}',
+      '#{{ form.admission_date.id_for_label }}',
+      '#{{ form.emergency_contact_name.id_for_label }}',
+      '#{{ form.emergency_contact_number.id_for_label }}'
+    ];
+
+    // Clear previous validation states
+    $('.is-invalid').removeClass('is-invalid');
+
+    requiredFields.forEach(fieldId => {
+      const field = $(fieldId);
+      if (!field.val() || field.val().trim() === '') {
+        field.addClass('is-invalid');
+        isValid = false;
+      }
+    });
+
+    // Validate email format
+    const email = $('#{{ form.email.id_for_label }}').val();
+    if (email && !isValidEmail(email)) {
+      $('#{{ form.email.id_for_label }}').addClass('is-invalid');
+      isValid = false;
+    }
+
+    // Validate password confirmation
+    const password = $('#{{ form.password.id_for_label }}').val();
+    const confirmPassword = $('#{{ form.confirm_password.id_for_label }}').val();
+    if (password && confirmPassword && password !== confirmPassword) {
+      $('#{{ form.confirm_password.id_for_label }}').addClass('is-invalid');
+      isValid = false;
+    }
+
+    return isValid;
+  }
+
+  function showValidationErrors() {
+    const firstInvalidField = $('.is-invalid').first();
+    if (firstInvalidField.length) {
+      $('html, body').animate({
+        scrollTop: firstInvalidField.offset().top - 100
+      }, 500);
+      firstInvalidField.focus();
+    }
+  }
+
+  function generateAdmissionNumber() {
+    const year = new Date().getFullYear();
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    const admissionNumber = `STU-${year}-${random}`;
+    $('#{{ form.admission_number.id_for_label }}').val(admissionNumber);
+    updateFormProgress();
+  }
+
+  function formatPhoneNumber(phone) {
+    // Remove all non-digit characters except +
+    const cleaned = phone.replace(/[^\d+]/g, '');
+
+    // Basic formatting for display
+    if (cleaned.length === 10) {
+      return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
+    }
+
+    return cleaned;
+  }
+
+  function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  function checkEmailExists(email) {
+    // This would make an AJAX call to check if email exists
+    // For now, just validate format
+    if (!isValidEmail(email)) {
+      $('#{{ form.email.id_for_label }}').addClass('is-invalid');
+    }
+  }
 </script>
 {% endblock %}

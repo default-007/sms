@@ -122,27 +122,32 @@ class StudentForm(BaseModelForm):
                 self.fields[field_name].widget.attrs["required"] = True
 
         # Populate user fields if instance exists with a related user
-        if (
-            self.instance
-            and self.instance.pk
-            and hasattr(self.instance, "user")
-            and self.instance.user
-        ):
-            self.fields["first_name"].initial = self.instance.user.first_name
-            self.fields["last_name"].initial = self.instance.user.last_name
-            self.fields["email"].initial = self.instance.user.email
-            self.fields["phone_number"].initial = self.instance.user.phone_number
-            self.fields["date_of_birth"].initial = self.instance.user.date_of_birth
-            if hasattr(self.instance.user, "gender"):
-                self.fields["gender"].initial = self.instance.user.gender
-            self.fields["address_line"].initial = self.instance.address
+        if self.instance and self.instance.pk and hasattr(self.instance, "user"):
+            try:
+                # Try to access the user, but handle the case where it might not exist
+                user = self.instance.user
+                self.fields["first_name"].initial = user.first_name
+                self.fields["last_name"].initial = user.last_name
+                self.fields["email"].initial = user.email
+                self.fields["phone_number"].initial = user.phone_number
+                self.fields["date_of_birth"].initial = user.date_of_birth
+                if hasattr(user, "gender"):
+                    self.fields["gender"].initial = user.gender
+                self.fields["address_line"].initial = self.instance.address
+            except Student.user.RelatedObjectDoesNotExist:
+                # User doesn't exist yet, which is fine for new instances
+                pass
 
         # Filter classes to current academic year
-        current_year = AcademicYear.objects.filter(is_current=True).first()
-        if current_year:
-            self.fields["current_class"].queryset = Class.objects.filter(
-                academic_year=current_year
-            ).select_related("grade", "section")
+        try:
+            current_year = AcademicYear.objects.filter(is_current=True).first()
+            if current_year:
+                self.fields["current_class"].queryset = Class.objects.filter(
+                    academic_year=current_year
+                ).select_related("grade", "section")
+        except:
+            # If AcademicYear model doesn't exist or there's an import issue
+            pass
 
         # Add AJAX autocomplete for classes
         self.fields["current_class"].widget.attrs.update(
@@ -152,9 +157,12 @@ class StudentForm(BaseModelForm):
     def clean_email(self):
         email = self.cleaned_data.get("email")
         if self.instance and self.instance.pk:
-            existing_users = User.objects.filter(email=email).exclude(
-                id=self.instance.user.id
-            )
+            try:
+                existing_users = User.objects.filter(email=email).exclude(
+                    id=self.instance.user.id
+                )
+            except Student.user.RelatedObjectDoesNotExist:
+                existing_users = User.objects.filter(email=email)
         else:
             existing_users = User.objects.filter(email=email)
 
@@ -194,7 +202,13 @@ class StudentForm(BaseModelForm):
             with transaction.atomic():
                 # Handle user creation/update
                 if student.pk:
-                    user = student.user
+                    try:
+                        user = student.user
+                    except Student.user.RelatedObjectDoesNotExist:
+                        # Create new user if it doesn't exist
+                        email = self.cleaned_data["email"]
+                        username = self.cleaned_data["email"]
+                        user = User(username=username, email=email)
                 else:
                     email = self.cleaned_data["email"]
                     try:
@@ -278,22 +292,31 @@ class ParentForm(BaseModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Populate user fields if instance exists
-        if self.instance and self.instance.pk:
-            self.fields["first_name"].initial = self.instance.user.first_name
-            self.fields["last_name"].initial = self.instance.user.last_name
-            self.fields["email"].initial = self.instance.user.email
-            self.fields["phone_number"].initial = self.instance.user.phone_number
-            self.fields["date_of_birth"].initial = self.instance.user.date_of_birth
-            if hasattr(self.instance.user, "gender"):
-                self.fields["gender"].initial = self.instance.user.gender
+        # Populate user fields if instance exists with a related user
+        if self.instance and self.instance.pk and hasattr(self.instance, "user"):
+            try:
+                # Try to access the user, but handle the case where it might not exist
+                user = self.instance.user
+                self.fields["first_name"].initial = user.first_name
+                self.fields["last_name"].initial = user.last_name
+                self.fields["email"].initial = user.email
+                self.fields["phone_number"].initial = user.phone_number
+                self.fields["date_of_birth"].initial = user.date_of_birth
+                if hasattr(user, "gender"):
+                    self.fields["gender"].initial = user.gender
+            except Parent.user.RelatedObjectDoesNotExist:
+                # User doesn't exist yet, which is fine for new instances
+                pass
 
     def clean_email(self):
         email = self.cleaned_data.get("email")
         if self.instance and self.instance.pk:
-            existing_users = User.objects.filter(email=email).exclude(
-                id=self.instance.user.id
-            )
+            try:
+                existing_users = User.objects.filter(email=email).exclude(
+                    id=self.instance.user.id
+                )
+            except Parent.user.RelatedObjectDoesNotExist:
+                existing_users = User.objects.filter(email=email)
         else:
             existing_users = User.objects.filter(email=email)
 
@@ -318,7 +341,13 @@ class ParentForm(BaseModelForm):
             with transaction.atomic():
                 # Handle user creation/update
                 if parent.pk:
-                    user = parent.user
+                    try:
+                        user = parent.user
+                    except Parent.user.RelatedObjectDoesNotExist:
+                        # Create new user if it doesn't exist
+                        email = self.cleaned_data["email"]
+                        username = self.cleaned_data["email"]
+                        user = User(username=username, email=email)
                 else:
                     email = self.cleaned_data["email"]
                     try:

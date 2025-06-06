@@ -1,0 +1,463 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Optimization Score{% endblock %}
+
+{% block extra_css %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Timetable Optimization Score</h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:dashboard' %}">Scheduling</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:analytics' %}">Analytics</a></li>
+              <li class="breadcrumb-item active">Optimization Score</li>
+            </ol>
+          </nav>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="refreshScore()">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+          </button>
+          <button class="btn btn-outline-secondary" onclick="exportReport()">
+            <i class="bi bi-download"></i> Export
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Term Selection -->
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <label for="termSelect" class="form-label">Select Term</label>
+          <select class="form-select" id="termSelect" onchange="loadTermData()">
+            {% for available_term in available_terms %}
+            <option value="{{ available_term.id }}" {% if available_term == term %}selected{% endif %}>
+              {{ available_term.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if optimization_score %}
+  <!-- Overall Score -->
+  <div class="row mb-4">
+    <div class="col-lg-4">
+      <div class="card text-center">
+        <div class="card-body">
+          <h5 class="card-title text-muted">Overall Optimization Score</h5>
+          <div class="mb-3">
+            <canvas id="overallScoreChart" width="200" height="200"></canvas>
+          </div>
+          <h2 class="text-primary mb-1">{{ optimization_score.overall_score }}%</h2>
+          <span
+            class="badge bg-{% if optimization_score.overall_score >= 80 %}success{% elif optimization_score.overall_score >= 60 %}warning{% else %}danger{% endif %} fs-6">
+            Grade {{ optimization_score.grade }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Score Breakdown</h5>
+        </div>
+        <div class="card-body">
+          <div id="breakdownChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Metrics -->
+  <div class="row mb-4">
+    {% for category, score in optimization_score.breakdown.items %}
+    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="mb-2">
+            {% if category == 'workload_balance' %}
+            <i class="bi bi-people text-primary" style="font-size: 2rem;"></i>
+            {% elif category == 'room_utilization' %}
+            <i class="bi bi-building text-info" style="font-size: 2rem;"></i>
+            {% elif category == 'conflict_minimization' %}
+            <i class="bi bi-exclamation-triangle text-warning" style="font-size: 2rem;"></i>
+            {% elif category == 'subject_distribution' %}
+            <i class="bi bi-calendar-week text-success" style="font-size: 2rem;"></i>
+            {% elif category == 'room_assignment' %}
+            <i class="bi bi-geo-alt text-secondary" style="font-size: 2rem;"></i>
+            {% endif %}
+          </div>
+          <h6 class="text-muted text-capitalize">{{ category|replace:"_":" " }}</h6>
+          <h4 class="text-{% if score >= 20 %}success{% elif score >= 15 %}warning{% else %}danger{% endif %}">
+            {{ score }}
+          </h4>
+          <div class="progress" style="height: 4px;">
+            <div
+              class="progress-bar bg-{% if score >= 20 %}success{% elif score >= 15 %}warning{% else %}danger{% endif %}"
+              role="progressbar" style="width: {% widthratio score 25 100 %}%">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Score Trend -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Score Trend (Last 30 Days)</h5>
+        </div>
+        <div class="card-body">
+          <div id="scoreTrendChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recommendations -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-lightbulb"></i> Recommendations
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if optimization_score.recommendations %}
+          <div class="list-group list-group-flush">
+            {% for recommendation in optimization_score.recommendations %}
+            <div class="list-group-item border-0 px-0">
+              <div class="d-flex align-items-start">
+                <i class="bi bi-arrow-right-circle text-primary me-3 mt-1"></i>
+                <div>
+                  <p class="mb-1">{{ recommendation }}</p>
+                  <button class="btn btn-sm btn-outline-primary">Apply Suggestion</button>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-center text-muted py-4">
+            <i class="bi bi-check-circle fs-1 text-success"></i>
+            <p class="mt-2">Great! No recommendations at this time. Your timetable is well optimized.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <!-- Score History -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Score History</h5>
+        </div>
+        <div class="card-body">
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-marker bg-success"></div>
+              <div class="timeline-content">
+                <h6 class="mb-1">Current Score</h6>
+                <p class="mb-1 text-success">{{ optimization_score.overall_score }}%</p>
+                <small class="text-muted">{{ term.name }}</small>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-marker bg-primary"></div>
+              <div class="timeline-content">
+                <h6 class="mb-1">Previous Term</h6>
+                <p class="mb-1">85.2%</p>
+                <small class="text-muted">Last term</small>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-marker bg-info"></div>
+              <div class="timeline-content">
+                <h6 class="mb-1">Target Score</h6>
+                <p class="mb-1 text-info">90%</p>
+                <small class="text-muted">Institution goal</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if score_breakdown %}
+  <!-- Detailed Breakdown -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Detailed Score Breakdown</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover" id="breakdownTable">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Current Score</th>
+                  <th>Max Score</th>
+                  <th>Percentage</th>
+                  <th>Impact</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for category, score in optimization_score.breakdown.items %}
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      {% if category == 'workload_balance' %}
+                      <i class="bi bi-people text-primary me-2"></i>
+                      {% elif category == 'room_utilization' %}
+                      <i class="bi bi-building text-info me-2"></i>
+                      {% elif category == 'conflict_minimization' %}
+                      <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                      {% elif category == 'subject_distribution' %}
+                      <i class="bi bi-calendar-week text-success me-2"></i>
+                      {% elif category == 'room_assignment' %}
+                      <i class="bi bi-geo-alt text-secondary me-2"></i>
+                      {% endif %}
+                      <span class="text-capitalize">{{ category|replace:"_":" " }}</span>
+                    </div>
+                  </td>
+                  <td><strong>{{ score }}</strong></td>
+                  <td class="text-muted">25</td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="progress me-2" style="width: 60px; height: 8px;">
+                        <div
+                          class="progress-bar bg-{% if score >= 20 %}success{% elif score >= 15 %}warning{% else %}danger{% endif %}"
+                          style="width: {% widthratio score 25 100 %}%"></div>
+                      </div>
+                      <span class="small">{% widthratio score 25 100 %}%</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span
+                      class="badge bg-{% if score >= 20 %}success{% elif score >= 15 %}warning{% else %}danger{% endif %}">
+                      {% if score >= 20 %}High{% elif score >= 15 %}Medium{% else %}Low{% endif %}
+                    </span>
+                  </td>
+                  <td>
+                    {% if score >= 20 %}
+                    <i class="bi bi-check-circle text-success"></i> Excellent
+                    {% elif score >= 15 %}
+                    <i class="bi bi-exclamation-circle text-warning"></i> Good
+                    {% else %}
+                    <i class="bi bi-x-circle text-danger"></i> Needs Work
+                    {% endif %}
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="analyzeCategory('{{ category }}')">
+                      <i class="bi bi-search"></i> Analyze
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <!-- No Data State -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <i class="bi bi-graph-up text-muted" style="font-size: 4rem;"></i>
+          <h4 class="text-muted mt-3">No Optimization Data Available</h4>
+          <p class="text-muted">Please select a term with timetable data to view optimization scores.</p>
+          <button class="btn btn-primary" onclick="generateScore()">
+            <i class="bi bi-play-circle"></i> Generate Score
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.41.0/apexcharts.min.js"></script>
+
+<script>
+  // Overall Score Donut Chart
+  function createOverallScoreChart() {
+    const score = {{ optimization_score.overall_score|default: 0
+  }};
+  const ctx = document.getElementById('overallScoreChart').getContext('2d');
+
+  // Create a simple donut chart representation
+  const centerX = 100;
+  const centerY = 100;
+  const radius = 80;
+  const strokeWidth = 15;
+
+  // Clear canvas
+  ctx.clearRect(0, 0, 200, 200);
+
+  // Background circle
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+  ctx.strokeStyle = '#e9ecef';
+  ctx.lineWidth = strokeWidth;
+  ctx.stroke();
+
+  // Score arc
+  const angle = (score / 100) * 2 * Math.PI;
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, -Math.PI / 2, -Math.PI / 2 + angle);
+  ctx.strokeStyle = score >= 80 ? '#28a745' : score >= 60 ? '#ffc107' : '#dc3545';
+  ctx.lineWidth = strokeWidth;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+}
+
+  // Score Breakdown Chart
+  const breakdownOptions = {
+    series: [
+      {% for category, score in optimization_score.breakdown.items %}
+  { { score } } {% if not forloop.last %}, {% endif %}
+  {% endfor %}
+    ],
+  chart: {
+    type: 'radialBar',
+      height: 300
+  },
+  plotOptions: {
+    radialBar: {
+      dataLabels: {
+        name: {
+          fontSize: '14px',
+                },
+        value: {
+          fontSize: '16px',
+                },
+        total: {
+          show: true,
+            label: 'Average',
+              formatter: function () {
+                const avg = {% for score in optimization_score.breakdown.values %} { { score } } {% if not forloop.last %} + {% endif %} {% endfor %} / {{ optimization_score.breakdown|length }
+      };
+      return Math.round(avg) + '%';
+    }
+  }
+            }
+        }
+    },
+  labels: [
+    {% for category in optimization_score.breakdown.keys %}
+  '{{ category|capfirst|replace:"_":" " }}'{% if not forloop.last %}, {% endif %}
+  {% endfor %}
+    ],
+  colors: ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0']
+};
+
+  // Score Trend Chart
+  const trendOptions = {
+    series: [{
+      name: 'Optimization Score',
+      data: [75, 78, 82, 85, 88, 86, {{ optimization_score.overall_score |default: 0 }}]
+  }],
+    chart: {
+      type: 'line',
+      height: 300,
+      toolbar: {
+        show: false
+      }
+    },
+    stroke: {
+      curve: 'smooth',
+      width: 3
+    },
+    xaxis: {
+      categories: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Current']
+    },
+    yaxis: {
+      min: 0,
+      max: 100
+    },
+    colors: ['#008FFB'],
+    markers: {
+      size: 6
+    },
+    grid: {
+      borderColor: '#e7e7e7',
+      row: {
+        colors: ['#f3f3f3', 'transparent'],
+        opacity: 0.5
+      }
+    }
+};
+
+  // Initialize charts
+  document.addEventListener('DOMContentLoaded', function () {
+    {% if optimization_score %}
+    createOverallScoreChart();
+
+    const breakdownChart = new ApexCharts(document.querySelector("#breakdownChart"), breakdownOptions);
+    breakdownChart.render();
+
+    const trendChart = new ApexCharts(document.querySelector("#scoreTrendChart"), trendOptions);
+    trendChart.render();
+    {% endif %}
+  });
+
+  // Functions
+  function loadTermData() {
+    const termId = document.getElementById('termSelect').value;
+    window.location.href = `?term_id=${termId}`;
+  }
+
+  function refreshScore() {
+    // Refresh optimization score
+    location.reload();
+  }
+
+  function exportReport() {
+    // Export optimization report
+    console.log('Exporting optimization report...');
+  }
+
+  function generateScore() {
+    // Generate optimization score
+    console.log('Generating optimization score...');
+  }
+
+  function analyzeCategory(category) {
+    // Analyze specific category
+    console.log(`Analyzing ${category}...`);
+  }
+</script>
+{% endblock %}

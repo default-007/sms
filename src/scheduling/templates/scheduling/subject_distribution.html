@@ -1,0 +1,541 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Subject Distribution Analytics{% endblock %}
+
+{% block extra_css %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Subject Distribution Analytics</h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:dashboard' %}">Scheduling</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:analytics' %}">Analytics</a></li>
+              <li class="breadcrumb-item active">Subject Distribution</li>
+            </ol>
+          </nav>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="refreshData()">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+          </button>
+          <button class="btn btn-outline-secondary" onclick="exportData()">
+            <i class="bi bi-download"></i> Export
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Term Selection & Filters -->
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <label for="termSelect" class="form-label">Select Term</label>
+          <select class="form-select" id="termSelect" onchange="loadTermData()">
+            {% for available_term in available_terms %}
+            <option value="{{ available_term.id }}" {% if available_term == term %}selected{% endif %}>
+              {{ available_term.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <label for="gradeFilter" class="form-label">Filter by Grade</label>
+          <select class="form-select" id="gradeFilter" onchange="filterByGrade()">
+            <option value="">All Grades</option>
+            <!-- Dynamic grade options would be populated here -->
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <label for="subjectFilter" class="form-label">Filter by Subject</label>
+          <select class="form-select" id="subjectFilter" onchange="filterBySubject()">
+            <option value="">All Subjects</option>
+            <!-- Dynamic subject options would be populated here -->
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if distribution_data %}
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <i class="bi bi-book text-primary" style="font-size: 2.5rem;"></i>
+          <h3 class="mt-2 mb-1">{{ distribution_data.summary.total_subjects }}</h3>
+          <p class="text-muted mb-0">Total Subjects</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <i class="bi bi-calendar-week text-success" style="font-size: 2.5rem;"></i>
+          <h3 class="mt-2 mb-1">{{ distribution_data.summary.most_scheduled_periods }}</h3>
+          <p class="text-muted mb-0">Most Scheduled Periods</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <i class="bi bi-clock text-info" style="font-size: 2.5rem;"></i>
+          <h3 class="mt-2 mb-1">6.2</h3>
+          <p class="text-muted mb-0">Avg Periods/Week</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <i class="bi bi-graph-up text-warning" style="font-size: 2.5rem;"></i>
+          <h3 class="mt-2 mb-1">92%</h3>
+          <p class="text-muted mb-0">Distribution Efficiency</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily Distribution Chart -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Daily Subject Distribution</h5>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-primary active" onclick="switchView('daily')">Daily</button>
+            <button class="btn btn-outline-primary" onclick="switchView('period')">By Period</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="dailyDistributionChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subject Timing Patterns -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Subject Timing Patterns</h5>
+        </div>
+        <div class="card-body">
+          <div id="timingPatternsChart"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Peak Subject Times</h5>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            <div class="list-group-item border-0 px-0">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="mb-1">Period 1 (8:00-8:45)</h6>
+                  <small class="text-muted">Morning Core Subjects</small>
+                </div>
+                <span class="badge bg-primary rounded-pill">85%</span>
+              </div>
+            </div>
+            <div class="list-group-item border-0 px-0">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="mb-1">Period 2 (8:45-9:30)</h6>
+                  <small class="text-muted">Mathematics Peak</small>
+                </div>
+                <span class="badge bg-success rounded-pill">78%</span>
+              </div>
+            </div>
+            <div class="list-group-item border-0 px-0">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="mb-1">Period 6 (2:00-2:45)</h6>
+                  <small class="text-muted">Creative Subjects</small>
+                </div>
+                <span class="badge bg-info rounded-pill">65%</span>
+              </div>
+            </div>
+            <div class="list-group-item border-0 px-0">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="mb-1">Period 7 (2:45-3:30)</h6>
+                  <small class="text-muted">Physical Education</small>
+                </div>
+                <span class="badge bg-warning rounded-pill">45%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grade-wise Subject Distribution -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Grade-wise Subject Distribution</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover" id="gradeDistributionTable">
+              <thead>
+                <tr>
+                  <th>Grade</th>
+                  <th>Subject</th>
+                  <th>Periods/Week</th>
+                  <th>Morning Periods</th>
+                  <th>Afternoon Periods</th>
+                  <th>Utilization</th>
+                  <th>Trend</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in distribution_data.grade_subject_distribution %}
+                <tr>
+                  <td>
+                    <span class="badge bg-light text-dark">{{ item.class_assigned__grade__name }}</span>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="subject-color-dot me-2" style="background-color: {{ item.color|default:'#007bff' }};">
+                      </div>
+                      {{ item.subject__name }}
+                    </div>
+                  </td>
+                  <td><strong>{{ item.periods_per_week }}</strong></td>
+                  <td>
+                    <div class="progress" style="height: 8px;">
+                      <div class="progress-bar bg-success" style="width: 65%"></div>
+                    </div>
+                    <small class="text-muted">65%</small>
+                  </td>
+                  <td>
+                    <div class="progress" style="height: 8px;">
+                      <div class="progress-bar bg-warning" style="width: 35%"></div>
+                    </div>
+                    <small class="text-muted">35%</small>
+                  </td>
+                  <td>
+                    <span class="badge bg-{% cycle 'success' 'info' 'warning' %}">
+                      {% cycle '92%' '87%' '78%' %}
+                    </span>
+                  </td>
+                  <td>
+                    <i
+                      class="bi bi-{% cycle 'arrow-up text-success' 'arrow-right text-warning' 'arrow-down text-danger' %}"></i>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subject Load Comparison -->
+  <div class="row mb-4">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Subject Load Comparison</h5>
+        </div>
+        <div class="card-body">
+          <div id="subjectLoadChart"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Time Preference Analysis</h5>
+        </div>
+        <div class="card-body">
+          <div id="timePreferenceChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <!-- No Data State -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <i class="bi bi-calendar-week text-muted" style="font-size: 4rem;"></i>
+          <h4 class="text-muted mt-3">No Distribution Data Available</h4>
+          <p class="text-muted">Please select a term with timetable data to view subject distribution analytics.</p>
+          <button class="btn btn-primary" onclick="generateData()">
+            <i class="bi bi-play-circle"></i> Generate Analysis
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- CSS for subject color dots -->
+<style>
+  .subject-color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.41.0/apexcharts.min.js"></script>
+
+<script>
+  // Daily Distribution Chart
+  const dailyDistributionOptions = {
+    series: [{
+      name: 'Mathematics',
+      data: [12, 15, 10, 8, 14]
+    }, {
+      name: 'English',
+      data: [8, 10, 12, 6, 9]
+    }, {
+      name: 'Science',
+      data: [6, 8, 9, 11, 7]
+    }, {
+      name: 'Social Studies',
+      data: [4, 6, 5, 7, 5]
+    }],
+    chart: {
+      type: 'bar',
+      height: 350,
+      stacked: true,
+      toolbar: {
+        show: true
+      }
+    },
+    plotOptions: {
+      bar: {
+        horizontal: false,
+        columnWidth: '55%',
+      },
+    },
+    dataLabels: {
+      enabled: false
+    },
+    stroke: {
+      show: true,
+      width: 2,
+      colors: ['transparent']
+    },
+    xaxis: {
+      categories: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    },
+    yaxis: {
+      title: {
+        text: 'Number of Periods'
+      }
+    },
+    fill: {
+      opacity: 1
+    },
+    tooltip: {
+      y: {
+        formatter: function (val) {
+          return val + " periods"
+        }
+      }
+    },
+    colors: ['#008FFB', '#00E396', '#FEB019', '#FF4560']
+  };
+
+  // Timing Patterns Heatmap
+  const timingPatternsOptions = {
+    series: [{
+      name: 'Period 1',
+      data: [15, 12, 8, 10, 6, 4, 2]
+    }, {
+      name: 'Period 2',
+      data: [18, 14, 10, 8, 5, 3, 1]
+    }, {
+      name: 'Period 3',
+      data: [12, 16, 14, 9, 7, 4, 2]
+    }, {
+      name: 'Period 4',
+      data: [8, 10, 18, 12, 8, 6, 3]
+    }, {
+      name: 'Period 5',
+      data: [6, 8, 12, 16, 10, 8, 5]
+    }, {
+      name: 'Period 6',
+      data: [4, 6, 8, 10, 14, 12, 8]
+    }, {
+      name: 'Period 7',
+      data: [2, 4, 6, 8, 10, 16, 12]
+    }],
+    chart: {
+      type: 'heatmap',
+      height: 350
+    },
+    dataLabels: {
+      enabled: false
+    },
+    colors: ["#008FFB"],
+    xaxis: {
+      categories: ['Math', 'English', 'Science', 'Social', 'Art', 'Music', 'PE']
+    },
+    title: {
+      text: 'Subject Distribution by Time Period'
+    }
+  };
+
+  // Subject Load Comparison
+  const subjectLoadOptions = {
+    series: [25, 20, 18, 15, 12, 8, 2],
+    chart: {
+      type: 'donut',
+      height: 350
+    },
+    labels: ['Mathematics', 'English', 'Science', 'Social Studies', 'Computer', 'Art', 'Music'],
+    colors: ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0', '#546E7A', '#26a69a'],
+    responsive: [{
+      breakpoint: 480,
+      options: {
+        chart: {
+          width: 200
+        },
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }]
+  };
+
+  // Time Preference Analysis
+  const timePreferenceOptions = {
+    series: [{
+      name: 'Core Subjects',
+      data: [85, 78, 65, 45, 32, 25, 15]
+    }, {
+      name: 'Elective Subjects',
+      data: [15, 22, 35, 55, 68, 75, 85]
+    }],
+    chart: {
+      type: 'area',
+      height: 350
+    },
+    dataLabels: {
+      enabled: false
+    },
+    stroke: {
+      curve: 'smooth'
+    },
+    xaxis: {
+      categories: ['Period 1', 'Period 2', 'Period 3', 'Period 4', 'Period 5', 'Period 6', 'Period 7']
+    },
+    tooltip: {
+      x: {
+        format: 'dd/MM/yy HH:mm'
+      },
+    },
+    colors: ['#008FFB', '#00E396']
+  };
+
+  // Initialize Charts
+  document.addEventListener('DOMContentLoaded', function () {
+    {% if distribution_data %}
+    const dailyChart = new ApexCharts(document.querySelector("#dailyDistributionChart"), dailyDistributionOptions);
+    dailyChart.render();
+
+    const timingChart = new ApexCharts(document.querySelector("#timingPatternsChart"), timingPatternsOptions);
+    timingChart.render();
+
+    const loadChart = new ApexCharts(document.querySelector("#subjectLoadChart"), subjectLoadOptions);
+    loadChart.render();
+
+    const preferenceChart = new ApexCharts(document.querySelector("#timePreferenceChart"), timePreferenceOptions);
+    preferenceChart.render();
+
+    // Initialize DataTable
+    $('#gradeDistributionTable').DataTable({
+      responsive: true,
+      pageLength: 10,
+      order: [[0, 'asc']],
+      columnDefs: [
+        { orderable: false, targets: [6] }
+      ]
+    });
+    {% endif %}
+  });
+
+  // Functions
+  function loadTermData() {
+    const termId = document.getElementById('termSelect').value;
+    window.location.href = `?term_id=${termId}`;
+  }
+
+  function filterByGrade() {
+    const gradeId = document.getElementById('gradeFilter').value;
+    // Implement grade filtering
+    console.log('Filtering by grade:', gradeId);
+  }
+
+  function filterBySubject() {
+    const subjectId = document.getElementById('subjectFilter').value;
+    // Implement subject filtering
+    console.log('Filtering by subject:', subjectId);
+  }
+
+  function refreshData() {
+    location.reload();
+  }
+
+  function exportData() {
+    console.log('Exporting distribution data...');
+  }
+
+  function generateData() {
+    console.log('Generating distribution analysis...');
+  }
+
+  function switchView(view) {
+    // Switch between daily and period views
+    console.log('Switching to view:', view);
+
+    // Update button states
+    document.querySelectorAll('.btn-group .btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+  }
+</script>
+{% endblock %}

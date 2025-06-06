@@ -1,0 +1,632 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if object %}Edit Template{% else %}Create Template{% endif %} - Scheduling{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/monokai.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">
+            {% if object %}
+            <i class="fas fa-edit me-2"></i>Edit Template
+            {% else %}
+            <i class="fas fa-plus me-2"></i>Create Template
+            {% endif %}
+          </h1>
+          <p class="text-muted">
+            {% if object %}
+            Modify the "{{ object.name }}" template
+            {% else %}
+            Create a new reusable timetable template
+            {% endif %}
+          </p>
+        </div>
+        <div>
+          <a href="{% url 'scheduling:template_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Templates
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Form -->
+    <div class="col-lg-8">
+      <form method="post" id="templateForm">
+        {% csrf_token %}
+
+        <!-- Basic Information Card -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h6 class="card-title mb-0">
+              <i class="fas fa-info-circle me-2"></i>Basic Information
+            </h6>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.name.id_for_label }}" class="form-label">
+                    Template Name <span class="text-danger">*</span>
+                  </label>
+                  {{ form.name }}
+                  {% if form.name.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.name.errors.0 }}
+                  </div>
+                  {% endif %}
+                  <small class="form-text text-muted">
+                    Choose a descriptive name for this template
+                  </small>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.grade.id_for_label }}" class="form-label">
+                    Grade <span class="text-danger">*</span>
+                  </label>
+                  {{ form.grade }}
+                  {% if form.grade.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.grade.errors.0 }}
+                  </div>
+                  {% endif %}
+                  <small class="form-text text-muted">
+                    Select the grade this template is designed for
+                  </small>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="{{ form.description.id_for_label }}" class="form-label">
+                Description
+              </label>
+              {{ form.description }}
+              {% if form.description.errors %}
+              <div class="invalid-feedback d-block">
+                {{ form.description.errors.0 }}
+              </div>
+              {% endif %}
+              <small class="form-text text-muted">
+                Provide a brief description of this template's purpose
+              </small>
+            </div>
+
+            <div class="form-check">
+              {{ form.is_default }}
+              <label class="form-check-label" for="{{ form.is_default.id_for_label }}">
+                Set as default template for this grade
+              </label>
+              {% if form.is_default.errors %}
+              <div class="invalid-feedback d-block">
+                {{ form.is_default.errors.0 }}
+              </div>
+              {% endif %}
+              <small class="form-text text-muted d-block">
+                Default templates are automatically used when generating new timetables
+              </small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Configuration Card -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+              <h6 class="card-title mb-0">
+                <i class="fas fa-cog me-2"></i>Template Configuration
+              </h6>
+              <div class="btn-group" role="group">
+                <input type="radio" class="btn-check" name="configMode" id="visual" autocomplete="off" checked>
+                <label class="btn btn-outline-primary btn-sm" for="visual">Visual Editor</label>
+
+                <input type="radio" class="btn-check" name="configMode" id="json" autocomplete="off">
+                <label class="btn btn-outline-primary btn-sm" for="json">JSON Editor</label>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <!-- Visual Editor -->
+            <div id="visualEditor">
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Periods per Day</label>
+                  <input type="number" class="form-control" id="periodsPerDay" value="8" min="1" max="12">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Working Days</label>
+                  <select class="form-select" id="workingDays" multiple>
+                    <option value="0" selected>Monday</option>
+                    <option value="1" selected>Tuesday</option>
+                    <option value="2" selected>Wednesday</option>
+                    <option value="3" selected>Thursday</option>
+                    <option value="4" selected>Friday</option>
+                    <option value="5">Saturday</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Subject Distribution -->
+              <h6 class="mb-3">Subject Distribution</h6>
+              <div class="table-responsive">
+                <table class="table table-bordered" id="subjectTable">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Subject</th>
+                      <th>Periods per Week</th>
+                      <th>Preferred Time</th>
+                      <th>Room Type</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <select class="form-select form-select-sm">
+                          <option value="">Select Subject</option>
+                          <option value="mathematics">Mathematics</option>
+                          <option value="english">English</option>
+                          <option value="science">Science</option>
+                          <option value="social_studies">Social Studies</option>
+                          <option value="physical_education">Physical Education</option>
+                          <option value="art">Art</option>
+                          <option value="music">Music</option>
+                        </select>
+                      </td>
+                      <td>
+                        <input type="number" class="form-control form-control-sm" value="5" min="1" max="15">
+                      </td>
+                      <td>
+                        <select class="form-select form-select-sm">
+                          <option value="morning">Morning</option>
+                          <option value="afternoon">Afternoon</option>
+                          <option value="any">Any Time</option>
+                        </select>
+                      </td>
+                      <td>
+                        <select class="form-select form-select-sm">
+                          <option value="classroom">Classroom</option>
+                          <option value="laboratory">Laboratory</option>
+                          <option value="gymnasium">Gymnasium</option>
+                          <option value="computer_lab">Computer Lab</option>
+                          <option value="music_room">Music Room</option>
+                          <option value="art_room">Art Room</option>
+                        </select>
+                      </td>
+                      <td>
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeSubjectRow(this)">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="addSubjectRow()">
+                  <i class="fas fa-plus me-2"></i>Add Subject
+                </button>
+              </div>
+
+              <!-- Constraints -->
+              <h6 class="mb-3 mt-4">Scheduling Constraints</h6>
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="noBackToBack" checked>
+                    <label class="form-check-label" for="noBackToBack">
+                      Avoid back-to-back same subjects
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="coreSubjectsMorning" checked>
+                    <label class="form-check-label" for="coreSubjectsMorning">
+                      Core subjects in morning
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="balancedDistribution" checked>
+                    <label class="form-check-label" for="balancedDistribution">
+                      Balanced daily distribution
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- JSON Editor -->
+            <div id="jsonEditor" style="display: none;">
+              <div class="mb-3">
+                <label for="{{ form.configuration.id_for_label }}" class="form-label">
+                  Configuration JSON
+                </label>
+                <textarea id="configurationTextarea"
+                  style="display: none;">{{ form.configuration.value|default:'{}' }}</textarea>
+                <div id="jsonCodeMirror"></div>
+                {% if form.configuration.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.configuration.errors.0 }}
+                </div>
+                {% endif %}
+                <small class="form-text text-muted">
+                  Advanced users can edit the raw JSON configuration
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hidden field for actual configuration -->
+        <input type="hidden" name="configuration" id="configurationField"
+          value="{{ form.configuration.value|default:'{}' }}">
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-between mb-4">
+          <div>
+            <a href="{% url 'scheduling:template_list' %}" class="btn btn-secondary">
+              <i class="fas fa-times me-2"></i>Cancel
+            </a>
+            {% if object %}
+            <button type="button" class="btn btn-outline-info" onclick="previewTemplate()">
+              <i class="fas fa-eye me-2"></i>Preview Changes
+            </button>
+            {% endif %}
+          </div>
+          <div>
+            <button type="button" class="btn btn-outline-primary" onclick="validateTemplate()">
+              <i class="fas fa-check me-2"></i>Validate
+            </button>
+            <button type="submit" class="btn btn-primary" id="saveBtn">
+              <i class="fas fa-save me-2"></i>
+              {% if object %}Update Template{% else %}Create Template{% endif %}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Help Panel -->
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-question-circle me-2"></i>Help & Guidelines
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="accordion" id="helpAccordion">
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingOne">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                  Template Basics
+                </button>
+              </h2>
+              <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#helpAccordion">
+                <div class="accordion-body">
+                  <ul class="list-unstyled">
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Choose a descriptive name</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Select the appropriate grade</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Add a clear description</li>
+                    <li class="mb-0"><i class="fas fa-check text-success me-2"></i>Set as default if primary template
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingTwo">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#collapseTwo">
+                  Subject Distribution
+                </button>
+              </h2>
+              <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                <div class="accordion-body">
+                  <p class="small">Recommended periods per week:</p>
+                  <ul class="small mb-3">
+                    <li>Mathematics: 6-8 periods</li>
+                    <li>English: 5-6 periods</li>
+                    <li>Science: 4-6 periods</li>
+                    <li>Social Studies: 3-4 periods</li>
+                    <li>PE/Arts: 2-3 periods</li>
+                  </ul>
+                  <p class="small text-muted">Adjust based on curriculum requirements.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingThree">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#collapseThree">
+                  Best Practices
+                </button>
+              </h2>
+              <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                <div class="accordion-body">
+                  <ul class="small">
+                    <li class="mb-2">Schedule core subjects in morning slots</li>
+                    <li class="mb-2">Distribute subjects evenly across days</li>
+                    <li class="mb-2">Consider room requirements early</li>
+                    <li class="mb-2">Allow flexibility for adjustments</li>
+                    <li class="mb-0">Test templates before applying</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Template Preview -->
+      <div class="card mt-3" id="previewCard" style="display: none;">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-eye me-2"></i>Template Preview
+          </h6>
+        </div>
+        <div class="card-body">
+          <div id="previewContent">
+            <!-- Preview will be populated here -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize CodeMirror for JSON editing
+    const jsonEditor = CodeMirror(document.getElementById('jsonCodeMirror'), {
+      value: $('#configurationTextarea').val(),
+      mode: 'application/json',
+      theme: 'monokai',
+      lineNumbers: true,
+      autoCloseBrackets: true,
+      matchBrackets: true,
+      indentUnit: 2,
+      tabSize: 2
+    });
+
+    // Switch between visual and JSON editors
+    $('input[name="configMode"]').change(function () {
+      if ($(this).attr('id') === 'visual') {
+        $('#visualEditor').show();
+        $('#jsonEditor').hide();
+        // Convert JSON to visual editor
+        convertJsonToVisual();
+      } else {
+        $('#visualEditor').hide();
+        $('#jsonEditor').show();
+        // Convert visual editor to JSON
+        convertVisualToJson();
+        jsonEditor.refresh();
+      }
+    });
+
+    // Form submission
+    $('#templateForm').submit(function (e) {
+      // Update configuration field based on active editor
+      if ($('input[name="configMode"]:checked').attr('id') === 'visual') {
+        convertVisualToJson();
+      } else {
+        $('#configurationField').val(jsonEditor.getValue());
+      }
+    });
+
+    // Initialize visual editor with existing data
+    if ($('#configurationField').val()) {
+      convertJsonToVisual();
+    }
+  });
+
+  function addSubjectRow() {
+    const tableBody = $('#subjectTable tbody');
+    const newRow = `
+        <tr>
+            <td>
+                <select class="form-select form-select-sm">
+                    <option value="">Select Subject</option>
+                    <option value="mathematics">Mathematics</option>
+                    <option value="english">English</option>
+                    <option value="science">Science</option>
+                    <option value="social_studies">Social Studies</option>
+                    <option value="physical_education">Physical Education</option>
+                    <option value="art">Art</option>
+                    <option value="music">Music</option>
+                </select>
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm" value="3" min="1" max="15">
+            </td>
+            <td>
+                <select class="form-select form-select-sm">
+                    <option value="morning">Morning</option>
+                    <option value="afternoon">Afternoon</option>
+                    <option value="any">Any Time</option>
+                </select>
+            </td>
+            <td>
+                <select class="form-select form-select-sm">
+                    <option value="classroom">Classroom</option>
+                    <option value="laboratory">Laboratory</option>
+                    <option value="gymnasium">Gymnasium</option>
+                    <option value="computer_lab">Computer Lab</option>
+                    <option value="music_room">Music Room</option>
+                    <option value="art_room">Art Room</option>
+                </select>
+            </td>
+            <td>
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeSubjectRow(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `;
+    tableBody.append(newRow);
+  }
+
+  function removeSubjectRow(button) {
+    $(button).closest('tr').remove();
+  }
+
+  function convertVisualToJson() {
+    const config = {
+      periodsPerDay: parseInt($('#periodsPerDay').val()),
+      workingDays: $('#workingDays').val().map(d => parseInt(d)),
+      subjects: [],
+      constraints: {
+        noBackToBack: $('#noBackToBack').is(':checked'),
+        coreSubjectsMorning: $('#coreSubjectsMorning').is(':checked'),
+        balancedDistribution: $('#balancedDistribution').is(':checked')
+      }
+    };
+
+    $('#subjectTable tbody tr').each(function () {
+      const subject = $(this).find('select').eq(0).val();
+      const periods = parseInt($(this).find('input[type="number"]').val());
+      const preferredTime = $(this).find('select').eq(1).val();
+      const roomType = $(this).find('select').eq(2).val();
+
+      if (subject) {
+        config.subjects.push({
+          subject: subject,
+          periodsPerWeek: periods,
+          preferredTime: preferredTime,
+          roomType: roomType
+        });
+      }
+    });
+
+    const jsonString = JSON.stringify(config, null, 2);
+    $('#configurationField').val(jsonString);
+
+    // Update CodeMirror if visible
+    if ($('#jsonEditor').is(':visible')) {
+      const jsonEditor = $('.CodeMirror')[0].CodeMirror;
+      jsonEditor.setValue(jsonString);
+    }
+  }
+
+  function convertJsonToVisual() {
+    try {
+      const config = JSON.parse($('#configurationField').val() || '{}');
+
+      // Update basic settings
+      $('#periodsPerDay').val(config.periodsPerDay || 8);
+      $('#workingDays').val(config.workingDays || [0, 1, 2, 3, 4]);
+
+      // Update constraints
+      $('#noBackToBack').prop('checked', config.constraints?.noBackToBack !== false);
+      $('#coreSubjectsMorning').prop('checked', config.constraints?.coreSubjectsMorning !== false);
+      $('#balancedDistribution').prop('checked', config.constraints?.balancedDistribution !== false);
+
+      // Update subjects table
+      if (config.subjects && config.subjects.length > 0) {
+        const tableBody = $('#subjectTable tbody');
+        tableBody.empty();
+
+        config.subjects.forEach(subject => {
+          const row = `
+                    <tr>
+                        <td>
+                            <select class="form-select form-select-sm">
+                                <option value="">Select Subject</option>
+                                <option value="mathematics" ${subject.subject === 'mathematics' ? 'selected' : ''}>Mathematics</option>
+                                <option value="english" ${subject.subject === 'english' ? 'selected' : ''}>English</option>
+                                <option value="science" ${subject.subject === 'science' ? 'selected' : ''}>Science</option>
+                                <option value="social_studies" ${subject.subject === 'social_studies' ? 'selected' : ''}>Social Studies</option>
+                                <option value="physical_education" ${subject.subject === 'physical_education' ? 'selected' : ''}>Physical Education</option>
+                                <option value="art" ${subject.subject === 'art' ? 'selected' : ''}>Art</option>
+                                <option value="music" ${subject.subject === 'music' ? 'selected' : ''}>Music</option>
+                            </select>
+                        </td>
+                        <td>
+                            <input type="number" class="form-control form-control-sm" value="${subject.periodsPerWeek || 3}" min="1" max="15">
+                        </td>
+                        <td>
+                            <select class="form-select form-select-sm">
+                                <option value="morning" ${subject.preferredTime === 'morning' ? 'selected' : ''}>Morning</option>
+                                <option value="afternoon" ${subject.preferredTime === 'afternoon' ? 'selected' : ''}>Afternoon</option>
+                                <option value="any" ${subject.preferredTime === 'any' ? 'selected' : ''}>Any Time</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select class="form-select form-select-sm">
+                                <option value="classroom" ${subject.roomType === 'classroom' ? 'selected' : ''}>Classroom</option>
+                                <option value="laboratory" ${subject.roomType === 'laboratory' ? 'selected' : ''}>Laboratory</option>
+                                <option value="gymnasium" ${subject.roomType === 'gymnasium' ? 'selected' : ''}>Gymnasium</option>
+                                <option value="computer_lab" ${subject.roomType === 'computer_lab' ? 'selected' : ''}>Computer Lab</option>
+                                <option value="music_room" ${subject.roomType === 'music_room' ? 'selected' : ''}>Music Room</option>
+                                <option value="art_room" ${subject.roomType === 'art_room' ? 'selected' : ''}>Art Room</option>
+                            </select>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeSubjectRow(this)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+          tableBody.append(row);
+        });
+      }
+    } catch (e) {
+      console.error('Error parsing configuration JSON:', e);
+    }
+  }
+
+  function validateTemplate() {
+    convertVisualToJson();
+    const config = $('#configurationField').val();
+
+    try {
+      JSON.parse(config);
+      alert('Template configuration is valid!');
+    } catch (e) {
+      alert('Invalid JSON configuration: ' + e.message);
+    }
+  }
+
+  function previewTemplate() {
+    convertVisualToJson();
+    $('#previewCard').show();
+
+    const config = JSON.parse($('#configurationField').val() || '{}');
+    let previewHtml = '<h6>Configuration Summary</h6>';
+    previewHtml += `<p><strong>Periods per Day:</strong> ${config.periodsPerDay || 8}</p>`;
+    previewHtml += `<p><strong>Working Days:</strong> ${(config.workingDays || []).length} days</p>`;
+    previewHtml += `<p><strong>Subjects:</strong> ${(config.subjects || []).length} configured</p>`;
+
+    if (config.subjects && config.subjects.length > 0) {
+      previewHtml += '<h6 class="mt-3">Subjects</h6><ul class="list-unstyled">';
+      config.subjects.forEach(subject => {
+        previewHtml += `<li><span class="badge bg-primary me-2">${subject.subject}</span>${subject.periodsPerWeek} periods/week</li>`;
+      });
+      previewHtml += '</ul>';
+    }
+
+    $('#previewContent').html(previewHtml);
+  }
+</script>
+{% endblock %}

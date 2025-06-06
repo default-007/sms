@@ -1,0 +1,458 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Generation #{{ generation.id|slice:":8" }} - Scheduling{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h4 mb-0">
+            Generation #{{ generation.id|slice:":8" }}
+            {% if generation.status == 'completed' %}
+            <span class="badge bg-success ms-2">
+              <i class="fas fa-check me-1"></i>Completed
+            </span>
+            {% elif generation.status == 'failed' %}
+            <span class="badge bg-danger ms-2">
+              <i class="fas fa-times me-1"></i>Failed
+            </span>
+            {% elif generation.status == 'running' %}
+            <span class="badge bg-warning ms-2">
+              <i class="fas fa-cog fa-spin me-1"></i>Running
+            </span>
+            {% elif generation.status == 'pending' %}
+            <span class="badge bg-secondary ms-2">
+              <i class="fas fa-clock me-1"></i>Pending
+            </span>
+            {% endif %}
+          </h1>
+          <p class="text-muted mb-0">{{ generation.term.name }} - {{ generation.term.academic_year.name }}</p>
+        </div>
+        <div>
+          <a href="{% url 'scheduling:generation_history' %}" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-arrow-left me-2"></i>Back to History
+          </a>
+          {% if generation.status == 'completed' %}
+          <div class="btn-group">
+            <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="fas fa-download me-2"></i>Download
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#" onclick="downloadResults('csv')">
+                  <i class="fas fa-file-csv me-2"></i>CSV Report
+                </a></li>
+              <li><a class="dropdown-item" href="#" onclick="downloadResults('json')">
+                  <i class="fas fa-file-code me-2"></i>JSON Data
+                </a></li>
+              <li><a class="dropdown-item" href="#" onclick="downloadResults('pdf')">
+                  <i class="fas fa-file-pdf me-2"></i>PDF Summary
+                </a></li>
+            </ul>
+          </div>
+          {% elif generation.status == 'running' %}
+          <button type="button" class="btn btn-danger" onclick="cancelGeneration()">
+            <i class="fas fa-stop me-2"></i>Cancel Generation
+          </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Generation Info -->
+    <div class="col-lg-4 mb-4">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-info-circle me-2"></i>Generation Details
+          </h6>
+        </div>
+        <div class="card-body">
+          <!-- Basic Info -->
+          <div class="mb-3">
+            <label class="form-label text-muted">Algorithm Used</label>
+            <div>
+              <span class="badge bg-info">{{ generation.algorithm_used|title }}</span>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted">Started By</label>
+            <div>
+              {% if generation.started_by %}
+              <div class="d-flex align-items-center">
+                <img
+                  src="{% if generation.started_by.profile_picture %}{{ generation.started_by.profile_picture.url }}{% else %}{% static 'images/default-avatar.png' %}{% endif %}"
+                  alt="User" class="rounded-circle me-2" width="32" height="32">
+                <div>
+                  <div>{{ generation.started_by.get_full_name }}</div>
+                  <small class="text-muted">{{ generation.started_by.email }}</small>
+                </div>
+              </div>
+              {% else %}
+              <span class="text-muted">System</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted">Started At</label>
+            <div>
+              <div>{{ generation.started_at|date:"F d, Y" }}</div>
+              <small class="text-muted">{{ generation.started_at|time:"H:i:s" }}</small>
+            </div>
+          </div>
+
+          {% if generation.completed_at %}
+          <div class="mb-3">
+            <label class="form-label text-muted">Completed At</label>
+            <div>
+              <div>{{ generation.completed_at|date:"F d, Y" }}</div>
+              <small class="text-muted">{{ generation.completed_at|time:"H:i:s" }}</small>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if generation.execution_time_seconds %}
+          <div class="mb-3">
+            <label class="form-label text-muted">Execution Time</label>
+            <div>
+              {% if generation.execution_time_seconds < 60 %}
+              <strong>{{ generation.execution_time_seconds|floatformat:2 }}</strong> seconds
+              {% else %}
+              <strong>{{ generation.execution_time_seconds|floatformat:0|div:60 }}</strong> minutes
+              <strong>{{ generation.execution_time_seconds|floatformat:0|mod:60 }}</strong> seconds
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if generation.optimization_score %}
+          <div class="mb-3">
+            <label class="form-label text-muted">Optimization Score</label>
+            <div class="d-flex align-items-center">
+              <div class="progress me-3" style="width: 100px; height: 10px;">
+                <div class="progress-bar 
+                                    {% if generation.optimization_score >= 90 %}bg-success
+                                    {% elif generation.optimization_score >= 70 %}bg-warning
+                                    {% else %}bg-danger{% endif %}" role="progressbar"
+                  style="width: {{ generation.optimization_score }}%">
+                </div>
+              </div>
+              <strong>{{ generation.optimization_score|floatformat:1 }}%</strong>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Grades Included -->
+          <div class="mb-3">
+            <label class="form-label text-muted">Grades Included</label>
+            <div>
+              {% for grade in generation.grades.all %}
+              <span class="badge bg-primary me-1 mb-1">{{ grade.name }}</span>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Parameters Card -->
+      {% if generation.parameters %}
+      <div class="card mt-3">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-sliders-h me-2"></i>Algorithm Parameters
+          </h6>
+        </div>
+        <div class="card-body">
+          {% for key, value in generation.parameters.items %}
+          <div class="row mb-2">
+            <div class="col-7">
+              <small class="text-muted">{{ key|title|replace:"_":" " }}</small>
+            </div>
+            <div class="col-5 text-end">
+              <small><strong>{{ value }}</strong></small>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Results -->
+    <div class="col-lg-8">
+      {% if generation.status == 'running' %}
+      <!-- Running Status -->
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <div class="mb-4">
+            <i class="fas fa-cog fa-spin fa-3x text-warning"></i>
+          </div>
+          <h5>Generation in Progress</h5>
+          <p class="text-muted">The timetable optimization is currently running. This page will automatically refresh
+            with updates.</p>
+          <div class="progress mx-auto" style="width: 300px;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" role="progressbar"
+              style="width: 100%"></div>
+          </div>
+          <p class="mt-3">
+            <small class="text-muted">Started {{ generation.started_at|timesince }} ago</small>
+          </p>
+        </div>
+      </div>
+
+      {% elif generation.status == 'failed' %}
+      <!-- Failed Status -->
+      <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i>Generation Failed
+          </h6>
+        </div>
+        <div class="card-body">
+          {% if generation.error_message %}
+          <div class="alert alert-danger">
+            <h6>Error Details:</h6>
+            <p class="mb-0">{{ generation.error_message }}</p>
+          </div>
+          {% endif %}
+
+          <h6>Common Solutions:</h6>
+          <ul>
+            <li>Check if all required teacher assignments are in place</li>
+            <li>Ensure sufficient time slots are available</li>
+            <li>Verify room capacity matches class sizes</li>
+            <li>Review scheduling constraints for conflicts</li>
+          </ul>
+
+          <div class="mt-3">
+            <a href="{% url 'scheduling:timetable_generation' %}" class="btn btn-primary">
+              <i class="fas fa-redo me-2"></i>Try Again
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {% elif generation.status == 'completed' %}
+      <!-- Success Status with Results -->
+      <div class="row mb-4">
+        <!-- Result Summary -->
+        <div class="col-md-4 mb-3">
+          <div class="card border-success">
+            <div class="card-body text-center">
+              <div class="text-success mb-2">
+                <i class="fas fa-check-circle fa-2x"></i>
+              </div>
+              <h6>Assigned Slots</h6>
+              <h4 class="text-success">{{ generation.result_summary.assigned_slots|default:0 }}</h4>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <div class="card border-warning">
+            <div class="card-body text-center">
+              <div class="text-warning mb-2">
+                <i class="fas fa-exclamation-triangle fa-2x"></i>
+              </div>
+              <h6>Unassigned Slots</h6>
+              <h4 class="text-warning">{{ generation.result_summary.unassigned_slots|default:0 }}</h4>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <div class="card border-danger">
+            <div class="card-body text-center">
+              <div class="text-danger mb-2">
+                <i class="fas fa-times-circle fa-2x"></i>
+              </div>
+              <h6>Conflicts Resolved</h6>
+              <h4 class="text-danger">{{ generation.conflicts_resolved|default:0 }}</h4>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Optimization Score Chart -->
+      {% if generation.optimization_score %}
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-chart-pie me-2"></i>Optimization Score Breakdown
+          </h6>
+        </div>
+        <div class="card-body">
+          <div id="scoreChart" style="height: 300px;"></div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Result Summary -->
+      {% if generation.result_summary %}
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-list me-2"></i>Generation Summary
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% for key, value in generation.result_summary.items %}
+            <div class="col-md-6 mb-3">
+              <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
+                <span class="text-muted">{{ key|title|replace:"_":" " }}</span>
+                <strong>{{ value }}</strong>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      {% else %}
+      <!-- Pending Status -->
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <div class="mb-4">
+            <i class="fas fa-clock fa-3x text-secondary"></i>
+          </div>
+          <h5>Generation Pending</h5>
+          <p class="text-muted">This generation is queued and waiting to start.</p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Cancel Confirmation Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="cancelModalLabel">
+          <i class="fas fa-stop-circle me-2"></i>Cancel Generation
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to cancel this generation?</p>
+        <p class="text-muted mb-0">
+          <small>This action cannot be undone and any progress will be lost.</small>
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-danger" id="confirmCancelBtn">
+          <i class="fas fa-stop me-2"></i>Cancel Generation
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Auto-refresh if generation is running
+    {% if generation.status == 'running' %}
+    setTimeout(function () {
+      location.reload();
+    }, 10000); // Refresh every 10 seconds
+    {% endif %}
+
+    // Initialize optimization score chart
+    {% if generation.optimization_score %}
+    initializeScoreChart();
+    {% endif %}
+  });
+
+  function initializeScoreChart() {
+    const options = {
+      series: [
+        {{ generation.optimization_score |default: 0 }},
+      {{ 100| sub: generation.optimization_score |default: 100
+  }}
+        ],
+  chart: {
+    type: 'donut',
+      height: 300
+  },
+  labels: ['Optimized', 'Room for Improvement'],
+    colors: [
+      {% if generation.optimization_score >= 90 %}'#28a745'{% elif generation.optimization_score >= 70 %} '#ffc107'{% else %} '#dc3545'{% endif %},
+  '#e9ecef'
+        ],
+  plotOptions: {
+    pie: {
+      donut: {
+        size: '70%',
+          labels: {
+          show: true,
+            total: {
+            show: true,
+              label: 'Score',
+                formatter: function () {
+                  return '{{ generation.optimization_score|floatformat:1 }}%';
+                }
+          }
+        }
+      }
+    }
+  },
+  legend: {
+    position: 'bottom'
+  },
+  tooltip: {
+    formatter: function(val) {
+      return val.toFixed(1) + '%';
+    }
+  }
+    };
+
+  const chart = new ApexCharts(document.querySelector("#scoreChart"), options);
+  chart.render();
+}
+
+  // Global functions
+  const cancelModal = new bootstrap.Modal(document.getElementById('cancelModal'));
+
+  function cancelGeneration() {
+    cancelModal.show();
+  }
+
+  function downloadResults(format) {
+    window.location.href = `/api/scheduling/generations/{{ generation.pk }}/download/?format=${format}`;
+  }
+
+  $('#confirmCancelBtn').click(function () {
+    $.ajax({
+      url: `/api/scheduling/generations/{{ generation.pk }}/cancel/`,
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+      },
+      success: function (response) {
+        cancelModal.hide();
+        location.reload();
+      },
+      error: function (xhr, status, error) {
+        alert('Failed to cancel generation: ' + error);
+      }
+    });
+  });
+</script>
+{% endblock %}

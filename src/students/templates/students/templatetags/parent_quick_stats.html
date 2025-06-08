@@ -6,15 +6,15 @@
       <div class="card-body">
         <div class="d-flex align-items-center">
           <div class="flex-shrink-0">
-            <div class="bg-success bg-gradient rounded-circle p-3">
-              <i class="fas fa-users text-white fs-4"></i>
+            <div class="bg-info bg-gradient rounded-circle p-3">
+              <i class="fas fa-user-friends text-white fs-4"></i>
             </div>
           </div>
           <div class="flex-grow-1 ms-3">
-            <div class="fw-bold fs-4 text-success">{{ stats.total }}</div>
+            <div class="fw-bold fs-4 text-info">{{ stats.total }}</div>
             <div class="text-muted small">Total Parents</div>
             <div class="progress mt-2" style="height: 4px;">
-              <div class="progress-bar bg-success" style="width: 100%"></div>
+              <div class="progress-bar bg-info" style="width: 100%"></div>
             </div>
           </div>
         </div>
@@ -29,15 +29,14 @@
         <div class="d-flex align-items-center">
           <div class="flex-shrink-0">
             <div class="bg-danger bg-gradient rounded-circle p-3">
-              <i class="fas fa-exclamation-triangle text-white fs-4"></i>
+              <i class="fas fa-phone text-white fs-4"></i>
             </div>
           </div>
           <div class="flex-grow-1 ms-3">
             <div class="fw-bold fs-4 text-danger">{{ stats.emergency_contacts }}</div>
             <div class="text-muted small">Emergency Contacts</div>
             <div class="progress mt-2" style="height: 4px;">
-              <div class="progress-bar bg-danger"
-                style="width: {% if stats.total > 0 %}{{ stats.emergency_contacts|floatformat:0 }}{% mult 100 %}{% div stats.total %}{% else %}0{% endif %}%">
+              <div class="progress-bar bg-danger" style="width: {{ stats.emergency_contacts|percentage:stats.total }}%">
               </div>
             </div>
           </div>
@@ -52,17 +51,16 @@
       <div class="card-body">
         <div class="d-flex align-items-center">
           <div class="flex-shrink-0">
-            <div class="bg-info bg-gradient rounded-circle p-3">
-              <i class="fas fa-baby text-white fs-4"></i>
+            <div class="bg-warning bg-gradient rounded-circle p-3">
+              <i class="fas fa-users text-white fs-4"></i>
             </div>
           </div>
           <div class="flex-grow-1 ms-3">
-            <div class="fw-bold fs-4 text-info">{{ stats.with_multiple_children }}</div>
+            <div class="fw-bold fs-4 text-warning">{{ stats.with_multiple_children }}</div>
             <div class="text-muted small">Multiple Children</div>
             <div class="progress mt-2" style="height: 4px;">
-              <div class="progress-bar bg-info"
-                style="width: {% if stats.total > 0 %}{{ stats.with_multiple_children|floatformat:0 }}{% mult 100 %}{% div stats.total %}{% else %}0{% endif %}%">
-              </div>
+              <div class="progress-bar bg-warning"
+                style="width: {{ stats.with_multiple_children|percentage:stats.total }}%"></div>
             </div>
           </div>
         </div>
@@ -76,15 +74,16 @@
       <div class="card-body">
         <div class="d-flex align-items-center">
           <div class="flex-shrink-0">
-            <div class="bg-primary bg-gradient rounded-circle p-3">
+            <div class="bg-success bg-gradient rounded-circle p-3">
               <i class="fas fa-star text-white fs-4"></i>
             </div>
           </div>
           <div class="flex-grow-1 ms-3">
-            <div class="fw-bold fs-4 text-primary">{{ stats.primary_contacts }}</div>
+            <div class="fw-bold fs-4 text-success">{{ stats.primary_contacts }}</div>
             <div class="text-muted small">Primary Contacts</div>
             <div class="progress mt-2" style="height: 4px;">
-              <div class="progress-bar bg-primary" style="width: 85%"></div>
+              <div class="progress-bar bg-success" style="width: {{ stats.primary_contacts|percentage:stats.total }}%">
+              </div>
             </div>
           </div>
         </div>
@@ -98,43 +97,31 @@
   <div class="col-lg-8">
     <div class="card border-0 shadow-sm">
       <div class="card-header bg-light">
-        <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Parent Relationships</h6>
+        <h6 class="mb-0"><i class="fas fa-chart-donut me-2"></i>Parent Types</h6>
       </div>
       <div class="card-body">
         <div class="row text-center">
-          <div class="col-md-3">
+          <div class="col-md-4">
             <div class="border-end">
-              <div class="mb-2">
-                <i class="fas fa-male fs-3 text-primary"></i>
+              <div class="fw-bold text-primary fs-5">
+                {% parent_count_by_relation "Father" %}
               </div>
-              <div class="fw-bold text-primary fs-5">{% parent_count_by_relation 'Father' %}</div>
               <small class="text-muted">Fathers</small>
             </div>
           </div>
-          <div class="col-md-3">
+          <div class="col-md-4">
             <div class="border-end">
-              <div class="mb-2">
-                <i class="fas fa-female fs-3 text-success"></i>
+              <div class="fw-bold text-info fs-5">
+                {% parent_count_by_relation "Mother" %}
               </div>
-              <div class="fw-bold text-success fs-5">{% parent_count_by_relation 'Mother' %}</div>
               <small class="text-muted">Mothers</small>
             </div>
           </div>
-          <div class="col-md-3">
-            <div class="border-end">
-              <div class="mb-2">
-                <i class="fas fa-user-shield fs-3 text-info"></i>
-              </div>
-              <div class="fw-bold text-info fs-5">{% parent_count_by_relation 'Guardian' %}</div>
-              <small class="text-muted">Guardians</small>
+          <div class="col-md-4">
+            <div class="fw-bold text-warning fs-5">
+              {% parent_count_by_relation "Guardian" %}
             </div>
-          </div>
-          <div class="col-md-3">
-            <div class="mb-2">
-              <i class="fas fa-user-friends fs-3 text-warning"></i>
-            </div>
-            <div class="fw-bold text-warning fs-5">{% parent_count_by_relation 'Other' %}</div>
-            <small class="text-muted">Others</small>
+            <small class="text-muted">Guardians</small>
           </div>
         </div>
       </div>
@@ -144,159 +131,19 @@
   <div class="col-lg-4">
     <div class="card border-0 shadow-sm">
       <div class="card-header bg-light">
-        <h6 class="mb-0"><i class="fas fa-tasks me-2"></i>Quick Actions</h6>
+        <h6 class="mb-0"><i class="fas fa-tasks me-2"></i>Parent Actions</h6>
       </div>
       <div class="card-body">
         <div class="d-grid gap-2">
-          <a href="{% url 'students:parent-create' %}" class="btn btn-success btn-sm">
+          <a href="{% url 'students:parent-create' %}" class="btn btn-primary btn-sm">
             <i class="fas fa-plus me-2"></i>Add New Parent
           </a>
           <a href="{% url 'students:parent-import' %}" class="btn btn-info btn-sm">
             <i class="fas fa-upload me-2"></i>Bulk Import
           </a>
-          <a href="{% url 'students:relation-bulk-manage' %}" class="btn btn-warning btn-sm">
-            <i class="fas fa-link me-2"></i>Manage Relations
+          <a href="{% url 'students:relation-create' %}" class="btn btn-success btn-sm">
+            <i class="fas fa-link me-2"></i>Link Relationships
           </a>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Communication Stats -->
-<div class="row g-3 mt-3">
-  <div class="col-md-6">
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-light">
-        <h6 class="mb-0"><i class="fas fa-comments me-2"></i>Communication Preferences</h6>
-      </div>
-      <div class="card-body">
-        <div class="row">
-          <div class="col-6">
-            <div class="text-center">
-              <div class="fw-bold text-primary fs-4">85%</div>
-              <small class="text-muted">Email Enabled</small>
-            </div>
-          </div>
-          <div class="col-6">
-            <div class="text-center">
-              <div class="fw-bold text-success fs-4">78%</div>
-              <small class="text-muted">SMS Enabled</small>
-            </div>
-          </div>
-        </div>
-        <hr>
-        <div class="row">
-          <div class="col-6">
-            <div class="text-center">
-              <div class="fw-bold text-info fs-4">92%</div>
-              <small class="text-muted">Grade Access</small>
-            </div>
-          </div>
-          <div class="col-6">
-            <div class="text-center">
-              <div class="fw-bold text-warning fs-4">88%</div>
-              <small class="text-muted">Attendance Access</small>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-md-6">
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-light">
-        <h6 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Security & Permissions</h6>
-      </div>
-      <div class="card-body">
-        <div class="row">
-          <div class="col-6">
-            <div class="text-center">
-              <div class="fw-bold text-success fs-4">95%</div>
-              <small class="text-muted">Can Pickup</small>
-            </div>
-          </div>
-          <div class="col-6">
-            <div class="text-center">
-              <div class="fw-bold text-primary fs-4">82%</div>
-              <small class="text-muted">Financial Access</small>
-            </div>
-          </div>
-        </div>
-        <hr>
-        <div class="text-center">
-          <div class="fw-bold text-danger fs-4">{{ stats.emergency_contacts }}</div>
-          <small class="text-muted">Emergency Contacts Available</small>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- System Health for Parents -->
-<div class="row g-3 mt-3">
-  <div class="col-12">
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-light">
-        <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-0"><i class="fas fa-heartbeat me-2"></i>Parent Database Health</h6>
-          <small class="text-muted">Last updated: now</small>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="row">
-          <!-- Contact Information Completeness -->
-          <div class="col-md-3">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <span class="small">Contact Info</span>
-              <span class="small fw-bold">94%</span>
-            </div>
-            <div class="progress" style="height: 8px;">
-              <div class="progress-bar bg-success" style="width: 94%"></div>
-            </div>
-          </div>
-
-          <!-- Work Information -->
-          <div class="col-md-3">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <span class="small">Work Info</span>
-              <span class="small fw-bold">76%</span>
-            </div>
-            <div class="progress" style="height: 8px;">
-              <div class="progress-bar bg-info" style="width: 76%"></div>
-            </div>
-          </div>
-
-          <!-- Emergency Readiness -->
-          <div class="col-md-3">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <span class="small">Emergency Ready</span>
-              <span class="small fw-bold">
-                {% if stats.total > 0 %}
-                {{ stats.emergency_contacts|floatformat:0 }}{% mult 100 %}{% div stats.total %}%
-                {% else %}
-                0%
-                {% endif %}
-              </span>
-            </div>
-            <div class="progress" style="height: 8px;">
-              <div class="progress-bar bg-danger"
-                style="width: {% if stats.total > 0 %}{{ stats.emergency_contacts|floatformat:0 }}{% mult 100 %}{% div stats.total %}{% else %}0{% endif %}%">
-              </div>
-            </div>
-          </div>
-
-          <!-- Active Engagement -->
-          <div class="col-md-3">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <span class="small">Active Engagement</span>
-              <span class="small fw-bold">89%</span>
-            </div>
-            <div class="progress" style="height: 8px;">
-              <div class="progress-bar bg-primary" style="width: 89%"></div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

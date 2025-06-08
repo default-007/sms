@@ -36,9 +36,7 @@
             <div class="fw-bold fs-4 text-success">{{ stats.active }}</div>
             <div class="text-muted small">Active Students</div>
             <div class="progress mt-2" style="height: 4px;">
-              <div class="progress-bar bg-success"
-                style="width: {% if stats.total > 0 %}{{ stats.active|floatformat:0 }}{% mult 100 %}{% div stats.total %}{% else %}0{% endif %}%">
-              </div>
+              <div class="progress-bar bg-success" style="width: {{ stats.active_percentage }}%"></div>
             </div>
           </div>
         </div>
@@ -60,9 +58,7 @@
             <div class="fw-bold fs-4 text-info">{{ stats.with_photos }}</div>
             <div class="text-muted small">With Photos</div>
             <div class="progress mt-2" style="height: 4px;">
-              <div class="progress-bar bg-info"
-                style="width: {% if stats.total > 0 %}{{ stats.with_photos|floatformat:0 }}{% mult 100 %}{% div stats.total %}{% else %}0{% endif %}%">
-              </div>
+              <div class="progress-bar bg-info" style="width: {{ stats.photo_percentage }}%"></div>
             </div>
           </div>
         </div>
@@ -84,9 +80,7 @@
             <div class="fw-bold fs-4 text-warning">{{ stats.without_parents }}</div>
             <div class="text-muted small">Missing Parents</div>
             <div class="progress mt-2" style="height: 4px;">
-              <div class="progress-bar bg-warning"
-                style="width: {% if stats.total > 0 %}{{ stats.without_parents|floatformat:0 }}{% mult 100 %}{% div stats.total %}{% else %}0{% endif %}%">
-              </div>
+              <div class="progress-bar bg-warning" style="width: {{ stats.missing_parents_percentage }}%"></div>
             </div>
           </div>
         </div>
@@ -169,18 +163,10 @@
           <div class="col-md-4">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <span class="small">Profile Completion</span>
-              <span class="small fw-bold">
-                {% if stats.total > 0 %}
-                {{ stats.with_photos|floatformat:0 }}{% mult 100 %}{% div stats.total %}%
-                {% else %}
-                0%
-                {% endif %}
-              </span>
+              <span class="small fw-bold">{{ stats.photo_percentage }}%</span>
             </div>
             <div class="progress" style="height: 8px;">
-              <div class="progress-bar bg-success"
-                style="width: {% if stats.total > 0 %}{{ stats.with_photos|floatformat:0 }}{% mult 100 %}{% div stats.total %}{% else %}0{% endif %}%">
-              </div>
+              <div class="progress-bar bg-success" style="width: {{ stats.photo_percentage }}%"></div>
             </div>
           </div>
 
@@ -188,18 +174,10 @@
           <div class="col-md-4">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <span class="small">Parent Linkage</span>
-              <span class="small fw-bold">
-                {% if stats.total > 0 %}
-                {{ stats.total|sub:stats.without_parents|floatformat:0 }}{% mult 100 %}{% div stats.total %}%
-                {% else %}
-                0%
-                {% endif %}
-              </span>
+              <span class="small fw-bold">{{ stats.parent_linkage_percentage }}%</span>
             </div>
             <div class="progress" style="height: 8px;">
-              <div class="progress-bar bg-info"
-                style="width: {% if stats.total > 0 %}{{ stats.total|sub:stats.without_parents|floatformat:0 }}{% mult 100 %}{% div stats.total %}{% else %}0{% endif %}%">
-              </div>
+              <div class="progress-bar bg-info" style="width: {{ stats.parent_linkage_percentage }}%"></div>
             </div>
           </div>
 
@@ -207,18 +185,10 @@
           <div class="col-md-4">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <span class="small">Active Students</span>
-              <span class="small fw-bold">
-                {% if stats.total > 0 %}
-                {{ stats.active|floatformat:0 }}{% mult 100 %}{% div stats.total %}%
-                {% else %}
-                0%
-                {% endif %}
-              </span>
+              <span class="small fw-bold">{{ stats.active_percentage }}%</span>
             </div>
             <div class="progress" style="height: 8px;">
-              <div class="progress-bar bg-primary"
-                style="width: {% if stats.total > 0 %}{{ stats.active|floatformat:0 }}{% mult 100 %}{% div stats.total %}{% else %}0{% endif %}%">
-              </div>
+              <div class="progress-bar bg-primary" style="width: {{ stats.active_percentage }}%"></div>
             </div>
           </div>
         </div>

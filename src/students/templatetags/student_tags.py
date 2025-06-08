@@ -72,6 +72,46 @@ def attendance_percentage_color(percentage):
         return "danger"
 
 
+@register.filter
+def multiply(value, arg):
+    """Multiply the value by the argument"""
+    try:
+        return float(value) * float(arg)
+    except (ValueError, TypeError):
+        return 0
+
+
+@register.filter
+def divide(value, arg):
+    """Divide the value by the argument"""
+    try:
+        if float(arg) == 0:
+            return 0
+        return float(value) / float(arg)
+    except (ValueError, TypeError):
+        return 0
+
+
+@register.filter
+def percentage(value, total):
+    """Calculate percentage of value from total"""
+    try:
+        if float(total) == 0:
+            return 0
+        return round((float(value) / float(total)) * 100, 1)
+    except (ValueError, TypeError):
+        return 0
+
+
+@register.filter
+def subtract(value, arg):
+    """Subtract arg from value"""
+    try:
+        return float(value) - float(arg)
+    except (ValueError, TypeError):
+        return 0
+
+
 @register.simple_tag
 def student_count_by_status(status=None):
     """Get count of students by status"""
@@ -111,16 +151,35 @@ def student_quick_stats():
     stats = cache.get(cache_key)
 
     if stats is None:
+        total = Student.objects.count()
+        active = Student.objects.filter(status="Active").count()
+        with_photos = Student.objects.exclude(photo="").count()
+        without_parents = Student.objects.filter(
+            student_parent_relations__isnull=True
+        ).count()
+        recent_admissions = Student.objects.filter(
+            admission_date__gte=datetime.date.today() - datetime.timedelta(days=30)
+        ).count()
+
         stats = {
-            "total": Student.objects.count(),
-            "active": Student.objects.filter(status="Active").count(),
-            "with_photos": Student.objects.exclude(photo="").count(),
-            "without_parents": Student.objects.filter(
-                student_parent_relations__isnull=True
-            ).count(),
-            "recent_admissions": Student.objects.filter(
-                admission_date__gte=datetime.date.today() - datetime.timedelta(days=30)
-            ).count(),
+            "total": total,
+            "active": active,
+            "inactive": Student.objects.filter(status="Inactive").count(),
+            "graduated": Student.objects.filter(status="Graduated").count(),
+            "with_photos": with_photos,
+            "without_parents": without_parents,
+            "recent_admissions": recent_admissions,
+            # Calculate percentages
+            "active_percentage": round((active / total * 100), 1) if total > 0 else 0,
+            "photo_percentage": (
+                round((with_photos / total * 100), 1) if total > 0 else 0
+            ),
+            "missing_parents_percentage": (
+                round((without_parents / total * 100), 1) if total > 0 else 0
+            ),
+            "parent_linkage_percentage": (
+                round(((total - without_parents) / total * 100), 1) if total > 0 else 0
+            ),
         }
         cache.set(cache_key, stats, 1800)  # Cache for 30 minutes
 

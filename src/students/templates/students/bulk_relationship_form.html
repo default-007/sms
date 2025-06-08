@@ -1,0 +1,659 @@
+<!-- students/templates/students/bulk_relationship_form.html -->
+{% extends 'base.html' %}
+{% load static %}
+{% load student_tags %}
+
+{% block title %}Bulk Relationship Management{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/select/1.7.0/css/select.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+<link rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
+<style>
+  .selected-count {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+  }
+
+  .relationship-badge {
+    font-size: 0.75rem;
+    margin: 1px;
+  }
+
+  .action-buttons {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    border-top: 1px solid #dee2e6;
+    padding: 1rem;
+    margin: -1rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Bulk Relationship Management</h2>
+          <p class="text-muted mb-0">Manage multiple student-parent relationships efficiently</p>
+        </div>
+        <div>
+          <a href="{% url 'students:relation-create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Add New Relationship
+          </a>
+          <a href="{% url 'students:student-list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-list me-2"></i>Students
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Selection Counter (Sticky) -->
+  <div class="selected-count">
+    <div class="alert alert-info mb-4" id="selectionAlert" style="display: none;">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <i class="fas fa-info-circle me-2"></i>
+          <span id="selectedCount">0</span> relationships selected
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-info" onclick="clearSelection()">
+          <i class="fas fa-times me-2"></i>Clear Selection
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-secondary text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-filter me-2"></i>Filters & Search
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3">
+              <label for="studentSearch" class="form-label">Student</label>
+              <input type="text" id="studentSearch" class="form-control" placeholder="Search by student name...">
+            </div>
+            <div class="col-md-3">
+              <label for="parentSearch" class="form-label">Parent</label>
+              <input type="text" id="parentSearch" class="form-control" placeholder="Search by parent name...">
+            </div>
+            <div class="col-md-2">
+              <label for="relationFilter" class="form-label">Relation</label>
+              <select id="relationFilter" class="form-select">
+                <option value="">All Relations</option>
+                <option value="Father">Father</option>
+                <option value="Mother">Mother</option>
+                <option value="Guardian">Guardian</option>
+                <option value="Grandparent">Grandparent</option>
+                <option value="Uncle">Uncle</option>
+                <option value="Aunt">Aunt</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label for="statusFilter" class="form-label">Status</label>
+              <select id="statusFilter" class="form-select">
+                <option value="">All Status</option>
+                <option value="primary">Primary Contact</option>
+                <option value="financial">Financial Responsible</option>
+                <option value="pickup">Can Pickup</option>
+                <option value="emergency">Emergency Contact</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label for="classFilter" class="form-label">Class</label>
+              <select id="classFilter" class="form-select">
+                <option value="">All Classes</option>
+                <!-- Options will be populated by JavaScript -->
+              </select>
+            </div>
+          </div>
+          <div class="row mt-3">
+            <div class="col-12">
+              <button type="button" class="btn btn-primary" onclick="applyFilters()">
+                <i class="fas fa-search me-2"></i>Apply Filters
+              </button>
+              <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">
+                <i class="fas fa-eraser me-2"></i>Clear Filters
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Relationships Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-users me-2"></i>Student-Parent Relationships
+          </h5>
+          <div>
+            <button type="button" class="btn btn-light btn-sm" onclick="selectAll()">
+              <i class="fas fa-check-square me-2"></i>Select All
+            </button>
+            <button type="button" class="btn btn-outline-light btn-sm" onclick="selectNone()">
+              <i class="fas fa-square me-2"></i>Select None
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="relationshipsTable" class="table table-hover">
+              <thead>
+                <tr>
+                  <th width="40"><input type="checkbox" id="selectAllCheckbox"></th>
+                  <th>Student</th>
+                  <th>Parent/Guardian</th>
+                  <th>Relation</th>
+                  <th>Permissions</th>
+                  <th>Contact Preferences</th>
+                  <th>Emergency Priority</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Data will be populated by DataTables -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Action Buttons (Sticky Bottom) -->
+        <div class="action-buttons" id="actionButtons" style="display: none;">
+          <div class="row">
+            <div class="col-md-8">
+              <div class="btn-group" role="group">
+                <button type="button" class="btn btn-success" onclick="bulkAction('set_primary')">
+                  <i class="fas fa-star me-2"></i>Set as Primary
+                </button>
+                <button type="button" class="btn btn-info" onclick="bulkAction('toggle_pickup')">
+                  <i class="fas fa-car me-2"></i>Toggle Pickup Permission
+                </button>
+                <button type="button" class="btn btn-warning" onclick="bulkAction('update_permissions')">
+                  <i class="fas fa-key me-2"></i>Update Permissions
+                </button>
+                <button type="button" class="btn btn-danger" onclick="bulkAction('delete')">
+                  <i class="fas fa-trash me-2"></i>Delete Selected
+                </button>
+              </div>
+            </div>
+            <div class="col-md-4 text-end">
+              <button type="button" class="btn btn-outline-primary" onclick="exportSelected()">
+                <i class="fas fa-download me-2"></i>Export Selected
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Permissions Update Modal -->
+<div class="modal fade" id="bulkPermissionsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Update Permissions for Selected Relationships</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="bulkPermissionsForm">
+          <div class="row">
+            <div class="col-md-6">
+              <h6 class="text-primary">Access Permissions</h6>
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" id="bulk_access_to_grades">
+                <label class="form-check-label" for="bulk_access_to_grades">Access to Grades</label>
+              </div>
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" id="bulk_access_to_attendance">
+                <label class="form-check-label" for="bulk_access_to_attendance">Access to Attendance</label>
+              </div>
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" id="bulk_access_to_financial_info">
+                <label class="form-check-label" for="bulk_access_to_financial_info">Access to Financial Info</label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <h6 class="text-primary">Communication Preferences</h6>
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" id="bulk_receive_email">
+                <label class="form-check-label" for="bulk_receive_email">Email Notifications</label>
+              </div>
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" id="bulk_receive_sms">
+                <label class="form-check-label" for="bulk_receive_sms">SMS Notifications</label>
+              </div>
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" id="bulk_receive_push_notifications">
+                <label class="form-check-label" for="bulk_receive_push_notifications">Push Notifications</label>
+              </div>
+            </div>
+          </div>
+          <div class="row mt-3">
+            <div class="col-md-6">
+              <h6 class="text-primary">Other Permissions</h6>
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" id="bulk_can_pickup">
+                <label class="form-check-label" for="bulk_can_pickup">Can Pickup Student</label>
+              </div>
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" id="bulk_financial_responsibility">
+                <label class="form-check-label" for="bulk_financial_responsibility">Financial Responsibility</label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="bulk_emergency_priority" class="form-label">Emergency Contact Priority</label>
+                <select class="form-select" id="bulk_emergency_priority">
+                  <option value="">Keep current priority</option>
+                  <option value="1">Priority 1 (Highest)</option>
+                  <option value="2">Priority 2</option>
+                  <option value="3">Priority 3</option>
+                  <option value="4">Priority 4</option>
+                  <option value="5">Priority 5 (Lowest)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="applyBulkPermissions()">
+          <i class="fas fa-save me-2"></i>Update Permissions
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmationModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm Action</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="confirmationText">
+        <!-- Confirmation text will be set by JavaScript -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirmButton">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/select/1.7.0/js/dataTables.select.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+  $(document).ready(function () {
+    let table;
+    let selectedRelationships = new Set();
+
+    // Initialize DataTable
+    initializeTable();
+
+    // Load classes for filter
+    loadClasses();
+
+    // Initialize Select2
+    $('#relationFilter, #statusFilter, #classFilter').select2({
+      theme: 'bootstrap-5',
+      minimumResultsForSearch: Infinity
+    });
+
+    function initializeTable() {
+      table = $('#relationshipsTable').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+          url: '/api/relationships/',
+          data: function (d) {
+            // Add filter parameters
+            d.student_search = $('#studentSearch').val();
+            d.parent_search = $('#parentSearch').val();
+            d.relation = $('#relationFilter').val();
+            d.status = $('#statusFilter').val();
+            d.class = $('#classFilter').val();
+          }
+        },
+        columns: [
+          {
+            data: null,
+            orderable: false,
+            searchable: false,
+            render: function (data, type, row) {
+              return `<input type="checkbox" class="relationship-checkbox" value="${row.id}">`;
+            }
+          },
+          {
+            data: 'student',
+            render: function (data, type, row) {
+              return `
+                            <div class="d-flex align-items-center">
+                                <div>
+                                    <div class="fw-bold">${data.name}</div>
+                                    <small class="text-muted">${data.admission_number}</small>
+                                    <div><span class="badge bg-secondary">${data.class || 'No class'}</span></div>
+                                </div>
+                            </div>
+                        `;
+            }
+          },
+          {
+            data: 'parent',
+            render: function (data, type, row) {
+              return `
+                            <div>
+                                <div class="fw-bold">${data.name}</div>
+                                <small class="text-muted">${data.email}</small>
+                                <div><small class="text-muted">${data.phone || 'No phone'}</small></div>
+                            </div>
+                        `;
+            }
+          },
+          {
+            data: 'parent.relation',
+            render: function (data, type, row) {
+              return `<span class="badge bg-primary">${data}</span>`;
+            }
+          },
+          {
+            data: null,
+            render: function (data, type, row) {
+              let badges = '';
+              if (row.is_primary_contact) badges += '<span class="badge bg-success relationship-badge">Primary</span>';
+              if (row.can_pickup) badges += '<span class="badge bg-info relationship-badge">Pickup</span>';
+              if (row.financial_responsibility) badges += '<span class="badge bg-warning relationship-badge">Financial</span>';
+              if (row.access_to_grades) badges += '<span class="badge bg-secondary relationship-badge">Grades</span>';
+              if (row.access_to_attendance) badges += '<span class="badge bg-secondary relationship-badge">Attendance</span>';
+              return badges || '<span class="text-muted">None</span>';
+            }
+          },
+          {
+            data: null,
+            render: function (data, type, row) {
+              let prefs = '';
+              if (row.receive_email) prefs += '<i class="fas fa-envelope text-primary" title="Email"></i> ';
+              if (row.receive_sms) prefs += '<i class="fas fa-sms text-success" title="SMS"></i> ';
+              if (row.receive_push_notifications) prefs += '<i class="fas fa-bell text-info" title="Push"></i> ';
+              return prefs || '<span class="text-muted">None</span>';
+            }
+          },
+          {
+            data: 'emergency_contact_priority',
+            render: function (data, type, row) {
+              return `<span class="badge bg-dark">Priority ${data}</span>`;
+            }
+          },
+          {
+            data: null,
+            orderable: false,
+            searchable: false,
+            render: function (data, type, row) {
+              return `
+                            <div class="btn-group btn-group-sm">
+                                <a href="/students/students/${row.student.id}/" class="btn btn-outline-primary" title="View Student">
+                                    <i class="fas fa-user"></i>
+                                </a>
+                                <a href="/students/parents/${row.parent.id}/" class="btn btn-outline-success" title="View Parent">
+                                    <i class="fas fa-user-friends"></i>
+                                </a>
+                                <a href="/students/relationships/${row.id}/update/" class="btn btn-outline-warning" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="btn btn-outline-danger" onclick="deleteRelationship('${row.id}')" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `;
+            }
+          }
+        ],
+        pageLength: 25,
+        order: [[1, 'asc']],
+        language: {
+          processing: '<i class="fas fa-spinner fa-spin"></i> Loading relationships...'
+        },
+        drawCallback: function () {
+          // Re-attach event listeners after table redraw
+          attachCheckboxListeners();
+          updateSelectionUI();
+        }
+      });
+    }
+
+    function attachCheckboxListeners() {
+      // Individual checkbox handlers
+      $('.relationship-checkbox').off('change').on('change', function () {
+        const relationshipId = $(this).val();
+        if ($(this).is(':checked')) {
+          selectedRelationships.add(relationshipId);
+        } else {
+          selectedRelationships.delete(relationshipId);
+        }
+        updateSelectionUI();
+      });
+
+      // Select all checkbox handler
+      $('#selectAllCheckbox').off('change').on('change', function () {
+        const isChecked = $(this).is(':checked');
+        $('.relationship-checkbox').prop('checked', isChecked);
+
+        if (isChecked) {
+          $('.relationship-checkbox').each(function () {
+            selectedRelationships.add($(this).val());
+          });
+        } else {
+          selectedRelationships.clear();
+        }
+        updateSelectionUI();
+      });
+    }
+
+    function updateSelectionUI() {
+      const count = selectedRelationships.size;
+      $('#selectedCount').text(count);
+
+      if (count > 0) {
+        $('#selectionAlert').show();
+        $('#actionButtons').show();
+      } else {
+        $('#selectionAlert').hide();
+        $('#actionButtons').hide();
+      }
+
+      // Update select all checkbox state
+      const totalCheckboxes = $('.relationship-checkbox').length;
+      const checkedCheckboxes = $('.relationship-checkbox:checked').length;
+
+      if (checkedCheckboxes === 0) {
+        $('#selectAllCheckbox').prop('indeterminate', false).prop('checked', false);
+      } else if (checkedCheckboxes === totalCheckboxes) {
+        $('#selectAllCheckbox').prop('indeterminate', false).prop('checked', true);
+      } else {
+        $('#selectAllCheckbox').prop('indeterminate', true);
+      }
+    }
+
+    function loadClasses() {
+      $.get('/api/classes/', function (data) {
+        const select = $('#classFilter');
+        data.forEach(function (cls) {
+          select.append(`<option value="${cls.id}">${cls.name}</option>`);
+        });
+      });
+    }
+
+    // Global functions
+    window.applyFilters = function () {
+      table.ajax.reload();
+    };
+
+    window.clearFilters = function () {
+      $('#studentSearch, #parentSearch').val('');
+      $('#relationFilter, #statusFilter, #classFilter').val('').trigger('change');
+      table.ajax.reload();
+    };
+
+    window.selectAll = function () {
+      $('.relationship-checkbox').prop('checked', true).trigger('change');
+    };
+
+    window.selectNone = function () {
+      $('.relationship-checkbox').prop('checked', false).trigger('change');
+      selectedRelationships.clear();
+      updateSelectionUI();
+    };
+
+    window.clearSelection = function () {
+      window.selectNone();
+    };
+
+    window.bulkAction = function (action) {
+      if (selectedRelationships.size === 0) {
+        toastr.error('Please select relationships first.');
+        return;
+      }
+
+      switch (action) {
+        case 'set_primary':
+          confirmAndExecute(
+            `Set ${selectedRelationships.size} selected relationships as primary contacts? This will remove primary status from other relationships for the same students.`,
+            function () { executeBulkAction('set_primary'); }
+          );
+          break;
+        case 'toggle_pickup':
+          confirmAndExecute(
+            `Toggle pickup permission for ${selectedRelationships.size} selected relationships?`,
+            function () { executeBulkAction('toggle_pickup'); }
+          );
+          break;
+        case 'update_permissions':
+          $('#bulkPermissionsModal').modal('show');
+          break;
+        case 'delete':
+          confirmAndExecute(
+            `Delete ${selectedRelationships.size} selected relationships? This action cannot be undone.`,
+            function () { executeBulkAction('delete'); },
+            'danger'
+          );
+          break;
+      }
+    };
+
+    window.applyBulkPermissions = function () {
+      const permissions = {
+        access_to_grades: $('#bulk_access_to_grades').is(':checked'),
+        access_to_attendance: $('#bulk_access_to_attendance').is(':checked'),
+        access_to_financial_info: $('#bulk_access_to_financial_info').is(':checked'),
+        receive_email: $('#bulk_receive_email').is(':checked'),
+        receive_sms: $('#bulk_receive_sms').is(':checked'),
+        receive_push_notifications: $('#bulk_receive_push_notifications').is(':checked'),
+        can_pickup: $('#bulk_can_pickup').is(':checked'),
+        financial_responsibility: $('#bulk_financial_responsibility').is(':checked'),
+        emergency_contact_priority: $('#bulk_emergency_priority').val()
+      };
+
+      executeBulkAction('update_permissions', permissions);
+      $('#bulkPermissionsModal').modal('hide');
+    };
+
+    function confirmAndExecute(message, callback, type = 'primary') {
+      $('#confirmationText').text(message);
+      $('#confirmButton').removeClass('btn-primary btn-danger').addClass(`btn-${type}`);
+      $('#confirmButton').off('click').on('click', function () {
+        $('#confirmationModal').modal('hide');
+        callback();
+      });
+      $('#confirmationModal').modal('show');
+    }
+
+    function executeBulkAction(action, data = null) {
+      const relationshipIds = Array.from(selectedRelationships);
+
+      $.ajax({
+        url: '{% url "students:relation-bulk-manage" %}',
+        method: 'POST',
+        data: {
+          'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val(),
+          'action': action,
+          'relationship_ids': relationshipIds,
+          'permissions': data ? JSON.stringify(data) : null
+        },
+        success: function (response) {
+          toastr.success(`Bulk action completed successfully for ${relationshipIds.length} relationships.`);
+          table.ajax.reload();
+          selectedRelationships.clear();
+          updateSelectionUI();
+        },
+        error: function () {
+          toastr.error('Failed to execute bulk action. Please try again.');
+        }
+      });
+    }
+
+    window.exportSelected = function () {
+      if (selectedRelationships.size === 0) {
+        toastr.error('Please select relationships to export.');
+        return;
+      }
+
+      const relationshipIds = Array.from(selectedRelationships);
+      const url = `/api/relationships/export/?ids=${relationshipIds.join(',')}`;
+      window.open(url, '_blank');
+    };
+
+    window.deleteRelationship = function (relationshipId) {
+      confirmAndExecute(
+        'Delete this relationship? This action cannot be undone.',
+        function () {
+          $.ajax({
+            url: `/students/relationships/${relationshipId}/delete/`,
+            method: 'POST',
+            data: {
+              'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+            },
+            success: function () {
+              toastr.success('Relationship deleted successfully.');
+              table.ajax.reload();
+            },
+            error: function () {
+              toastr.error('Failed to delete relationship.');
+            }
+          });
+        },
+        'danger'
+      );
+    };
+  });
+</script>
+{% endblock %}

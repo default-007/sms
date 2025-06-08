@@ -1,383 +1,324 @@
 <!-- students/templates/students/relation_form.html -->
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% load static %}
-{% load widget_tweaks %}
+{% load student_tags %}
 
-{% block title %}{{ title|default:"Manage Relationship" }}{% endblock %}
+{% block title %}{{ title }} - Student Relations{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/select2.min.css' %}" rel="stylesheet">
-<style>
-  .card-header-tabs .nav-link {
-    padding: 0.75rem 1rem;
-  }
-
-  .card-header-tabs .nav-link.active {
-    background-color: #fff;
-    border-bottom-color: #fff;
-  }
-
-  .form-section {
-    background-color: #f8f9fa;
-    border-radius: 0.5rem;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .permission-group {
-    margin-bottom: 1.5rem;
-  }
-
-  .permission-group:last-child {
-    margin-bottom: 0;
-  }
-
-  .permission-title {
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #dee2e6;
-  }
-
-  .relation-info-card {
-    background-color: #f0f7ff;
-    border-left: 4px solid #0d6efd;
-  }
-</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+<link rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4">
-  <h1 class="mt-4">{{ title|default:"Manage Relationship" }}</h1>
-  <ol class="breadcrumb mb-4">
-    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
-    {% if form.instance.student %}
-    <li class="breadcrumb-item"><a href="{% url 'students:student-detail' form.instance.student.id %}">Student</a></li>
-    {% elif form.initial.student %}
-    <li class="breadcrumb-item"><a href="{% url 'students:student-detail' form.initial.student.id %}">Student</a></li>
-    {% endif %}
-    {% if form.instance.parent %}
-    <li class="breadcrumb-item"><a href="{% url 'students:parent-detail' form.instance.parent.id %}">Parent</a></li>
-    {% elif form.initial.parent %}
-    <li class="breadcrumb-item"><a href="{% url 'students:parent-detail' form.initial.parent.id %}">Parent</a></li>
-    {% endif %}
-    <li class="breadcrumb-item active">Relationship</li>
-  </ol>
-
-  {% if messages %}
-  {% for message in messages %}
-  <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-    {{ message }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">{{ title }}</h2>
+          <p class="text-muted mb-0">{{ subtitle }}</p>
+        </div>
+        <div>
+          <a href="javascript:history.back()" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Go Back
+          </a>
+        </div>
+      </div>
+    </div>
   </div>
-  {% endfor %}
-  {% endif %}
 
   <div class="row">
-    <div class="col-lg-4">
-      <div class="card mb-4">
-        <div class="card-header">
-          <h5 class="card-title mb-0">Relationship Information</h5>
+    <div class="col-lg-8">
+      <!-- Main Form -->
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-link me-2"></i>Relationship Details
+          </h5>
         </div>
         <div class="card-body">
-          <!-- Student Info (if student is predefined) -->
-          {% if form.instance.student or form.initial.student %}
-          {% with student=form.instance.student|default:form.initial.student %}
-          <div class="card mb-3 bg-light">
-            <div class="card-body">
-              <h6 class="card-subtitle mb-2 text-muted">Student</h6>
-              <div class="d-flex align-items-center">
-                <div class="flex-shrink-0">
-                  {% if student.photo %}
-                  <img src="{{ student.photo.url }}" alt="{{ student.get_full_name }}" class="rounded-circle" width="48"
-                    height="48">
-                  {% else %}
-                  <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
-                    style="width: 48px; height: 48px;">
-                    <i class="fas fa-user"></i>
-                  </div>
+          <form method="post" id="relationshipForm">
+            {% csrf_token %}
+
+            <!-- Form Errors -->
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+              {{ form.non_field_errors }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endif %}
+
+            <!-- Selection Section -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h6 class="text-primary border-bottom pb-2">
+                  <i class="fas fa-users me-2"></i>Select Student & Parent
+                </h6>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.student.id_for_label }}" class="form-label">
+                    Student <span class="text-danger">*</span>
+                  </label>
+                  {{ form.student }}
+                  {% if form.student.errors %}
+                  <div class="text-danger small">{{ form.student.errors }}</div>
                   {% endif %}
+                  <div class="form-text">Search by name or admission number</div>
                 </div>
-                <div class="flex-grow-1 ms-3">
-                  <h6 class="mb-0">{{ student.get_full_name }}</h6>
-                  <p class="mb-0 text-muted small">{{ student.admission_number }}</p>
-                  <p class="mb-0 text-muted small">{{ student.current_class|default:"No class assigned" }}</p>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.parent.id_for_label }}" class="form-label">
+                    Parent/Guardian <span class="text-danger">*</span>
+                  </label>
+                  {{ form.parent }}
+                  {% if form.parent.errors %}
+                  <div class="text-danger small">{{ form.parent.errors }}</div>
+                  {% endif %}
+                  <div class="form-text">Search by name or email</div>
                 </div>
               </div>
             </div>
-          </div>
-          {% endwith %}
-          {% endif %}
 
-          <!-- Parent Info (if parent is predefined) -->
-          {% if form.instance.parent or form.initial.parent %}
-          {% with parent=form.instance.parent|default:form.initial.parent %}
-          <div class="card mb-3 bg-light">
-            <div class="card-body">
-              <h6 class="card-subtitle mb-2 text-muted">Parent/Guardian</h6>
-              <div class="d-flex align-items-center">
-                <div class="flex-shrink-0">
-                  {% if parent.photo %}
-                  <img src="{{ parent.photo.url }}" alt="{{ parent.get_full_name }}" class="rounded-circle" width="48"
-                    height="48">
-                  {% else %}
-                  <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
-                    style="width: 48px; height: 48px;">
-                    <i class="fas fa-user"></i>
+            <!-- Relationship Settings -->
+            <div class="row mb-4 mt-4">
+              <div class="col-12">
+                <h6 class="text-primary border-bottom pb-2">
+                  <i class="fas fa-cog me-2"></i>Relationship Settings
+                </h6>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <div class="form-check form-switch">
+                    {{ form.is_primary_contact }}
+                    <label for="{{ form.is_primary_contact.id_for_label }}" class="form-check-label">
+                      Primary Contact
+                    </label>
                   </div>
+                  <div class="form-text">Main contact for school communications</div>
+                  {% if form.is_primary_contact.errors %}
+                  <div class="text-danger small">{{ form.is_primary_contact.errors }}</div>
                   {% endif %}
                 </div>
-                <div class="flex-grow-1 ms-3">
-                  <h6 class="mb-0">{{ parent.get_full_name }}</h6>
-                  <p class="mb-0 text-muted small">{{ parent.relation_with_student }}</p>
-                  <p class="mb-0 text-muted small">{{ parent.user.email }}</p>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <div class="form-check form-switch">
+                    {{ form.can_pickup }}
+                    <label for="{{ form.can_pickup.id_for_label }}" class="form-check-label">
+                      Can Pick Up Student
+                    </label>
+                  </div>
+                  <div class="form-text">Authorized to collect student from school</div>
+                  {% if form.can_pickup.errors %}
+                  <div class="text-danger small">{{ form.can_pickup.errors }}</div>
+                  {% endif %}
                 </div>
               </div>
             </div>
-          </div>
-          {% endwith %}
-          {% endif %}
 
-          <!-- Explanation card -->
-          <div class="card relation-info-card">
-            <div class="card-body">
-              <h6 class="card-title">About Relationships</h6>
-              <p class="card-text small">Relationships define how parents are connected to students and what permissions
-                they have regarding student information.</p>
-              <ul class="small mb-0">
-                <li><strong>Primary Contact:</strong> The main point of contact for the student.</li>
-                <li><strong>Pickup Permission:</strong> Whether the parent can pick up the student from school.</li>
-                <li><strong>Emergency Contact:</strong> Priority order for emergency contacts.</li>
-                <li><strong>Financial Responsibility:</strong> Responsible for fee payments.</li>
-              </ul>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <div class="form-check form-switch">
+                    {{ form.financial_responsibility }}
+                    <label for="{{ form.financial_responsibility.id_for_label }}" class="form-check-label">
+                      Financial Responsibility
+                    </label>
+                  </div>
+                  <div class="form-text">Responsible for fee payments</div>
+                  {% if form.financial_responsibility.errors %}
+                  <div class="text-danger small">{{ form.financial_responsibility.errors }}</div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.emergency_contact_priority.id_for_label }}" class="form-label">
+                    Emergency Contact Priority
+                  </label>
+                  {{ form.emergency_contact_priority }}
+                  <div class="form-text">Lower numbers = higher priority</div>
+                  {% if form.emergency_contact_priority.errors %}
+                  <div class="text-danger small">{{ form.emergency_contact_priority.errors }}</div>
+                  {% endif %}
+                </div>
+              </div>
             </div>
-          </div>
+
+            <!-- Access Permissions -->
+            <div class="row mb-4 mt-4">
+              <div class="col-12">
+                <h6 class="text-primary border-bottom pb-2">
+                  <i class="fas fa-key me-2"></i>Access Permissions
+                </h6>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <div class="form-check form-switch">
+                    {{ form.access_to_grades }}
+                    <label for="{{ form.access_to_grades.id_for_label }}" class="form-check-label">
+                      Access to Grades
+                    </label>
+                  </div>
+                  <div class="form-text">View academic performance</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <div class="form-check form-switch">
+                    {{ form.access_to_attendance }}
+                    <label for="{{ form.access_to_attendance.id_for_label }}" class="form-check-label">
+                      Access to Attendance
+                    </label>
+                  </div>
+                  <div class="form-text">View attendance records</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <div class="form-check form-switch">
+                    {{ form.access_to_financial_info }}
+                    <label for="{{ form.access_to_financial_info.id_for_label }}" class="form-check-label">
+                      Access to Financial Info
+                    </label>
+                  </div>
+                  <div class="form-text">View fee details</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Communication Preferences -->
+            <div class="row mb-4 mt-4">
+              <div class="col-12">
+                <h6 class="text-primary border-bottom pb-2">
+                  <i class="fas fa-bell me-2"></i>Communication Preferences
+                </h6>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <div class="form-check form-switch">
+                    {{ form.receive_email }}
+                    <label for="{{ form.receive_email.id_for_label }}" class="form-check-label">
+                      Email Notifications
+                    </label>
+                  </div>
+                  <div class="form-text">Receive emails</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <div class="form-check form-switch">
+                    {{ form.receive_sms }}
+                    <label for="{{ form.receive_sms.id_for_label }}" class="form-check-label">
+                      SMS Notifications
+                    </label>
+                  </div>
+                  <div class="form-text">Receive text messages</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <div class="form-check form-switch">
+                    {{ form.receive_push_notifications }}
+                    <label for="{{ form.receive_push_notifications.id_for_label }}" class="form-check-label">
+                      Push Notifications
+                    </label>
+                  </div>
+                  <div class="form-text">Mobile app notifications</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="row mt-4">
+              <div class="col-12">
+                <div class="d-flex justify-content-between">
+                  <button type="button" class="btn btn-outline-secondary" onclick="history.back()">
+                    <i class="fas fa-times me-2"></i>Cancel
+                  </button>
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>{{ button_label }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
         </div>
       </div>
     </div>
 
-    <div class="col-lg-8">
-      <div class="card mb-4">
-        <div class="card-header">
-          <ul class="nav nav-tabs card-header-tabs" id="relationshipTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-              <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button"
-                role="tab" aria-controls="basic" aria-selected="true">Basic Information</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="permissions-tab" data-bs-toggle="tab" data-bs-target="#permissions"
-                type="button" role="tab" aria-controls="permissions" aria-selected="false">Permissions</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="communication-tab" data-bs-toggle="tab" data-bs-target="#communication"
-                type="button" role="tab" aria-controls="communication" aria-selected="false">Communication</button>
-            </li>
-          </ul>
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+      <!-- Quick Actions -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-bolt me-2"></i>Quick Actions
+          </h6>
         </div>
         <div class="card-body">
-          <form method="post" id="relationForm">
-            {% csrf_token %}
-            <div class="tab-content" id="relationshipTabsContent">
-              <!-- Basic Information Tab -->
-              <div class="tab-pane fade show active" id="basic" role="tabpanel" aria-labelledby="basic-tab">
-                <div class="form-section">
-                  {% if not form.instance.student and not form.initial.student %}
-                  <div class="mb-3">
-                    <label for="{{ form.student.id_for_label }}" class="form-label">Student</label>
-                    {{ form.student|add_class:"form-control select2" }}
-                    {% if form.student.errors %}
-                    <div class="invalid-feedback d-block">{{ form.student.errors.0 }}</div>
-                    {% endif %}
-                    <div class="form-text">Select the student for this relationship</div>
-                  </div>
-                  {% endif %}
+          <div class="d-grid gap-2">
+            <a href="{% url 'students:student-create' %}" class="btn btn-outline-primary btn-sm">
+              <i class="fas fa-user-plus me-2"></i>Add New Student
+            </a>
+            <a href="{% url 'students:parent-create' %}" class="btn btn-outline-success btn-sm">
+              <i class="fas fa-user-plus me-2"></i>Add New Parent
+            </a>
+            <a href="{% url 'students:relation-bulk-manage' %}" class="btn btn-outline-warning btn-sm">
+              <i class="fas fa-list me-2"></i>Bulk Manage Relations
+            </a>
+          </div>
+        </div>
+      </div>
 
-                  {% if not form.instance.parent and not form.initial.parent %}
-                  <div class="mb-3">
-                    <label for="{{ form.parent.id_for_label }}" class="form-label">Parent/Guardian</label>
-                    {{ form.parent|add_class:"form-control select2" }}
-                    {% if form.parent.errors %}
-                    <div class="invalid-feedback d-block">{{ form.parent.errors.0 }}</div>
-                    {% endif %}
-                    <div class="form-text">Select the parent/guardian for this relationship</div>
-                  </div>
-                  {% endif %}
+      <!-- Help Information -->
+      <div class="card shadow-sm">
+        <div class="card-header bg-warning text-dark">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-question-circle me-2"></i>Permission Guide
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <h6 class="text-primary">Primary Contact</h6>
+            <p class="small mb-2">The main person the school will contact. Each student should have only one primary
+              contact.</p>
+          </div>
 
-                  <div class="row">
-                    <div class="col-md-6">
-                      <div class="mb-3">
-                        <div class="form-check form-switch">
-                          {{ form.is_primary_contact|add_class:"form-check-input" }}
-                          <label class="form-check-label" for="{{ form.is_primary_contact.id_for_label }}">
-                            Primary Contact
-                          </label>
-                        </div>
-                        <div class="form-text">Designate this parent as the primary contact for the student</div>
-                      </div>
-                    </div>
-                    <div class="col-md-6">
-                      <div class="mb-3">
-                        <div class="form-check form-switch">
-                          {{ form.can_pickup|add_class:"form-check-input" }}
-                          <label class="form-check-label" for="{{ form.can_pickup.id_for_label }}">
-                            Can Pickup Student
-                          </label>
-                        </div>
-                        <div class="form-text">Allow this parent to pick up the student from school</div>
-                      </div>
-                    </div>
-                  </div>
+          <div class="mb-3">
+            <h6 class="text-primary">Emergency Priority</h6>
+            <p class="small mb-2">In case of emergency, contacts will be called in order of priority (1 = first, 2 =
+              second, etc.).</p>
+          </div>
 
-                  <div class="row">
-                    <div class="col-md-6">
-                      <div class="mb-3">
-                        <label for="{{ form.emergency_contact_priority.id_for_label }}" class="form-label">
-                          Emergency Contact Priority
-                        </label>
-                        {{ form.emergency_contact_priority|add_class:"form-control" }}
-                        {% if form.emergency_contact_priority.errors %}
-                        <div class="invalid-feedback d-block">{{ form.emergency_contact_priority.errors.0 }}</div>
-                        {% endif %}
-                        <div class="form-text">Lower number means higher priority (1 is highest)</div>
-                      </div>
-                    </div>
-                    <div class="col-md-6">
-                      <div class="mb-3">
-                        <div class="form-check form-switch">
-                          {{ form.financial_responsibility|add_class:"form-check-input" }}
-                          <label class="form-check-label" for="{{ form.financial_responsibility.id_for_label }}">
-                            Financial Responsibility
-                          </label>
-                        </div>
-                        <div class="form-text">This parent is responsible for fee payments</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <div class="mb-3">
+            <h6 class="text-primary">Financial Responsibility</h6>
+            <p class="small mb-2">This person will receive fee reminders and payment notifications.</p>
+          </div>
 
-              <!-- Permissions Tab -->
-              <div class="tab-pane fade" id="permissions" role="tabpanel" aria-labelledby="permissions-tab">
-                <div class="form-section">
-                  <div class="permission-group">
-                    <h6 class="permission-title">Academic Information Access</h6>
-                    <div class="row">
-                      <div class="col-md-6">
-                        <div class="mb-3">
-                          <div class="form-check form-switch">
-                            {{ form.access_to_grades|add_class:"form-check-input" }}
-                            <label class="form-check-label" for="{{ form.access_to_grades.id_for_label }}">
-                              Access to Grades
-                            </label>
-                          </div>
-                          <div class="form-text">Allow this parent to view student's grades and academic records</div>
-                        </div>
-                      </div>
-                      <div class="col-md-6">
-                        <div class="mb-3">
-                          <div class="form-check form-switch">
-                            {{ form.access_to_attendance|add_class:"form-check-input" }}
-                            <label class="form-check-label" for="{{ form.access_to_attendance.id_for_label }}">
-                              Access to Attendance
-                            </label>
-                          </div>
-                          <div class="form-text">Allow this parent to view student's attendance records</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="permission-group">
-                    <h6 class="permission-title">Financial Information Access</h6>
-                    <div class="mb-3">
-                      <div class="form-check form-switch">
-                        {{ form.access_to_financial_info|add_class:"form-check-input" }}
-                        <label class="form-check-label" for="{{ form.access_to_financial_info.id_for_label }}">
-                          Access to Financial Information
-                        </label>
-                      </div>
-                      <div class="form-text">Allow this parent to view fee payment records and financial statements
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Communication Tab -->
-              <div class="tab-pane fade" id="communication" role="tabpanel" aria-labelledby="communication-tab">
-                <div class="form-section">
-                  <div class="permission-group">
-                    <h6 class="permission-title">Communication Preferences</h6>
-                    <div class="row">
-                      <div class="col-md-4">
-                        <div class="mb-3">
-                          <div class="form-check form-switch">
-                            {{ form.receive_sms|add_class:"form-check-input" }}
-                            <label class="form-check-label" for="{{ form.receive_sms.id_for_label }}">
-                              Receive SMS
-                            </label>
-                          </div>
-                          <div class="form-text">Receive SMS notifications</div>
-                        </div>
-                      </div>
-                      <div class="col-md-4">
-                        <div class="mb-3">
-                          <div class="form-check form-switch">
-                            {{ form.receive_email|add_class:"form-check-input" }}
-                            <label class="form-check-label" for="{{ form.receive_email.id_for_label }}">
-                              Receive Email
-                            </label>
-                          </div>
-                          <div class="form-text">Receive email notifications</div>
-                        </div>
-                      </div>
-                      <div class="col-md-4">
-                        <div class="mb-3">
-                          <div class="form-check form-switch">
-                            {{ form.receive_push_notifications|add_class:"form-check-input" }}
-                            <label class="form-check-label" for="{{ form.receive_push_notifications.id_for_label }}">
-                              Receive Push Notifications
-                            </label>
-                          </div>
-                          <div class="form-text">Receive mobile app push notifications</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="d-flex justify-content-between mt-4">
-              <div>
-                {% if form.instance.student %}
-                <a href="{% url 'students:student-detail' form.instance.student.id %}" class="btn btn-secondary">
-                  <i class="fas fa-arrow-left me-2"></i>Back to Student
-                </a>
-                {% elif form.instance.parent %}
-                <a href="{% url 'students:parent-detail' form.instance.parent.id %}" class="btn btn-secondary">
-                  <i class="fas fa-arrow-left me-2"></i>Back to Parent
-                </a>
-                {% elif form.initial.student %}
-                <a href="{% url 'students:student-detail' form.initial.student.id %}" class="btn btn-secondary">
-                  <i class="fas fa-arrow-left me-2"></i>Back to Student
-                </a>
-                {% elif form.initial.parent %}
-                <a href="{% url 'students:parent-detail' form.initial.parent.id %}" class="btn btn-secondary">
-                  <i class="fas fa-arrow-left me-2"></i>Back to Parent
-                </a>
-                {% else %}
-                <a href="{% url 'students:student-list' %}" class="btn btn-secondary">
-                  <i class="fas fa-arrow-left me-2"></i>Cancel
-                </a>
-                {% endif %}
-              </div>
-              <div>
-                <button type="submit" class="btn btn-primary">
-                  <i class="fas fa-save me-2"></i>{{ button_label|default:"Save Relationship" }}
-                </button>
-              </div>
-            </div>
-          </form>
+          <div class="alert alert-info">
+            <small>
+              <i class="fas fa-info-circle me-2"></i>
+              <strong>Tip:</strong> You can modify these permissions later from the student or parent profile pages.
+            </small>
+          </div>
         </div>
       </div>
     </div>
@@ -386,48 +327,139 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/select2.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
   $(document).ready(function () {
-    // Initialize Select2
-    $('.select2').select2({
-      theme: 'bootstrap4',
-      width: '100%'
+    // Initialize Select2 for student and parent selection
+    $('#id_student').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Search for a student...',
+      allowClear: true,
+      ajax: {
+        url: '{% url "students:student-autocomplete" %}',
+        dataType: 'json',
+        delay: 250,
+        data: function (params) {
+          return {
+            q: params.term,
+            limit: 10
+          };
+        },
+        processResults: function (data) {
+          return {
+            results: data.results.map(function (item) {
+              return {
+                id: item.id,
+                text: item.text,
+                admission_number: item.admission_number,
+                class: item.class
+              };
+            })
+          };
+        }
+      }
     });
 
-    // Tab persistence
-    $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
-      localStorage.setItem('relationshipActiveTab', $(e.target).attr('id'));
+    $('#id_parent').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Search for a parent...',
+      allowClear: true,
+      ajax: {
+        url: '{% url "students:parent-autocomplete" %}',
+        dataType: 'json',
+        delay: 250,
+        data: function (params) {
+          return {
+            q: params.term,
+            limit: 10
+          };
+        },
+        processResults: function (data) {
+          return {
+            results: data.results.map(function (item) {
+              return {
+                id: item.id,
+                text: item.text,
+                email: item.email,
+                phone: item.phone
+              };
+            })
+          };
+        }
+      }
     });
 
-    // Check if there is an active tab stored
-    var activeTab = localStorage.getItem('relationshipActiveTab');
-    if (activeTab) {
-      $('#' + activeTab).tab('show');
-    }
+    // Initialize other selects
+    $('#id_emergency_contact_priority').select2({
+      theme: 'bootstrap-5',
+      minimumResultsForSearch: Infinity
+    });
 
     // Form validation
-    $('#relationForm').on('submit', function (e) {
+    $('#relationshipForm').on('submit', function (e) {
       let isValid = true;
 
-      {% if not form.instance.student and not form.initial.student %}
-      if (!$('#{{ form.student.id_for_label }}').val()) {
-        alert('Please select a student.');
-        $('#basic-tab').tab('show');
+      // Check if student and parent are selected
+      if (!$('#id_student').val()) {
+        $('#id_student').addClass('is-invalid');
         isValid = false;
+      } else {
+        $('#id_student').removeClass('is-invalid');
       }
-      {% endif %}
 
-      {% if not form.instance.parent and not form.initial.parent %}
-      if (!$('#{{ form.parent.id_for_label }}').val()) {
-        alert('Please select a parent.');
-        $('#basic-tab').tab('show');
+      if (!$('#id_parent').val()) {
+        $('#id_parent').addClass('is-invalid');
         isValid = false;
+      } else {
+        $('#id_parent').removeClass('is-invalid');
       }
-      {% endif %}
 
-      return isValid;
+      if (!isValid) {
+        e.preventDefault();
+        toastr.error('Please select both student and parent.');
+      }
     });
+
+    // Primary contact warning
+    $('#id_is_primary_contact').on('change', function () {
+      if ($(this).is(':checked')) {
+        const studentId = $('#id_student').val();
+        if (studentId) {
+          $.get(`/api/students/${studentId}/primary-contact/`, function (data) {
+            if (data.has_primary) {
+              const confirmMsg = `This student already has a primary contact (${data.primary_contact_name}). Setting this relationship as primary will remove the primary status from the existing contact. Continue?`;
+              if (!confirm(confirmMsg)) {
+                $('#id_is_primary_contact').prop('checked', false);
+              }
+            }
+          });
+        }
+      }
+    });
+
+    // Smart defaults based on parent relation
+    $('#id_parent').on('change', function () {
+      const parentData = $(this).select2('data')[0];
+      if (parentData && parentData.relation) {
+        // Set smart defaults based on relation type
+        if (['Father', 'Mother', 'Guardian'].includes(parentData.relation)) {
+          $('#id_financial_responsibility').prop('checked', true);
+          $('#id_can_pickup').prop('checked', true);
+          $('#id_access_to_grades').prop('checked', true);
+          $('#id_access_to_attendance').prop('checked', true);
+        }
+      }
+    });
+
+    // Toggle dependent permissions
+    $('#id_financial_responsibility').on('change', function () {
+      if ($(this).is(':checked')) {
+        $('#id_access_to_financial_info').prop('checked', true);
+      }
+    });
+
+    // Initialize tooltips
+    $('[data-bs-toggle="tooltip"]').tooltip();
   });
 </script>
 {% endblock %}

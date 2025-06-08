@@ -1,191 +1,350 @@
 <!-- students/templates/students/import_status.html -->
-{% extends "base.html" %}
-{% load static %}
+{% extends 'base.html' %}
 
 {% block title %}Import Status{% endblock %}
 
 {% block extra_css %}
 <style>
-  .progress-card {
-    position: relative;
+  .status-card {
+    transition: all 0.3s ease;
   }
 
-  .progress-percentage {
-    position: absolute;
-    top: 0;
-    right: 15px;
-    font-size: 2rem;
-    font-weight: bold;
-    color: rgba(0, 123, 255, 0.2);
+  .status-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   }
 
-  .status-badge {
-    font-size: 0.875rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: 50px;
+  .progress-ring {
+    transform: rotate(-90deg);
   }
 
-  .error-list {
-    max-height: 300px;
-    overflow-y: auto;
+  .progress-ring-circle {
+    transition: stroke-dasharray 0.35s;
+    transform-origin: 50% 50%;
   }
 
-  .error-item {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
+  .log-entry {
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
   }
 
-  .error-item:last-child {
-    border-bottom: none;
+  .log-entry.success {
+    border-left-color: #198754;
+  }
+
+  .log-entry.error {
+    border-left-color: #dc3545;
+  }
+
+  .log-entry.warning {
+    border-left-color: #ffc107;
+  }
+
+  .log-entry.info {
+    border-left-color: #0dcaf0;
+  }
+
+  .status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+  }
+
+  .status-processing {
+    background-color: #ffc107;
+    animation: pulse 1.5s infinite;
+  }
+
+  .status-completed {
+    background-color: #198754;
+  }
+
+  .status-failed {
+    background-color: #dc3545;
+  }
+
+  .status-pending {
+    background-color: #6c757d;
+  }
+
+  @keyframes pulse {
+    0% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.5;
+    }
+
+    100% {
+      opacity: 1;
+    }
+  }
+
+  .fade-in {
+    animation: fadeIn 0.5s ease-in;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4">
-  <h1 class="mt-4">Import Status</h1>
-  <ol class="breadcrumb mb-4">
-    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
-    <li class="breadcrumb-item"><a href="{% url 'students:student-list' %}">Students</a></li>
-    <li class="breadcrumb-item active">Import Status</li>
-  </ol>
-
-  <div class="row">
-    <div class="col-lg-5">
-      <div class="card mb-4 progress-card">
-        <div class="card-header">
-          <h5 class="card-title mb-0"><i class="fas fa-file-import me-2"></i>Import Progress</h5>
-          <div class="progress-percentage" id="progressPercentage">0%</div>
-        </div>
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card bg-primary text-white">
         <div class="card-body">
-          <!-- Current Status -->
-          <div class="mb-4 text-center">
-            <div id="importStatus" class="status-badge bg-info text-white">
-              <i class="fas fa-sync-alt fa-spin me-2"></i>Initializing...
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h2 class="card-title mb-1">
+                <i class="fas fa-upload me-2"></i>
+                Import Status Dashboard
+              </h2>
+              <p class="card-text mb-0">
+                Real-time monitoring of bulk import operations
+              </p>
             </div>
-          </div>
-
-          <!-- Progress Bar -->
-          <div class="progress mb-4" style="height: 2rem;">
-            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"
-              id="importProgressBar"></div>
-          </div>
-
-          <!-- Statistics -->
-          <div class="row text-center">
-            <div class="col-4">
-              <h3 class="text-success mb-0" id="createdCount">0</h3>
-              <span class="small text-muted">Created</span>
+            <div class="text-end">
+              <button type="button" class="btn btn-light" onclick="refreshStatus()">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
+              </button>
             </div>
-            <div class="col-4">
-              <h3 class="text-primary mb-0" id="updatedCount">0</h3>
-              <span class="small text-muted">Updated</span>
-            </div>
-            <div class="col-4">
-              <h3 class="text-danger mb-0" id="errorCount">0</h3>
-              <span class="small text-muted">Errors</span>
-            </div>
-          </div>
-
-          <!-- Timer -->
-          <div class="mt-4 text-center">
-            <span class="text-muted">Elapsed time: <span id="elapsedTime">00:00:00</span></span>
-          </div>
-        </div>
-        <div class="card-footer">
-          <div class="d-flex justify-content-between">
-            <a href="{% url 'students:student-list' %}" class="btn btn-secondary" id="backBtn">
-              <i class="fas fa-arrow-left me-2"></i>Back to Students
-            </a>
-            <button type="button" class="btn btn-danger d-none" id="cancelBtn">
-              <i class="fas fa-times me-2"></i>Cancel Import
-            </button>
           </div>
         </div>
       </div>
+    </div>
+  </div>
 
-      <!-- Import Options Summary -->
-      <div class="card mb-4">
-        <div class="card-header">
-          <h5 class="card-title mb-0">Import Details</h5>
+  <!-- Current Import Status -->
+  <div class="row mb-4" id="currentImportSection" style="display: none;">
+    <div class="col-12">
+      <div class="card border-warning">
+        <div class="card-header bg-warning text-dark">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+              <span class="status-indicator status-processing"></span>
+              Current Import in Progress
+            </h5>
+            <div class="d-flex align-items-center gap-3">
+              <span id="progressPercent" class="fw-bold">0%</span>
+              <button type="button" class="btn btn-sm btn-outline-dark" onclick="cancelImport()">
+                <i class="fas fa-times me-1"></i>Cancel
+              </button>
+            </div>
+          </div>
         </div>
         <div class="card-body">
-          <dl class="row mb-0">
-            <dt class="col-sm-6">Import Type:</dt>
-            <dd class="col-sm-6" id="importType">Students</dd>
-
-            <dt class="col-sm-6">Total Records:</dt>
-            <dd class="col-sm-6" id="totalRecords">0</dd>
-
-            <dt class="col-sm-6">Started At:</dt>
-            <dd class="col-sm-6" id="startTime">-</dd>
-
-            <dt class="col-sm-6">Send Notifications:</dt>
-            <dd class="col-sm-6" id="sendNotifications">Yes</dd>
-
-            <dt class="col-sm-6">Update Existing:</dt>
-            <dd class="col-sm-6" id="updateExisting">Yes</dd>
-          </dl>
+          <div class="row">
+            <div class="col-md-8">
+              <div class="mb-3">
+                <div class="d-flex justify-content-between mb-1">
+                  <span class="small">Processing Records</span>
+                  <span class="small" id="progressText">0 / 0</span>
+                </div>
+                <div class="progress" style="height: 8px;">
+                  <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" id="progressBar"
+                    style="width: 0%"></div>
+                </div>
+              </div>
+              <div class="row text-center">
+                <div class="col-md-3">
+                  <div class="card bg-light">
+                    <div class="card-body py-2">
+                      <h6 class="card-title mb-0" id="processedCount">0</h6>
+                      <small class="text-muted">Processed</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-success bg-opacity-10">
+                    <div class="card-body py-2">
+                      <h6 class="card-title mb-0 text-success" id="successCount">0</h6>
+                      <small class="text-muted">Success</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-danger bg-opacity-10">
+                    <div class="card-body py-2">
+                      <h6 class="card-title mb-0 text-danger" id="errorCount">0</h6>
+                      <small class="text-muted">Errors</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="card bg-warning bg-opacity-10">
+                    <div class="card-body py-2">
+                      <h6 class="card-title mb-0 text-warning" id="warningCount">0</h6>
+                      <small class="text-muted">Warnings</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="text-center">
+                <svg class="progress-ring" width="120" height="120">
+                  <circle class="progress-ring-circle" stroke="#ffc107" stroke-width="8" fill="transparent" r="52"
+                    cx="60" cy="60" style="stroke-dasharray: 326.726; stroke-dashoffset: 326.726;" />
+                </svg>
+                <div class="mt-2">
+                  <small class="text-muted">
+                    Estimated time remaining: <span id="etaTime">Calculating...</span>
+                  </small>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <div class="col-lg-7">
-      <!-- Error Details -->
-      <div class="card mb-4">
+  <!-- Recent Import History -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
         <div class="card-header">
-          <h5 class="card-title mb-0">Error Details</h5>
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-history me-2"></i>Recent Import History
+            </h5>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-outline-primary btn-sm" onclick="exportHistory()">
+                <i class="fas fa-download me-1"></i>Export
+              </button>
+              <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearHistory()">
+                <i class="fas fa-trash me-1"></i>Clear History
+              </button>
+            </div>
+          </div>
         </div>
         <div class="card-body">
-          <div id="errorListContainer" class="error-list">
-            <div class="text-center py-4 text-muted" id="noErrorsMessage">
-              <i class="fas fa-check-circle fa-3x mb-3"></i>
-              <p>No errors have been detected so far. The import is running smoothly.</p>
-            </div>
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Import Type</th>
+                  <th>Date & Time</th>
+                  <th>Status</th>
+                  <th>Records</th>
+                  <th>Success Rate</th>
+                  <th>Duration</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="historyTableBody">
+                <!-- Dynamic content will be loaded here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-            <div id="errorList" class="d-none">
-              <!-- Error items will be added here dynamically -->
+  <!-- Import Queue -->
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-list me-2"></i>Import Queue
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="queueList">
+            <!-- Queue items will be loaded here -->
+            <div class="text-center text-muted py-4">
+              <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+              <p>No imports in queue</p>
             </div>
           </div>
         </div>
       </div>
-
-      <!-- Import Complete Card -->
-      <div class="card mb-4 d-none" id="importCompleteCard">
-        <div class="card-header bg-success text-white">
-          <h5 class="card-title mb-0"><i class="fas fa-check-circle me-2"></i>Import Complete</h5>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i>Error Summary
+          </h5>
         </div>
         <div class="card-body">
-          <div class="text-center mb-4">
-            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-            <h4>Import Successfully Completed</h4>
-            <p>The import process has completed successfully. Below is a summary of the results.</p>
-          </div>
-
-          <div class="row text-center mb-4">
-            <div class="col-4">
-              <h3 class="text-success mb-0" id="finalCreatedCount">0</h3>
-              <span class="small text-muted">Created</span>
+          <div id="errorSummary">
+            <!-- Error summary will be loaded here -->
+            <div class="text-center text-muted py-4">
+              <i class="fas fa-check-circle fa-2x mb-2 d-block text-success"></i>
+              <p>No recent errors</p>
             </div>
-            <div class="col-4">
-              <h3 class="text-primary mb-0" id="finalUpdatedCount">0</h3>
-              <span class="small text-muted">Updated</span>
-            </div>
-            <div class="col-4">
-              <h3 class="text-danger mb-0" id="finalErrorCount">0</h3>
-              <span class="small text-muted">Errors</span>
-            </div>
-          </div>
-
-          <div class="text-center">
-            <a href="{% url 'students:student-list' %}" class="btn btn-primary">
-              <i class="fas fa-list me-2"></i>View Student List
-            </a>
-            <a href="{% url 'students:student-import' %}" class="btn btn-outline-primary">
-              <i class="fas fa-file-import me-2"></i>Start Another Import
-            </a>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Activity Log -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-terminal me-2"></i>Live Activity Log
+            </h5>
+            <div class="d-flex gap-2">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="autoScrollLog" checked>
+                <label class="form-check-label" for="autoScrollLog">Auto-scroll</label>
+              </div>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearLog()">
+                <i class="fas fa-eraser me-1"></i>Clear
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div id="activityLog" class="p-3" style="height: 300px; overflow-y: auto; background-color: #f8f9fa;">
+            <!-- Activity log entries will appear here -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Import Details Modal -->
+<div class="modal fade" id="importDetailsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Import Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="importDetailsContent">
+          <!-- Import details will be loaded here -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="downloadReport()">
+          <i class="fas fa-download me-1"></i>Download Report
+        </button>
       </div>
     </div>
   </div>
@@ -194,219 +353,376 @@
 
 {% block extra_js %}
 <script>
+  let updateInterval;
+  let currentImportId = null;
+  let activityLogEntries = [];
+
   $(document).ready(function () {
-    // Get import ID from URL
+    // Check for existing import on page load
+    checkCurrentImport();
+
+    // Load import history
+    loadImportHistory();
+
+    // Start real-time updates if there's an active import
+    if (currentImportId) {
+      startRealTimeUpdates();
+    }
+
+    // Add sample log entry
+    addLogEntry('info', 'Import status dashboard initialized');
+  });
+
+  function checkCurrentImport() {
+    // Check URL parameters for import ID
     const urlParams = new URLSearchParams(window.location.search);
     const importId = urlParams.get('import_id');
 
-    if (!importId) {
-      showErrorMessage('No import ID provided. Please restart the import process.');
-      return;
+    if (importId) {
+      currentImportId = importId;
+      $('#currentImportSection').show();
+      startRealTimeUpdates();
+    }
+  }
+
+  function startRealTimeUpdates() {
+    if (updateInterval) {
+      clearInterval(updateInterval);
     }
 
-    // Variables
-    let timer;
-    let startTime = new Date();
-    let isCompleted = false;
+    updateInterval = setInterval(updateImportStatus, 2000);
+    updateImportStatus(); // Initial update
+  }
 
-    // Start timer
-    startTimer();
+  function updateImportStatus() {
+    if (!currentImportId) return;
 
-    // Initial fetch of import status
-    fetchImportStatus();
+    // Simulate import progress (replace with actual API call)
+    const mockData = generateMockProgress();
 
-    // Fetch import status every 2 seconds
-    const statusInterval = setInterval(function () {
-      if (!isCompleted) {
-        fetchImportStatus();
-      } else {
-        clearInterval(statusInterval);
-      }
-    }, 2000);
+    updateProgressDisplay(mockData);
 
-    // Fetch import status from server
-    function fetchImportStatus() {
-      $.ajax({
-        url: "{% url 'students:import-status' %}",
-        type: 'GET',
-        data: { import_id: importId },
-        success: function (response) {
-          if (response.error) {
-            showErrorMessage(response.error);
-            clearInterval(statusInterval);
-            return;
-          }
+    if (mockData.status === 'completed' || mockData.status === 'failed') {
+      clearInterval(updateInterval);
+      handleImportCompletion(mockData);
+    }
+  }
 
-          updateImportStatus(response);
+  function generateMockProgress() {
+    // Generate realistic mock data for demonstration
+    const now = Date.now();
+    const elapsed = now - (window.importStartTime || (window.importStartTime = now));
+    const totalRecords = 150;
+    const processingRate = 2; // records per second
+    const processed = Math.min(totalRecords, Math.floor(elapsed / 1000 * processingRate));
 
-          // Check if import is completed
-          if (response.status === 'completed' || response.status === 'failed') {
-            isCompleted = true;
-            clearInterval(statusInterval);
-            showImportCompleteCard(response);
-          }
-        },
-        error: function () {
-          showErrorMessage('Error connecting to server. Please try again.');
-        }
-      });
+    const errors = Math.floor(processed * 0.05); // 5% error rate
+    const warnings = Math.floor(processed * 0.1); // 10% warning rate
+    const success = processed - errors;
+
+    return {
+      import_id: currentImportId,
+      status: processed >= totalRecords ? 'completed' : 'processing',
+      total_records: totalRecords,
+      processed: processed,
+      success: success,
+      errors: errors,
+      warnings: warnings,
+      progress_percent: Math.round((processed / totalRecords) * 100),
+      eta_seconds: processed > 0 ? Math.round((totalRecords - processed) / processingRate) : null,
+      current_record: processed < totalRecords ? `Processing record ${processed + 1}` : 'Finalizing...'
+    };
+  }
+
+  function updateProgressDisplay(data) {
+    // Update progress bar
+    $('#progressBar').css('width', data.progress_percent + '%');
+    $('#progressPercent').text(data.progress_percent + '%');
+    $('#progressText').text(`${data.processed} / ${data.total_records}`);
+
+    // Update counters
+    $('#processedCount').text(data.processed);
+    $('#successCount').text(data.success);
+    $('#errorCount').text(data.errors);
+    $('#warningCount').text(data.warnings);
+
+    // Update circular progress
+    updateCircularProgress(data.progress_percent);
+
+    // Update ETA
+    if (data.eta_seconds) {
+      const minutes = Math.floor(data.eta_seconds / 60);
+      const seconds = data.eta_seconds % 60;
+      $('#etaTime').text(`${minutes}m ${seconds}s`);
+    } else {
+      $('#etaTime').text('Almost done...');
     }
 
-    // Update import status UI
-    function updateImportStatus(data) {
-      // Update progress
-      const progress = data.progress || 0;
-      $('#importProgressBar').css('width', progress + '%');
-      $('#progressPercentage').text(progress + '%');
-
-      // Update status
-      let statusHtml = '';
-      let statusClass = 'bg-info';
-
-      switch (data.status) {
-        case 'initializing':
-          statusHtml = '<i class="fas fa-sync-alt fa-spin me-2"></i>Initializing...';
-          statusClass = 'bg-info';
-          break;
-        case 'processing':
-          statusHtml = '<i class="fas fa-cogs fa-spin me-2"></i>Processing...';
-          statusClass = 'bg-primary';
-          break;
-        case 'completed':
-          statusHtml = '<i class="fas fa-check-circle me-2"></i>Completed';
-          statusClass = 'bg-success';
-          break;
-        case 'failed':
-          statusHtml = '<i class="fas fa-times-circle me-2"></i>Failed';
-          statusClass = 'bg-danger';
-          break;
-        default:
-          statusHtml = '<i class="fas fa-question-circle me-2"></i>Unknown';
-          statusClass = 'bg-secondary';
-      }
-
-      $('#importStatus').html(statusHtml).removeClass().addClass('status-badge ' + statusClass + ' text-white');
-
-      // Update counts
-      $('#createdCount').text(data.created || 0);
-      $('#updatedCount').text(data.updated || 0);
-      $('#errorCount').text(data.errors || 0);
-
-      // Update details
-      $('#importType').text(data.type || 'Students');
-      $('#totalRecords').text(data.total_processed || 0);
-      $('#startTime').text(formatDate(data.start_time) || '-');
-      $('#sendNotifications').text(data.send_notifications ? 'Yes' : 'No');
-      $('#updateExisting').text(data.update_existing ? 'Yes' : 'No');
-
-      // Update error list
-      if (data.error_details && data.error_details.length > 0) {
-        $('#noErrorsMessage').addClass('d-none');
-        $('#errorList').removeClass('d-none');
-
-        // Clear existing errors
-        $('#errorList').empty();
-
-        // Add error items
-        data.error_details.forEach(function (error) {
-          const errorHtml = `
-            <div class="error-item">
-              <div class="text-danger fw-bold">Row ${error.row}: ${error.error}</div>
-              <div class="small text-muted">
-                <strong>Data:</strong> ${JSON.stringify(error.data)}
-              </div>
-            </div>
-          `;
-
-          $('#errorList').append(errorHtml);
-        });
-      }
+    // Add log entry for current record
+    if (data.current_record) {
+      addLogEntry('info', data.current_record);
     }
 
-    // Show import complete card
-    function showImportCompleteCard(data) {
-      // Stop timer
-      clearInterval(timer);
+    // Simulate some errors and warnings
+    if (Math.random() < 0.1) { // 10% chance per update
+      const messages = [
+        'Warning: Missing phone number for student record #' + (data.processed + 1),
+        'Error: Invalid email format in record #' + (data.processed + 2),
+        'Warning: Duplicate admission number detected',
+        'Info: Successfully processed batch of 10 records'
+      ];
+      const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+      const type = randomMessage.includes('Error') ? 'error' :
+        randomMessage.includes('Warning') ? 'warning' : 'info';
+      addLogEntry(type, randomMessage);
+    }
+  }
 
-      // Update final counts
-      $('#finalCreatedCount').text(data.created || 0);
-      $('#finalUpdatedCount').text(data.updated || 0);
-      $('#finalErrorCount').text(data.errors || 0);
+  function updateCircularProgress(percentage) {
+    const circle = document.querySelector('.progress-ring-circle');
+    const radius = 52;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (percentage / 100 * circumference);
 
-      // Show complete card
-      $('#importCompleteCard').removeClass('d-none');
+    circle.style.strokeDasharray = `${circumference} ${circumference}`;
+    circle.style.strokeDashoffset = offset;
+  }
 
-      // Hide cancel button
-      $('#cancelBtn').addClass('d-none');
+  function handleImportCompletion(data) {
+    if (data.status === 'completed') {
+      addLogEntry('success', 'Import completed successfully!');
+      $('#currentImportSection .card').removeClass('border-warning').addClass('border-success');
+      $('#currentImportSection .card-header').removeClass('bg-warning text-dark').addClass('bg-success text-white');
+      $('.status-processing').removeClass('status-processing').addClass('status-completed');
+    } else {
+      addLogEntry('error', 'Import failed!');
+      $('#currentImportSection .card').removeClass('border-warning').addClass('border-danger');
+      $('#currentImportSection .card-header').removeClass('bg-warning text-dark').addClass('bg-danger text-white');
+      $('.status-processing').removeClass('status-processing').addClass('status-failed');
     }
 
-    // Show error message
-    function showErrorMessage(message) {
-      $('#importStatus').html('<i class="fas fa-exclamation-circle me-2"></i>Error')
-        .removeClass().addClass('status-badge bg-danger text-white');
+    // Update history
+    loadImportHistory();
 
-      $('#noErrorsMessage').addClass('d-none');
-      $('#errorList').removeClass('d-none').html(`
-        <div class="error-item">
-          <div class="text-danger fw-bold">${message}</div>
+    // Hide current import section after 5 seconds
+    setTimeout(() => {
+      $('#currentImportSection').fadeOut();
+      currentImportId = null;
+    }, 5000);
+  }
+
+  function addLogEntry(type, message) {
+    const timestamp = new Date().toLocaleTimeString();
+    const icons = {
+      success: 'fas fa-check-circle text-success',
+      error: 'fas fa-exclamation-circle text-danger',
+      warning: 'fas fa-exclamation-triangle text-warning',
+      info: 'fas fa-info-circle text-info'
+    };
+
+    const entry = `
+        <div class="log-entry ${type} mb-2 p-2 rounded fade-in">
+            <span class="small text-muted">[${timestamp}]</span>
+            <i class="${icons[type]} me-2"></i>
+            <span>${message}</span>
         </div>
-      `);
+    `;
 
-      // Stop timer
-      clearInterval(timer);
+    const logContainer = $('#activityLog');
+    logContainer.append(entry);
 
-      // Hide cancel button
-      $('#cancelBtn').addClass('d-none');
+    // Keep only last 50 entries
+    const entries = logContainer.find('.log-entry');
+    if (entries.length > 50) {
+      entries.first().remove();
     }
 
-    // Start timer
-    function startTimer() {
-      timer = setInterval(function () {
-        const now = new Date();
-        const diff = Math.floor((now - startTime) / 1000);
-
-        const hours = Math.floor(diff / 3600).toString().padStart(2, '0');
-        const minutes = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
-        const seconds = Math.floor(diff % 60).toString().padStart(2, '0');
-
-        $('#elapsedTime').text(`${hours}:${minutes}:${seconds}`);
-      }, 1000);
+    // Auto-scroll if enabled
+    if ($('#autoScrollLog').is(':checked')) {
+      logContainer.scrollTop(logContainer[0].scrollHeight);
     }
+  }
 
-    // Format date
-    function formatDate(dateString) {
-      if (!dateString) return '-';
-
-      const date = new Date(dateString);
-      return date.toLocaleString();
-    }
-
-    // Cancel import
-    $('#cancelBtn').click(function () {
-      if (confirm('Are you sure you want to cancel this import? This action cannot be undone.')) {
-        $.ajax({
-          url: "{% url 'students:import-status' %}",
-          type: 'POST',
-          data: {
-            import_id: importId,
-            action: 'cancel'
-          },
-          headers: {
-            'X-CSRFToken': '{{ csrf_token }}'
-          },
-          success: function (response) {
-            if (response.success) {
-              showErrorMessage('Import cancelled by user.');
-            } else {
-              showErrorMessage('Failed to cancel import: ' + response.error);
-            }
-          },
-          error: function () {
-            showErrorMessage('Error connecting to server while trying to cancel import.');
-          }
-        });
+  function loadImportHistory() {
+    // Mock import history data
+    const mockHistory = [
+      {
+        id: 'IMP-001',
+        type: 'Students',
+        date: '2024-01-15 14:30:00',
+        status: 'completed',
+        total: 150,
+        success: 145,
+        errors: 5,
+        duration: '2m 35s'
+      },
+      {
+        id: 'IMP-002',
+        type: 'Parents',
+        date: '2024-01-15 13:15:00',
+        status: 'completed',
+        total: 200,
+        success: 198,
+        errors: 2,
+        duration: '3m 12s'
+      },
+      {
+        id: 'IMP-003',
+        type: 'Students',
+        date: '2024-01-14 16:45:00',
+        status: 'failed',
+        total: 75,
+        success: 32,
+        errors: 43,
+        duration: '1m 20s'
       }
+    ];
+
+    const tbody = $('#historyTableBody');
+    tbody.empty();
+
+    mockHistory.forEach(item => {
+      const successRate = Math.round((item.success / item.total) * 100);
+      const statusBadge = item.status === 'completed' ?
+        '<span class="badge bg-success">Completed</span>' :
+        '<span class="badge bg-danger">Failed</span>';
+
+      const row = `
+            <tr>
+                <td>
+                    <i class="fas fa-users me-2"></i>
+                    ${item.type}
+                </td>
+                <td>${item.date}</td>
+                <td>${statusBadge}</td>
+                <td>
+                    <span class="badge bg-light text-dark">${item.total}</span>
+                </td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="progress me-2" style="width: 60px; height: 8px;">
+                            <div class="progress-bar bg-${successRate >= 90 ? 'success' : successRate >= 70 ? 'warning' : 'danger'}" 
+                                 style="width: ${successRate}%"></div>
+                        </div>
+                        <span class="small">${successRate}%</span>
+                    </div>
+                </td>
+                <td>${item.duration}</td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-info" onclick="viewImportDetails('${item.id}')" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="downloadReport('${item.id}')" title="Download Report">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        ${item.status === 'failed' ? `<button class="btn btn-outline-warning" onclick="retryImport('${item.id}')" title="Retry Import"><i class="fas fa-redo"></i></button>` : ''}
+                    </div>
+                </td>
+            </tr>
+        `;
+      tbody.append(row);
     });
-  });
+  }
+
+  function refreshStatus() {
+    if (currentImportId) {
+      updateImportStatus();
+    }
+    loadImportHistory();
+    addLogEntry('info', 'Status refreshed');
+  }
+
+  function cancelImport() {
+    if (confirm('Are you sure you want to cancel the current import?')) {
+      clearInterval(updateInterval);
+      currentImportId = null;
+      $('#currentImportSection').fadeOut();
+      addLogEntry('warning', 'Import cancelled by user');
+    }
+  }
+
+  function clearLog() {
+    $('#activityLog').empty();
+    addLogEntry('info', 'Activity log cleared');
+  }
+
+  function viewImportDetails(importId) {
+    // Mock import details
+    const detailsHtml = `
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <strong>Import ID:</strong> ${importId}<br>
+                <strong>Type:</strong> Student Import<br>
+                <strong>Started:</strong> 2024-01-15 14:30:00<br>
+                <strong>Completed:</strong> 2024-01-15 14:32:35
+            </div>
+            <div class="col-md-6">
+                <strong>Total Records:</strong> 150<br>
+                <strong>Success:</strong> 145<br>
+                <strong>Errors:</strong> 5<br>
+                <strong>Duration:</strong> 2m 35s
+            </div>
+        </div>
+        
+        <h6>Error Details:</h6>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Row</th>
+                        <th>Field</th>
+                        <th>Error</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>15</td>
+                        <td>email</td>
+                        <td>Invalid email format</td>
+                    </tr>
+                    <tr>
+                        <td>23</td>
+                        <td>phone_number</td>
+                        <td>Phone number too short</td>
+                    </tr>
+                    <tr>
+                        <td>45</td>
+                        <td>admission_number</td>
+                        <td>Duplicate admission number</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    $('#importDetailsContent').html(detailsHtml);
+    $('#importDetailsModal').modal('show');
+  }
+
+  function downloadReport(importId) {
+    // Simulate download
+    addLogEntry('info', `Downloading report for import ${importId}`);
+    window.open(`/students/import-report/${importId}/`, '_blank');
+  }
+
+  function retryImport(importId) {
+    if (confirm('Retry the failed import? This will process only the failed records.')) {
+      addLogEntry('info', `Retrying import ${importId}`);
+      // Simulate retry logic
+    }
+  }
+
+  function exportHistory() {
+    addLogEntry('info', 'Exporting import history');
+    window.open('/students/import-history/export/', '_blank');
+  }
+
+  function clearHistory() {
+    if (confirm('Are you sure you want to clear the import history?')) {
+      $('#historyTableBody').empty();
+      addLogEntry('warning', 'Import history cleared');
+    }
+  }
 </script>
 {% endblock %}

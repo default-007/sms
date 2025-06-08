@@ -1,0 +1,161 @@
+<!-- students/templatetags/student_search_widget.html -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-primary text-white">
+    <h6 class="mb-0"><i class="fas fa-search me-2"></i>Search Students</h6>
+  </div>
+  <div class="card-body">
+    <form method="get" id="studentSearchForm">
+      <!-- Search Input -->
+      <div class="mb-3">
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-search"></i></span>
+          <input type="text" class="form-control" name="search" placeholder="{{ placeholder }}"
+            value="{{ current_filters.search }}" id="studentSearchInput">
+          <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      {% if show_filters %}
+      <!-- Advanced Filters Toggle -->
+      <div class="mb-3">
+        <button class="btn btn-link p-0 text-decoration-none" type="button" data-bs-toggle="collapse"
+          data-bs-target="#advancedFilters">
+          <i class="fas fa-filter me-1"></i>Advanced Filters
+          <i class="fas fa-chevron-down ms-1"></i>
+        </button>
+      </div>
+
+      <!-- Advanced Filters -->
+      <div class="collapse" id="advancedFilters">
+        <div class="border rounded p-3 mb-3">
+          <div class="row">
+            <!-- Status Filter -->
+            <div class="col-md-6 mb-3">
+              <label class="form-label small fw-bold">Status</label>
+              <select name="status" class="form-select form-select-sm">
+                <option value="">All Status</option>
+                {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if current_filters.status == value %}selected{% endif %}>
+                  {{ label }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Blood Group Filter -->
+            <div class="col-md-6 mb-3">
+              <label class="form-label small fw-bold">Blood Group</label>
+              <select name="blood_group" class="form-select form-select-sm">
+                <option value="">All Blood Groups</option>
+                {% for value, label in blood_group_choices %}
+                <option value="{{ value }}" {% if current_filters.blood_group == value %}selected{% endif %}>
+                  {{ label }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Class Filter -->
+            <div class="col-md-6 mb-3">
+              <label class="form-label small fw-bold">Class</label>
+              <select name="class" class="form-select form-select-sm">
+                <option value="">All Classes</option>
+                {% for class in available_classes %}
+                <option value="{{ class.id }}"
+                  {% if current_filters.class == class.id|stringformat:"s" %}selected{% endif %}>
+                  {{ class.grade__name }} {{ class.section__name }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Admission Year Filter -->
+            <div class="col-md-6 mb-3">
+              <label class="form-label small fw-bold">Admission Year</label>
+              <select name="admission_year" class="form-select form-select-sm">
+                <option value="">All Years</option>
+                {% for year in admission_years %}
+                <option value="{{ year }}"
+                  {% if current_filters.admission_year == year|stringformat:"s" %}selected{% endif %}>
+                  {{ year }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <!-- Filter Actions -->
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm">
+              <i class="fas fa-search me-1"></i>Apply Filters
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="clearFilters">
+              <i class="fas fa-undo me-1"></i>Clear All
+            </button>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </form>
+
+    <!-- Quick Actions -->
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      <a href="{% url 'students:student-create' %}" class="btn btn-success btn-sm">
+        <i class="fas fa-plus me-1"></i>Add Student
+      </a>
+      <a href="{% url 'students:student-import' %}" class="btn btn-info btn-sm">
+        <i class="fas fa-upload me-1"></i>Bulk Import
+      </a>
+      <a href="{% url 'students:student-export' %}" class="btn btn-outline-primary btn-sm">
+        <i class="fas fa-download me-1"></i>Export
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('studentSearchInput');
+    const clearSearch = document.getElementById('clearSearch');
+    const clearFilters = document.getElementById('clearFilters');
+    const form = document.getElementById('studentSearchForm');
+
+    // Real-time search with debounce
+    let searchTimeout;
+    searchInput.addEventListener('input', function () {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        if (this.value.length >= 2 || this.value.length === 0) {
+          form.submit();
+        }
+      }, 500);
+    });
+
+    // Clear search
+    clearSearch.addEventListener('click', function () {
+      searchInput.value = '';
+      form.submit();
+    });
+
+    // Clear all filters
+    if (clearFilters) {
+      clearFilters.addEventListener('click', function () {
+        form.querySelectorAll('input, select').forEach(input => {
+          if (input.name !== 'csrfmiddlewaretoken') {
+            input.value = '';
+          }
+        });
+        form.submit();
+      });
+    }
+
+    // Auto-submit on filter change
+    form.querySelectorAll('select').forEach(select => {
+      select.addEventListener('change', function () {
+        form.submit();
+      });
+    });
+  });
+</script>

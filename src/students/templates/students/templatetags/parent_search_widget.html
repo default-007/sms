@@ -1,0 +1,184 @@
+<!-- students/templatetags/parent_search_widget.html -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-success text-white">
+    <h6 class="mb-0"><i class="fas fa-users me-2"></i>Search Parents</h6>
+  </div>
+  <div class="card-body">
+    <form method="get" id="parentSearchForm">
+      <!-- Search Input -->
+      <div class="mb-3">
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-search"></i></span>
+          <input type="text" class="form-control" name="search" placeholder="{{ placeholder }}"
+            value="{{ current_filters.search }}" id="parentSearchInput">
+          <button class="btn btn-outline-secondary" type="button" id="clearParentSearch">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <small class="form-text text-muted">
+          Search by name, email, phone number, or occupation
+        </small>
+      </div>
+
+      {% if show_filters %}
+      <!-- Advanced Filters Toggle -->
+      <div class="mb-3">
+        <button class="btn btn-link p-0 text-decoration-none" type="button" data-bs-toggle="collapse"
+          data-bs-target="#parentAdvancedFilters">
+          <i class="fas fa-filter me-1"></i>Advanced Filters
+          <i class="fas fa-chevron-down ms-1"></i>
+        </button>
+      </div>
+
+      <!-- Advanced Filters -->
+      <div class="collapse" id="parentAdvancedFilters">
+        <div class="border rounded p-3 mb-3">
+          <div class="row">
+            <!-- Relation Filter -->
+            <div class="col-md-6 mb-3">
+              <label class="form-label small fw-bold">Relation</label>
+              <select name="relation" class="form-select form-select-sm">
+                <option value="">All Relations</option>
+                {% for value, label in relation_choices %}
+                <option value="{{ value }}" {% if current_filters.relation == value %}selected{% endif %}>
+                  {{ label }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Emergency Contact Filter -->
+            <div class="col-md-6 mb-3">
+              <label class="form-label small fw-bold">Emergency Contact</label>
+              <select name="emergency_contact" class="form-select form-select-sm">
+                <option value="">All Parents</option>
+                <option value="true" {% if current_filters.emergency_contact == "true" %}selected{% endif %}>
+                  Emergency Contacts Only
+                </option>
+                <option value="false" {% if current_filters.emergency_contact == "false" %}selected{% endif %}>
+                  Non-Emergency Contacts
+                </option>
+              </select>
+            </div>
+
+            <!-- Multiple Children Filter -->
+            <div class="col-md-6 mb-3">
+              <div class="form-check mt-4">
+                <input class="form-check-input" type="checkbox" name="has_multiple_children" id="hasMultipleChildren"
+                  value="true" {% if current_filters.has_multiple_children %}checked{% endif %}>
+                <label class="form-check-label small" for="hasMultipleChildren">
+                  Has Multiple Children
+                </label>
+              </div>
+            </div>
+
+            <!-- Occupation Filter -->
+            <div class="col-md-6 mb-3">
+              <label class="form-label small fw-bold">Occupation</label>
+              <input type="text" class="form-control form-control-sm" name="occupation" placeholder="Enter occupation"
+                value="{{ current_filters.occupation }}">
+            </div>
+          </div>
+
+          <!-- Filter Actions -->
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success btn-sm">
+              <i class="fas fa-search me-1"></i>Apply Filters
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="clearParentFilters">
+              <i class="fas fa-undo me-1"></i>Clear All
+            </button>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </form>
+
+    <!-- Quick Actions -->
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      <a href="{% url 'students:parent-create' %}" class="btn btn-success btn-sm">
+        <i class="fas fa-plus me-1"></i>Add Parent
+      </a>
+      <a href="{% url 'students:parent-import' %}" class="btn btn-info btn-sm">
+        <i class="fas fa-upload me-1"></i>Bulk Import
+      </a>
+      <a href="{% url 'students:parent-export' %}" class="btn btn-outline-primary btn-sm">
+        <i class="fas fa-download me-1"></i>Export
+      </a>
+      <a href="{% url 'students:relation-bulk-manage' %}" class="btn btn-warning btn-sm">
+        <i class="fas fa-link me-1"></i>Manage Relations
+      </a>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="mt-3 pt-3 border-top">
+      <div class="row text-center">
+        <div class="col-3">
+          <div class="fw-bold text-primary">{% parent_count_by_relation 'Father' %}</div>
+          <small class="text-muted">Fathers</small>
+        </div>
+        <div class="col-3">
+          <div class="fw-bold text-success">{% parent_count_by_relation 'Mother' %}</div>
+          <small class="text-muted">Mothers</small>
+        </div>
+        <div class="col-3">
+          <div class="fw-bold text-info">{% parent_count_by_relation 'Guardian' %}</div>
+          <small class="text-muted">Guardians</small>
+        </div>
+        <div class="col-3">
+          <div class="fw-bold text-warning">{% parent_count_by_relation %}</div>
+          <small class="text-muted">Total</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('parentSearchInput');
+    const clearSearch = document.getElementById('clearParentSearch');
+    const clearFilters = document.getElementById('clearParentFilters');
+    const form = document.getElementById('parentSearchForm');
+
+    // Real-time search with debounce
+    let searchTimeout;
+    searchInput.addEventListener('input', function () {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        if (this.value.length >= 2 || this.value.length === 0) {
+          form.submit();
+        }
+      }, 500);
+    });
+
+    // Clear search
+    clearSearch.addEventListener('click', function () {
+      searchInput.value = '';
+      form.submit();
+    });
+
+    // Clear all filters
+    if (clearFilters) {
+      clearFilters.addEventListener('click', function () {
+        form.querySelectorAll('input, select').forEach(input => {
+          if (input.name !== 'csrfmiddlewaretoken') {
+            if (input.type === 'checkbox') {
+              input.checked = false;
+            } else {
+              input.value = '';
+            }
+          }
+        });
+        form.submit();
+      });
+    }
+
+    // Auto-submit on filter change
+    form.querySelectorAll('select, input[type="checkbox"]').forEach(input => {
+      input.addEventListener('change', function () {
+        form.submit();
+      });
+    });
+  });
+</script>

@@ -1,0 +1,20 @@
+Dear {{ parent.get_full_name }},
+
+Your child {{ student.get_full_name }} has been linked to your parent account.
+
+Student Login Information:
+- Username: {{ student.admission_number }}
+- Admission Number: {{ student.admission_number }}
+{% if student.user.email %}
+- Email: {{ student.user.email }}
+{% endif %}
+
+Your Relationship: {{ parent.relation_with_student }}
+{% if is_primary %}You are designated as the primary contact for this student.{% endif %}
+
+The student will use their admission number ({{ student.admission_number }}) to login to the student portal.
+
+For any questions about your child's account, please contact the school office.
+
+Best regards,
+{{ school_name }}

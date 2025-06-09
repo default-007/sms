@@ -142,6 +142,45 @@ def validate_email_address(email: str, exclude_user: Optional[User] = None) -> N
         raise ValidationError(_("A user with this email address already exists."))
 
 
+def validate_admission_number_identifier(identifier: str) -> bool:
+    """
+    Validate if identifier could be an admission number.
+
+    Args:
+        identifier: String to validate
+
+    Returns:
+        True if could be valid admission number
+    """
+    # Basic admission number pattern - adjust based on your format
+    admission_pattern = re.compile(r"^[A-Z0-9]{6,20}$", re.IGNORECASE)
+    return bool(admission_pattern.match(identifier))
+
+
+def find_user_by_admission_number(admission_number: str) -> Optional[User]:
+    """
+    Find user by admission number.
+
+    Args:
+        admission_number: Admission number to search for
+
+    Returns:
+        User object if found, None otherwise
+    """
+    try:
+        from src.students.models import Student
+
+        student = (
+            Student.objects.select_related("user")
+            .filter(admission_number=admission_number.upper())
+            .first()
+        )
+        return student.user if student else None
+    except ImportError:
+        logger.warning("Students module not available")
+        return None
+
+
 def validate_phone_number(
     phone_number: str, exclude_user: Optional[User] = None
 ) -> str:
@@ -711,6 +750,10 @@ def is_valid_identifier(identifier: str) -> bool:
 
     # Could be phone
     if re.match(r"^\+?[\d\s\-\(\)]{10,15}$", identifier):
+        return True
+
+    # Could be admission number
+    if validate_admission_number_identifier(identifier):
         return True
 
     # Could be username

@@ -402,24 +402,40 @@ def mask_phone(phone: str) -> str:
     return phone[:2] + "*" * (len(phone) - 4) + phone[-2:]
 
 
-def get_user_display_name(user: User) -> str:
+def get_user_display_name(user: User, include_admission: bool = False) -> str:
     """
     Get appropriate display name for user.
 
     Args:
         user: User object
+        include_admission: Whether to include admission number for students
 
     Returns:
         Display name
     """
+    display_name = ""
+
     if user.first_name and user.last_name:
-        return f"{user.first_name} {user.last_name}"
+        display_name = f"{user.first_name} {user.last_name}"
     elif user.first_name:
-        return user.first_name
+        display_name = user.first_name
     elif user.last_name:
-        return user.last_name
+        display_name = user.last_name
     else:
-        return user.username
+        display_name = user.username
+
+    # Add admission number for students if requested
+    if include_admission and user.is_student:
+        try:
+            from src.students.models import Student
+
+            student = Student.objects.filter(user=user).first()
+            if student and student.admission_number:
+                display_name += f" ({student.admission_number})"
+        except ImportError:
+            pass
+
+    return display_name
 
 
 def calculate_password_expiry(days: int = 90) -> datetime:

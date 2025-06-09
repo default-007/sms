@@ -1,0 +1,409 @@
+{% extends 'subjects/base.html' %}
+
+{% block title %}Subjects List{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h2">Subjects Management</h1>
+  <div class="btn-toolbar mb-2 mb-md-0">
+    <div class="btn-group me-2">
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="filterBtn">
+        <i class="fas fa-filter"></i> Filters
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="exportBtn">
+        <i class="fas fa-download"></i> Export
+      </button>
+    </div>
+    <a href="{% url 'subjects:subject-create' %}" class="btn btn-sm btn-primary">
+      <i class="fas fa-plus"></i> Add Subject
+    </a>
+  </div>
+</div>
+
+<!-- Filter Panel -->
+<div class="card mb-4" id="filterPanel" style="display: none;">
+  <div class="card-header">
+    <h6 class="mb-0">Filter Subjects</h6>
+  </div>
+  <div class="card-body">
+    <form id="filterForm">
+      <div class="row">
+        <div class="col-md-3">
+          <label for="departmentFilter" class="form-label">Department</label>
+          <select class="form-select" id="departmentFilter" name="department">
+            <option value="">All Departments</option>
+            {% for department in departments %}
+            <option value="{{ department.id }}">{{ department.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="gradeFilter" class="form-label">Grade</label>
+          <select class="form-select" id="gradeFilter" name="grade">
+            <option value="">All Grades</option>
+            {% for grade in grades %}
+            <option value="{{ grade.id }}">{{ grade.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="typeFilter" class="form-label">Type</label>
+          <select class="form-select" id="typeFilter" name="type">
+            <option value="">All Types</option>
+            <option value="mandatory">Mandatory</option>
+            <option value="elective">Elective</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="statusFilter" class="form-label">Status</label>
+          <select class="form-select" id="statusFilter" name="status">
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+      </div>
+      <div class="row mt-3">
+        <div class="col-md-12">
+          <button type="button" class="btn btn-primary" id="applyFilters">
+            <i class="fas fa-search"></i> Apply Filters
+          </button>
+          <button type="button" class="btn btn-secondary" id="clearFilters">
+            <i class="fas fa-times"></i> Clear
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Subjects Table -->
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-striped table-hover" id="subjectsTable">
+        <thead class="table-dark">
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Department</th>
+            <th>Credit Hours</th>
+            <th>Type</th>
+            <th>Applicable Grades</th>
+            <th>Status</th>
+            <th>Syllabi</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for subject in subjects %}
+          <tr data-subject-id="{{ subject.id }}">
+            <td>
+              <strong>{{ subject.code }}</strong>
+            </td>
+            <td>
+              <a href="{% url 'subjects:subject-detail' subject.pk %}" class="text-decoration-none">
+                {{ subject.name }}
+              </a>
+              {% if subject.description %}
+              <br><small class="text-muted">{{ subject.description|truncatechars:50 }}</small>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge bg-info">{{ subject.department.name }}</span>
+            </td>
+            <td>
+              <span class="badge bg-secondary">{{ subject.credit_hours }}</span>
+            </td>
+            <td>
+              {% if subject.is_elective %}
+              <span class="badge bg-warning">Elective</span>
+              {% else %}
+              <span class="badge bg-primary">Mandatory</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if subject.grade_level %}
+              {% for grade_id in subject.grade_level %}
+              {% for grade in grades %}
+              {% if grade.id == grade_id %}
+              <span class="badge bg-light text-dark me-1">{{ grade.name }}</span>
+              {% endif %}
+              {% endfor %}
+              {% endfor %}
+              {% else %}
+              <span class="text-muted">All Grades</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if subject.is_active %}
+              <span class="badge bg-success">Active</span>
+              {% else %}
+              <span class="badge bg-danger">Inactive</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'subjects:syllabus-list' %}?subject={{ subject.id }}" class="btn btn-sm btn-outline-info">
+                <i class="fas fa-list-alt"></i> {{ subject.syllabi.count }}
+              </a>
+            </td>
+            <td>
+              <div class="btn-group" role="group">
+                <a href="{% url 'subjects:subject-detail' subject.pk %}" class="btn btn-sm btn-outline-primary"
+                  title="View Details">
+                  <i class="fas fa-eye"></i>
+                </a>
+                <a href="{% url 'subjects:subject-update' subject.pk %}" class="btn btn-sm btn-outline-warning"
+                  title="Edit">
+                  <i class="fas fa-edit"></i>
+                </a>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteSubject({{ subject.pk }})"
+                  title="Delete">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9" class="text-center text-muted py-4">
+              <i class="fas fa-book fa-3x mb-3"></i>
+              <br>No subjects found. <a href="{% url 'subjects:subject-create' %}">Create your first subject</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Actions Modal -->
+<div class="modal fade" id="bulkActionsModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Bulk Actions</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Select an action to perform on selected subjects:</p>
+        <div class="d-grid gap-2">
+          <button type="button" class="btn btn-primary" onclick="bulkExport()">
+            <i class="fas fa-download"></i> Export Selected
+          </button>
+          <button type="button" class="btn btn-warning" onclick="bulkDeactivate()">
+            <i class="fas fa-pause"></i> Deactivate Selected
+          </button>
+          <button type="button" class="btn btn-success" onclick="bulkActivate()">
+            <i class="fas fa-play"></i> Activate Selected
+          </button>
+          <button type="button" class="btn btn-danger" onclick="bulkDelete()">
+            <i class="fas fa-trash"></i> Delete Selected
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let subjectsTable;
+
+  document.addEventListener('DOMContentLoaded', function () {
+    // Initialize DataTable
+    subjectsTable = $('#subjectsTable').DataTable({
+      columnDefs: [
+        { targets: [7, 8], orderable: false },
+        { targets: [4, 5, 6, 7], className: 'text-center' }
+      ],
+      order: [[1, 'asc']],
+      dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+        '<"row"<"col-sm-12"tr>>' +
+        '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>' +
+        '<"row"<"col-sm-12"B>>',
+      buttons: [
+        {
+          extend: 'excel',
+          text: '<i class="fas fa-file-excel"></i> Excel',
+          className: 'btn btn-success btn-sm',
+          exportOptions: {
+            columns: [0, 1, 2, 3, 4, 5, 6]
+          }
+        },
+        {
+          extend: 'pdf',
+          text: '<i class="fas fa-file-pdf"></i> PDF',
+          className: 'btn btn-danger btn-sm',
+          exportOptions: {
+            columns: [0, 1, 2, 3, 4, 5, 6]
+          }
+        },
+        {
+          extend: 'csv',
+          text: '<i class="fas fa-file-csv"></i> CSV',
+          className: 'btn btn-info btn-sm',
+          exportOptions: {
+            columns: [0, 1, 2, 3, 4, 5, 6]
+          }
+        }
+      ],
+      language: {
+        emptyTable: "No subjects found matching your criteria"
+      }
+    });
+
+    // Filter toggle
+    $('#filterBtn').click(function () {
+      $('#filterPanel').slideToggle();
+    });
+
+    // Apply filters
+    $('#applyFilters').click(function () {
+      const filters = {
+        department: $('#departmentFilter').val(),
+        grade: $('#gradeFilter').val(),
+        type: $('#typeFilter').val(),
+        status: $('#statusFilter').val()
+      };
+
+      // Apply custom filtering logic
+      $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+        if (settings.nTable.id !== 'subjectsTable') return true;
+
+        // Department filter
+        if (filters.department && !data[2].includes(filters.department)) {
+          return false;
+        }
+
+        // Type filter
+        if (filters.type) {
+          const isElective = data[4].includes('Elective');
+          if (filters.type === 'elective' && !isElective) return false;
+          if (filters.type === 'mandatory' && isElective) return false;
+        }
+
+        // Status filter
+        if (filters.status) {
+          const isActive = data[6].includes('Active');
+          if (filters.status === 'active' && !isActive) return false;
+          if (filters.status === 'inactive' && isActive) return false;
+        }
+
+        return true;
+      });
+
+      subjectsTable.draw();
+      showToast('Filters applied successfully', 'info');
+    });
+
+    // Clear filters
+    $('#clearFilters').click(function () {
+      $('#filterForm')[0].reset();
+      $.fn.dataTable.ext.search.pop();
+      subjectsTable.draw();
+      showToast('Filters cleared', 'info');
+    });
+
+    // Export button
+    $('#exportBtn').click(function () {
+      subjectsTable.buttons('.buttons-excel').trigger();
+    });
+  });
+
+  function deleteSubject(subjectId) {
+    confirmAction('Are you sure you want to delete this subject? This action cannot be undone.', function () {
+      fetch(`/subjects/${subjectId}/delete/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'Content-Type': 'application/json',
+        },
+      })
+        .then(response => {
+          if (response.ok) {
+            $(`tr[data-subject-id="${subjectId}"]`).fadeOut(function () {
+              $(this).remove();
+              subjectsTable.row(this).remove().draw();
+            });
+            showToast('Subject deleted successfully', 'success');
+          } else {
+            showToast('Error deleting subject', 'danger');
+          }
+        })
+        .catch(error => {
+          showToast('Network error occurred', 'danger');
+          console.error('Error:', error);
+        });
+    });
+  }
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  // Bulk actions functionality
+  function bulkExport() {
+    const selected = subjectsTable.rows({ selected: true }).data();
+    if (selected.length === 0) {
+      showToast('Please select subjects to export', 'warning');
+      return;
+    }
+
+    // Implement bulk export logic
+    showToast(`Exporting ${selected.length} subjects...`, 'info');
+    $('#bulkActionsModal').modal('hide');
+  }
+
+  function bulkActivate() {
+    const selected = subjectsTable.rows({ selected: true }).data();
+    if (selected.length === 0) {
+      showToast('Please select subjects to activate', 'warning');
+      return;
+    }
+
+    // Implement bulk activate logic
+    showToast(`Activating ${selected.length} subjects...`, 'info');
+    $('#bulkActionsModal').modal('hide');
+  }
+
+  function bulkDeactivate() {
+    const selected = subjectsTable.rows({ selected: true }).data();
+    if (selected.length === 0) {
+      showToast('Please select subjects to deactivate', 'warning');
+      return;
+    }
+
+    // Implement bulk deactivate logic
+    showToast(`Deactivating ${selected.length} subjects...`, 'info');
+    $('#bulkActionsModal').modal('hide');
+  }
+
+  function bulkDelete() {
+    const selected = subjectsTable.rows({ selected: true }).data();
+    if (selected.length === 0) {
+      showToast('Please select subjects to delete', 'warning');
+      return;
+    }
+
+    confirmAction(`Are you sure you want to delete ${selected.length} subjects? This action cannot be undone.`, function () {
+      // Implement bulk delete logic
+      showToast(`Deleting ${selected.length} subjects...`, 'info');
+      $('#bulkActionsModal').modal('hide');
+    });
+  }
+</script>
+{% endblock %}

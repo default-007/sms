@@ -31,29 +31,31 @@ class StudentService:
     def create_student(student_data, user_data=None, created_by=None):
         """
         Create a new student with associated user account
-
-        Args:
-            student_data (dict): Student model fields
-            user_data (dict): User model fields (optional)
-            created_by (User): User creating the student
-
-        Returns:
-            Student: The created student instance
+        Username will be set to admission_number
         """
         with transaction.atomic():
             try:
+                # Get admission number for username
+                admission_number = student_data.get("admission_number")
+                if not admission_number:
+                    raise ValueError("Admission number is required")
+
                 # Create or get user account
                 if user_data:
-                    email = user_data.get("email")
-                    if email and User.objects.filter(email=email).exists():
-                        user = User.objects.get(email=email)
+                    # Use admission number as username
+                    username = admission_number
+                    email = user_data.get("email", "")
+
+                    if User.objects.filter(username=username).exists():
+                        user = User.objects.get(username=username)
                         # Update existing user
                         for key, value in user_data.items():
-                            if key != "password":
+                            if key not in ["password", "username"]:
                                 setattr(user, key, value)
                     else:
-                        # Create new user
+                        # Create new user with admission number as username
                         password = user_data.pop("password", None)
+                        user_data["username"] = username
                         user = User.objects.create(**user_data)
                         if password:
                             user.set_password(password)
@@ -81,6 +83,156 @@ class StudentService:
             except Exception as e:
                 logger.error(f"Error creating student: {str(e)}")
                 raise
+
+    @staticmethod
+    def bulk_import_students(
+        csv_file, send_notifications=False, update_existing=False, created_by=None
+    ):
+        """
+        Import students from a CSV file with admission_number as username
+        """
+        created_count = 0
+        updated_count = 0
+        error_count = 0
+        errors = []
+        success_emails = []
+
+        try:
+            decoded_file = csv_file.read().decode("utf-8")
+            io_string = io.StringIO(decoded_file)
+            reader = csv.DictReader(io_string)
+
+            for row_num, row in enumerate(reader, start=2):
+                try:
+                    with transaction.atomic():
+                        # Validate required fields
+                        required_fields = [
+                            "first_name",
+                            "last_name",
+                            "admission_number",  # Email no longer required
+                        ]
+                        missing_fields = [
+                            field for field in required_fields if not row.get(field)
+                        ]
+
+                        if missing_fields:
+                            raise ValueError(
+                                f"Missing required fields: {', '.join(missing_fields)}"
+                            )
+
+                        admission_number = row.get("admission_number")
+
+                        # Prepare user data with admission_number as username
+                        user_data = {
+                            "username": admission_number,
+                            "email": row.get("email", ""),  # Email is now optional
+                            "first_name": row.get("first_name"),
+                            "last_name": row.get("last_name"),
+                            "phone_number": row.get("phone_number", ""),
+                        }
+
+                        # Parse date of birth
+                        if row.get("date_of_birth"):
+                            try:
+                                user_data["date_of_birth"] = timezone.datetime.strptime(
+                                    row["date_of_birth"], "%Y-%m-%d"
+                                ).date()
+                            except ValueError:
+                                pass
+
+                        # Prepare student data
+                        student_data = {
+                            "admission_number": admission_number,
+                            "admission_date": timezone.datetime.strptime(
+                                row.get(
+                                    "admission_date",
+                                    timezone.now().strftime("%Y-%m-%d"),
+                                ),
+                                "%Y-%m-%d",
+                            ).date(),
+                            "blood_group": row.get("blood_group", "Unknown"),
+                            "emergency_contact_name": row.get(
+                                "emergency_contact_name", ""
+                            ),
+                            "emergency_contact_number": row.get(
+                                "emergency_contact_number", ""
+                            ),
+                            "status": row.get("status", "Active"),
+                            "nationality": row.get("nationality", ""),
+                            "religion": row.get("religion", ""),
+                            "city": row.get("city", ""),
+                            "state": row.get("state", ""),
+                            "country": row.get("country", "India"),
+                        }
+
+                        # Handle current class
+                        class_id = row.get("current_class_id")
+                        if class_id:
+                            from src.academics.models import Class
+
+                            try:
+                                student_data["current_class"] = Class.objects.get(
+                                    id=class_id
+                                )
+                            except Class.DoesNotExist:
+                                pass
+
+                        # Check if student exists
+                        existing_student = Student.objects.filter(
+                            admission_number=student_data["admission_number"]
+                        ).first()
+
+                        if existing_student:
+                            if update_existing:
+                                StudentService.update_student(
+                                    existing_student,
+                                    student_data,
+                                    user_data,
+                                    created_by,
+                                )
+                                updated_count += 1
+                            else:
+                                raise ValueError(
+                                    "Student with this admission number already exists"
+                                )
+                        else:
+                            student = StudentService.create_student(
+                                student_data, user_data, created_by
+                            )
+                            created_count += 1
+
+                            # Only add to success emails if email is provided
+                            if user_data.get("email") and send_notifications:
+                                success_emails.append(student.user.email)
+
+                except Exception as e:
+                    error_count += 1
+                    errors.append({"row": row_num, "data": dict(row), "error": str(e)})
+                    logger.error(f"Error processing row {row_num}: {str(e)}")
+
+            # Send notification emails only to students with email addresses
+            if send_notifications and success_emails:
+                StudentService._send_bulk_welcome_emails(success_emails)
+
+        except Exception as e:
+            logger.error(f"Critical error during bulk import: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e),
+                "created": 0,
+                "updated": 0,
+                "errors": 0,
+                "error_details": [],
+            }
+
+        return {
+            "success": True,
+            "created": created_count,
+            "updated": updated_count,
+            "errors": error_count,
+            "error_details": errors,
+            "total_processed": created_count + updated_count + error_count,
+        }
 
     @staticmethod
     def update_student(student, student_data, user_data=None, updated_by=None):
@@ -130,163 +282,6 @@ class StudentService:
                     f"Error updating student {student.admission_number}: {str(e)}"
                 )
                 raise
-
-    @staticmethod
-    def bulk_import_students(
-        csv_file, send_notifications=False, update_existing=False, created_by=None
-    ):
-        """
-        Import students from a CSV file with enhanced error handling
-
-        Args:
-            csv_file: CSV file with student data
-            send_notifications (bool): Send email notifications
-            update_existing (bool): Update existing students
-            created_by (User): User performing the import
-
-        Returns:
-            dict: Detailed import statistics
-        """
-        created_count = 0
-        updated_count = 0
-        error_count = 0
-        errors = []
-        success_emails = []
-
-        try:
-            decoded_file = csv_file.read().decode("utf-8")
-            io_string = io.StringIO(decoded_file)
-            reader = csv.DictReader(io_string)
-
-            for row_num, row in enumerate(reader, start=2):
-                try:
-                    with transaction.atomic():
-                        # Validate required fields
-                        required_fields = [
-                            "first_name",
-                            "last_name",
-                            "email",
-                            "admission_number",
-                        ]
-                        missing_fields = [
-                            field for field in required_fields if not row.get(field)
-                        ]
-
-                        if missing_fields:
-                            raise ValueError(
-                                f"Missing required fields: {', '.join(missing_fields)}"
-                            )
-
-                        # Prepare user data
-                        user_data = {
-                            "username": row.get("email"),
-                            "email": row.get("email"),
-                            "first_name": row.get("first_name"),
-                            "last_name": row.get("last_name"),
-                            "phone_number": row.get("phone_number", ""),
-                        }
-
-                        # Parse date of birth
-                        if row.get("date_of_birth"):
-                            try:
-                                user_data["date_of_birth"] = timezone.datetime.strptime(
-                                    row["date_of_birth"], "%Y-%m-%d"
-                                ).date()
-                            except ValueError:
-                                pass
-
-                        # Prepare student data
-                        student_data = {
-                            "admission_number": row.get("admission_number"),
-                            "admission_date": timezone.datetime.strptime(
-                                row.get(
-                                    "admission_date",
-                                    timezone.now().strftime("%Y-%m-%d"),
-                                ),
-                                "%Y-%m-%d",
-                            ).date(),
-                            "blood_group": row.get("blood_group", "Unknown"),
-                            "emergency_contact_name": row.get(
-                                "emergency_contact_name", ""
-                            ),
-                            "emergency_contact_number": row.get(
-                                "emergency_contact_number", ""
-                            ),
-                            "status": row.get("status", "Active"),
-                            "nationality": row.get("nationality", ""),
-                            "religion": row.get("religion", ""),
-                            "city": row.get("city", ""),
-                            "state": row.get("state", ""),
-                            "country": row.get("country", "India"),
-                        }
-
-                        # Handle current class
-                        class_id = row.get("current_class_id")
-                        if class_id:
-                            from src.courses.models import Class
-
-                            try:
-                                student_data["current_class"] = Class.objects.get(
-                                    id=class_id
-                                )
-                            except Class.DoesNotExist:
-                                pass
-
-                        # Check if student exists
-                        existing_student = Student.objects.filter(
-                            admission_number=student_data["admission_number"]
-                        ).first()
-
-                        if existing_student:
-                            if update_existing:
-                                StudentService.update_student(
-                                    existing_student,
-                                    student_data,
-                                    user_data,
-                                    created_by,
-                                )
-                                updated_count += 1
-                            else:
-                                raise ValueError(
-                                    "Student with this admission number already exists"
-                                )
-                        else:
-                            student = StudentService.create_student(
-                                student_data, user_data, created_by
-                            )
-                            created_count += 1
-
-                            if send_notifications:
-                                success_emails.append(student.user.email)
-
-                except Exception as e:
-                    error_count += 1
-                    errors.append({"row": row_num, "data": dict(row), "error": str(e)})
-                    logger.error(f"Error processing row {row_num}: {str(e)}")
-
-            # Send notification emails
-            if send_notifications and success_emails:
-                StudentService._send_bulk_welcome_emails(success_emails)
-
-        except Exception as e:
-            logger.error(f"Critical error during bulk import: {str(e)}")
-            return {
-                "success": False,
-                "error": str(e),
-                "created": 0,
-                "updated": 0,
-                "errors": 0,
-                "error_details": [],
-            }
-
-        return {
-            "success": True,
-            "created": created_count,
-            "updated": updated_count,
-            "errors": error_count,
-            "error_details": errors,
-            "total_processed": created_count + updated_count + error_count,
-        }
 
     @staticmethod
     def _send_bulk_welcome_emails(email_list):

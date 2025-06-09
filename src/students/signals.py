@@ -23,6 +23,12 @@ def handle_student_created_updated(sender, instance, created, **kwargs):
     """Handle student creation and updates"""
     try:
         if created:
+            # Ensure username is set to admission_number
+            if instance.user and instance.admission_number:
+                if instance.user.username != instance.admission_number:
+                    instance.user.username = instance.admission_number
+                    instance.user.save()
+
             # Assign student role
             student_group, _ = Group.objects.get_or_create(name="Student")
             instance.user.groups.add(student_group)
@@ -32,8 +38,11 @@ def handle_student_created_updated(sender, instance, created, **kwargs):
                 instance.user.is_active = True
                 instance.user.save(update_fields=["is_active"])
 
-            # Generate welcome email if email notifications are enabled
-            if getattr(settings, "ENABLE_EMAIL_NOTIFICATIONS", True):
+            # Generate welcome email only if email is provided
+            if (
+                getattr(settings, "ENABLE_EMAIL_NOTIFICATIONS", True)
+                and instance.user.email
+            ):
                 try:
                     send_mail(
                         subject=f'Welcome to {getattr(settings, "SCHOOL_NAME", "School")}',
@@ -44,6 +53,8 @@ def handle_student_created_updated(sender, instance, created, **kwargs):
                                 "school_name": getattr(
                                     settings, "SCHOOL_NAME", "School"
                                 ),
+                                "login_instructions": "Use your admission number to login",
+                                "username": instance.admission_number,
                             },
                         ),
                         from_email=settings.DEFAULT_FROM_EMAIL,
@@ -56,7 +67,9 @@ def handle_student_created_updated(sender, instance, created, **kwargs):
                     )
 
             # Log creation
-            logger.info(f"Created student: {instance.admission_number}")
+            logger.info(
+                f"Created student: {instance.admission_number} with username: {instance.user.username}"
+            )
 
         # Clear related cache on any save
         cache_keys = [
@@ -77,8 +90,10 @@ def handle_student_created_updated(sender, instance, created, **kwargs):
             data_after={
                 "id": str(instance.id),
                 "admission_number": instance.admission_number,
+                "username": instance.user.username,
                 "full_name": instance.get_full_name(),
                 "status": instance.status,
+                "has_email": bool(instance.user.email),
             },
         )
 

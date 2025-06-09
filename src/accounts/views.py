@@ -76,6 +76,7 @@ class CustomLoginView(LoginView):
                 "show_remember_me": True,
                 "allow_registration": True,
                 "allow_password_reset": True,
+                "login_help_text": "Students can use their admission number to log in",
             }
         )
         return context

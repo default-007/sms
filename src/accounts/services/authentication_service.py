@@ -101,7 +101,7 @@ class AuthenticationService:
     @staticmethod
     def _find_user_by_identifier(identifier: str) -> Optional[User]:
         """
-        Find user by email, phone number, or username.
+        Find user by email, phone number, username, or admission number (for students).
         """
         identifier = identifier.strip()
 
@@ -118,6 +118,26 @@ class AuthenticationService:
             # Clean phone number
             clean_phone = re.sub(r"[\s\-\(\)]", "", identifier)
             return User.objects.filter(phone_number__icontains=clean_phone).first()
+
+        # Check if it's an admission number (for students)
+        # Assuming admission numbers are alphanumeric and follow a pattern
+        admission_pattern = re.compile(r"^[A-Z0-9]{6,20}$", re.IGNORECASE)
+        if admission_pattern.match(identifier):
+            try:
+                # Import here to avoid circular imports
+                from src.students.models import Student
+
+                student = (
+                    Student.objects.select_related("user")
+                    .filter(admission_number=identifier.upper())
+                    .first()
+                )
+                if student:
+                    return student.user
+            except ImportError:
+                logger.warning(
+                    "Students module not available for admission number lookup"
+                )
 
         # Assume it's a username
         return User.objects.filter(username=identifier).first()

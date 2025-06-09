@@ -1,6 +1,7 @@
 <!-- students/templates/students/student_bulk_import.html -->
 {% extends 'base.html' %}
 {% load static %}
+{% load student_tags %}
 
 {% block title %}Bulk Import Students{% endblock %}
 
@@ -115,6 +116,10 @@
 
   <div class="row">
     <div class="col-lg-8">
+      <div class="row">
+        <!-- Quick Stats -->
+        {% student_quick_stats %}
+      </div>
       <!-- Step 1: Template Download -->
       <div class="card shadow-sm mb-4" id="template-section">
         <div class="card-header bg-primary text-white">
@@ -254,8 +259,6 @@
 
     <!-- Sidebar -->
     <div class="col-lg-4">
-      <!-- Quick Stats -->
-      {% student_quick_stats %}
 
       <!-- Import Tips -->
       <div class="card shadow-sm mb-4">

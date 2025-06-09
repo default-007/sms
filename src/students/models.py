@@ -157,6 +157,11 @@ class Student(models.Model):
         return f"{self.user.first_name} {self.user.last_name} ({self.admission_number})"
 
     def save(self, *args, **kwargs):
+        # Set username as admission_number for the associated user
+        if self.user and self.admission_number:
+            self.user.username = self.admission_number
+            self.user.save()
+
         if not self.registration_number:
             admission_year = self.admission_date.year
             self.registration_number = f"STU-{admission_year}-{generate_unique_id(6)}"

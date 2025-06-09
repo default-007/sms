@@ -1,4 +1,5 @@
 # students/admin.py
+from django.conf import settings
 from django.contrib import admin
 from django.db.models import Count, Q
 from django.urls import reverse
@@ -54,6 +55,7 @@ class StudentAdmin(ImportExportModelAdmin):
     list_display = (
         "admission_number",
         "get_full_name",
+        "get_username",  # Show username (admission number)
         "get_email",
         "current_class",
         "status_badge",
@@ -70,6 +72,7 @@ class StudentAdmin(ImportExportModelAdmin):
     )
     search_fields = (
         "admission_number",
+        "user__username",  # Search by username (admission number)
         "user__first_name",
         "user__last_name",
         "user__email",
@@ -77,7 +80,14 @@ class StudentAdmin(ImportExportModelAdmin):
         "registration_number",
     )
     autocomplete_fields = ["user", "current_class", "created_by"]
-    readonly_fields = ("id", "registration_number", "created_at", "updated_at")
+    readonly_fields = (
+        "id",
+        "registration_number",
+        "created_at",
+        "updated_at",
+        "get_username_display",
+        "get_email_display",
+    )
     inlines = [StudentParentRelationInline]
     date_hierarchy = "admission_date"
     list_per_page = 50
@@ -98,6 +108,13 @@ class StudentAdmin(ImportExportModelAdmin):
                     "roll_number",
                     "status",
                 )
+            },
+        ),
+        (
+            "User Account Information",
+            {
+                "fields": (("get_username_display", "get_email_display"),),
+                "description": "Student logs in using admission number as username. Email is optional.",
             },
         ),
         (
@@ -146,8 +163,28 @@ class StudentAdmin(ImportExportModelAdmin):
     get_full_name.short_description = "Name"
     get_full_name.admin_order_field = "user__first_name"
 
+    def get_username(self, obj):
+        """Display the username (should be admission number)"""
+        return obj.user.username
+
+    get_username.short_description = "Username"
+    get_username.admin_order_field = "user__username"
+
+    def get_username_display(self, obj):
+        """Readonly field to display username"""
+        return obj.user.username
+
+    get_username_display.short_description = "Username (Login ID)"
+
+    def get_email_display(self, obj):
+        """Readonly field to display email status"""
+        return obj.user.email or "No email provided"
+
+    get_email_display.short_description = "Email"
+
     def get_email(self, obj):
-        return obj.user.email
+        """Display email with note if empty"""
+        return obj.user.email or "No email provided"
 
     get_email.short_description = "Email"
     get_email.admin_order_field = "user__email"
@@ -188,7 +225,12 @@ class StudentAdmin(ImportExportModelAdmin):
 
     gender_filter.short_description = "Gender"
 
-    actions = ["mark_as_graduated", "mark_as_active", "export_selected"]
+    actions = [
+        "mark_as_graduated",
+        "mark_as_active",
+        "export_selected",
+        "reset_passwords",
+    ]
 
     def mark_as_graduated(self, request, queryset):
         updated = queryset.update(status="Graduated")
@@ -201,6 +243,32 @@ class StudentAdmin(ImportExportModelAdmin):
         self.message_user(request, f"{updated} students marked as active.")
 
     mark_as_active.short_description = "Mark selected students as active"
+
+    def reset_passwords(self, request, queryset):
+        """Reset passwords for selected students"""
+        updated = 0
+        for student in queryset:
+            new_password = User.objects.make_random_password()
+            student.user.set_password(new_password)
+            student.user.save()
+            updated += 1
+
+            # Send new password via email if available
+            if student.user.email:
+                try:
+                    send_mail(
+                        subject="Password Reset",
+                        message=f"Your new password is: {new_password}\nUsername: {student.user.username}",
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[student.user.email],
+                        fail_silently=True,
+                    )
+                except:
+                    pass
+
+        self.message_user(request, f"Reset passwords for {updated} students.")
+
+    reset_passwords.short_description = "Reset passwords for selected students"
 
 
 class ParentResource(resources.ModelResource):

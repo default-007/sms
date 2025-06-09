@@ -1,4 +1,5 @@
 # students/utils.py
+from asyncio.log import logger
 import base64
 import hashlib
 import io
@@ -16,6 +17,76 @@ User = get_user_model()
 
 class StudentUtils:
     """Utility functions for student-related operations"""
+
+    @staticmethod
+    def generate_username_from_admission_number(admission_number):
+        """
+        Generate username from admission number (direct mapping)
+        For students, username = admission_number
+        """
+        if not admission_number:
+            return ""
+
+        # For students, username is exactly the admission number
+        # Validate format first
+        if not StudentUtils.validate_admission_number(admission_number):
+            raise ValidationError("Invalid admission number format")
+
+        # Check if username already exists
+        if User.objects.filter(username=admission_number).exists():
+            raise ValidationError("This admission number is already in use")
+
+        return admission_number
+
+    @staticmethod
+    def generate_username_from_email(email):
+        """
+        This method is kept for backward compatibility but not used for students
+        Students now use admission number as username
+        """
+        logger.warning(
+            "generate_username_from_email called for student - should use admission_number"
+        )
+
+        if not email:
+            return ""
+
+        # Use email as username, ensuring uniqueness
+        username = email.lower()
+
+        if not User.objects.filter(username=username).exists():
+            return username
+
+        # If email already exists as username, add a number
+        base_username = username.split("@")[0]
+        counter = 1
+
+        while User.objects.filter(username=f"{base_username}{counter}").exists():
+            counter += 1
+
+        return f"{base_username}{counter}"
+
+    @staticmethod
+    def validate_student_username(username, admission_number):
+        """
+        Validate that student username matches admission number
+        """
+        if username != admission_number:
+            raise ValidationError(
+                "Student username must be the same as admission number"
+            )
+
+        if not StudentUtils.validate_admission_number(admission_number):
+            raise ValidationError("Invalid admission number format")
+
+        return True
+
+    @staticmethod
+    def is_student_username(username):
+        """
+        Check if a username follows student admission number pattern
+        """
+        return StudentUtils.validate_admission_number(username)
 
     @staticmethod
     def generate_admission_number(prefix="STU", year=None):
@@ -112,35 +183,6 @@ class StudentUtils:
             return f"+91{cleaned}"
         else:
             return cleaned
-
-    @staticmethod
-    def generate_username_from_email(email):
-        """
-        Generate username from email address
-
-        Args:
-            email (str): Email address
-
-        Returns:
-            str: Generated username
-        """
-        if not email:
-            return ""
-
-        # Use email as username, ensuring uniqueness
-        username = email.lower()
-
-        if not User.objects.filter(username=username).exists():
-            return username
-
-        # If email already exists as username, add a number
-        base_username = username.split("@")[0]
-        counter = 1
-
-        while User.objects.filter(username=f"{base_username}{counter}").exists():
-            counter += 1
-
-        return f"{base_username}{counter}"
 
     @staticmethod
     def calculate_age(date_of_birth):

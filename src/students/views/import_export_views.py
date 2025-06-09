@@ -77,12 +77,12 @@ class StudentBulkImportView(LoginRequiredMixin, PermissionRequiredMixin, FormVie
         context["title"] = "Bulk Import Students"
         context["description"] = "Upload a CSV file to import multiple students at once"
 
-        # Add CSV template information
+        # Add CSV template information - email is now optional
         context["csv_template_headers"] = [
             "first_name",
             "last_name",
-            "email",
-            "admission_number",
+            "admission_number",  # This is now the primary identifier
+            "email",  # Now optional
             "admission_date",
             "roll_number",
             "current_class_id",
@@ -100,13 +100,13 @@ class StudentBulkImportView(LoginRequiredMixin, PermissionRequiredMixin, FormVie
             "medical_conditions",
         ]
 
-        # Sample data for template
+        # Sample data for template - note email is optional
         context["csv_sample_data"] = [
             {
                 "first_name": "John",
                 "last_name": "Doe",
-                "email": "john.doe@example.com",
-                "admission_number": "ADM-2024-001",
+                "admission_number": "ADM-2024-001",  # Primary identifier
+                "email": "john.doe@example.com",  # Optional
                 "admission_date": "2024-01-15",
                 "emergency_contact_name": "Jane Doe",
                 "emergency_contact_number": "+1234567890",
@@ -115,13 +115,21 @@ class StudentBulkImportView(LoginRequiredMixin, PermissionRequiredMixin, FormVie
             {
                 "first_name": "Alice",
                 "last_name": "Smith",
-                "email": "alice.smith@example.com",
-                "admission_number": "ADM-2024-002",
+                "admission_number": "ADM-2024-002",  # Primary identifier
+                "email": "",  # Can be empty
                 "admission_date": "2024-01-16",
                 "emergency_contact_name": "Bob Smith",
                 "emergency_contact_number": "+1234567891",
                 "status": "Active",
             },
+        ]
+
+        # Add important note about admission number as username
+        context["important_notes"] = [
+            "Admission number will be used as the student's username for login",
+            "Email address is optional but recommended for communication",
+            "Admission number must be unique across all students",
+            "Students will login using their admission number, not email",
         ]
 
         return context
@@ -308,8 +316,8 @@ class DownloadCSVTemplateView(LoginRequiredMixin, View):
             headers = [
                 "first_name",
                 "last_name",
-                "email",
-                "admission_number",
+                "admission_number",  # Primary identifier
+                "email",  # Optional
                 "admission_date",
                 "roll_number",
                 "current_class_id",
@@ -328,13 +336,13 @@ class DownloadCSVTemplateView(LoginRequiredMixin, View):
             ]
             filename = "student_import_template.csv"
 
-            # Add sample data
+            # Add sample data with emphasis on admission_number
             sample_data = [
                 {
                     "first_name": "John",
                     "last_name": "Doe",
-                    "email": "john.doe@example.com",
-                    "admission_number": "ADM-2024-001",
+                    "admission_number": "ADM-2024-001",  # Required
+                    "email": "john.doe@example.com",  # Optional
                     "admission_date": "2024-01-15",
                     "emergency_contact_name": "Jane Doe",
                     "emergency_contact_number": "+1234567890",
@@ -344,7 +352,22 @@ class DownloadCSVTemplateView(LoginRequiredMixin, View):
                     "city": "Mumbai",
                     "state": "Maharashtra",
                     "country": "India",
-                }
+                },
+                {
+                    "first_name": "Alice",
+                    "last_name": "Smith",
+                    "admission_number": "ADM-2024-002",  # Required
+                    "email": "",  # Can be empty
+                    "admission_date": "2024-01-16",
+                    "emergency_contact_name": "Bob Smith",
+                    "emergency_contact_number": "+1234567891",
+                    "status": "Active",
+                    "blood_group": "A+",
+                    "nationality": "Indian",
+                    "city": "Delhi",
+                    "state": "Delhi",
+                    "country": "India",
+                },
             ]
 
         elif template_type == "parents":

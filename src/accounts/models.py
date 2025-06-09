@@ -389,7 +389,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         self.last_failed_login = timezone.now()
         self.save(update_fields=["failed_login_attempts", "last_failed_login"])
 
-    def can_login_with_identifier(self, identifier):
+    def can_login_with_identifier(self, identifier: str) -> bool:
         """Check if user can be identified by the given identifier."""
         identifier = identifier.strip().lower()
 
@@ -405,7 +405,14 @@ class User(AbstractBaseUser, PermissionsMixin):
                 return True
 
         # Check username
-        return self.username.lower() == identifier
+        if self.username.lower() == identifier:
+            return True
+
+        # Check admission number for students
+        if self.is_student:
+            return self.can_login_with_admission_number(identifier)
+
+        return False
 
     def get_contact_methods(self):
         """Get available contact methods for this user."""
@@ -482,6 +489,26 @@ class User(AbstractBaseUser, PermissionsMixin):
             score -= min(self.failed_login_attempts * 2, 10)
 
         return max(0, min(score, max_score))
+
+    def get_admission_number(self):
+        """Get user's admission number if they are a student."""
+        if hasattr(self, "student_profile"):
+            return self.student_profile.admission_number
+        try:
+            from src.students.models import Student
+
+            student = Student.objects.filter(user=self).first()
+            return student.admission_number if student else None
+        except ImportError:
+            return None
+
+    def can_login_with_admission_number(self, admission_number: str) -> bool:
+        """Check if user can be identified by admission number."""
+        if not self.is_student:
+            return False
+
+        user_admission = self.get_admission_number()
+        return user_admission and user_admission.upper() == admission_number.upper()
 
 
 class UserRole(models.Model):

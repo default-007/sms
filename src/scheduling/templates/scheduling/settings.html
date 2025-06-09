@@ -1,0 +1,604 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Scheduling Settings{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Scheduling Settings</h1>
+        <button type="button" class="btn btn-primary" onclick="saveAllSettings()">
+          <i class="fas fa-save"></i> Save All Settings
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-3">
+      <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist">
+        <button class="nav-link active" id="v-pills-general-tab" data-bs-toggle="pill" data-bs-target="#v-pills-general"
+          type="button">
+          <i class="fas fa-cog"></i> General Settings
+        </button>
+        <button class="nav-link" id="v-pills-optimization-tab" data-bs-toggle="pill"
+          data-bs-target="#v-pills-optimization" type="button">
+          <i class="fas fa-chart-line"></i> Optimization
+        </button>
+        <button class="nav-link" id="v-pills-constraints-tab" data-bs-toggle="pill"
+          data-bs-target="#v-pills-constraints" type="button">
+          <i class="fas fa-rules"></i> Constraints
+        </button>
+        <button class="nav-link" id="v-pills-notifications-tab" data-bs-toggle="pill"
+          data-bs-target="#v-pills-notifications" type="button">
+          <i class="fas fa-bell"></i> Notifications
+        </button>
+        <button class="nav-link" id="v-pills-analytics-tab" data-bs-toggle="pill" data-bs-target="#v-pills-analytics"
+          type="button">
+          <i class="fas fa-chart-bar"></i> Analytics
+        </button>
+        <button class="nav-link" id="v-pills-backup-tab" data-bs-toggle="pill" data-bs-target="#v-pills-backup"
+          type="button">
+          <i class="fas fa-database"></i> Backup & Maintenance
+        </button>
+      </div>
+    </div>
+
+    <div class="col-lg-9">
+      <div class="tab-content" id="v-pills-tabContent">
+        <!-- General Settings -->
+        <div class="tab-pane fade show active" id="v-pills-general">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">General Settings</h5>
+            </div>
+            <div class="card-body">
+              <form id="generalSettingsForm">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">School Start Time</label>
+                      <input type="time" class="form-control" name="school_start_time" value="08:00">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">School End Time</label>
+                      <input type="time" class="form-control" name="school_end_time" value="15:30">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Default Period Duration (minutes)</label>
+                      <input type="number" class="form-control" name="period_duration" value="45" min="15" max="180">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Break Duration (minutes)</label>
+                      <input type="number" class="form-control" name="break_duration" value="15" min="5" max="60">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Lunch Duration (minutes)</label>
+                      <input type="number" class="form-control" name="lunch_duration" value="45" min="30" max="120">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Lunch After Period</label>
+                      <input type="number" class="form-control" name="lunch_after_period" value="4" min="1" max="12">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Working Days</label>
+                  <div class="form-check-inline">
+                    <input class="form-check-input" type="checkbox" name="working_days" value="0" checked>
+                    <label class="form-check-label">Monday</label>
+                  </div>
+                  <div class="form-check-inline">
+                    <input class="form-check-input" type="checkbox" name="working_days" value="1" checked>
+                    <label class="form-check-label">Tuesday</label>
+                  </div>
+                  <div class="form-check-inline">
+                    <input class="form-check-input" type="checkbox" name="working_days" value="2" checked>
+                    <label class="form-check-label">Wednesday</label>
+                  </div>
+                  <div class="form-check-inline">
+                    <input class="form-check-input" type="checkbox" name="working_days" value="3" checked>
+                    <label class="form-check-label">Thursday</label>
+                  </div>
+                  <div class="form-check-inline">
+                    <input class="form-check-input" type="checkbox" name="working_days" value="4" checked>
+                    <label class="form-check-label">Friday</label>
+                  </div>
+                  <div class="form-check-inline">
+                    <input class="form-check-input" type="checkbox" name="working_days" value="5">
+                    <label class="form-check-label">Saturday</label>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Optimization Settings -->
+        <div class="tab-pane fade" id="v-pills-optimization">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">Optimization Settings</h5>
+            </div>
+            <div class="card-body">
+              <form id="optimizationSettingsForm">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Default Algorithm</label>
+                      <select class="form-select" name="default_algorithm">
+                        <option value="genetic">Genetic Algorithm</option>
+                        <option value="greedy">Greedy Algorithm</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Max Execution Time (seconds)</label>
+                      <input type="number" class="form-control" name="max_execution_time" value="3600" min="60">
+                    </div>
+                  </div>
+                </div>
+
+                <h6 class="mt-4 mb-3">Genetic Algorithm Parameters</h6>
+                <div class="row">
+                  <div class="col-md-4">
+                    <div class="mb-3">
+                      <label class="form-label">Population Size</label>
+                      <input type="number" class="form-control" name="population_size" value="50" min="10" max="200">
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="mb-3">
+                      <label class="form-label">Generations</label>
+                      <input type="number" class="form-control" name="generations" value="100" min="10" max="500">
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="mb-3">
+                      <label class="form-label">Mutation Rate</label>
+                      <input type="number" class="form-control" name="mutation_rate" value="0.1" min="0.01" max="0.5"
+                        step="0.01">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Crossover Rate</label>
+                      <input type="number" class="form-control" name="crossover_rate" value="0.8" min="0.1" max="1.0"
+                        step="0.1">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Tournament Size</label>
+                      <input type="number" class="form-control" name="tournament_size" value="3" min="2" max="10">
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Constraints Settings -->
+        <div class="tab-pane fade" id="v-pills-constraints">
+          <div class="card">
+            <div class="card-header">
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Scheduling Constraints</h5>
+                <a href="{% url 'scheduling:constraint_create' %}" class="btn btn-sm btn-primary">
+                  <i class="fas fa-plus"></i> Add Constraint
+                </a>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" name="auto_resolve_conflicts" checked>
+                    <label class="form-check-label">Auto Resolve Minor Conflicts</label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" name="enforce_teacher_preferences" checked>
+                    <label class="form-check-label">Enforce Teacher Preferences</label>
+                  </div>
+                </div>
+              </div>
+
+              <h6 class="mt-4 mb-3">Teacher Constraints</h6>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Max Periods Per Day</label>
+                    <input type="number" class="form-control" name="max_periods_per_day" value="6" min="1" max="12">
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Max Consecutive Periods</label>
+                    <input type="number" class="form-control" name="max_consecutive_periods" value="3" min="1" max="8">
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Max Classes Per Teacher</label>
+                    <input type="number" class="form-control" name="max_classes_per_teacher" value="8" min="1" max="20">
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Max Subjects Per Teacher</label>
+                    <input type="number" class="form-control" name="max_subjects_per_teacher" value="3" min="1"
+                      max="10">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notifications Settings -->
+        <div class="tab-pane fade" id="v-pills-notifications">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">Notification Settings</h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <h6>Email Notifications</h6>
+                  <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" name="email_conflict_alerts" checked>
+                    <label class="form-check-label">Conflict Alerts</label>
+                  </div>
+                  <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" name="email_generation_completion" checked>
+                    <label class="form-check-label">Generation Completion</label>
+                  </div>
+                  <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" name="email_substitute_reminders" checked>
+                    <label class="form-check-label">Substitute Reminders</label>
+                  </div>
+                  <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" name="email_weekly_reports" checked>
+                    <label class="form-check-label">Weekly Reports</label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <h6>Push Notifications</h6>
+                  <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" name="push_notifications" checked>
+                    <label class="form-check-label">Enable Push Notifications</label>
+                  </div>
+                  <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" name="push_conflict_alerts">
+                    <label class="form-check-label">Conflict Alerts</label>
+                  </div>
+                  <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" name="push_schedule_changes" checked>
+                    <label class="form-check-label">Schedule Changes</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analytics Settings -->
+        <div class="tab-pane fade" id="v-pills-analytics">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">Analytics Settings</h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Cache Duration (minutes)</label>
+                    <input type="number" class="form-control" name="cache_duration" value="15" min="1" max="1440">
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">History Retention (days)</label>
+                    <input type="number" class="form-control" name="history_retention_days" value="90" min="1"
+                      max="365">
+                  </div>
+                </div>
+              </div>
+
+              <h6 class="mt-4 mb-3">Performance Thresholds</h6>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Good Optimization Score (%)</label>
+                    <input type="number" class="form-control" name="good_optimization_score" value="85" min="0"
+                      max="100">
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Acceptable Optimization Score (%)</label>
+                    <input type="number" class="form-control" name="acceptable_optimization_score" value="70" min="0"
+                      max="100">
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Good Utilization Rate (%)</label>
+                    <input type="number" class="form-control" name="good_utilization_rate" value="80" min="0" max="100">
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Acceptable Utilization Rate (%)</label>
+                    <input type="number" class="form-control" name="acceptable_utilization_rate" value="60" min="0"
+                      max="100">
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" name="enable_weekly_reports" checked>
+                <label class="form-check-label">Enable Weekly Reports</label>
+              </div>
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" name="enable_monthly_reports" checked>
+                <label class="form-check-label">Enable Monthly Reports</label>
+              </div>
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" name="enable_term_reports" checked>
+                <label class="form-check-label">Enable Term Reports</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Backup & Maintenance Settings -->
+        <div class="tab-pane fade" id="v-pills-backup">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">Backup & Maintenance Settings</h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" name="auto_backup_enabled" checked>
+                    <label class="form-check-label">Enable Auto Backup</label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Backup Frequency</label>
+                    <select class="form-select" name="backup_frequency">
+                      <option value="daily" selected>Daily</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Backup Retention (days)</label>
+                    <input type="number" class="form-control" name="backup_retention_days" value="30" min="1" max="365">
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Cleanup Retention (days)</label>
+                    <input type="number" class="form-control" name="cleanup_retention_days" value="365" min="30"
+                      max="3650">
+                  </div>
+                </div>
+              </div>
+
+              <h6 class="mt-4 mb-3">Maintenance Window</h6>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Start Time</label>
+                    <input type="time" class="form-control" name="maintenance_start_time" value="02:00">
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Duration (hours)</label>
+                    <input type="number" class="form-control" name="maintenance_duration_hours" value="2" min="1"
+                      max="12">
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" name="auto_cleanup_old_data" checked>
+                <label class="form-check-label">Auto Cleanup Old Data</label>
+              </div>
+
+              <div class="mt-4">
+                <button type="button" class="btn btn-info me-2" onclick="runBackupNow()">
+                  <i class="fas fa-download"></i> Backup Now
+                </button>
+                <button type="button" class="btn btn-warning me-2" onclick="runCleanupNow()">
+                  <i class="fas fa-broom"></i> Cleanup Now
+                </button>
+                <button type="button" class="btn btn-danger" onclick="enableMaintenanceMode()">
+                  <i class="fas fa-tools"></i> Enable Maintenance Mode
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function saveAllSettings() {
+    const forms = ['generalSettingsForm', 'optimizationSettingsForm'];
+    const allData = {};
+
+    forms.forEach(formId => {
+      const form = document.getElementById(formId);
+      if (form) {
+        const formData = new FormData(form);
+        for (const [key, value] of formData.entries()) {
+          allData[key] = value;
+        }
+      }
+    });
+
+    // Collect checkbox values separately
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+      allData[checkbox.name] = checkbox.checked;
+    });
+
+    fetch('/scheduling/settings/save/', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(allData)
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert('Settings saved successfully!');
+        } else {
+          alert('Failed to save settings: ' + data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while saving settings');
+      });
+  }
+
+  function runBackupNow() {
+    if (confirm('Run backup now? This may take a few minutes.')) {
+      fetch('/scheduling/settings/backup-now/', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken')
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Backup completed successfully!');
+          } else {
+            alert('Backup failed: ' + data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred during backup');
+        });
+    }
+  }
+
+  function runCleanupNow() {
+    if (confirm('Run cleanup now? This will remove old data permanently.')) {
+      fetch('/scheduling/settings/cleanup-now/', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken')
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Cleanup completed successfully!');
+          } else {
+            alert('Cleanup failed: ' + data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred during cleanup');
+        });
+    }
+  }
+
+  function enableMaintenanceMode() {
+    const duration = prompt('Enter maintenance duration in hours:', '2');
+    if (duration && !isNaN(duration)) {
+      fetch('/scheduling/settings/maintenance-mode/', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          duration_hours: parseInt(duration)
+        })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Maintenance mode enabled for ' + duration + ' hours');
+          } else {
+            alert('Failed to enable maintenance mode: ' + data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred while enabling maintenance mode');
+        });
+    }
+  }
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,679 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Scheduling Reports - Scheduling{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="h3 mb-0">Scheduling Reports</h1>
+          <p class="text-muted mb-0">Generate and download comprehensive scheduling reports</p>
+        </div>
+        <div>
+          <button class="btn btn-primary" onclick="showReportScheduler()">
+            <i class="fas fa-clock"></i> Schedule Reports
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Report Generation -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Quick Report Generation</h5>
+        </div>
+        <div class="card-body">
+          <form id="quickReportForm" class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label">Term</label>
+              <select class="form-select" id="termSelect" required>
+                <option value="">Select Term</option>
+                {% for term in available_terms %}
+                <option value="{{ term.id }}">{{ term.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Report Type</label>
+              <select class="form-select" id="reportTypeSelect" required>
+                <option value="">Select Report Type</option>
+                <option value="timetable">Timetable Report</option>
+                <option value="teacher_schedule">Teacher Schedule</option>
+                <option value="room_usage">Room Usage Report</option>
+                <option value="conflict">Conflict Analysis</option>
+                <option value="analytics">Analytics Summary</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Format</label>
+              <select class="form-select" id="formatSelect" required>
+                <option value="pdf">PDF</option>
+                <option value="excel">Excel</option>
+                <option value="csv">CSV</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">&nbsp;</label>
+              <button type="submit" class="btn btn-primary d-block w-100">
+                <i class="fas fa-file-alt"></i> Generate Report
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report Categories -->
+  <div class="row">
+    <!-- Timetable Reports -->
+    <div class="col-lg-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-primary text-white">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-calendar-alt"></i> Timetable Reports
+          </h6>
+        </div>
+        <div class="card-body">
+          <p class="card-text">Generate comprehensive timetable reports for classes, teachers, and rooms.</p>
+          <div class="list-group list-group-flush">
+            <a href="{% url 'scheduling:timetable_report' %}" class="list-group-item list-group-item-action">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">Class Timetables</h6>
+                <small><i class="fas fa-arrow-right"></i></small>
+              </div>
+              <p class="mb-1">Individual or bulk class timetable reports</p>
+              <small>PDF, Excel, CSV formats available</small>
+            </a>
+            <a href="{% url 'scheduling:teacher_schedule_report' %}" class="list-group-item list-group-item-action">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">Teacher Schedules</h6>
+                <small><i class="fas fa-arrow-right"></i></small>
+              </div>
+              <p class="mb-1">Individual teacher schedule reports</p>
+              <small>Include workload analysis</small>
+            </a>
+            <a href="{% url 'scheduling:export_master_timetable' %}" class="list-group-item list-group-item-action">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">Master Timetable</h6>
+                <small><i class="fas fa-arrow-right"></i></small>
+              </div>
+              <p class="mb-1">Complete school timetable overview</p>
+              <small>All classes and teachers combined</small>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analytics Reports -->
+    <div class="col-lg-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-success text-white">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-chart-bar"></i> Analytics Reports
+          </h6>
+        </div>
+        <div class="card-body">
+          <p class="card-text">Detailed analytics and performance insights for optimization.</p>
+          <div class="list-group list-group-flush">
+            <a href="{% url 'scheduling:teacher_workload_analytics' %}" class="list-group-item list-group-item-action">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">Teacher Workload</h6>
+                <small><i class="fas fa-arrow-right"></i></small>
+              </div>
+              <p class="mb-1">Workload distribution and balance analysis</p>
+              <small>Export charts and data tables</small>
+            </a>
+            <a href="{% url 'scheduling:room_utilization_analytics' %}" class="list-group-item list-group-item-action">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">Room Utilization</h6>
+                <small><i class="fas fa-arrow-right"></i></small>
+              </div>
+              <p class="mb-1">Room usage efficiency and optimization</p>
+              <small>Include utilization heatmaps</small>
+            </a>
+            <a href="{% url 'scheduling:optimization_score' %}" class="list-group-item list-group-item-action">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">Optimization Score</h6>
+                <small><i class="fas fa-arrow-right"></i></small>
+              </div>
+              <p class="mb-1">Overall timetable quality assessment</p>
+              <small>Detailed breakdown and recommendations</small>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Operational Reports -->
+    <div class="col-lg-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-info text-white">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-cogs"></i> Operational Reports
+          </h6>
+        </div>
+        <div class="card-body">
+          <p class="card-text">Operational insights and management reports for daily use.</p>
+          <div class="list-group list-group-flush">
+            <a href="{% url 'scheduling:room_usage_report' %}" class="list-group-item list-group-item-action">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">Room Usage</h6>
+                <small><i class="fas fa-arrow-right"></i></small>
+              </div>
+              <p class="mb-1">Detailed room booking and usage patterns</p>
+              <small>Daily, weekly, and monthly views</small>
+            </a>
+            <a href="{% url 'scheduling:conflict_report' %}" class="list-group-item list-group-item-action">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">Conflict Analysis</h6>
+                <small><i class="fas fa-arrow-right"></i></small>
+              </div>
+              <p class="mb-1">Scheduling conflicts and resolution status</p>
+              <small>Teacher, room, and class conflicts</small>
+            </a>
+            <a href="{% url 'scheduling:substitute_list' %}" class="list-group-item list-group-item-action">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">Substitute Reports</h6>
+                <small><i class="fas fa-arrow-right"></i></small>
+              </div>
+              <p class="mb-1">Substitute teacher assignments and frequency</p>
+              <small>Historical data and trends</small>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Reports -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Recent Reports</h5>
+            <button class="btn btn-sm btn-outline-danger" onclick="clearReportHistory()">
+              <i class="fas fa-trash"></i> Clear History
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover" id="recentReportsTable">
+              <thead>
+                <tr>
+                  <th>Report Name</th>
+                  <th>Type</th>
+                  <th>Term</th>
+                  <th>Format</th>
+                  <th>Generated</th>
+                  <th>Size</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="recentReportsBody">
+                <!-- Reports will be loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Report Builder -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Custom Report Builder</h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">Build custom reports with specific data fields and filters.</p>
+          <div class="row">
+            <div class="col-md-6">
+              <h6>Available Data Sources</h6>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="includeClasses">
+                <label class="form-check-label" for="includeClasses">Class Information</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="includeTeachers">
+                <label class="form-check-label" for="includeTeachers">Teacher Details</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="includeRooms">
+                <label class="form-check-label" for="includeRooms">Room Information</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="includeSubjects">
+                <label class="form-check-label" for="includeSubjects">Subject Details</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="includeAnalytics">
+                <label class="form-check-label" for="includeAnalytics">Analytics Data</label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <h6>Report Filters</h6>
+              <div class="mb-3">
+                <label class="form-label">Grade Filter</label>
+                <select class="form-select" id="gradeFilter" multiple>
+                  <option value="all">All Grades</option>
+                  <!-- Grades will be populated dynamically -->
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Date Range</label>
+                <div class="row">
+                  <div class="col-6">
+                    <input type="date" class="form-control" id="startDate">
+                  </div>
+                  <div class="col-6">
+                    <input type="date" class="form-control" id="endDate">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row mt-3">
+            <div class="col-12">
+              <button class="btn btn-primary me-2" onclick="buildCustomReport()">
+                <i class="fas fa-hammer"></i> Build Report
+              </button>
+              <button class="btn btn-outline-secondary" onclick="saveReportTemplate()">
+                <i class="fas fa-save"></i> Save as Template
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Report Scheduler Modal -->
+<div class="modal fade" id="reportSchedulerModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Schedule Automatic Reports</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="reportSchedulerForm">
+          <div class="mb-3">
+            <label class="form-label">Report Type</label>
+            <select class="form-select" id="scheduleReportType" required>
+              <option value="">Select Report Type</option>
+              <option value="weekly_analytics">Weekly Analytics Summary</option>
+              <option value="monthly_utilization">Monthly Room Utilization</option>
+              <option value="term_summary">Term Summary Report</option>
+              <option value="conflict_summary">Daily Conflict Summary</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Frequency</label>
+            <select class="form-select" id="frequency" required>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Recipients (Email)</label>
+            <textarea class="form-control" id="recipients" rows="3"
+              placeholder="Enter email addresses, one per line"></textarea>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="enableSchedule">
+            <label class="form-check-label" for="enableSchedule">
+              Enable automatic generation
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveReportSchedule()">Save Schedule</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Report Progress Modal -->
+<div class="modal fade" id="reportProgressModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Generating Report</h5>
+      </div>
+      <div class="modal-body">
+        <div class="d-flex align-items-center">
+          <div class="spinner-border text-primary me-3" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <div>
+            <p class="mb-1">Generating your report...</p>
+            <small class="text-muted" id="progressText">Preparing data...</small>
+          </div>
+        </div>
+        <div class="progress mt-3">
+          <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    loadRecentReports();
+
+    // Quick report form submission
+    $('#quickReportForm').on('submit', function (e) {
+      e.preventDefault();
+      generateQuickReport();
+    });
+  });
+
+  function generateQuickReport() {
+    const termId = $('#termSelect').val();
+    const reportType = $('#reportTypeSelect').val();
+    const format = $('#formatSelect').val();
+
+    if (!termId || !reportType || !format) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    showProgressModal();
+
+    const reportData = {
+      term_id: termId,
+      report_type: reportType,
+      format: format
+    };
+
+    fetch('/scheduling/reports/generate/', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(reportData)
+    })
+      .then(response => response.json())
+      .then(data => {
+        hideProgressModal();
+
+        if (data.success) {
+          // Start download
+          window.open(data.download_url, '_blank');
+          loadRecentReports(); // Refresh recent reports
+        } else {
+          alert('Failed to generate report: ' + data.error);
+        }
+      })
+      .catch(error => {
+        hideProgressModal();
+        console.error('Error:', error);
+        alert('An error occurred while generating the report');
+      });
+  }
+
+  function showProgressModal() {
+    $('#reportProgressModal').modal('show');
+
+    // Simulate progress
+    let progress = 0;
+    const progressTexts = [
+      'Preparing data...',
+      'Processing timetables...',
+      'Calculating analytics...',
+      'Formatting report...',
+      'Finalizing...'
+    ];
+
+    const interval = setInterval(() => {
+      progress += 20;
+      $('#progressBar').css('width', progress + '%');
+
+      const textIndex = Math.floor(progress / 20) - 1;
+      if (textIndex >= 0 && textIndex < progressTexts.length) {
+        $('#progressText').text(progressTexts[textIndex]);
+      }
+
+      if (progress >= 100) {
+        clearInterval(interval);
+      }
+    }, 1000);
+  }
+
+  function hideProgressModal() {
+    $('#reportProgressModal').modal('hide');
+    $('#progressBar').css('width', '0%');
+    $('#progressText').text('Preparing data...');
+  }
+
+  function loadRecentReports() {
+    fetch('/scheduling/reports/recent/')
+      .then(response => response.json())
+      .then(data => {
+        const tbody = document.getElementById('recentReportsBody');
+        tbody.innerHTML = '';
+
+        if (data.reports.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No recent reports found</td></tr>';
+          return;
+        }
+
+        data.reports.forEach(report => {
+          const row = `
+                    <tr>
+                        <td>${report.name}</td>
+                        <td><span class="badge bg-secondary">${report.type}</span></td>
+                        <td>${report.term}</td>
+                        <td><span class="badge bg-info">${report.format.toUpperCase()}</span></td>
+                        <td>${new Date(report.generated_at).toLocaleString()}</td>
+                        <td>${report.file_size}</td>
+                        <td>
+                            ${report.status === 'completed' ?
+              '<span class="badge bg-success">Completed</span>' :
+              '<span class="badge bg-warning">Processing</span>'
+            }
+                        </td>
+                        <td>
+                            ${report.status === 'completed' ?
+              `<button class="btn btn-sm btn-outline-primary" onclick="downloadReport('${report.id}')">
+                                 <i class="fas fa-download"></i>
+                               </button>` :
+              '<span class="text-muted">Processing...</span>'
+            }
+                        </td>
+                    </tr>
+                `;
+          tbody.innerHTML += row;
+        });
+      })
+      .catch(error => {
+        console.error('Error loading recent reports:', error);
+      });
+  }
+
+  function downloadReport(reportId) {
+    window.open(`/scheduling/reports/download/${reportId}/`, '_blank');
+  }
+
+  function clearReportHistory() {
+    if (confirm('Are you sure you want to clear the report history?')) {
+      fetch('/scheduling/reports/clear-history/', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken')
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            loadRecentReports();
+            alert('Report history cleared successfully');
+          } else {
+            alert('Failed to clear history: ' + data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred while clearing history');
+        });
+    }
+  }
+
+  function showReportScheduler() {
+    $('#reportSchedulerModal').modal('show');
+  }
+
+  function saveReportSchedule() {
+    const scheduleData = {
+      report_type: $('#scheduleReportType').val(),
+      frequency: $('#frequency').val(),
+      recipients: $('#recipients').val().split('\n').filter(email => email.trim()),
+      enabled: $('#enableSchedule').is(':checked')
+    };
+
+    fetch('/scheduling/reports/schedule/', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(scheduleData)
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          $('#reportSchedulerModal').modal('hide');
+          alert('Report schedule saved successfully');
+        } else {
+          alert('Failed to save schedule: ' + data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while saving schedule');
+      });
+  }
+
+  function buildCustomReport() {
+    const customData = {
+      data_sources: {
+        classes: $('#includeClasses').is(':checked'),
+        teachers: $('#includeTeachers').is(':checked'),
+        rooms: $('#includeRooms').is(':checked'),
+        subjects: $('#includeSubjects').is(':checked'),
+        analytics: $('#includeAnalytics').is(':checked')
+      },
+      filters: {
+        grades: $('#gradeFilter').val(),
+        start_date: $('#startDate').val(),
+        end_date: $('#endDate').val()
+      }
+    };
+
+    showProgressModal();
+
+    fetch('/scheduling/reports/custom/', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(customData)
+    })
+      .then(response => response.json())
+      .then(data => {
+        hideProgressModal();
+
+        if (data.success) {
+          window.open(data.download_url, '_blank');
+          loadRecentReports();
+        } else {
+          alert('Failed to build custom report: ' + data.error);
+        }
+      })
+      .catch(error => {
+        hideProgressModal();
+        console.error('Error:', error);
+        alert('An error occurred while building the report');
+      });
+  }
+
+  function saveReportTemplate() {
+    const templateName = prompt('Enter template name:');
+    if (!templateName) return;
+
+    const templateData = {
+      name: templateName,
+      data_sources: {
+        classes: $('#includeClasses').is(':checked'),
+        teachers: $('#includeTeachers').is(':checked'),
+        rooms: $('#includeRooms').is(':checked'),
+        subjects: $('#includeSubjects').is(':checked'),
+        analytics: $('#includeAnalytics').is(':checked')
+      },
+      filters: {
+        grades: $('#gradeFilter').val(),
+        start_date: $('#startDate').val(),
+        end_date: $('#endDate').val()
+      }
+    };
+
+    fetch('/scheduling/reports/save-template/', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(templateData)
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert('Report template saved successfully');
+        } else {
+          alert('Failed to save template: ' + data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while saving template');
+      });
+  }
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+</script>
+{% endblock %}

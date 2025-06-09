@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Delete Template - {{ template.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">Delete Template</h1>
+          <p class="text-muted">Confirm deletion of timetable template</p>
+        </div>
+        <div>
+          <a href="{% url 'scheduling:template_detail' template.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Template
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <!-- Warning Card -->
+      <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i>Confirm Template Deletion
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-warning">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Warning:</strong> This action cannot be undone. The template and all its configuration will be
+            permanently deleted.
+          </div>
+
+          <!-- Template Details -->
+          <div class="row mb-4">
+            <div class="col-12">
+              <h6 class="text-muted mb-3">Template Details</h6>
+              <div class="bg-light p-4 rounded">
+                <!-- Template Name and Status -->
+                <div class="row mb-3">
+                  <div class="col-sm-3">
+                    <strong>Template Name:</strong>
+                  </div>
+                  <div class="col-sm-9">
+                    <div class="d-flex align-items-center">
+                      <i
+                        class="fas {% if template.is_default %}fa-star text-warning{% else %}fa-file-alt text-muted{% endif %} me-2"></i>
+                      <span class="fw-bold">{{ template.name }}</span>
+                      {% if template.is_default %}
+                      <span class="badge bg-warning ms-2">Default Template</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Grade -->
+                <div class="row mb-3">
+                  <div class="col-sm-3">
+                    <strong>Grade:</strong>
+                  </div>
+                  <div class="col-sm-9">
+                    <span class="badge bg-primary fs-6">{{ template.grade.name }}</span>
+                  </div>
+                </div>
+
+                <!-- Description -->
+                {% if template.description %}
+                <div class="row mb-3">
+                  <div class="col-sm-3">
+                    <strong>Description:</strong>
+                  </div>
+                  <div class="col-sm-9">
+                    {{ template.description }}
+                  </div>
+                </div>
+                {% endif %}
+
+                <!-- Created By -->
+                <div class="row mb-3">
+                  <div class="col-sm-3">
+                    <strong>Created By:</strong>
+                  </div>
+                  <div class="col-sm-9">
+                    {% if template.created_by %}
+                    <div class="d-flex align-items-center">
+                      <img
+                        src="{% if template.created_by.profile_picture %}{{ template.created_by.profile_picture.url }}{% else %}{% static 'images/default-avatar.png' %}{% endif %}"
+                        alt="User" class="rounded-circle me-2" width="24" height="24">
+                      {{ template.created_by.get_full_name }}
+                      <small class="text-muted ms-2">({{ template.created_by.email }})</small>
+                    </div>
+                    {% else %}
+                    <span class="text-muted">System</span>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <!-- Created Date -->
+                <div class="row mb-3">
+                  <div class="col-sm-3">
+                    <strong>Created Date:</strong>
+                  </div>
+                  <div class="col-sm-9">
+                    {{ template.created_at|date:"F d, Y" }} at {{ template.created_at|time:"H:i" }}
+                  </div>
+                </div>
+
+                <!-- Last Modified -->
+                <div class="row">
+                  <div class="col-sm-3">
+                    <strong>Last Modified:</strong>
+                  </div>
+                  <div class="col-sm-9">
+                    {{ template.updated_at|date:"F d, Y" }} at {{ template.updated_at|time:"H:i" }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Configuration Summary -->
+          {% if template.configuration %}
+          <div class="row mb-4">
+            <div class="col-12">
+              <h6 class="text-muted mb-3">Configuration Summary</h6>
+              <div class="bg-white p-3 rounded border">
+                <div id="configSummary">
+                  <!-- Will be populated by JavaScript -->
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Usage Warning -->
+          {% if template.is_default %}
+          <div class="alert alert-danger">
+            <h6><i class="fas fa-exclamation-triangle me-2"></i>Default Template Warning</h6>
+            <p class="mb-0">
+              This is the default template for {{ template.grade.name }}. Deleting it will affect:
+            </p>
+            <ul class="mb-0 mt-2">
+              <li>Automatic timetable generation for {{ template.grade.name }} classes</li>
+              <li>Any automated processes that rely on this template</li>
+              <li>Future timetable creation workflows</li>
+            </ul>
+          </div>
+          {% endif %}
+
+          <!-- Confirmation Form -->
+          <form method="post" id="deleteForm">
+            {% csrf_token %}
+
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="confirmDeletion" required>
+              <label class="form-check-label" for="confirmDeletion">
+                I understand that this action cannot be undone and want to permanently delete this template.
+              </label>
+            </div>
+
+            {% if template.is_default %}
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="confirmDefaultDeletion" required>
+              <label class="form-check-label" for="confirmDefaultDeletion">
+                I understand that I am deleting the default template for {{ template.grade.name }} and this may affect
+                automated processes.
+              </label>
+            </div>
+            {% endif %}
+
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <a href="{% url 'scheduling:template_detail' template.pk %}" class="btn btn-secondary">
+                  <i class="fas fa-times me-2"></i>Cancel
+                </a>
+              </div>
+              <div>
+                <button type="submit" class="btn btn-danger" id="deleteBtn" disabled>
+                  <i class="fas fa-trash me-2"></i>Delete Template Permanently
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Impact Information -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-info-circle me-2"></i>What happens when you delete this template?
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h6 class="text-danger">Will be deleted:</h6>
+              <ul class="list-unstyled">
+                <li class="mb-2">
+                  <i class="fas fa-times text-danger me-2"></i>
+                  Template configuration and settings
+                </li>
+                <li class="mb-2">
+                  <i class="fas fa-times text-danger me-2"></i>
+                  Subject distribution rules
+                </li>
+                <li class="mb-2">
+                  <i class="fas fa-times text-danger me-2"></i>
+                  Scheduling constraints and preferences
+                </li>
+                <li class="mb-0">
+                  <i class="fas fa-times text-danger me-2"></i>
+                  Template metadata and history
+                </li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <h6 class="text-success">Will NOT be affected:</h6>
+              <ul class="list-unstyled">
+                <li class="mb-2">
+                  <i class="fas fa-check text-success me-2"></i>
+                  Existing timetables created from this template
+                </li>
+                <li class="mb-2">
+                  <i class="fas fa-check text-success me-2"></i>
+                  Current class schedules and assignments
+                </li>
+                <li class="mb-2">
+                  <i class="fas fa-check text-success me-2"></i>
+                  Teacher and student data
+                </li>
+                <li class="mb-0">
+                  <i class="fas fa-check text-success me-2"></i>
+                  Other templates for different grades
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alternative Actions -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-lightbulb me-2"></i>Consider these alternatives
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <div class="text-center">
+                <i class="fas fa-edit fa-2x text-warning mb-3"></i>
+                <h6>Edit Template</h6>
+                <p class="text-muted small">Modify the template instead of deleting it</p>
+                <a href="{% url 'scheduling:template_edit' template.pk %}" class="btn btn-warning btn-sm">
+                  <i class="fas fa-edit me-1"></i>Edit
+                </a>
+              </div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="text-center">
+                <i class="fas fa-copy fa-2x text-info mb-3"></i>
+                <h6>Duplicate Template</h6>
+                <p class="text-muted small">Create a backup copy before deleting</p>
+                <button type="button" class="btn btn-info btn-sm" onclick="duplicateFirst()">
+                  <i class="fas fa-copy me-1"></i>Duplicate
+                </button>
+              </div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="text-center">
+                <i class="fas fa-download fa-2x text-success mb-3"></i>
+                <h6>Export Template</h6>
+                <p class="text-muted small">Save a copy of the configuration</p>
+                <button type="button" class="btn btn-success btn-sm" onclick="exportFirst()">
+                  <i class="fas fa-download me-1"></i>Export
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Template Configuration Data -->
+{{ template.configuration|json_script:"template-config" }}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Populate configuration summary
+    const configData = JSON.parse(document.getElementById('template-config').textContent || '{}');
+    populateConfigSummary(configData);
+
+    // Enable delete button only when checkboxes are checked
+    $('input[type="checkbox"]').change(function () {
+      const allChecked = $('input[type="checkbox"]:required').length === $('input[type="checkbox"]:required:checked').length;
+      $('#deleteBtn').prop('disabled', !allChecked);
+    });
+
+    // Add confirmation on form submission
+    $('#deleteForm').submit(function (e) {
+      if (!confirm('Are you absolutely sure you want to delete this template? This action cannot be undone.')) {
+        e.preventDefault();
+        return false;
+      }
+
+      // Add loading state
+      $('#deleteBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Deleting...');
+    });
+  });
+
+  function populateConfigSummary(config) {
+    let html = '<div class="row">';
+
+    // Basic stats
+    html += '<div class="col-md-4">';
+    html += '<div class="text-center">';
+    html += `<h4 class="text-primary mb-0">${config.periodsPerDay || 0}</h4>`;
+    html += '<small class="text-muted">Periods per Day</small>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '<div class="col-md-4">';
+    html += '<div class="text-center">';
+    html += `<h4 class="text-success mb-0">${(config.subjects || []).length}</h4>`;
+    html += '<small class="text-muted">Configured Subjects</small>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '<div class="col-md-4">';
+    html += '<div class="text-center">';
+    html += `<h4 class="text-info mb-0">${(config.workingDays || []).length}</h4>`;
+    html += '<small class="text-muted">Working Days</small>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '</div>';
+
+    // Subjects list
+    if (config.subjects && config.subjects.length > 0) {
+      html += '<div class="mt-3">';
+      html += '<h6 class="text-muted mb-2">Subjects:</h6>';
+      html += '<div>';
+      config.subjects.forEach(subject => {
+        html += `<span class="badge bg-primary me-1 mb-1">${subject.subject} (${subject.periodsPerWeek}/week)</span>`;
+      });
+      html += '</div>';
+      html += '</div>';
+    }
+
+    $('#configSummary').html(html);
+  }
+
+  function duplicateFirst() {
+    if (confirm('Would you like to create a duplicate of this template before deleting it?')) {
+      // Open duplicate in new window/tab
+      const duplicateUrl = `{% url 'scheduling:template_create' %}?duplicate={{ template.pk }}`;
+      window.open(duplicateUrl, '_blank');
+    }
+  }
+
+  function exportFirst() {
+    // Export template configuration
+    const config = JSON.parse(document.getElementById('template-config').textContent || '{}');
+    const templateData = {
+      name: '{{ template.name }}',
+      grade: '{{ template.grade.name }}',
+      description: '{{ template.description|default:"" }}',
+      is_default: {{ template.is_default| yesno: "true,false"
+  }},
+  configuration: config,
+    exported_at: new Date().toISOString(),
+      exported_from: 'School Management System'
+    };
+
+  const dataStr = JSON.stringify(templateData, null, 2);
+  const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(dataBlob);
+  link.download = `{{ template.name|slugify }}_template_backup.json`;
+  link.click();
+
+  alert('Template configuration exported successfully!');
+}
+</script>
+{% endblock %}

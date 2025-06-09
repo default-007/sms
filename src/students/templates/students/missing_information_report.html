@@ -1,0 +1,725 @@
+{% extends 'base.html' %}
+{% load student_tags %}
+
+{% block title %}Missing Information Report{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/apexcharts@latest/dist/apexcharts.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card bg-warning bg-opacity-10 border-warning">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h2 class="card-title mb-1">
+                <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                Missing Information Report
+              </h2>
+              <p class="card-text mb-0">
+                Students and parents with incomplete profile information
+              </p>
+            </div>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-warning" onclick="generateActionPlan()">
+                <i class="fas fa-clipboard-list me-1"></i>Action Plan
+              </button>
+              <div class="dropdown">
+                <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                  <i class="fas fa-download me-1"></i>Export
+                </button>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="{% url 'students:missing-info-report' %}?format=csv">
+                      <i class="fas fa-file-csv me-2"></i>CSV Report
+                    </a></li>
+                  <li><a class="dropdown-item" href="{% url 'students:missing-info-report' %}?format=pdf">
+                      <i class="fas fa-file-pdf me-2"></i>PDF Report
+                    </a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Statistics -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="row">
+        <div class="col-md-3">
+          <div class="card text-center border-danger">
+            <div class="card-body">
+              <div class="text-danger mb-2">
+                <i class="fas fa-users fa-2x"></i>
+              </div>
+              <h3 class="card-title text-danger">{{ total_students_with_issues }}</h3>
+              <p class="card-text">Students with Issues</p>
+              <small class="text-muted">Out of {{ total_students }} total</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center border-warning">
+            <div class="card-body">
+              <div class="text-warning mb-2">
+                <i class="fas fa-camera fa-2x"></i>
+              </div>
+              <h3 class="card-title text-warning">{{ missing_photos_count }}</h3>
+              <p class="card-text">Missing Photos</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center border-info">
+            <div class="card-body">
+              <div class="text-info mb-2">
+                <i class="fas fa-phone fa-2x"></i>
+              </div>
+              <h3 class="card-title text-info">{{ missing_emergency_contacts }}</h3>
+              <p class="card-text">Missing Emergency Contacts</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center border-secondary">
+            <div class="card-body">
+              <div class="text-secondary mb-2">
+                <i class="fas fa-user-friends fa-2x"></i>
+              </div>
+              <h3 class="card-title text-secondary">{{ missing_parents_count }}</h3>
+              <p class="card-text">Missing Parent Info</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-chart-pie me-2"></i>Issue Distribution
+          </h6>
+        </div>
+        <div class="card-body">
+          <div id="issueDistributionChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Issue Priority Matrix -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-exclamation-circle me-2"></i>Issue Priority Matrix
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3">
+              <div class="card bg-danger bg-opacity-10 border-danger">
+                <div class="card-body text-center">
+                  <div class="text-danger mb-2">
+                    <i class="fas fa-fire fa-2x"></i>
+                  </div>
+                  <h5 class="text-danger">Critical (5+ Issues)</h5>
+                  <h3 class="text-danger">{{ critical_issues_count }}</h3>
+                  <small>Requires immediate attention</small>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card bg-warning bg-opacity-10 border-warning">
+                <div class="card-body text-center">
+                  <div class="text-warning mb-2">
+                    <i class="fas fa-exclamation-triangle fa-2x"></i>
+                  </div>
+                  <h5 class="text-warning">High (3-4 Issues)</h5>
+                  <h3 class="text-warning">{{ high_issues_count }}</h3>
+                  <small>Action needed soon</small>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card bg-info bg-opacity-10 border-info">
+                <div class="card-body text-center">
+                  <div class="text-info mb-2">
+                    <i class="fas fa-info-circle fa-2x"></i>
+                  </div>
+                  <h5 class="text-info">Medium (2 Issues)</h5>
+                  <h3 class="text-info">{{ medium_issues_count }}</h3>
+                  <small>Schedule for review</small>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card bg-success bg-opacity-10 border-success">
+                <div class="card-body text-center">
+                  <div class="text-success mb-2">
+                    <i class="fas fa-check-circle fa-2x"></i>
+                  </div>
+                  <h5 class="text-success">Low (1 Issue)</h5>
+                  <h3 class="text-success">{{ low_issues_count }}</h3>
+                  <small>Minor cleanup needed</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter and Sort Options -->
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-md-3">
+              <label class="form-label">Filter by Issue Type</label>
+              <select class="form-select" id="issueTypeFilter">
+                <option value="">All Issues</option>
+                <option value="photo">Missing Photo</option>
+                <option value="phone">Missing Phone</option>
+                <option value="dob">Missing Date of Birth</option>
+                <option value="address">Missing Address</option>
+                <option value="emergency">Missing Emergency Contact</option>
+                <option value="parents">Missing Parent Info</option>
+                <option value="blood_group">Missing Blood Group</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Priority Level</label>
+              <select class="form-select" id="priorityFilter">
+                <option value="">All Priorities</option>
+                <option value="critical">Critical (5+ issues)</option>
+                <option value="high">High (3-4 issues)</option>
+                <option value="medium">Medium (2 issues)</option>
+                <option value="low">Low (1 issue)</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Class Filter</label>
+              <select class="form-select" id="classFilter">
+                <option value="">All Classes</option>
+                {% for class in available_classes %}
+                <option value="{{ class.id }}">{{ class }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end gap-2">
+              <button type="button" class="btn btn-primary" onclick="applyFilters()">
+                <i class="fas fa-filter me-1"></i>Apply
+              </button>
+              <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">
+                <i class="fas fa-times me-1"></i>Clear
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Missing Information Table -->
+  <div class="card">
+    <div class="card-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-table me-2"></i>Detailed Missing Information Report
+        </h5>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectCritical()">
+            <i class="fas fa-fire me-1"></i>Select Critical
+          </button>
+          <button type="button" class="btn btn-outline-warning btn-sm" onclick="bulkEmail()">
+            <i class="fas fa-envelope me-1"></i>Bulk Email
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table id="missingInfoTable" class="table table-striped table-hover">
+          <thead class="table-dark">
+            <tr>
+              <th width="40">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="selectAllCheckbox">
+                </div>
+              </th>
+              <th>Student</th>
+              <th>Class</th>
+              <th>Priority</th>
+              <th>Missing Information</th>
+              <th>Completion %</th>
+              <th>Last Updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in missing_data %}
+            <tr class="student-row" data-issues="{{ item.missing_count }}"
+              data-class="{{ item.student.current_class.id|default:'' }}">
+              <td>
+                <div class="form-check">
+                  <input class="form-check-input student-checkbox" type="checkbox" value="{{ item.student.id }}">
+                </div>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  {% if item.student.photo %}
+                  <img src="{{ item.student.photo.url }}" class="rounded-circle me-2" width="32" height="32"
+                    alt="Photo">
+                  {% else %}
+                  <div
+                    class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center text-white"
+                    style="width: 32px; height: 32px;">
+                    <i class="fas fa-user"></i>
+                  </div>
+                  {% endif %}
+                  <div>
+                    <strong>{{ item.student.get_full_name }}</strong>
+                    <br>
+                    <small class="text-muted">{{ item.student.admission_number }}</small>
+                  </div>
+                </div>
+              </td>
+              <td>
+                {% if item.student.current_class %}
+                <span class="badge bg-info">{{ item.student.current_class }}</span>
+                {% else %}
+                <span class="badge bg-secondary">Not Assigned</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if item.missing_count >= 5 %}
+                <span class="badge bg-danger">Critical</span>
+                {% elif item.missing_count >= 3 %}
+                <span class="badge bg-warning">High</span>
+                {% elif item.missing_count == 2 %}
+                <span class="badge bg-info">Medium</span>
+                {% else %}
+                <span class="badge bg-success">Low</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="d-flex flex-wrap gap-1">
+                  {% for field in item.missing_fields %}
+                  <span class="badge bg-light text-dark border">{{ field }}</span>
+                  {% endfor %}
+                </div>
+              </td>
+              <td>
+                {% student_profile_completion item.student as completion %}
+                <div class="d-flex align-items-center">
+                  <div class="progress me-2" style="width: 80px; height: 8px;">
+                    <div class="progress-bar 
+                                            {% if completion >= 80 %}bg-success
+                                            {% elif completion >= 60 %}bg-warning
+                                            {% else %}bg-danger{% endif %}" style="width: {{ completion }}%"></div>
+                  </div>
+                  <span class="small">{{ completion }}%</span>
+                </div>
+              </td>
+              <td>
+                <small class="text-muted">{{ item.student.updated_at|date:"M d, Y" }}</small>
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <a href="{% url 'students:student-detail' item.student.id %}" class="btn btn-outline-info"
+                    title="View Profile">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  <a href="{% url 'students:student-update' item.student.id %}" class="btn btn-outline-primary"
+                    title="Edit Profile">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <button type="button" class="btn btn-outline-warning" onclick="sendReminder('{{ item.student.id }}')"
+                    title="Send Reminder">
+                    <i class="fas fa-bell"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="8" class="text-center py-4">
+                <div class="text-success">
+                  <i class="fas fa-check-circle fa-3x mb-3 d-block"></i>
+                  <h5>All profiles are complete!</h5>
+                  <p>No missing information found for any students.</p>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Action Plan Modal -->
+<div class="modal fade" id="actionPlanModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Missing Information Action Plan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="actionPlanContent">
+          <!-- Action plan will be generated here -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="downloadActionPlan()">
+          <i class="fas fa-download me-1"></i>Download Plan
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Email Modal -->
+<div class="modal fade" id="bulkEmailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Send Bulk Reminder Emails</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="bulkEmailForm">
+          <div class="mb-3">
+            <label class="form-label">Email Subject</label>
+            <input type="text" class="form-control" name="subject" value="Profile Information Required - Please Update">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Email Message</label>
+            <textarea class="form-control" name="message" rows="6">Dear Parent/Guardian,
+
+              We noticed that some information is missing from your child's profile. Please log in to the parent portal
+              and update the following information:
+
+              [Missing fields will be listed automatically]
+
+              Thank you for helping us keep our records up to date.
+
+              Best regards,
+              School Administration</textarea>
+          </div>
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="send_to_students" id="sendToStudents">
+              <label class="form-check-label" for="sendToStudents">
+                Also send to students (if they have email addresses)
+              </label>
+            </div>
+          </div>
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong id="emailCount">0</strong> recipients selected.
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="sendBulkEmails()">
+          <i class="fas fa-envelope me-1"></i>Send Emails
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@latest/dist/apexcharts.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    $('#missingInfoTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[3, 'desc']], // Sort by priority
+      columnDefs: [
+        { targets: [0, 7], orderable: false }
+      ]
+    });
+
+    // Initialize chart
+    initializeChart();
+
+    // Handle checkbox changes
+    $('.student-checkbox').on('change', updateSelectionCount);
+    $('#selectAllCheckbox').on('change', function () {
+      $('.student-checkbox').prop('checked', $(this).is(':checked')).trigger('change');
+    });
+  });
+
+  function initializeChart() {
+    const options = {
+      series: [
+        {{ missing_photos_count }},
+      {{ missing_emergency_contacts }
+  },
+  { { missing_parents_count } },
+  { { missing_dob_count |default: 0 } },
+  { { missing_address_count |default: 0 } }
+        ],
+  chart: {
+    type: 'donut',
+      height: 200
+  },
+  labels: ['Missing Photos', 'Emergency Contacts', 'Parent Info', 'Date of Birth', 'Address'],
+    colors: ['#ffc107', '#dc3545', '#17a2b8', '#fd7e14', '#6c757d'],
+      legend: {
+    position: 'bottom',
+      fontSize: '12px'
+  },
+  responsive: [{
+    breakpoint: 480,
+    options: {
+      chart: {
+        height: 180
+      }
+    }
+  }]
+    };
+
+  const chart = new ApexCharts(document.querySelector("#issueDistributionChart"), options);
+  chart.render();
+}
+
+  function applyFilters() {
+    const issueType = $('#issueTypeFilter').val();
+    const priority = $('#priorityFilter').val();
+    const classId = $('#classFilter').val();
+
+    $('.student-row').show();
+
+    if (priority) {
+      $('.student-row').each(function () {
+        const issues = parseInt($(this).data('issues'));
+        let showRow = false;
+
+        switch (priority) {
+          case 'critical':
+            showRow = issues >= 5;
+            break;
+          case 'high':
+            showRow = issues >= 3 && issues <= 4;
+            break;
+          case 'medium':
+            showRow = issues === 2;
+            break;
+          case 'low':
+            showRow = issues === 1;
+            break;
+        }
+
+        if (!showRow) {
+          $(this).hide();
+        }
+      });
+    }
+
+    if (classId) {
+      $('.student-row').each(function () {
+        if ($(this).data('class') != classId) {
+          $(this).hide();
+        }
+      });
+    }
+
+    if (issueType) {
+      $('.student-row').each(function () {
+        const missingFields = $(this).find('.badge.bg-light').map(function () {
+          return $(this).text().toLowerCase();
+        }).get();
+
+        const hasIssueType = missingFields.some(field => {
+          switch (issueType) {
+            case 'photo': return field.includes('photo');
+            case 'phone': return field.includes('phone');
+            case 'dob': return field.includes('birth');
+            case 'address': return field.includes('address');
+            case 'emergency': return field.includes('emergency');
+            case 'parents': return field.includes('parent');
+            case 'blood_group': return field.includes('blood');
+            default: return true;
+          }
+        });
+
+        if (!hasIssueType) {
+          $(this).hide();
+        }
+      });
+    }
+  }
+
+  function clearFilters() {
+    $('#issueTypeFilter, #priorityFilter, #classFilter').val('');
+    $('.student-row').show();
+  }
+
+  function selectCritical() {
+    $('.student-checkbox').prop('checked', false);
+    $('.student-row').each(function () {
+      const issues = parseInt($(this).data('issues'));
+      if (issues >= 5) {
+        $(this).find('.student-checkbox').prop('checked', true);
+      }
+    });
+    updateSelectionCount();
+  }
+
+  function updateSelectionCount() {
+    const count = $('.student-checkbox:checked').length;
+    $('#emailCount').text(count);
+  }
+
+  function generateActionPlan() {
+    const actionPlanHtml = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h6 class="text-primary">Recommended Action Plan</h6>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h6 class="mb-0">Immediate Actions (Critical Priority)</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check-square text-danger me-2"></i>Contact parents of ${$('.badge:contains("Critical")').length} critical students</li>
+                            <li><i class="fas fa-check-square text-danger me-2"></i>Schedule individual meetings for profile completion</li>
+                            <li><i class="fas fa-check-square text-danger me-2"></i>Send urgent email reminders</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <h6 class="mb-0">Short-term Actions (High Priority)</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-square text-warning me-2"></i>Send bulk email reminders to high priority students</li>
+                            <li><i class="fas fa-square text-warning me-2"></i>Follow up via phone calls</li>
+                            <li><i class="fas fa-square text-warning me-2"></i>Set deadline for completion</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <div class="card border-info">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0">Medium-term Actions</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-square text-info me-2"></i>Schedule reminder emails for medium priority</li>
+                            <li><i class="fas fa-square text-info me-2"></i>Create online form for easy updates</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-success">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0">Long-term Actions</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-square text-success me-2"></i>Regular monthly profile reviews</li>
+                            <li><i class="fas fa-square text-success me-2"></i>Implement automated reminders</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    $('#actionPlanContent').html(actionPlanHtml);
+    $('#actionPlanModal').modal('show');
+  }
+
+  function bulkEmail() {
+    const selectedCount = $('.student-checkbox:checked').length;
+    if (selectedCount === 0) {
+      alert('Please select students to send emails to.');
+      return;
+    }
+    $('#emailCount').text(selectedCount);
+    $('#bulkEmailModal').modal('show');
+  }
+
+  function sendBulkEmails() {
+    const selectedStudents = $('.student-checkbox:checked').map(function () {
+      return $(this).val();
+    }).get();
+
+    // Simulate email sending
+    $('#bulkEmailModal').modal('hide');
+
+    // Show success message
+    const alertHtml = `
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            Bulk emails sent successfully to ${selectedStudents.length} recipients!
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+
+    $('.container-fluid').prepend(alertHtml);
+  }
+
+  function sendReminder(studentId) {
+    // Send individual reminder
+    console.log('Sending reminder to student:', studentId);
+
+    // Show success toast
+    const toastHtml = `
+        <div class="toast align-items-center text-white bg-success border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-bell me-2"></i>
+                    Reminder sent successfully!
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+
+    $('body').append(toastHtml);
+    $('.toast').toast('show');
+  }
+
+  function downloadActionPlan() {
+    // Generate and download action plan
+    window.open('/students/missing-info/action-plan/', '_blank');
+  }
+</script>
+{% endblock %}

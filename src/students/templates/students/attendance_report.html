@@ -1,0 +1,757 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load student_tags %}
+
+{% block title %}Attendance Report{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+<style>
+  .attendance-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .attendance-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  .attendance-excellent {
+    border-left: 4px solid #28a745;
+  }
+
+  .attendance-good {
+    border-left: 4px solid #20c997;
+  }
+
+  .attendance-average {
+    border-left: 4px solid #ffc107;
+  }
+
+  .attendance-poor {
+    border-left: 4px solid #fd7e14;
+  }
+
+  .attendance-critical {
+    border-left: 4px solid #dc3545;
+  }
+
+  .attendance-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+  }
+
+  .heatmap-cell {
+    width: 15px;
+    height: 15px;
+    margin: 1px;
+    border-radius: 2px;
+    display: inline-block;
+    cursor: pointer;
+  }
+
+  .heatmap-0 {
+    background-color: #ebedf0;
+  }
+
+  .heatmap-1 {
+    background-color: #c6e48b;
+  }
+
+  .heatmap-2 {
+    background-color: #7bc96f;
+  }
+
+  .heatmap-3 {
+    background-color: #239a3b;
+  }
+
+  .heatmap-4 {
+    background-color: #196127;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2><i class="fas fa-calendar-check me-2"></i>Attendance Report</h2>
+          <p class="text-muted">Monitor and analyze student attendance patterns</p>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+            <i class="fas fa-filter me-2"></i>Advanced Filters
+          </button>
+          <div class="dropdown">
+            <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-download me-2"></i>Export
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#" onclick="exportAttendance('pdf')">
+                  <i class="fas fa-file-pdf me-2"></i>PDF Report
+                </a></li>
+              <li><a class="dropdown-item" href="#" onclick="exportAttendance('excel')">
+                  <i class="fas fa-file-excel me-2"></i>Excel Spreadsheet
+                </a></li>
+              <li><a class="dropdown-item" href="#" onclick="exportAttendance('csv')">
+                  <i class="fas fa-file-csv me-2"></i>CSV Data
+                </a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Attendance Overview Cards -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6">
+      <div class="card border-0 shadow-sm attendance-card attendance-excellent">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <div class="bg-success bg-gradient rounded-circle p-3">
+                <i class="fas fa-award text-white fs-4"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <div class="fw-bold fs-4 text-success">89.5%</div>
+              <div class="text-muted small">Overall Attendance</div>
+              <div class="text-success small">
+                <i class="fas fa-arrow-up me-1"></i>+2.3% from last month
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+      <div class="card border-0 shadow-sm attendance-card attendance-good">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <div class="bg-info bg-gradient rounded-circle p-3">
+                <i class="fas fa-users text-white fs-4"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <div class="fw-bold fs-4 text-info">456</div>
+              <div class="text-muted small">Students Present Today</div>
+              <div class="text-info small">
+                Out of {% student_count_by_status 'Active' %} active students
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+      <div class="card border-0 shadow-sm attendance-card attendance-poor">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <div class="bg-warning bg-gradient rounded-circle p-3">
+                <i class="fas fa-exclamation-triangle text-white fs-4"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <div class="fw-bold fs-4 text-warning">23</div>
+              <div class="text-muted small">Low Attendance Alerts</div>
+              <div class="text-warning small">
+                <i class="fas fa-arrow-down me-1"></i>-5 from yesterday
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+      <div class="card border-0 shadow-sm attendance-card attendance-critical">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <div class="bg-danger bg-gradient rounded-circle p-3">
+                <i class="fas fa-user-times text-white fs-4"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <div class="fw-bold fs-4 text-danger">12</div>
+              <div class="text-muted small">Chronic Absentees</div>
+              <div class="text-danger small">
+                <60% attendance rate </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts and Analytics -->
+    <div class="row mb-4">
+      <!-- Attendance Trends -->
+      <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+              <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Attendance Trends</h6>
+              <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="trendPeriod" id="week" checked>
+                <label class="btn btn-outline-primary" for="week">Week</label>
+
+                <input type="radio" class="btn-check" name="trendPeriod" id="month">
+                <label class="btn btn-outline-primary" for="month">Month</label>
+
+                <input type="radio" class="btn-check" name="trendPeriod" id="term">
+                <label class="btn btn-outline-primary" for="term">Term</label>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <canvas id="attendanceTrendChart" height="300"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Class-wise Attendance -->
+      <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-light">
+            <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Class-wise Attendance</h6>
+          </div>
+          <div class="card-body">
+            <canvas id="classAttendanceChart" height="300"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailed Attendance Table -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+              <h6 class="mb-0"><i class="fas fa-table me-2"></i>Student Attendance Details</h6>
+              <div class="d-flex gap-2">
+                <select class="form-select form-select-sm" id="classFilter" style="width: auto;">
+                  <option value="">All Classes</option>
+                  <option value="1">Grade 1</option>
+                  <option value="2">Grade 2</option>
+                  <option value="3">Grade 3</option>
+                  <option value="4">Grade 4</option>
+                  <option value="5">Grade 5</option>
+                </select>
+                <select class="form-select form-select-sm" id="statusFilter" style="width: auto;">
+                  <option value="">All Status</option>
+                  <option value="excellent">Excellent (≥95%)</option>
+                  <option value="good">Good (85-94%)</option>
+                  <option value="average">Average (75-84%)</option>
+                  <option value="poor">Poor (60-74%)</option>
+                  <option value="critical">Critical (<60%)< /option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover" id="attendanceTable">
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Class</th>
+                    <th>Attendance %</th>
+                    <th>Present Days</th>
+                    <th>Absent Days</th>
+                    <th>Late Days</th>
+                    <th>Status</th>
+                    <th>Trend</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <img src="https://via.placeholder.com/32" class="rounded-circle me-2" width="32" height="32">
+                        <div>
+                          <div class="fw-bold">John Smith</div>
+                          <small class="text-muted">STU-2024-001</small>
+                        </div>
+                      </div>
+                    </td>
+                    <td>Grade 5 A</td>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <span class="attendance-indicator bg-success"></span>
+                        <strong class="text-success">96.5%</strong>
+                      </div>
+                    </td>
+                    <td>138</td>
+                    <td>5</td>
+                    <td>2</td>
+                    <td><span class="badge bg-success">Excellent</span></td>
+                    <td>
+                      <div class="d-flex">
+                        <div class="heatmap-cell heatmap-4" title="Present"></div>
+                        <div class="heatmap-cell heatmap-4" title="Present"></div>
+                        <div class="heatmap-cell heatmap-4" title="Present"></div>
+                        <div class="heatmap-cell heatmap-0" title="Absent"></div>
+                        <div class="heatmap-cell heatmap-4" title="Present"></div>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                          Actions
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li><a class="dropdown-item" href="#"><i class="fas fa-eye me-2"></i>View Details</a></li>
+                          <li><a class="dropdown-item" href="#"><i class="fas fa-envelope me-2"></i>Send Alert</a></li>
+                          <li><a class="dropdown-item" href="#"><i class="fas fa-chart-line me-2"></i>View Report</a>
+                          </li>
+                        </ul>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <img src="https://via.placeholder.com/32" class="rounded-circle me-2" width="32" height="32">
+                        <div>
+                          <div class="fw-bold">Sarah Johnson</div>
+                          <small class="text-muted">STU-2024-002</small>
+                        </div>
+                      </div>
+                    </td>
+                    <td>Grade 4 B</td>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <span class="attendance-indicator bg-info"></span>
+                        <strong class="text-info">87.2%</strong>
+                      </div>
+                    </td>
+                    <td>125</td>
+                    <td>18</td>
+                    <td>1</td>
+                    <td><span class="badge bg-info">Good</span></td>
+                    <td>
+                      <div class="d-flex">
+                        <div class="heatmap-cell heatmap-3" title="Present"></div>
+                        <div class="heatmap-cell heatmap-3" title="Present"></div>
+                        <div class="heatmap-cell heatmap-0" title="Absent"></div>
+                        <div class="heatmap-cell heatmap-3" title="Present"></div>
+                        <div class="heatmap-cell heatmap-3" title="Present"></div>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                          Actions
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li><a class="dropdown-item" href="#"><i class="fas fa-eye me-2"></i>View Details</a></li>
+                          <li><a class="dropdown-item" href="#"><i class="fas fa-envelope me-2"></i>Send Alert</a></li>
+                          <li><a class="dropdown-item" href="#"><i class="fas fa-chart-line me-2"></i>View Report</a>
+                          </li>
+                        </ul>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <img src="https://via.placeholder.com/32" class="rounded-circle me-2" width="32" height="32">
+                        <div>
+                          <div class="fw-bold">Mike Wilson</div>
+                          <small class="text-muted">STU-2024-003</small>
+                        </div>
+                      </div>
+                    </td>
+                    <td>Grade 3 C</td>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <span class="attendance-indicator bg-danger"></span>
+                        <strong class="text-danger">58.3%</strong>
+                      </div>
+                    </td>
+                    <td>84</td>
+                    <td>60</td>
+                    <td>8</td>
+                    <td><span class="badge bg-danger">Critical</span></td>
+                    <td>
+                      <div class="d-flex">
+                        <div class="heatmap-cell heatmap-0" title="Absent"></div>
+                        <div class="heatmap-cell heatmap-1" title="Late"></div>
+                        <div class="heatmap-cell heatmap-0" title="Absent"></div>
+                        <div class="heatmap-cell heatmap-2" title="Present"></div>
+                        <div class="heatmap-cell heatmap-0" title="Absent"></div>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-danger dropdown-toggle" data-bs-toggle="dropdown">
+                          Urgent
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li><a class="dropdown-item" href="#"><i class="fas fa-exclamation-triangle me-2"></i>Send
+                              Alert</a></li>
+                          <li><a class="dropdown-item" href="#"><i class="fas fa-phone me-2"></i>Call Parent</a></li>
+                          <li><a class="dropdown-item" href="#"><i class="fas fa-user-friends me-2"></i>Schedule
+                              Meeting</a></li>
+                        </ul>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Calendar View -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+              <h6 class="mb-0"><i class="fas fa-calendar me-2"></i>Monthly Attendance Calendar</h6>
+              <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-primary" id="prevMonth">
+                  <i class="fas fa-chevron-left"></i>
+                </button>
+                <span class="fw-bold px-3" id="currentMonth">November 2024</span>
+                <button class="btn btn-sm btn-outline-primary" id="nextMonth">
+                  <i class="fas fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="attendanceCalendar"></div>
+            <div class="d-flex justify-content-center mt-3">
+              <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center">
+                  <div class="heatmap-cell heatmap-4 me-2"></div>
+                  <small>Excellent (95-100%)</small>
+                </div>
+                <div class="d-flex align-items-center">
+                  <div class="heatmap-cell heatmap-3 me-2"></div>
+                  <small>Good (85-94%)</small>
+                </div>
+                <div class="d-flex align-items-center">
+                  <div class="heatmap-cell heatmap-2 me-2"></div>
+                  <small>Average (75-84%)</small>
+                </div>
+                <div class="d-flex align-items-center">
+                  <div class="heatmap-cell heatmap-1 me-2"></div>
+                  <small>Poor (60-74%)</small>
+                </div>
+                <div class="d-flex align-items-center">
+                  <div class="heatmap-cell heatmap-0 me-2"></div>
+                  <small>Critical (<60%)< /small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Advanced Filter Modal -->
+  <div class="modal fade" id="filterModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-filter me-2"></i>Advanced Filters</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="filterForm">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Date Range</label>
+                  <div class="input-group">
+                    <input type="date" class="form-control" name="start_date">
+                    <span class="input-group-text">to</span>
+                    <input type="date" class="form-control" name="end_date">
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Class/Grade</label>
+                  <select class="form-select" name="class_filter">
+                    <option value="">All Classes</option>
+                    <option value="1">Grade 1</option>
+                    <option value="2">Grade 2</option>
+                    <option value="3">Grade 3</option>
+                    <option value="4">Grade 4</option>
+                    <option value="5">Grade 5</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Attendance Range</label>
+                  <div class="row">
+                    <div class="col-6">
+                      <input type="number" class="form-control" name="min_attendance" placeholder="Min %" min="0"
+                        max="100">
+                    </div>
+                    <div class="col-6">
+                      <input type="number" class="form-control" name="max_attendance" placeholder="Max %" min="0"
+                        max="100">
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Status</label>
+                  <div class="d-flex flex-wrap gap-2">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="status[]" value="excellent" checked>
+                      <label class="form-check-label small">Excellent</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="status[]" value="good" checked>
+                      <label class="form-check-label small">Good</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="status[]" value="average" checked>
+                      <label class="form-check-label small">Average</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="status[]" value="poor" checked>
+                      <label class="form-check-label small">Poor</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="status[]" value="critical" checked>
+                      <label class="form-check-label small">Critical</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-outline-secondary" id="clearFilters">Clear All</button>
+          <button type="button" class="btn btn-primary" id="applyFilters">Apply Filters</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endblock %}
+
+  {% block extra_js %}
+  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Initialize DataTable
+      const table = $('#attendanceTable').DataTable({
+        pageLength: 25,
+        order: [[2, 'desc']],
+        columnDefs: [
+          { orderable: false, targets: [7, 8] }
+        ],
+        dom: 'Bfrtip',
+        buttons: [
+          'copy', 'csv', 'excel', 'pdf', 'print'
+        ]
+      });
+
+      // Attendance Trend Chart
+      const trendCtx = document.getElementById('attendanceTrendChart').getContext('2d');
+      new Chart(trendCtx, {
+        type: 'line',
+        data: {
+          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+          datasets: [{
+            label: 'Overall Attendance %',
+            data: [88, 92, 87, 95, 89, 85],
+            borderColor: '#007bff',
+            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+            tension: 0.4,
+            fill: true
+          }, {
+            label: 'Target %',
+            data: [90, 90, 90, 90, 90, 90],
+            borderColor: '#28a745',
+            borderDash: [5, 5],
+            fill: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              ticks: {
+                callback: function (value) {
+                  return value + '%';
+                }
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });
+
+      // Class Attendance Chart
+      const classCtx = document.getElementById('classAttendanceChart').getContext('2d');
+      new Chart(classCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5'],
+          datasets: [{
+            data: [92, 88, 95, 87, 90],
+            backgroundColor: [
+              '#007bff', '#28a745', '#ffc107', '#dc3545', '#6f42c1'
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  return context.label + ': ' + context.parsed + '%';
+                }
+              }
+            }
+          }
+        }
+      });
+
+      // Calendar Generation
+      function generateCalendar() {
+        const calendar = document.getElementById('attendanceCalendar');
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+
+        // Generate calendar HTML
+        let calendarHTML = '<div class="row">';
+
+        // Days of week header
+        const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        for (let day of daysOfWeek) {
+          calendarHTML += `<div class="col text-center fw-bold mb-2">${day}</div>`;
+        }
+
+        // Calendar days
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        // Empty cells for days before month starts
+        for (let i = 0; i < firstDay; i++) {
+          calendarHTML += '<div class="col p-2"></div>';
+        }
+
+        // Days of the month
+        for (let day = 1; day <= daysInMonth; day++) {
+          const attendanceLevel = Math.floor(Math.random() * 5); // Random for demo
+          calendarHTML += `
+                <div class="col p-1">
+                    <div class="text-center">
+                        <div class="small">${day}</div>
+                        <div class="heatmap-cell heatmap-${attendanceLevel} mx-auto" title="Day ${day}: ${80 + attendanceLevel * 5}% attendance"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        calendarHTML += '</div>';
+        calendar.innerHTML = calendarHTML;
+      }
+
+      generateCalendar();
+
+      // Filter functionality
+      document.getElementById('classFilter').addEventListener('change', function () {
+        const value = this.value;
+        if (value) {
+          table.column(1).search(value).draw();
+        } else {
+          table.column(1).search('').draw();
+        }
+      });
+
+      document.getElementById('statusFilter').addEventListener('change', function () {
+        const value = this.value;
+        if (value) {
+          table.column(6).search(value).draw();
+        } else {
+          table.column(6).search('').draw();
+        }
+      });
+
+      // Export functions
+      window.exportAttendance = function (format) {
+        const url = `/students/attendance/export/?format=${format}`;
+        window.open(url, '_blank');
+      };
+
+      // Apply filters
+      document.getElementById('applyFilters').addEventListener('click', function () {
+        // Get filter values and apply to table
+        const formData = new FormData(document.getElementById('filterForm'));
+        // Apply filters logic here
+        bootstrap.Modal.getInstance(document.getElementById('filterModal')).hide();
+      });
+
+      // Clear filters
+      document.getElementById('clearFilters').addEventListener('click', function () {
+        document.getElementById('filterForm').reset();
+        table.search('').columns().search('').draw();
+      });
+
+      // Month navigation
+      document.getElementById('prevMonth').addEventListener('click', function () {
+        // Navigate to previous month
+        generateCalendar();
+      });
+
+      document.getElementById('nextMonth').addEventListener('click', function () {
+        // Navigate to next month
+        generateCalendar();
+      });
+    });
+  </script>
+  {% endblock %}

@@ -1,0 +1,678 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Room Usage Report{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css"
+  href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.4/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Room Usage Report</h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:dashboard' %}">Scheduling</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:reports' %}">Reports</a></li>
+              <li class="breadcrumb-item active">Room Usage</li>
+            </ol>
+          </nav>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="refreshData()">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+          </button>
+          <button class="btn btn-outline-secondary" onclick="exportReport()">
+            <i class="bi bi-download"></i> Export
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <label for="termSelect" class="form-label">Select Term</label>
+          <select class="form-select" id="termSelect" onchange="loadTermData()">
+            {% for available_term in available_terms %}
+            <option value="{{ available_term.id }}" {% if available_term == term %}selected{% endif %}>
+              {{ available_term.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <label for="buildingFilter" class="form-label">Filter by Building</label>
+          <select class="form-select" id="buildingFilter" onchange="filterByBuilding()">
+            <option value="">All Buildings</option>
+            <option value="main">Main Building</option>
+            <option value="science">Science Block</option>
+            <option value="admin">Admin Block</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <label for="roomTypeFilter" class="form-label">Filter by Type</label>
+          <select class="form-select" id="roomTypeFilter" onchange="filterByType()">
+            <option value="">All Types</option>
+            <option value="classroom">Classroom</option>
+            <option value="laboratory">Laboratory</option>
+            <option value="computer_lab">Computer Lab</option>
+            <option value="gymnasium">Gymnasium</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <label for="utilizationFilter" class="form-label">Utilization Range</label>
+          <select class="form-select" id="utilizationFilter" onchange="filterByUtilization()">
+            <option value="">All Ranges</option>
+            <option value="high">High (>80%)</option>
+            <option value="medium">Medium (50-80%)</option>
+            <option value="low">Low (<50%)< /option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if usage_data %}
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <i class="bi bi-building text-primary" style="font-size: 2.5rem;"></i>
+          <h3 class="mt-2 mb-1">{{ usage_data.room_utilization|length }}</h3>
+          <p class="text-muted mb-0">Total Rooms</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <i class="bi bi-graph-up text-success" style="font-size: 2.5rem;"></i>
+          <h3 class="mt-2 mb-1">{{ usage_data.summary.average_utilization_rate|floatformat:1 }}%</h3>
+          <p class="text-muted mb-0">Avg Utilization</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <i class="bi bi-award text-warning" style="font-size: 2.5rem;"></i>
+          <h3 class="mt-2 mb-1">{{ usage_data.summary.most_used_room.room__number|default:"--" }}</h3>
+          <p class="text-muted mb-0">Most Used Room</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <i class="bi bi-exclamation-triangle text-danger" style="font-size: 2.5rem;"></i>
+          <h3 class="mt-2 mb-1">3</h3>
+          <p class="text-muted mb-0">Under-utilized</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Usage Overview Charts -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Room Utilization Overview</h5>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-primary active" onclick="switchChart('utilization')">Utilization</button>
+            <button class="btn btn-outline-primary" onclick="switchChart('capacity')">Capacity</button>
+            <button class="btn btn-outline-primary" onclick="switchChart('type')">By Type</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="roomUtilizationChart"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Usage by Room Type</h5>
+        </div>
+        <div class="card-body">
+          <div id="roomTypeChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Peak Usage Times -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Peak Usage Times</h5>
+        </div>
+        <div class="card-body">
+          <div id="peakUsageChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Room Usage Table -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Detailed Room Usage</h5>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary" onclick="toggleView('table')">
+              <i class="bi bi-table"></i> Table
+            </button>
+            <button class="btn btn-outline-secondary" onclick="toggleView('grid')">
+              <i class="bi bi-grid"></i> Grid
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Table View -->
+          <div id="tableView">
+            <div class="table-responsive">
+              <table class="table table-hover" id="roomUsageTable">
+                <thead>
+                  <tr>
+                    <th>Room</th>
+                    <th>Building</th>
+                    <th>Type</th>
+                    <th>Capacity</th>
+                    <th>Total Hours</th>
+                    <th>Used Hours</th>
+                    <th>Utilization</th>
+                    <th>Peak Day</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for room in usage_data.room_utilization %}
+                  <tr>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <div class="room-icon me-2">
+                          {% if room.room__room_type == 'laboratory' %}
+                          <i class="bi bi-flask text-info"></i>
+                          {% elif room.room__room_type == 'computer_lab' %}
+                          <i class="bi bi-laptop text-primary"></i>
+                          {% elif room.room__room_type == 'gymnasium' %}
+                          <i class="bi bi-dribbble text-success"></i>
+                          {% else %}
+                          <i class="bi bi-door-open text-secondary"></i>
+                          {% endif %}
+                        </div>
+                        <div>
+                          <div class="fw-semibold">{{ room.room__number }}</div>
+                          <small class="text-muted">{{ room.room__name }}</small>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{{ room.room__building|default:"--" }}</td>
+                    <td>
+                      <span class="badge bg-light text-dark">{{ room.room__room_type|capfirst }}</span>
+                    </td>
+                    <td class="text-center">{{ room.room__capacity }}</td>
+                    <td class="text-center">40</td>
+                    <td class="text-center">{{ room.periods_used }}</td>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <div class="progress me-2" style="width: 60px; height: 8px;">
+                          <div
+                            class="progress-bar bg-{% if room.utilization_rate >= 80 %}success{% elif room.utilization_rate >= 50 %}warning{% else %}danger{% endif %}"
+                            style="width: {{ room.utilization_rate }}%"></div>
+                        </div>
+                        <span class="small fw-semibold">{{ room.utilization_rate|floatformat:1 }}%</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span
+                        class="badge bg-primary">{% cycle 'Monday' 'Tuesday' 'Wednesday' 'Thursday' 'Friday' %}</span>
+                    </td>
+                    <td>
+                      {% if room.utilization_rate >= 80 %}
+                      <span class="badge bg-success">High Usage</span>
+                      {% elif room.utilization_rate >= 50 %}
+                      <span class="badge bg-warning">Medium</span>
+                      {% else %}
+                      <span class="badge bg-danger">Under-utilized</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary" onclick="viewRoomDetails('{{ room.room__id }}')">
+                          <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-info" onclick="viewSchedule('{{ room.room__id }}')">
+                          <i class="bi bi-calendar"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Grid View -->
+          <div id="gridView" style="display: none;">
+            <div class="row">
+              {% for room in usage_data.room_utilization %}
+              <div class="col-lg-4 col-md-6 mb-3">
+                <div class="card room-card">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                      <div>
+                        <h6 class="card-title mb-1">{{ room.room__number }}</h6>
+                        <small class="text-muted">{{ room.room__name }}</small>
+                      </div>
+                      <span
+                        class="badge bg-{% if room.utilization_rate >= 80 %}success{% elif room.utilization_rate >= 50 %}warning{% else %}danger{% endif %}">
+                        {{ room.utilization_rate|floatformat:1 }}%
+                      </span>
+                    </div>
+
+                    <div class="row text-center mb-3">
+                      <div class="col-4">
+                        <small class="text-muted d-block">Capacity</small>
+                        <span class="fw-semibold">{{ room.room__capacity }}</span>
+                      </div>
+                      <div class="col-4">
+                        <small class="text-muted d-block">Used</small>
+                        <span class="fw-semibold">{{ room.periods_used }}</span>
+                      </div>
+                      <div class="col-4">
+                        <small class="text-muted d-block">Free</small>
+                        <span class="fw-semibold">{{ room.free_periods }}</span>
+                      </div>
+                    </div>
+
+                    <div class="progress mb-3" style="height: 8px;">
+                      <div
+                        class="progress-bar bg-{% if room.utilization_rate >= 80 %}success{% elif room.utilization_rate >= 50 %}warning{% else %}danger{% endif %}"
+                        style="width: {{ room.utilization_rate }}%"></div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                      <span class="badge bg-light text-dark">{{ room.room__room_type|capfirst }}</span>
+                      <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary" onclick="viewRoomDetails('{{ room.room__id }}')">
+                          <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-info" onclick="viewSchedule('{{ room.room__id }}')">
+                          <i class="bi bi-calendar"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recommendations -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-lightbulb"></i> Optimization Recommendations
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-lg-8">
+              <div class="list-group list-group-flush">
+                <div class="list-group-item border-0 px-0">
+                  <div class="d-flex align-items-start">
+                    <i class="bi bi-arrow-up-circle text-success me-3 mt-1"></i>
+                    <div>
+                      <h6 class="mb-1">Increase utilization of Room 105</h6>
+                      <p class="mb-1 text-muted">This classroom has only 35% utilization. Consider scheduling more
+                        classes here.</p>
+                      <button class="btn btn-sm btn-outline-success">View Details</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="list-group-item border-0 px-0">
+                  <div class="d-flex align-items-start">
+                    <i class="bi bi-exclamation-triangle text-warning me-3 mt-1"></i>
+                    <div>
+                      <h6 class="mb-1">Lab 2 is overbooked</h6>
+                      <p class="mb-1 text-muted">Science Lab 2 has 95% utilization. Consider distributing some sessions
+                        to Lab 1.</p>
+                      <button class="btn btn-sm btn-outline-warning">Redistribute</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="list-group-item border-0 px-0">
+                  <div class="d-flex align-items-start">
+                    <i class="bi bi-info-circle text-info me-3 mt-1"></i>
+                    <div>
+                      <h6 class="mb-1">Optimal usage in Computer Labs</h6>
+                      <p class="mb-1 text-muted">Computer labs show excellent utilization rates. Maintain current
+                        scheduling.</p>
+                      <button class="btn btn-sm btn-outline-info">View Pattern</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="card bg-light">
+                <div class="card-body text-center">
+                  <h5 class="text-primary">75.3%</h5>
+                  <p class="text-muted mb-0">Overall Efficiency Score</p>
+                  <div class="progress mt-2" style="height: 8px;">
+                    <div class="progress-bar bg-primary" style="width: 75%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <!-- No Data State -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <i class="bi bi-building-x text-muted" style="font-size: 4rem;"></i>
+          <h4 class="text-muted mt-3">No Usage Data Available</h4>
+          <p class="text-muted">Please select a term to view room usage analytics.</p>
+          <button class="btn btn-primary" onclick="generateReport()">
+            <i class="bi bi-play-circle"></i> Generate Report
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Custom CSS -->
+<style>
+  .room-card {
+    transition: transform 0.2s ease-in-out;
+  }
+
+  .room-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .room-icon {
+    font-size: 1.2rem;
+  }
+
+  @media print {
+
+    .btn-group,
+    .card-header .btn-group {
+      display: none !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.41.0/apexcharts.min.js"></script>
+
+<script>
+  // Room Utilization Chart
+  const utilizationOptions = {
+    series: [{
+      name: 'Utilization %',
+      data: [
+        {% for room in usage_data.room_utilization %}
+                {{ room.utilization_rate |default: 0 }}{% if not forloop.last %}, {% endif %}
+  {% endfor %}
+        ]
+    }],
+  chart: {
+    type: 'bar',
+      height: 350,
+        toolbar: {
+      show: true
+    }
+  },
+  plotOptions: {
+    bar: {
+      borderRadius: 4,
+        horizontal: false,
+          columnWidth: '55%',
+        }
+  },
+  dataLabels: {
+    enabled: true,
+      formatter: function (val) {
+        return val.toFixed(1) + "%"
+      }
+  },
+  stroke: {
+    show: true,
+      width: 2,
+        colors: ['transparent']
+  },
+  xaxis: {
+    categories: [
+      {% for room in usage_data.room_utilization %}
+  '{{ room.room__number }}'{% if not forloop.last %}, {% endif %}
+  {% endfor %}
+        ]
+    },
+  yaxis: {
+    title: {
+      text: 'Utilization Percentage'
+    },
+    max: 100
+  },
+  fill: {
+    opacity: 1
+  },
+  colors: ['#008FFB']
+};
+
+  // Room Type Distribution
+  const roomTypeOptions = {
+    series: [
+      {% for type_data in usage_data.room_type_analysis %}
+  { { type_data.total_usage } } {% if not forloop.last %}, {% endif %}
+  {% endfor %}
+    ],
+  chart: {
+    type: 'donut',
+      height: 350
+  },
+  labels: [
+    {% for type_data in usage_data.room_type_analysis %}
+  '{{ type_data.room__room_type|capfirst }}'{% if not forloop.last %}, {% endif %}
+  {% endfor %}
+    ],
+  colors: ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0'],
+    responsive: [{
+      breakpoint: 480,
+      options: {
+        chart: {
+          width: 200
+        },
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }]
+};
+
+  // Peak Usage Heatmap
+  const peakUsageOptions = {
+    series: [{
+      name: 'Period 1',
+      data: [15, 12, 18, 10, 14]
+    }, {
+      name: 'Period 2',
+      data: [18, 16, 20, 12, 16]
+    }, {
+      name: 'Period 3',
+      data: [20, 18, 22, 14, 18]
+    }, {
+      name: 'Period 4',
+      data: [16, 14, 18, 16, 20]
+    }, {
+      name: 'Period 5',
+      data: [14, 12, 16, 18, 22]
+    }, {
+      name: 'Period 6',
+      data: [12, 10, 14, 20, 18]
+    }, {
+      name: 'Period 7',
+      data: [8, 6, 10, 16, 14]
+    }],
+    chart: {
+      type: 'heatmap',
+      height: 300
+    },
+    dataLabels: {
+      enabled: false
+    },
+    colors: ["#008FFB"],
+    xaxis: {
+      categories: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    },
+    title: {
+      text: 'Room Usage by Day and Period'
+    }
+  };
+
+  // Initialize Charts and DataTable
+  document.addEventListener('DOMContentLoaded', function () {
+    {% if usage_data %}
+    // Initialize DataTable
+    $('#roomUsageTable').DataTable({
+      responsive: true,
+      pageLength: 15,
+      order: [[6, 'desc']], // Sort by utilization
+      columnDefs: [
+        { orderable: false, targets: [9] }
+      ]
+    });
+
+    // Initialize Charts
+    const utilizationChart = new ApexCharts(document.querySelector("#roomUtilizationChart"), utilizationOptions);
+    utilizationChart.render();
+
+    const typeChart = new ApexCharts(document.querySelector("#roomTypeChart"), roomTypeOptions);
+    typeChart.render();
+
+    const peakChart = new ApexCharts(document.querySelector("#peakUsageChart"), peakUsageOptions);
+    peakChart.render();
+    {% endif %}
+  });
+
+  // Functions
+  function loadTermData() {
+    const termId = document.getElementById('termSelect').value;
+    window.location.href = `?term_id=${termId}`;
+  }
+
+  function filterByBuilding() {
+    const building = document.getElementById('buildingFilter').value;
+    // Implement building filter
+    console.log('Filtering by building:', building);
+  }
+
+  function filterByType() {
+    const type = document.getElementById('roomTypeFilter').value;
+    // Implement type filter
+    console.log('Filtering by type:', type);
+  }
+
+  function filterByUtilization() {
+    const utilization = document.getElementById('utilizationFilter').value;
+    // Implement utilization filter
+    console.log('Filtering by utilization:', utilization);
+  }
+
+  function switchChart(chartType) {
+    // Switch between different chart views
+    console.log('Switching to chart:', chartType);
+
+    // Update button states
+    document.querySelectorAll('.btn-group .btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+  }
+
+  function toggleView(viewType) {
+    if (viewType === 'table') {
+      document.getElementById('tableView').style.display = 'block';
+      document.getElementById('gridView').style.display = 'none';
+    } else {
+      document.getElementById('tableView').style.display = 'none';
+      document.getElementById('gridView').style.display = 'block';
+    }
+  }
+
+  function viewRoomDetails(roomId) {
+    window.location.href = `{% url 'scheduling:room_detail' 'ROOM_ID' %}`.replace('ROOM_ID', roomId);
+  }
+
+  function viewSchedule(roomId) {
+    window.location.href = `{% url 'scheduling:room_calendar' 'ROOM_ID' %}`.replace('ROOM_ID', roomId);
+  }
+
+  function refreshData() {
+    location.reload();
+  }
+
+  function exportReport() {
+    const termId = document.getElementById('termSelect').value;
+    const params = new URLSearchParams();
+    if (termId) params.append('term_id', termId);
+
+    window.location.href = `{% url 'scheduling:export_room_utilization' %}?${params.toString()}`;
+  }
+
+  function generateReport() {
+    console.log('Generating room usage report...');
+  }
+</script>
+{% endblock %}

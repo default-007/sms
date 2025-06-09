@@ -193,7 +193,7 @@ class SchedulingAnalyticsService:
             .values("teacher", "time_slot__day_of_week", "time_slot__period_number")
             .annotate(conflict_count=Count("id"))
             .filter(conflict_count__gt=1)
-            .select_related("teacher")
+            # .select_related("teacher")
         )
 
         # Room double bookings

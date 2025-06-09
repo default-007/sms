@@ -1,0 +1,682 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Scheduling Constraints - Scheduling{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">Scheduling Constraints</h1>
+          <p class="text-muted">Manage rules and preferences for timetable generation</p>
+        </div>
+        <div>
+          <a href="{% url 'scheduling:constraint_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Add Constraint
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="text-primary mb-3">
+            <i class="fas fa-rules fa-2x"></i>
+          </div>
+          <h4 class="mb-0">{{ constraints|length }}</h4>
+          <p class="text-muted mb-0">Total Constraints</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="text-success mb-3">
+            <i class="fas fa-check-circle fa-2x"></i>
+          </div>
+          <h4 class="mb-0" id="activeConstraints">0</h4>
+          <p class="text-muted mb-0">Active</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="text-warning mb-3">
+            <i class="fas fa-exclamation-triangle fa-2x"></i>
+          </div>
+          <h4 class="mb-0" id="hardConstraints">0</h4>
+          <p class="text-muted mb-0">Hard Constraints</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="text-info mb-3">
+            <i class="fas fa-heart fa-2x"></i>
+          </div>
+          <h4 class="mb-0" id="softConstraints">0</h4>
+          <p class="text-muted mb-0">Soft Constraints</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-3">
+          <label class="form-label">Constraint Type</label>
+          <select class="form-select" id="typeFilter">
+            <option value="">All Types</option>
+            <option value="teacher_availability">Teacher Availability</option>
+            <option value="room_requirement">Room Requirement</option>
+            <option value="subject_priority">Subject Priority</option>
+            <option value="consecutive_periods">Consecutive Periods</option>
+            <option value="daily_limit">Daily Limit</option>
+            <option value="time_preference">Time Preference</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Priority Level</label>
+          <select class="form-select" id="priorityFilter">
+            <option value="">All Priorities</option>
+            <option value="high">High (8-10)</option>
+            <option value="medium">Medium (4-7)</option>
+            <option value="low">Low (1-3)</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="statusFilter">
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">&nbsp;</label>
+          <div>
+            <button type="button" class="btn btn-outline-secondary" id="clearFilters">
+              <i class="fas fa-times me-2"></i>Clear Filters
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Constraints Table -->
+  <div class="card">
+    <div class="card-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-list me-2"></i>Constraints
+        </h5>
+        <div class="btn-group btn-group-sm">
+          <button type="button" class="btn btn-outline-success" onclick="bulkActivate()">
+            <i class="fas fa-check me-1"></i>Activate Selected
+          </button>
+          <button type="button" class="btn btn-outline-warning" onclick="bulkDeactivate()">
+            <i class="fas fa-pause me-1"></i>Deactivate Selected
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover" id="constraintsTable">
+          <thead>
+            <tr>
+              <th>
+                <input type="checkbox" class="form-check-input" id="selectAll">
+              </th>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Priority</th>
+              <th>Constraint Type</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for constraint in constraints %}
+            <tr data-type="{{ constraint.constraint_type }}" data-priority="{{ constraint.priority }}"
+              data-status="{% if constraint.is_active %}active{% else %}inactive{% endif %}">
+              <td>
+                <input type="checkbox" class="form-check-input row-select" value="{{ constraint.pk }}">
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="me-3">
+                    <i class="fas 
+                                            {% if constraint.constraint_type == 'teacher_availability' %}fa-user-clock
+                                            {% elif constraint.constraint_type == 'room_requirement' %}fa-door-open
+                                            {% elif constraint.constraint_type == 'subject_priority' %}fa-star
+                                            {% elif constraint.constraint_type == 'consecutive_periods' %}fa-link
+                                            {% elif constraint.constraint_type == 'daily_limit' %}fa-calendar-day
+                                            {% elif constraint.constraint_type == 'time_preference' %}fa-clock
+                                            {% else %}fa-cog{% endif %} text-primary"></i>
+                  </div>
+                  <div>
+                    <h6 class="mb-0">{{ constraint.name }}</h6>
+                    <small class="text-muted">{{ constraint.get_constraint_type_display }}</small>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge 
+                                    {% if constraint.constraint_type == 'teacher_availability' %}bg-info
+                                    {% elif constraint.constraint_type == 'room_requirement' %}bg-warning
+                                    {% elif constraint.constraint_type == 'subject_priority' %}bg-success
+                                    {% elif constraint.constraint_type == 'consecutive_periods' %}bg-primary
+                                    {% elif constraint.constraint_type == 'daily_limit' %}bg-danger
+                                    {% elif constraint.constraint_type == 'time_preference' %}bg-secondary
+                                    {% else %}bg-dark{% endif %}">
+                  {{ constraint.get_constraint_type_display }}
+                </span>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="progress me-2" style="width: 60px; height: 8px;">
+                    <div class="progress-bar 
+                                            {% if constraint.priority >= 8 %}bg-danger
+                                            {% elif constraint.priority >= 4 %}bg-warning
+                                            {% else %}bg-success{% endif %}" role="progressbar"
+                      style="width: {{ constraint.priority|div:10|mul:100 }}%">
+                    </div>
+                  </div>
+                  <small>{{ constraint.priority }}/10</small>
+                </div>
+              </td>
+              <td>
+                {% if constraint.is_hard_constraint %}
+                <span class="badge bg-danger">
+                  <i class="fas fa-exclamation-triangle me-1"></i>Hard
+                </span>
+                {% else %}
+                <span class="badge bg-info">
+                  <i class="fas fa-heart me-1"></i>Soft
+                </span>
+                {% endif %}
+              </td>
+              <td>
+                {% if constraint.is_active %}
+                <span class="badge bg-success">
+                  <i class="fas fa-check me-1"></i>Active
+                </span>
+                {% else %}
+                <span class="badge bg-secondary">
+                  <i class="fas fa-pause me-1"></i>Inactive
+                </span>
+                {% endif %}
+              </td>
+              <td>
+                <div>{{ constraint.created_at|date:"M d, Y" }}</div>
+                <small class="text-muted">{{ constraint.created_at|time:"H:i" }}</small>
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <a href="{% url 'scheduling:constraint_detail' constraint.pk %}" class="btn btn-outline-primary"
+                    title="View Details">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  <a href="{% url 'scheduling:constraint_edit' constraint.pk %}" class="btn btn-outline-warning"
+                    title="Edit Constraint">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <button type="button"
+                    class="btn btn-outline-{% if constraint.is_active %}secondary{% else %}success{% endif %}"
+                    onclick="toggleConstraint('{{ constraint.pk }}', {{ constraint.is_active|yesno:'false,true' }})"
+                    title="{% if constraint.is_active %}Deactivate{% else %}Activate{% endif %}">
+                    <i class="fas fa-{% if constraint.is_active %}pause{% else %}play{% endif %}"></i>
+                  </button>
+                  <button type="button" class="btn btn-outline-info" onclick="testConstraint('{{ constraint.pk }}')"
+                    title="Test Constraint">
+                    <i class="fas fa-vial"></i>
+                  </button>
+                  <a href="{% url 'scheduling:constraint_delete' constraint.pk %}" class="btn btn-outline-danger"
+                    title="Delete Constraint">
+                    <i class="fas fa-trash"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="8" class="text-center py-4">
+                <div class="text-muted">
+                  <i class="fas fa-inbox fa-2x mb-3"></i><br>
+                  No constraints found.<br>
+                  <a href="{% url 'scheduling:constraint_create' %}" class="btn btn-primary btn-sm mt-2">
+                    Create Your First Constraint
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Test Constraint Modal -->
+<div class="modal fade" id="testConstraintModal" tabindex="-1" aria-labelledby="testConstraintModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="testConstraintModalLabel">
+          <i class="fas fa-vial me-2"></i>Test Constraint
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="testResults">
+          <div class="text-center py-4">
+            <i class="fas fa-spinner fa-spin fa-2x text-primary mb-3"></i>
+            <p>Testing constraint...</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="runTestAgain()">
+          <i class="fas fa-redo me-2"></i>Run Test Again
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Constraint Explanation Modal -->
+<div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="helpModalLabel">
+          <i class="fas fa-question-circle me-2"></i>Constraint Types Explained
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="accordion" id="constraintHelp">
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                data-bs-target="#teacher-availability">
+                <i class="fas fa-user-clock me-2"></i>Teacher Availability
+              </button>
+            </h2>
+            <div id="teacher-availability" class="accordion-collapse collapse show" data-bs-parent="#constraintHelp">
+              <div class="accordion-body">
+                <p>Defines when teachers are available for scheduling. Useful for part-time teachers or those with other
+                  commitments.</p>
+                <strong>Example:</strong> "Teacher John is only available Monday-Wednesday" or "No classes after 3 PM
+                for Teacher Mary"
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                data-bs-target="#room-requirement">
+                <i class="fas fa-door-open me-2"></i>Room Requirement
+              </button>
+            </h2>
+            <div id="room-requirement" class="accordion-collapse collapse" data-bs-parent="#constraintHelp">
+              <div class="accordion-body">
+                <p>Specifies room requirements for subjects. Ensures specialized rooms are used appropriately.</p>
+                <strong>Example:</strong> "Chemistry must be in Laboratory" or "Physical Education requires Gymnasium"
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                data-bs-target="#subject-priority">
+                <i class="fas fa-star me-2"></i>Subject Priority
+              </button>
+            </h2>
+            <div id="subject-priority" class="accordion-collapse collapse" data-bs-parent="#constraintHelp">
+              <div class="accordion-body">
+                <p>Sets priority levels for subjects during scheduling. Higher priority subjects get better time slots.
+                </p>
+                <strong>Example:</strong> "Mathematics has high priority" or "Art has lower priority than core subjects"
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                data-bs-target="#consecutive-periods">
+                <i class="fas fa-link me-2"></i>Consecutive Periods
+              </button>
+            </h2>
+            <div id="consecutive-periods" class="accordion-collapse collapse" data-bs-parent="#constraintHelp">
+              <div class="accordion-body">
+                <p>Controls whether subjects should or shouldn't have consecutive periods.</p>
+                <strong>Example:</strong> "Science lab requires 2 consecutive periods" or "Avoid back-to-back
+                mathematics"
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                data-bs-target="#daily-limit">
+                <i class="fas fa-calendar-day me-2"></i>Daily Limit
+              </button>
+            </h2>
+            <div id="daily-limit" class="accordion-collapse collapse" data-bs-parent="#constraintHelp">
+              <div class="accordion-body">
+                <p>Limits the number of periods per subject per day.</p>
+                <strong>Example:</strong> "Maximum 2 mathematics periods per day" or "Only 1 physical education per day"
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                data-bs-target="#time-preference">
+                <i class="fas fa-clock me-2"></i>Time Preference
+              </button>
+            </h2>
+            <div id="time-preference" class="accordion-collapse collapse" data-bs-parent="#constraintHelp">
+              <div class="accordion-body">
+                <p>Specifies preferred time slots for subjects or teachers.</p>
+                <strong>Example:</strong> "Core subjects in morning periods" or "Art classes in afternoon"
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <a href="{% url 'scheduling:constraint_create' %}" class="btn btn-primary">
+          <i class="fas fa-plus me-2"></i>Create Constraint
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Help Button -->
+<button type="button" class="btn btn-info position-fixed bottom-0 end-0 m-3 rounded-circle"
+  style="width: 60px; height: 60px; z-index: 1000;" data-bs-toggle="modal" data-bs-target="#helpModal" title="Help">
+  <i class="fas fa-question fa-lg"></i>
+</button>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    const table = $('#constraintsTable').DataTable({
+      order: [[6, 'desc']], // Sort by created date descending
+      pageLength: 25,
+      responsive: true,
+      dom: 'Bfrtip',
+      buttons: [
+        {
+          extend: 'csv',
+          text: '<i class="fas fa-file-csv me-2"></i>Export CSV',
+          className: 'btn btn-outline-success btn-sm'
+        }
+      ],
+      columnDefs: [
+        { targets: [0, 7], orderable: false } // Checkbox and actions columns
+      ]
+    });
+
+    // Calculate and display statistics
+    calculateStats();
+
+    // Select all checkbox
+    $('#selectAll').change(function () {
+      $('.row-select').prop('checked', $(this).is(':checked'));
+    });
+
+    // Individual row selection
+    $(document).on('change', '.row-select', function () {
+      const allChecked = $('.row-select:checked').length === $('.row-select').length;
+      $('#selectAll').prop('checked', allChecked);
+    });
+
+    // Filter handlers
+    $('#typeFilter').change(function () {
+      const type = $(this).val();
+      if (type) {
+        table.column(2).search(type, true, false).draw();
+      } else {
+        table.column(2).search('').draw();
+      }
+    });
+
+    $('#priorityFilter').change(function () {
+      const priority = $(this).val();
+      if (priority === 'high') {
+        table.column(3).search('[8-9]|10', true, false).draw();
+      } else if (priority === 'medium') {
+        table.column(3).search('[4-7]', true, false).draw();
+      } else if (priority === 'low') {
+        table.column(3).search('[1-3]', true, false).draw();
+      } else {
+        table.column(3).search('').draw();
+      }
+    });
+
+    $('#statusFilter').change(function () {
+      const status = $(this).val();
+      if (status) {
+        table.column(5).search(status === 'active' ? 'Active' : 'Inactive').draw();
+      } else {
+        table.column(5).search('').draw();
+      }
+    });
+
+    $('#clearFilters').click(function () {
+      $('#typeFilter, #priorityFilter, #statusFilter').val('');
+      table.search('').columns().search('').draw();
+    });
+
+    function calculateStats() {
+      const rows = $('#constraintsTable tbody tr');
+      let active = 0, hard = 0, soft = 0;
+
+      rows.each(function () {
+        if ($(this).find('.badge:contains("Active")').length > 0) {
+          active++;
+        }
+        if ($(this).find('.badge:contains("Hard")').length > 0) {
+          hard++;
+        } else if ($(this).find('.badge:contains("Soft")').length > 0) {
+          soft++;
+        }
+      });
+
+      $('#activeConstraints').text(active);
+      $('#hardConstraints').text(hard);
+      $('#softConstraints').text(soft);
+    }
+  });
+
+  // Global functions
+  let currentTestConstraintId = null;
+  const testConstraintModal = new bootstrap.Modal(document.getElementById('testConstraintModal'));
+
+  function toggleConstraint(constraintId, activate) {
+    $.ajax({
+      url: `/scheduling/constraints/${constraintId}/toggle/`,
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+      },
+      data: {
+        'activate': activate
+      },
+      success: function (response) {
+        location.reload();
+      },
+      error: function (xhr, status, error) {
+        alert('Failed to toggle constraint: ' + error);
+      }
+    });
+  }
+
+  function testConstraint(constraintId) {
+    currentTestConstraintId = constraintId;
+    testConstraintModal.show();
+
+    $.ajax({
+      url: `/scheduling/constraints/${constraintId}/test/`,
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+      },
+      success: function (response) {
+        displayTestResults(response);
+      },
+      error: function (xhr, status, error) {
+        $('#testResults').html(`
+                <div class="alert alert-danger">
+                    <h6>Test Failed</h6>
+                    <p>Failed to test constraint: ${error}</p>
+                </div>
+            `);
+      }
+    });
+  }
+
+  function displayTestResults(results) {
+    let html = '<div class="test-results">';
+
+    if (results.valid) {
+      html += `
+            <div class="alert alert-success">
+                <h6><i class="fas fa-check-circle me-2"></i>Constraint is Valid</h6>
+                <p>The constraint configuration is valid and can be applied.</p>
+            </div>
+        `;
+    } else {
+      html += `
+            <div class="alert alert-danger">
+                <h6><i class="fas fa-times-circle me-2"></i>Constraint has Issues</h6>
+                <p>The following issues were found:</p>
+                <ul>
+        `;
+      results.errors.forEach(error => {
+        html += `<li>${error}</li>`;
+      });
+      html += '</ul></div>';
+    }
+
+    if (results.warnings && results.warnings.length > 0) {
+      html += `
+            <div class="alert alert-warning">
+                <h6><i class="fas fa-exclamation-triangle me-2"></i>Warnings</h6>
+                <ul>
+        `;
+      results.warnings.forEach(warning => {
+        html += `<li>${warning}</li>`;
+      });
+      html += '</ul></div>';
+    }
+
+    if (results.impact) {
+      html += `
+            <div class="alert alert-info">
+                <h6><i class="fas fa-info-circle me-2"></i>Impact Assessment</h6>
+                <p><strong>Affected Timetables:</strong> ${results.impact.affected_timetables}</p>
+                <p><strong>Scheduling Flexibility:</strong> ${results.impact.flexibility_impact}</p>
+            </div>
+        `;
+    }
+
+    html += '</div>';
+    $('#testResults').html(html);
+  }
+
+  function runTestAgain() {
+    if (currentTestConstraintId) {
+      testConstraint(currentTestConstraintId);
+    }
+  }
+
+  function bulkActivate() {
+    const selected = $('.row-select:checked').map(function () {
+      return $(this).val();
+    }).get();
+
+    if (selected.length === 0) {
+      alert('Please select constraints to activate.');
+      return;
+    }
+
+    bulkUpdateConstraints(selected, true);
+  }
+
+  function bulkDeactivate() {
+    const selected = $('.row-select:checked').map(function () {
+      return $(this).val();
+    }).get();
+
+    if (selected.length === 0) {
+      alert('Please select constraints to deactivate.');
+      return;
+    }
+
+    bulkUpdateConstraints(selected, false);
+  }
+
+  function bulkUpdateConstraints(constraintIds, activate) {
+    $.ajax({
+      url: '/scheduling/constraints/bulk-update/',
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+      },
+      data: {
+        'constraint_ids': constraintIds.join(','),
+        'activate': activate
+      },
+      success: function (response) {
+        location.reload();
+      },
+      error: function (xhr, status, error) {
+        alert('Failed to update constraints: ' + error);
+      }
+    });
+  }
+</script>
+{% endblock %}

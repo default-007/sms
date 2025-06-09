@@ -1,0 +1,488 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Timetable Optimization - Scheduling{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">Timetable Optimization</h1>
+          <p class="text-muted">Analyze and improve your current timetable efficiency</p>
+        </div>
+        <div>
+          <a href="{% url 'scheduling:timetable_generation' %}" class="btn btn-primary">
+            <i class="fas fa-magic me-2"></i>Generate New Timetable
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if term %}
+  <!-- Current Score Overview -->
+  <div class="row mb-4">
+    <div class="col-lg-4">
+      <div class="card border-primary">
+        <div class="card-header bg-primary text-white">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-trophy me-2"></i>Overall Optimization Score
+          </h6>
+        </div>
+        <div class="card-body text-center">
+          <div class="mb-3">
+            <div class="display-4 fw-bold 
+                            {% if optimization_score.overall_score >= 90 %}text-success
+                            {% elif optimization_score.overall_score >= 70 %}text-warning  
+                            {% else %}text-danger{% endif %}">
+              {{ optimization_score.overall_score|floatformat:1 }}%
+            </div>
+            <div class="fs-5">
+              Grade:
+              <span class="badge 
+                                {% if optimization_score.grade == 'A' %}bg-success
+                                {% elif optimization_score.grade == 'B' %}bg-info
+                                {% elif optimization_score.grade == 'C' %}bg-warning
+                                {% else %}bg-danger{% endif %} fs-6">
+                {{ optimization_score.grade }}
+              </span>
+            </div>
+          </div>
+          <div class="progress mb-3" style="height: 10px;">
+            <div class="progress-bar 
+                            {% if optimization_score.overall_score >= 90 %}bg-success
+                            {% elif optimization_score.overall_score >= 70 %}bg-warning
+                            {% else %}bg-danger{% endif %}" role="progressbar"
+              style="width: {{ optimization_score.overall_score }}%">
+            </div>
+          </div>
+          <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
+            data-bs-target="#scoreBreakdownModal">
+            <i class="fas fa-chart-pie me-2"></i>View Breakdown
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-chart-bar me-2"></i>Score Components
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% for component, score in optimization_score.breakdown.items %}
+            <div class="col-md-6 mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-muted">{{ component|title|replace:"_":" " }}</span>
+                <strong>{{ score|floatformat:1 }}%</strong>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar 
+                                    {% if score >= 20 %}bg-success
+                                    {% elif score >= 15 %}bg-warning
+                                    {% else %}bg-danger{% endif %}" role="progressbar"
+                  style="width: {{ score|div:25|mul:100 }}%">
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Optimization Actions -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-tools me-2"></i>Optimization Actions
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <div class="d-grid">
+                <button type="button" class="btn btn-success btn-lg" onclick="quickOptimize()">
+                  <i class="fas fa-bolt me-2"></i>Quick Optimize
+                  <br><small>Resolve conflicts and improve balance</small>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="d-grid">
+                <button type="button" class="btn btn-info btn-lg" onclick="deepOptimize()">
+                  <i class="fas fa-brain me-2"></i>Deep Optimize
+                  <br><small>Full optimization with AI algorithms</small>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="d-grid">
+                <button type="button" class="btn btn-warning btn-lg" onclick="customOptimize()">
+                  <i class="fas fa-cog me-2"></i>Custom Optimize
+                  <br><small>Advanced settings and constraints</small>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recommendations -->
+  {% if optimization_score.recommendations %}
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-lightbulb me-2"></i>Optimization Recommendations
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            {% for recommendation in optimization_score.recommendations %}
+            <div class="list-group-item border-0 px-0">
+              <div class="d-flex align-items-start">
+                <div class="flex-shrink-0 me-3">
+                  <i class="fas fa-arrow-right text-primary"></i>
+                </div>
+                <div class="flex-grow-1">
+                  <p class="mb-1">{{ recommendation }}</p>
+                </div>
+                <div class="flex-shrink-0">
+                  <button type="button" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-magic me-1"></i>Apply
+                  </button>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Optimization History -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <h6 class="card-title mb-0">
+              <i class="fas fa-history me-2"></i>Recent Optimizations
+            </h6>
+            <a href="{% url 'scheduling:generation_history' %}" class="btn btn-outline-secondary btn-sm">
+              View All
+            </a>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Score Before</th>
+                  <th>Score After</th>
+                  <th>Improvement</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Sample data - replace with actual optimization history -->
+                <tr>
+                  <td>Dec 15, 2024</td>
+                  <td><span class="badge bg-success">Quick</span></td>
+                  <td>72.5%</td>
+                  <td>84.2%</td>
+                  <td><span class="text-success">+11.7%</span></td>
+                  <td><span class="badge bg-success">Completed</span></td>
+                </tr>
+                <tr>
+                  <td>Dec 12, 2024</td>
+                  <td><span class="badge bg-info">Deep</span></td>
+                  <td>68.1%</td>
+                  <td>72.5%</td>
+                  <td><span class="text-success">+4.4%</span></td>
+                  <td><span class="badge bg-success">Completed</span></td>
+                </tr>
+                <tr>
+                  <td>Dec 10, 2024</td>
+                  <td><span class="badge bg-warning">Custom</span></td>
+                  <td>65.3%</td>
+                  <td>68.1%</td>
+                  <td><span class="text-success">+2.8%</span></td>
+                  <td><span class="badge bg-success">Completed</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Suggestions Card -->
+  {% if optimization_suggestions %}
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-magic me-2"></i>AI-Powered Suggestions
+          </h6>
+        </div>
+        <div class="card-body">
+          {% for suggestion in optimization_suggestions %}
+          <div class="alert alert-info d-flex align-items-center" role="alert">
+            <div class="flex-shrink-0 me-3">
+              <i class="fas fa-robot fa-lg"></i>
+            </div>
+            <div class="flex-grow-1">
+              <h6 class="alert-heading">{{ suggestion.title }}</h6>
+              <p class="mb-0">{{ suggestion.description }}</p>
+            </div>
+            <div class="flex-shrink-0">
+              <button type="button" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-play me-1"></i>Apply
+              </button>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <!-- No Term Selected -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <div class="mb-4">
+            <i class="fas fa-exclamation-triangle fa-3x text-warning"></i>
+          </div>
+          <h5>No Active Term Found</h5>
+          <p class="text-muted">Please ensure there is an active academic term to perform optimization.</p>
+          <a href="{% url 'academics:term_list' %}" class="btn btn-primary">
+            <i class="fas fa-calendar-plus me-2"></i>Manage Terms
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Score Breakdown Modal -->
+<div class="modal fade" id="scoreBreakdownModal" tabindex="-1" aria-labelledby="scoreBreakdownModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="scoreBreakdownModalLabel">
+          <i class="fas fa-chart-pie me-2"></i>Optimization Score Breakdown
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="scoreBreakdownChart" style="height: 400px;"></div>
+        <div class="row mt-4">
+          {% for component, score in optimization_score.breakdown.items %}
+          <div class="col-md-6 mb-3">
+            <div class="card border-left-primary">
+              <div class="card-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <h6 class="mb-1">{{ component|title|replace:"_":" " }}</h6>
+                    <p class="text-muted mb-0">Maximum: 25 points</p>
+                  </div>
+                  <div class="text-end">
+                    <h4 class="mb-0 
+                                            {% if score >= 20 %}text-success
+                                            {% elif score >= 15 %}text-warning
+                                            {% else %}text-danger{% endif %}">
+                      {{ score|floatformat:1 }}
+                    </h4>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary">
+          <i class="fas fa-download me-2"></i>Export Report
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Optimization Progress Modal -->
+<div class="modal fade" id="optimizationModal" tabindex="-1" aria-labelledby="optimizationModalLabel" aria-hidden="true"
+  data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="optimizationModalLabel">
+          <i class="fas fa-cog fa-spin me-2"></i>Optimizing Timetable
+        </h5>
+      </div>
+      <div class="modal-body text-center">
+        <div class="mb-4">
+          <i class="fas fa-brain fa-3x text-primary"></i>
+        </div>
+        <h6 id="optimizationStage">Initializing...</h6>
+        <div class="progress mb-3">
+          <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"
+            id="optimizationProgress"></div>
+        </div>
+        <p class="text-muted mb-0" id="optimizationDetails">
+          Preparing optimization algorithms...
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Initialize score breakdown chart when modal is shown
+    $('#scoreBreakdownModal').on('shown.bs.modal', function () {
+      initializeBreakdownChart();
+    });
+  });
+
+  function initializeBreakdownChart() {
+    const options = {
+      series: [
+        {% for component, score in optimization_score.breakdown.items %}
+    { { score | floatformat: 1 } },
+    {% endfor %}
+        ],
+    chart: {
+      type: 'donut',
+        height: 400
+    },
+    labels: [
+      {% for component, score in optimization_score.breakdown.items %}
+  '{{ component|title|replace:"_":" " }}',
+    {% endfor %}
+        ],
+  colors: ['#28a745', '#17a2b8', '#ffc107', '#fd7e14', '#6f42c1'],
+    plotOptions: {
+    pie: {
+      donut: {
+        size: '60%',
+          labels: {
+          show: true,
+            total: {
+            show: true,
+              label: 'Total Score',
+                formatter: function () {
+                  return '{{ optimization_score.overall_score|floatformat:1 }}%';
+                }
+          }
+        }
+      }
+    }
+  },
+  legend: {
+    position: 'bottom'
+  },
+  tooltip: {
+    formatter: function(val, opts) {
+      return opts.w.globals.labels[opts.seriesIndex] + ': ' + val.toFixed(1) + ' points';
+    }
+  }
+    };
+
+  const chart = new ApexCharts(document.querySelector("#scoreBreakdownChart"), options);
+  chart.render();
+}
+
+  // Optimization functions
+  const optimizationModal = new bootstrap.Modal(document.getElementById('optimizationModal'));
+
+  function quickOptimize() {
+    startOptimization('quick', 'Quick optimization resolves conflicts and balances workload');
+  }
+
+  function deepOptimize() {
+    startOptimization('deep', 'Deep optimization uses advanced AI algorithms for maximum efficiency');
+  }
+
+  function customOptimize() {
+    // Show custom optimization settings
+    window.location.href = '{% url "scheduling:timetable_generation" %}';
+  }
+
+  function startOptimization(type, description) {
+    $('#optimizationStage').text(`Starting ${type} optimization...`);
+    $('#optimizationDetails').text(description);
+    $('#optimizationProgress').css('width', '0%');
+
+    optimizationModal.show();
+
+    // Simulate optimization process
+    simulateOptimization();
+  }
+
+  function simulateOptimization() {
+    const stages = [
+      { stage: 'Analyzing current timetable...', progress: 10 },
+      { stage: 'Identifying conflicts...', progress: 25 },
+      { stage: 'Calculating improvements...', progress: 50 },
+      { stage: 'Applying optimizations...', progress: 75 },
+      { stage: 'Finalizing changes...', progress: 90 },
+      { stage: 'Optimization complete!', progress: 100 }
+    ];
+
+    let currentStage = 0;
+
+    const interval = setInterval(() => {
+      if (currentStage < stages.length) {
+        const stage = stages[currentStage];
+        $('#optimizationStage').text(stage.stage);
+        $('#optimizationProgress').css('width', stage.progress + '%');
+
+        if (stage.progress === 100) {
+          setTimeout(() => {
+            optimizationModal.hide();
+            location.reload(); // Refresh to show new scores
+          }, 1000);
+          clearInterval(interval);
+        }
+
+        currentStage++;
+      }
+    }, 1500);
+  }
+</script>
+{% endblock %}

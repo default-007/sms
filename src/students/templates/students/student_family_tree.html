@@ -1,0 +1,715 @@
+<!-- students/templates/students/student_family_tree.html -->
+{% extends 'base.html' %}
+{% load static %}
+{% load student_tags %}
+
+{% block title %}Family Tree - {{ student.get_full_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vis-network@latest/dist/dist/vis-network.min.css">
+<style>
+  .family-member {
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .family-member:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .relationship-line {
+    height: 2px;
+    background: linear-gradient(90deg, #007bff, #6c757d);
+  }
+
+  .family-tree-container {
+    min-height: 400px;
+    position: relative;
+  }
+
+  .student-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+  }
+
+  .parent-section {
+    position: absolute;
+    top: 10%;
+    width: 100%;
+  }
+
+  .sibling-section {
+    position: absolute;
+    bottom: 10%;
+    width: 100%;
+  }
+
+  .network-container {
+    height: 500px;
+    border: 1px solid #ddd;
+    border-radius: 0.375rem;
+  }
+
+  .permission-badge {
+    font-size: 0.7rem;
+    margin: 1px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Family Tree</h2>
+          <p class="text-muted mb-0">Family relationships for {{ student.get_full_name }}</p>
+        </div>
+        <div>
+          <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+            data-bs-target="#addRelationModal">
+            <i class="fas fa-plus me-2"></i>Add Relationship
+          </button>
+          <a href="{% url 'students:student-detail' student.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-user me-2"></i>Student Profile
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Student Info Card -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm border-primary">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-md-2 text-center">
+              {% if student.photo %}
+              <img src="{{ student.photo.url }}" class="rounded-circle"
+                style="width: 80px; height: 80px; object-fit: cover;">
+              {% else %}
+              <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                style="width: 80px; height: 80px;">
+                <i class="fas fa-user fa-2x"></i>
+              </div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <h4 class="mb-1">{{ student.get_full_name }}</h4>
+              <p class="text-muted mb-1">{{ student.admission_number }} •
+                {{ student.current_class|default:"No class assigned" }}
+              </p>
+              <div>
+                {% student_status_badge student.status %}
+                <span class="badge bg-info">{{ student.blood_group }}</span>
+                {% if student.age %}
+                <span class="badge bg-secondary">{{ student.age }} years old</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-4 text-end">
+              <div class="btn-group" role="group">
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleView('tree')">
+                  <i class="fas fa-sitemap me-1"></i>Tree View
+                </button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="toggleView('network')">
+                  <i class="fas fa-project-diagram me-1"></i>Network View
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Family Tree Views -->
+  <div class="row">
+    <div class="col-12">
+      <!-- Tree View -->
+      <div id="treeView" class="card shadow-sm">
+        <div class="card-header bg-success text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-sitemap me-2"></i>Family Tree View
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="family-tree-container">
+            <!-- Parents Section -->
+            {% if family_tree.parents %}
+            <div class="parent-section">
+              <div class="text-center mb-3">
+                <h6 class="text-primary">Parents & Guardians</h6>
+              </div>
+              <div class="row justify-content-center">
+                {% for parent_info in family_tree.parents %}
+                <div class="col-md-4 mb-3">
+                  <div class="card family-member h-100" onclick="showParentDetails('{{ parent_info.parent.pk }}')">
+                    <div class="card-body text-center">
+                      {% if parent_info.parent.photo %}
+                      <img src="{{ parent_info.parent.photo.url }}" class="rounded-circle mb-2"
+                        style="width: 60px; height: 60px; object-fit: cover;">
+                      {% else %}
+                      <div
+                        class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2"
+                        style="width: 60px; height: 60px;">
+                        {% parent_relation_icon parent_info.parent.relation_with_student %}
+                      </div>
+                      {% endif %}
+                      <h6 class="card-title mb-1">{{ parent_info.parent.get_full_name }}</h6>
+                      <p class="text-muted small mb-2">{{ parent_info.parent.relation_with_student }}</p>
+
+                      <!-- Relationship Badges -->
+                      <div class="mb-2">
+                        {% if parent_info.is_primary %}
+                        <span class="badge bg-primary permission-badge">Primary</span>
+                        {% endif %}
+                        {% if parent_info.can_pickup %}
+                        <span class="badge bg-success permission-badge">Can Pickup</span>
+                        {% endif %}
+                        {% if parent_info.relation.financial_responsibility %}
+                        <span class="badge bg-warning permission-badge">Financial</span>
+                        {% endif %}
+                      </div>
+
+                      <!-- Contact Info -->
+                      <div class="small text-muted">
+                        <div><i
+                            class="fas fa-phone me-1"></i>{{ parent_info.parent.user.phone_number|default:"No phone" }}
+                        </div>
+                        <div><i class="fas fa-envelope me-1"></i>{{ parent_info.parent.user.email|truncatechars:20 }}
+                        </div>
+                        <div><i class="fas fa-exclamation-triangle me-1"></i>Priority
+                          {{ parent_info.emergency_priority }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Connection Lines -->
+            <div class="d-flex justify-content-center my-4">
+              <div class="relationship-line" style="width: 200px;"></div>
+            </div>
+            {% endif %}
+
+            <!-- Student Center -->
+            <div class="student-center">
+              <div class="card border-primary shadow">
+                <div class="card-body text-center bg-light">
+                  {% if student.photo %}
+                  <img src="{{ student.photo.url }}" class="rounded-circle mb-2"
+                    style="width: 80px; height: 80px; object-fit: cover;">
+                  {% else %}
+                  <div
+                    class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2"
+                    style="width: 80px; height: 80px;">
+                    <i class="fas fa-graduation-cap fa-2x"></i>
+                  </div>
+                  {% endif %}
+                  <h5 class="card-title mb-1">{{ student.get_full_name }}</h5>
+                  <p class="text-muted small mb-2">Student</p>
+                  <span class="badge bg-primary">{{ student.admission_number }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Siblings Section -->
+            {% if family_tree.siblings %}
+            <div class="sibling-section">
+              <!-- Connection Lines -->
+              <div class="d-flex justify-content-center mb-4">
+                <div class="relationship-line" style="width: 200px;"></div>
+              </div>
+
+              <div class="text-center mb-3">
+                <h6 class="text-info">Siblings</h6>
+              </div>
+              <div class="row justify-content-center">
+                {% for sibling in family_tree.siblings %}
+                <div class="col-md-3 mb-3">
+                  <div class="card family-member h-100"
+                    onclick="location.href='{% url 'students:student-family-tree' sibling.pk %}'">
+                    <div class="card-body text-center">
+                      {% if sibling.photo %}
+                      <img src="{{ sibling.photo.url }}" class="rounded-circle mb-2"
+                        style="width: 50px; height: 50px; object-fit: cover;">
+                      {% else %}
+                      <div
+                        class="bg-info text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2"
+                        style="width: 50px; height: 50px;">
+                        <i class="fas fa-user"></i>
+                      </div>
+                      {% endif %}
+                      <h6 class="card-title mb-1 small">{{ sibling.get_full_name }}</h6>
+                      <p class="text-muted small mb-2">{{ sibling.current_class|default:"No class" }}</p>
+                      <span class="badge bg-info small">{{ sibling.admission_number }}</span>
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+
+            <!-- No Family Message -->
+            {% if not family_tree.parents and not family_tree.siblings %}
+            <div class="text-center py-5">
+              <i class="fas fa-users fa-3x text-muted mb-3"></i>
+              <h5 class="text-muted">No Family Relationships</h5>
+              <p class="text-muted">No parents or siblings have been linked to this student yet.</p>
+              <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRelationModal">
+                <i class="fas fa-plus me-2"></i>Add Family Member
+              </button>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Network View -->
+      <div id="networkView" class="card shadow-sm" style="display: none;">
+        <div class="card-header bg-info text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-project-diagram me-2"></i>Network View
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="familyNetwork" class="network-container"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Family Statistics -->
+  <div class="row mt-4">
+    <div class="col-md-8">
+      <!-- Relationship Details -->
+      <div class="card shadow-sm">
+        <div class="card-header bg-secondary text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-list me-2"></i>Relationship Details
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if family_tree.parents %}
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Parent/Guardian</th>
+                  <th>Relation</th>
+                  <th>Permissions</th>
+                  <th>Contact</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for parent_info in family_tree.parents %}
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      {% if parent_info.parent.photo %}
+                      <img src="{{ parent_info.parent.photo.url }}" class="rounded-circle me-2"
+                        style="width: 30px; height: 30px; object-fit: cover;">
+                      {% else %}
+                      <div
+                        class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-2"
+                        style="width: 30px; height: 30px;">
+                        {% parent_relation_icon parent_info.parent.relation_with_student %}
+                      </div>
+                      {% endif %}
+                      <div>
+                        <div class="fw-bold">{{ parent_info.parent.get_full_name }}</div>
+                        <small class="text-muted">{{ parent_info.parent.user.email }}</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-primary">{{ parent_info.parent.relation_with_student }}</span>
+                    {% if parent_info.is_primary %}
+                    <span class="badge bg-success">Primary</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% relationship_permissions_summary parent_info.relation %}
+                    {% for permission in permissions %}
+                    <span class="badge bg-outline-secondary permission-badge">{{ permission }}</span>
+                    {% endfor %}
+                  </td>
+                  <td>
+                    <div class="small">
+                      <div><i class="fas fa-phone me-1"></i>{{ parent_info.parent.user.phone_number|default:"—" }}</div>
+                      <div><i class="fas fa-briefcase me-1"></i>{{ parent_info.parent.occupation|default:"—" }}</div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <a href="{% url 'students:parent-detail' parent_info.parent.pk %}"
+                        class="btn btn-outline-primary">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      <a href="{% url 'students:relation-update' parent_info.relation.pk %}"
+                        class="btn btn-outline-warning">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                      <button type="button" class="btn btn-outline-danger"
+                        onclick="confirmDeleteRelation('{{ parent_info.relation.pk }}')">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-4">
+            <i class="fas fa-users fa-2x text-muted mb-3"></i>
+            <p class="text-muted mb-0">No parent relationships found</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <!-- Family Summary -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-chart-pie me-2"></i>Family Summary
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-6">
+              <div class="h4 text-primary mb-0">{{ family_tree.parents|length }}</div>
+              <small class="text-muted">Parents/Guardians</small>
+            </div>
+            <div class="col-6">
+              <div class="h4 text-info mb-0">{{ family_tree.siblings|length }}</div>
+              <small class="text-muted">Siblings</small>
+            </div>
+          </div>
+
+          <hr>
+
+          <div class="mb-2">
+            <small class="text-muted">Primary Contact:</small>
+            {% for parent_info in family_tree.parents %}
+            {% if parent_info.is_primary %}
+            <div class="fw-bold">{{ parent_info.parent.get_full_name }}</div>
+            {% endif %}
+            {% else %}
+            <div class="text-muted">Not assigned</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-2">
+            <small class="text-muted">Emergency Priority:</small>
+            {% for parent_info in family_tree.parents %}
+            <div class="small">{{ parent_info.emergency_priority }}. {{ parent_info.parent.get_full_name }}</div>
+            {% else %}
+            <div class="text-muted">No emergency contacts</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card shadow-sm">
+        <div class="card-header bg-warning text-dark">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-bolt me-2"></i>Quick Actions
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
+              data-bs-target="#addRelationModal">
+              <i class="fas fa-plus me-2"></i>Add Parent/Guardian
+            </button>
+            <a href="{% url 'students:parent-create' %}" class="btn btn-outline-success btn-sm">
+              <i class="fas fa-user-plus me-2"></i>Create New Parent
+            </a>
+            <a href="{% url 'students:relation-bulk-manage' %}" class="btn btn-outline-info btn-sm">
+              <i class="fas fa-list me-2"></i>Bulk Manage Relations
+            </a>
+            {% if family_tree.siblings %}
+            <hr>
+            <small class="text-muted">View Sibling Family Trees:</small>
+            {% for sibling in family_tree.siblings %}
+            <a href="{% url 'students:student-family-tree' sibling.pk %}" class="btn btn-outline-secondary btn-sm">
+              <i class="fas fa-sitemap me-2"></i>{{ sibling.get_full_name }}
+            </a>
+            {% endfor %}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Relationship Modal -->
+<div class="modal fade" id="addRelationModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Family Relationship</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-3">Add a parent or guardian relationship for {{ student.get_full_name }}.</p>
+        <div class="d-grid gap-2">
+          <a href="{% url 'students:relation-create-for-student' student.pk %}" class="btn btn-primary">
+            <i class="fas fa-link me-2"></i>Link Existing Parent
+          </a>
+          <a href="{% url 'students:parent-create' %}?student={{ student.pk }}" class="btn btn-success">
+            <i class="fas fa-user-plus me-2"></i>Create New Parent
+          </a>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Parent Details Modal -->
+<div class="modal fade" id="parentDetailsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Parent Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="parentDetailsContent">
+        <!-- Content will be loaded via AJAX -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/vis-network@latest/dist/dist/vis-network.min.js"></script>
+<script>
+  $(document).ready(function () {
+    let network = null;
+
+    // Toggle between tree and network view
+    window.toggleView = function (viewType) {
+      if (viewType === 'tree') {
+        $('#treeView').show();
+        $('#networkView').hide();
+        $('button[onclick="toggleView(\'tree\')"]').removeClass('btn-outline-primary').addClass('btn-primary');
+        $('button[onclick="toggleView(\'network\')"]').removeClass('btn-primary').addClass('btn-outline-primary');
+      } else {
+        $('#treeView').hide();
+        $('#networkView').show();
+        $('button[onclick="toggleView(\'network\')"]').removeClass('btn-outline-primary').addClass('btn-primary');
+        $('button[onclick="toggleView(\'tree\')"]').removeClass('btn-primary').addClass('btn-outline-primary');
+        initializeNetwork();
+      }
+    };
+
+    function initializeNetwork() {
+      if (network) return; // Already initialized
+
+      const nodes = new vis.DataSet();
+      const edges = new vis.DataSet();
+
+      // Add student node (center)
+      nodes.add({
+        id: 'student',
+        label: '{{ student.get_full_name|escapejs }}',
+        group: 'student',
+        shape: 'circle',
+        size: 30,
+        color: {
+          background: '#007bff',
+          border: '#0056b3'
+        }
+      });
+
+      // Add parent nodes
+      {% for parent_info in family_tree.parents %}
+      nodes.add({
+        id: 'parent_{{ parent_info.parent.pk }}',
+        label: '{{ parent_info.parent.get_full_name|escapejs }}\n({{ parent_info.parent.relation_with_student }})',
+        group: 'parent',
+        shape: 'box',
+        color: {
+          background: {% if parent_info.is_primary %}'#28a745'{% else %}'#6c757d'{% endif %},
+    border: '#495057'
+  }
+        });
+
+  edges.add({
+    from: 'parent_{{ parent_info.parent.pk }}',
+    to: 'student',
+    label: '{{ parent_info.parent.relation_with_student }}',
+    color: { color: {% if parent_info.is_primary %}'#28a745'{% else %}'#6c757d'{% endif %}},
+    width: {% if parent_info.is_primary %}3{% else %} 1{% endif %}
+        });
+  {% endfor %}
+
+  // Add sibling nodes
+  {% for sibling in family_tree.siblings %}
+  nodes.add({
+    id: 'sibling_{{ sibling.pk }}',
+    label: '{{ sibling.get_full_name|escapejs }}',
+    group: 'sibling',
+    shape: 'circle',
+    size: 20,
+    color: {
+      background: '#17a2b8',
+      border: '#117a8b'
+    }
+  });
+
+  edges.add({
+    from: 'student',
+    to: 'sibling_{{ sibling.pk }}',
+    label: 'Sibling',
+    color: { color: '#17a2b8' },
+    dashes: true
+  });
+  {% endfor %}
+
+  const container = document.getElementById('familyNetwork');
+  const data = { nodes: nodes, edges: edges };
+  const options = {
+    layout: {
+      hierarchical: {
+        direction: 'UD',
+        sortMethod: 'directed',
+        nodeSpacing: 200,
+        levelSeparation: 150
+      }
+    },
+    physics: {
+      enabled: false
+    },
+    nodes: {
+      font: {
+        color: 'white',
+        size: 12
+      },
+      borderWidth: 2
+    },
+    edges: {
+      font: {
+        size: 10,
+        align: 'middle'
+      },
+      arrows: {
+        to: {
+          enabled: false
+        }
+      }
+    }
+  };
+
+  network = new vis.Network(container, data, options);
+
+  // Handle node clicks
+  network.on('click', function (params) {
+    if (params.nodes.length > 0) {
+      const nodeId = params.nodes[0];
+      if (nodeId.startsWith('parent_')) {
+        const parentId = nodeId.replace('parent_', '');
+        showParentDetails(parentId);
+      } else if (nodeId.startsWith('sibling_')) {
+        const siblingId = nodeId.replace('sibling_', '');
+        window.location.href = `/students/students/${siblingId}/family-tree/`;
+      }
+    }
+  });
+    }
+
+  // Show parent details
+  window.showParentDetails = function (parentId) {
+    $('#parentDetailsContent').html('<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>');
+    $('#parentDetailsModal').modal('show');
+
+    $.get(`/api/parents/${parentId}/`, function (data) {
+      const detailsHtml = `
+                <div class="row">
+                    <div class="col-md-4 text-center">
+                        ${data.photo ? `<img src="${data.photo}" class="rounded-circle" style="width: 100px; height: 100px; object-fit: cover;">` :
+          '<div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 100px; height: 100px;"><i class="fas fa-user fa-2x"></i></div>'}
+                        <h5 class="mt-2">${data.name}</h5>
+                        <p class="text-muted">${data.relation}</p>
+                    </div>
+                    <div class="col-md-8">
+                        <h6>Contact Information</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Email:</strong></td><td>${data.email}</td></tr>
+                            <tr><td><strong>Phone:</strong></td><td>${data.phone || 'Not provided'}</td></tr>
+                            <tr><td><strong>Occupation:</strong></td><td>${data.occupation || 'Not provided'}</td></tr>
+                            <tr><td><strong>Workplace:</strong></td><td>${data.workplace || 'Not provided'}</td></tr>
+                        </table>
+                        
+                        <h6>Permissions</h6>
+                        <div class="mb-2">
+                            ${data.is_primary_contact ? '<span class="badge bg-primary">Primary Contact</span>' : ''}
+                            ${data.can_pickup ? '<span class="badge bg-success">Can Pickup</span>' : ''}
+                            ${data.financial_responsibility ? '<span class="badge bg-warning">Financial Responsibility</span>' : ''}
+                            ${data.access_to_grades ? '<span class="badge bg-info">Grade Access</span>' : ''}
+                            ${data.access_to_attendance ? '<span class="badge bg-info">Attendance Access</span>' : ''}
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3 text-end">
+                    <a href="/students/parents/${parentId}/" class="btn btn-primary">View Full Profile</a>
+                </div>
+            `;
+      $('#parentDetailsContent').html(detailsHtml);
+    }).fail(function () {
+      $('#parentDetailsContent').html('<div class="alert alert-danger">Failed to load parent details.</div>');
+    });
+  };
+
+  // Confirm delete relationship
+  window.confirmDeleteRelation = function (relationId) {
+    if (confirm('Are you sure you want to remove this family relationship? This action cannot be undone.')) {
+      $.ajax({
+        url: `/students/relationships/${relationId}/delete/`,
+        method: 'POST',
+        data: {
+          'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+        },
+        success: function () {
+          toastr.success('Relationship removed successfully.');
+          location.reload();
+        },
+        error: function () {
+          toastr.error('Failed to remove relationship.');
+        }
+      });
+    }
+  };
+
+  // Initialize tooltips
+  $('[data-bs-toggle="tooltip"]').tooltip();
+});
+</script>
+{% endblock %}

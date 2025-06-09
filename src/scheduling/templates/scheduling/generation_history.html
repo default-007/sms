@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Timetable Generation History - Scheduling{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">Generation History</h1>
+          <p class="text-muted">View past timetable generation attempts and results</p>
+        </div>
+        <div>
+          <a href="{% url 'scheduling:timetable_generation' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>New Generation
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="text-primary mb-3">
+            <i class="fas fa-cogs fa-2x"></i>
+          </div>
+          <h4 class="mb-0" id="totalGenerations">{{ generations|length }}</h4>
+          <p class="text-muted mb-0">Total Generations</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="text-success mb-3">
+            <i class="fas fa-check-circle fa-2x"></i>
+          </div>
+          <h4 class="mb-0" id="successfulGenerations">0</h4>
+          <p class="text-muted mb-0">Successful</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="text-danger mb-3">
+            <i class="fas fa-times-circle fa-2x"></i>
+          </div>
+          <h4 class="mb-0" id="failedGenerations">0</h4>
+          <p class="text-muted mb-0">Failed</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="text-warning mb-3">
+            <i class="fas fa-clock fa-2x"></i>
+          </div>
+          <h4 class="mb-0" id="runningGenerations">0</h4>
+          <p class="text-muted mb-0">Running</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-3">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="statusFilter">
+            <option value="">All Status</option>
+            <option value="completed">Completed</option>
+            <option value="failed">Failed</option>
+            <option value="running">Running</option>
+            <option value="pending">Pending</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Algorithm</label>
+          <select class="form-select" id="algorithmFilter">
+            <option value="">All Algorithms</option>
+            <option value="genetic">Genetic Algorithm</option>
+            <option value="greedy">Greedy Algorithm</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Date Range</label>
+          <select class="form-select" id="dateRangeFilter">
+            <option value="">All Time</option>
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+            <option value="quarter">This Quarter</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">&nbsp;</label>
+          <div>
+            <button type="button" class="btn btn-outline-secondary" id="clearFilters">
+              <i class="fas fa-times me-2"></i>Clear Filters
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generation History Table -->
+  <div class="card">
+    <div class="card-header">
+      <h5 class="card-title mb-0">
+        <i class="fas fa-history me-2"></i>Generation History
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover" id="generationTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Term</th>
+              <th>Algorithm</th>
+              <th>Status</th>
+              <th>Score</th>
+              <th>Execution Time</th>
+              <th>Started By</th>
+              <th>Started At</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for generation in generations %}
+            <tr data-status="{{ generation.status }}" data-algorithm="{{ generation.algorithm_used }}">
+              <td>
+                <code>#{{ generation.id|slice:":8" }}</code>
+              </td>
+              <td>
+                <strong>{{ generation.term.name }}</strong><br>
+                <small class="text-muted">{{ generation.term.academic_year.name }}</small>
+              </td>
+              <td>
+                <span class="badge bg-info">{{ generation.algorithm_used|title }}</span>
+              </td>
+              <td>
+                {% if generation.status == 'completed' %}
+                <span class="badge bg-success">
+                  <i class="fas fa-check me-1"></i>Completed
+                </span>
+                {% elif generation.status == 'failed' %}
+                <span class="badge bg-danger">
+                  <i class="fas fa-times me-1"></i>Failed
+                </span>
+                {% elif generation.status == 'running' %}
+                <span class="badge bg-warning">
+                  <i class="fas fa-cog fa-spin me-1"></i>Running
+                </span>
+                {% elif generation.status == 'pending' %}
+                <span class="badge bg-secondary">
+                  <i class="fas fa-clock me-1"></i>Pending
+                </span>
+                {% elif generation.status == 'cancelled' %}
+                <span class="badge bg-dark">
+                  <i class="fas fa-ban me-1"></i>Cancelled
+                </span>
+                {% endif %}
+              </td>
+              <td>
+                {% if generation.optimization_score %}
+                <div class="d-flex align-items-center">
+                  <div class="progress me-2" style="width: 60px; height: 8px;">
+                    <div class="progress-bar 
+                                                {% if generation.optimization_score >= 90 %}bg-success
+                                                {% elif generation.optimization_score >= 70 %}bg-warning
+                                                {% else %}bg-danger{% endif %}" role="progressbar"
+                      style="width: {{ generation.optimization_score }}%">
+                    </div>
+                  </div>
+                  <small>{{ generation.optimization_score|floatformat:1 }}%</small>
+                </div>
+                {% else %}
+                <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if generation.execution_time_seconds %}
+                {% if generation.execution_time_seconds < 60 %}
+                {{ generation.execution_time_seconds|floatformat:1 }}s
+                {% else %}
+                {{ generation.execution_time_seconds|floatformat:0|div:60 }}m
+                {{ generation.execution_time_seconds|floatformat:0|mod:60 }}s
+                {% endif %}
+                {% else %}
+                <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if generation.started_by %}
+                <div class="d-flex align-items-center">
+                  <img
+                    src="{% if generation.started_by.profile_picture %}{{ generation.started_by.profile_picture.url }}{% else %}{% static 'images/default-avatar.png' %}{% endif %}"
+                    alt="User" class="rounded-circle me-2" width="24" height="24">
+                  <small>{{ generation.started_by.get_full_name }}</small>
+                </div>
+                {% else %}
+                <span class="text-muted">System</span>
+                {% endif %}
+              </td>
+              <td>
+                <div>{{ generation.started_at|date:"M d, Y" }}</div>
+                <small class="text-muted">{{ generation.started_at|time:"H:i" }}</small>
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <a href="{% url 'scheduling:generation_detail' generation.pk %}" class="btn btn-outline-primary"
+                    title="View Details">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  {% if generation.status == 'running' %}
+                  <button type="button" class="btn btn-outline-danger" onclick="cancelGeneration('{{ generation.pk }}')"
+                    title="Cancel">
+                    <i class="fas fa-stop"></i>
+                  </button>
+                  {% endif %}
+                  {% if generation.status == 'completed' %}
+                  <button type="button" class="btn btn-outline-success" onclick="downloadResults('{{ generation.pk }}')"
+                    title="Download Results">
+                    <i class="fas fa-download"></i>
+                  </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="9" class="text-center py-4">
+                <div class="text-muted">
+                  <i class="fas fa-inbox fa-2x mb-3"></i><br>
+                  No generation history found.<br>
+                  <a href="{% url 'scheduling:timetable_generation' %}" class="btn btn-primary btn-sm mt-2">
+                    Start Your First Generation
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Cancel Generation Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="cancelModalLabel">
+          <i class="fas fa-stop-circle me-2"></i>Cancel Generation
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to cancel this timetable generation?</p>
+        <p class="text-muted mb-0">
+          <small>This action cannot be undone and any progress will be lost.</small>
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-danger" id="confirmCancelBtn">
+          <i class="fas fa-stop me-2"></i>Cancel Generation
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    const table = $('#generationTable').DataTable({
+      order: [[7, 'desc']], // Sort by started date descending
+      pageLength: 25,
+      responsive: true,
+      dom: 'Bfrtip',
+      buttons: [
+        {
+          extend: 'csv',
+          text: '<i class="fas fa-file-csv me-2"></i>Export CSV',
+          className: 'btn btn-outline-success btn-sm'
+        },
+        {
+          text: '<i class="fas fa-sync-alt me-2"></i>Refresh',
+          className: 'btn btn-outline-primary btn-sm',
+          action: function (e, dt, node, config) {
+            location.reload();
+          }
+        }
+      ],
+      columnDefs: [
+        { targets: [8], orderable: false } // Actions column
+      ]
+    });
+
+    // Calculate and display statistics
+    calculateStats();
+
+    // Filter handlers
+    $('#statusFilter').change(function () {
+      const status = $(this).val();
+      if (status) {
+        table.column(3).search(status).draw();
+      } else {
+        table.column(3).search('').draw();
+      }
+    });
+
+    $('#algorithmFilter').change(function () {
+      const algorithm = $(this).val();
+      if (algorithm) {
+        table.column(2).search(algorithm).draw();
+      } else {
+        table.column(2).search('').draw();
+      }
+    });
+
+    $('#dateRangeFilter').change(function () {
+      // Implement date range filtering
+      const range = $(this).val();
+      // This would need server-side implementation or custom filtering
+      console.log('Date range filter:', range);
+    });
+
+    $('#clearFilters').click(function () {
+      $('#statusFilter, #algorithmFilter, #dateRangeFilter').val('');
+      table.search('').columns().search('').draw();
+    });
+
+    // Auto-refresh for running generations
+    setInterval(function () {
+      if ($('span.badge:contains("Running")').length > 0) {
+        location.reload();
+      }
+    }, 30000); // Refresh every 30 seconds if there are running generations
+
+    function calculateStats() {
+      const rows = $('#generationTable tbody tr');
+      let successful = 0, failed = 0, running = 0;
+
+      rows.each(function () {
+        const status = $(this).find('.badge').text().toLowerCase();
+        if (status.includes('completed')) successful++;
+        else if (status.includes('failed')) failed++;
+        else if (status.includes('running')) running++;
+      });
+
+      $('#successfulGenerations').text(successful);
+      $('#failedGenerations').text(failed);
+      $('#runningGenerations').text(running);
+    }
+  });
+
+  // Global functions
+  let currentGenerationId = null;
+  const cancelModal = new bootstrap.Modal(document.getElementById('cancelModal'));
+
+  function cancelGeneration(generationId) {
+    currentGenerationId = generationId;
+    cancelModal.show();
+  }
+
+  function downloadResults(generationId) {
+    // Implement download functionality
+    window.location.href = `/api/scheduling/generations/${generationId}/download/`;
+  }
+
+  $('#confirmCancelBtn').click(function () {
+    if (currentGenerationId) {
+      // Make AJAX call to cancel generation
+      $.ajax({
+        url: `/api/scheduling/generations/${currentGenerationId}/cancel/`,
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+        },
+        success: function (response) {
+          cancelModal.hide();
+          location.reload();
+        },
+        error: function (xhr, status, error) {
+          alert('Failed to cancel generation: ' + error);
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}

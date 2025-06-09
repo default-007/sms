@@ -1,153 +1,311 @@
 <!-- students/templates/students/student_bulk_import.html -->
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% load static %}
 
 {% block title %}Bulk Import Students{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/dropzone.min.css">
 <style>
-  .upload-area {
-    border: 2px dashed #dee2e6;
-    border-radius: 10px;
-    padding: 40px;
-    text-align: center;
-    transition: all 0.3s ease;
-    cursor: pointer;
+  .template-preview {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
   }
 
-  .upload-area:hover {
-    border-color: #007bff;
-    background-color: #f8f9fa;
+  .import-step {
+    opacity: 0.5;
   }
 
-  .upload-area.dragover {
-    border-color: #007bff;
-    background-color: #e3f2fd;
+  .import-step.active {
+    opacity: 1;
   }
 
-  .sample-table {
-    font-size: 0.875rem;
+  .import-step.completed {
+    opacity: 1;
+    color: #198754;
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4">
-  <h1 class="mt-4">Bulk Import Students</h1>
-  <ol class="breadcrumb mb-4">
-    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
-    <li class="breadcrumb-item"><a href="{% url 'students:student-list' %}">Students</a></li>
-    <li class="breadcrumb-item active">Bulk Import</li>
-  </ol>
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">{{ title }}</h2>
+          <p class="text-muted mb-0">{{ description }}</p>
+        </div>
+        <div>
+          <a href="{% url 'students:student-list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Students
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Steps -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="import-step active" id="step-1">
+              <div class="d-flex align-items-center">
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3"
+                  style="width: 40px; height: 40px;">
+                  <i class="fas fa-download"></i>
+                </div>
+                <div>
+                  <h6 class="mb-0">Download Template</h6>
+                  <small class="text-muted">Get the CSV template</small>
+                </div>
+              </div>
+            </div>
+            <div class="import-step" id="step-2">
+              <div class="d-flex align-items-center">
+                <div
+                  class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3"
+                  style="width: 40px; height: 40px;">
+                  <i class="fas fa-edit"></i>
+                </div>
+                <div>
+                  <h6 class="mb-0">Fill Data</h6>
+                  <small class="text-muted">Complete the CSV file</small>
+                </div>
+              </div>
+            </div>
+            <div class="import-step" id="step-3">
+              <div class="d-flex align-items-center">
+                <div
+                  class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3"
+                  style="width: 40px; height: 40px;">
+                  <i class="fas fa-upload"></i>
+                </div>
+                <div>
+                  <h6 class="mb-0">Upload File</h6>
+                  <small class="text-muted">Import your data</small>
+                </div>
+              </div>
+            </div>
+            <div class="import-step" id="step-4">
+              <div class="d-flex align-items-center">
+                <div
+                  class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3"
+                  style="width: 40px; height: 40px;">
+                  <i class="fas fa-check"></i>
+                </div>
+                <div>
+                  <h6 class="mb-0">Review Results</h6>
+                  <small class="text-muted">Check import status</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div class="row">
-    <div class="col-xl-8">
-      <div class="card">
-        <div class="card-header">
-          <h5 class="mb-0">Upload CSV File</h5>
+    <div class="col-lg-8">
+      <!-- Step 1: Template Download -->
+      <div class="card shadow-sm mb-4" id="template-section">
+        <div class="card-header bg-primary text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-download me-2"></i>Step 1: Download Template
+          </h5>
+        </div>
+        <div class="card-body">
+          <p class="mb-3">Download the CSV template to ensure your data is in the correct format.</p>
+
+          <div class="d-flex gap-3 mb-4">
+            <a href="{% url 'students:download-template' 'students' %}" class="btn btn-success" id="download-template">
+              <i class="fas fa-download me-2"></i>Download Student Template
+            </a>
+            <button type="button" class="btn btn-outline-info" data-bs-toggle="modal"
+              data-bs-target="#templatePreviewModal">
+              <i class="fas fa-eye me-2"></i>Preview Template
+            </button>
+          </div>
+
+          <!-- Template Information -->
+          <div class="alert alert-info">
+            <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Template Information</h6>
+            <div class="row">
+              <div class="col-md-6">
+                <strong>Required Fields:</strong>
+                <ul class="mb-0 small">
+                  <li>first_name</li>
+                  <li>last_name</li>
+                  <li>email</li>
+                  <li>admission_number</li>
+                  <li>emergency_contact_name</li>
+                  <li>emergency_contact_number</li>
+                </ul>
+              </div>
+              <div class="col-md-6">
+                <strong>Optional Fields:</strong>
+                <ul class="mb-0 small">
+                  <li>admission_date</li>
+                  <li>current_class_id</li>
+                  <li>blood_group</li>
+                  <li>nationality, religion</li>
+                  <li>city, state, country</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Upload Form -->
+      <div class="card shadow-sm" id="upload-section" style="display: none;">
+        <div class="card-header bg-success text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-upload me-2"></i>Step 2: Upload CSV File
+          </h5>
         </div>
         <div class="card-body">
           <form method="post" enctype="multipart/form-data" id="importForm">
             {% csrf_token %}
 
+            <!-- Form Errors -->
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+              {{ form.non_field_errors }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endif %}
+
+            <!-- File Upload -->
             <div class="mb-4">
-              <label class="form-label">CSV File <span class="text-danger">*</span></label>
-              <div class="upload-area" id="uploadArea">
-                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
-                <h6>Drop your CSV file here or click to browse</h6>
-                <p class="text-muted mb-0">Maximum file size: 5MB</p>
-                {{ form.csv_file }}
+              <label for="{{ form.csv_file.id_for_label }}" class="form-label">
+                CSV File <span class="text-danger">*</span>
+              </label>
+              <div class="dropzone" id="csvDropzone">
+                <div class="dz-message">
+                  <div class="display-4 text-muted mb-3">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                  </div>
+                  <h5>Drop CSV file here or click to browse</h5>
+                  <p class="text-muted">Maximum file size: 5MB</p>
+                </div>
               </div>
+              {{ form.csv_file }}
               {% if form.csv_file.errors %}
-              <div class="text-danger mt-2">{{ form.csv_file.errors.0 }}</div>
+              <div class="text-danger small mt-2">{{ form.csv_file.errors }}</div>
               {% endif %}
             </div>
 
-            <div class="row">
+            <!-- Import Options -->
+            <div class="row mb-4">
               <div class="col-md-6">
-                <div class="form-check">
+                <div class="form-check form-switch">
                   {{ form.send_email_notifications }}
-                  <label class="form-check-label" for="{{ form.send_email_notifications.id_for_label }}">
-                    Send welcome emails to new students
+                  <label for="{{ form.send_email_notifications.id_for_label }}" class="form-check-label">
+                    Send Email Notifications
                   </label>
+                  <div class="form-text">Send welcome emails to new students</div>
                 </div>
               </div>
               <div class="col-md-6">
-                <div class="form-check">
+                <div class="form-check form-switch">
                   {{ form.update_existing }}
-                  <label class="form-check-label" for="{{ form.update_existing.id_for_label }}">
-                    Update existing students (by admission number)
+                  <label for="{{ form.update_existing.id_for_label }}" class="form-check-label">
+                    Update Existing Students
                   </label>
+                  <div class="form-text">Update data if admission number exists</div>
                 </div>
               </div>
             </div>
 
-            <div class="mt-4">
-              <button type="submit" class="btn btn-primary">
+            <!-- Form Actions -->
+            <div class="d-flex justify-content-between">
+              <button type="button" class="btn btn-outline-secondary" onclick="showTemplateSection()">
+                <i class="fas fa-arrow-left me-2"></i>Back to Template
+              </button>
+              <button type="submit" class="btn btn-primary" id="importBtn" disabled>
                 <i class="fas fa-upload me-2"></i>Import Students
               </button>
-              <a href="{% url 'students:student-list' %}" class="btn btn-secondary ms-2">Cancel</a>
             </div>
           </form>
         </div>
       </div>
+
+      <!-- Import Results -->
+      <div class="card shadow-sm mt-4" id="results-section" style="display: none;">
+        <div class="card-header bg-info text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-chart-bar me-2"></i>Import Results
+          </h5>
+        </div>
+        <div class="card-body" id="results-content">
+          <!-- Results will be populated by JavaScript -->
+        </div>
+      </div>
     </div>
 
-    <div class="col-xl-4">
-      <div class="card">
-        <div class="card-header">
-          <h5 class="mb-0">Download Template</h5>
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+      <!-- Quick Stats -->
+      {% student_quick_stats %}
+
+      <!-- Import Tips -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-warning text-dark">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-lightbulb me-2"></i>Import Tips
+          </h6>
         </div>
         <div class="card-body">
-          <p>Download the CSV template to ensure your data is properly formatted:</p>
-          <a href="{% url 'students:download-template' 'students' %}" class="btn btn-success">
-            <i class="fas fa-download me-2"></i>Download Template
-          </a>
-
-          <div class="mt-3">
-            <h6>Required Fields:</h6>
-            <ul class="list-unstyled">
-              <li><i class="fas fa-check text-success me-2"></i>first_name</li>
-              <li><i class="fas fa-check text-success me-2"></i>last_name</li>
-              <li><i class="fas fa-check text-success me-2"></i>email</li>
-              <li><i class="fas fa-check text-success me-2"></i>admission_number</li>
-              <li><i class="fas fa-check text-success me-2"></i>emergency_contact_name</li>
-              <li><i class="fas fa-check text-success me-2"></i>emergency_contact_number</li>
+          <div class="mb-3">
+            <h6 class="text-primary">Data Format</h6>
+            <ul class="list-unstyled small">
+              <li><i class="fas fa-check text-success me-2"></i>Use YYYY-MM-DD for dates</li>
+              <li><i class="fas fa-check text-success me-2"></i>Email addresses must be unique</li>
+              <li><i class="fas fa-check text-success me-2"></i>Admission numbers must be unique</li>
+              <li><i class="fas fa-check text-success me-2"></i>Phone numbers with country code</li>
             </ul>
+          </div>
+
+          <div class="mb-3">
+            <h6 class="text-primary">Common Issues</h6>
+            <ul class="list-unstyled small">
+              <li><i class="fas fa-times text-danger me-2"></i>Empty required fields</li>
+              <li><i class="fas fa-times text-danger me-2"></i>Invalid email formats</li>
+              <li><i class="fas fa-times text-danger me-2"></i>Duplicate admission numbers</li>
+              <li><i class="fas fa-times text-danger me-2"></i>Invalid date formats</li>
+            </ul>
+          </div>
+
+          <div class="alert alert-info">
+            <small>
+              <i class="fas fa-info-circle me-2"></i>
+              <strong>Tip:</strong> Test with a small batch first (5-10 students) before importing large datasets.
+            </small>
           </div>
         </div>
       </div>
 
-      <div class="card mt-4">
-        <div class="card-header">
-          <h5 class="mb-0">Sample Data</h5>
+      <!-- Recent Imports -->
+      <div class="card shadow-sm">
+        <div class="card-header bg-secondary text-white">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-history me-2"></i>Recent Imports
+          </h6>
         </div>
         <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-sm sample-table">
-              <thead>
-                <tr>
-                  <th>first_name</th>
-                  <th>last_name</th>
-                  <th>email</th>
-                  <th>admission_number</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>John</td>
-                  <td>Doe</td>
-                  <td>john.doe@example.com</td>
-                  <td>ADM-2024-001</td>
-                </tr>
-                <tr>
-                  <td>Jane</td>
-                  <td>Smith</td>
-                  <td>jane.smith@example.com</td>
-                  <td>ADM-2024-002</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="text-center text-muted">
+            <i class="fas fa-clock fa-2x mb-2"></i>
+            <p class="mb-0">No recent imports</p>
+            <small>Import history will appear here</small>
           </div>
         </div>
       </div>
@@ -155,22 +313,41 @@
   </div>
 </div>
 
-<!-- Progress Modal -->
-<div class="modal fade" id="progressModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-  <div class="modal-dialog modal-dialog-centered">
+<!-- Template Preview Modal -->
+<div class="modal fade" id="templatePreviewModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Importing Students...</h5>
+        <h5 class="modal-title">CSV Template Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body text-center">
-        <div class="spinner-border text-primary mb-3" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-        <p>Please wait while we process your file...</p>
-        <div class="progress">
-          <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">
+      <div class="modal-body">
+        <p class="mb-3">This is how your CSV file should be structured:</p>
+        <div class="template-preview">
+          <div class="row mb-2 fw-bold">
+            {% for header in csv_template_headers %}
+            <div class="col">{{ header }}</div>
+            {% endfor %}
           </div>
+          {% for sample in csv_sample_data %}
+          <div class="row mb-1">
+            <div class="col">{{ sample.first_name }}</div>
+            <div class="col">{{ sample.last_name }}</div>
+            <div class="col">{{ sample.email }}</div>
+            <div class="col">{{ sample.admission_number }}</div>
+            <div class="col">{{ sample.admission_date }}</div>
+            <div class="col">{{ sample.emergency_contact_name }}</div>
+            <div class="col">{{ sample.emergency_contact_number }}</div>
+            <div class="col">{{ sample.status }}</div>
+          </div>
+          {% endfor %}
         </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <a href="{% url 'students:download-template' 'students' %}" class="btn btn-primary">
+          <i class="fas fa-download me-2"></i>Download Template
+        </a>
       </div>
     </div>
   </div>
@@ -178,71 +355,214 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/dropzone.min.js"></script>
 <script>
   $(document).ready(function () {
-    // File upload UI enhancement
-    const uploadArea = $('#uploadArea');
-    const fileInput = $('#{{ form.csv_file.id_for_label }}');
+    let uploadedFile = null;
 
-    uploadArea.on('click', function () {
-      fileInput.click();
-    });
+    // Initialize Dropzone
+    Dropzone.autoDiscover = false;
+    const csvDropzone = new Dropzone("#csvDropzone", {
+      url: "#", // We'll handle submission manually
+      autoProcessQueue: false,
+      maxFiles: 1,
+      acceptedFiles: ".csv",
+      maxFilesize: 5, // MB
+      addRemoveLinks: true,
+      dictDefaultMessage: "Drop CSV file here or click to browse",
 
-    uploadArea.on('dragover', function (e) {
-      e.preventDefault();
-      $(this).addClass('dragover');
-    });
+      init: function () {
+        this.on("addedfile", function (file) {
+          uploadedFile = file;
+          $('#id_csv_file')[0].files = this.files;
+          $('#importBtn').prop('disabled', false);
+          updateStep(2);
+        });
 
-    uploadArea.on('dragleave', function (e) {
-      e.preventDefault();
-      $(this).removeClass('dragover');
-    });
+        this.on("removedfile", function (file) {
+          uploadedFile = null;
+          $('#importBtn').prop('disabled', true);
+          updateStep(1);
+        });
 
-    uploadArea.on('drop', function (e) {
-      e.preventDefault();
-      $(this).removeClass('dragover');
-
-      const files = e.originalEvent.dataTransfer.files;
-      if (files.length > 0) {
-        fileInput[0].files = files;
-        updateFileDisplay(files[0].name);
+        this.on("error", function (file, errorMessage) {
+          toastr.error('File upload error: ' + errorMessage);
+        });
       }
     });
 
-    fileInput.on('change', function () {
-      if (this.files.length > 0) {
-        updateFileDisplay(this.files[0].name);
-      }
+    // Handle template download
+    $('#download-template').on('click', function () {
+      updateStep(2);
+      setTimeout(function () {
+        showUploadSection();
+      }, 1000);
     });
 
-    function updateFileDisplay(filename) {
-      uploadArea.html(`
-      <i class="fas fa-file-csv fa-3x text-success mb-3"></i>
-      <h6>${filename}</h6>
-      <p class="text-muted mb-0">Click to change file</p>
-    `);
+    // Handle form submission
+    $('#importForm').on('submit', function (e) {
+      e.preventDefault();
+
+      if (!uploadedFile) {
+        toastr.error('Please select a CSV file to import.');
+        return;
+      }
+
+      updateStep(3);
+      $('#importBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Importing...');
+
+      // Create FormData object
+      const formData = new FormData(this);
+
+      // Submit via AJAX
+      $.ajax({
+        url: $(this).attr('action') || window.location.href,
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (response) {
+          updateStep(4);
+          showResults(response);
+        },
+        error: function (xhr) {
+          toastr.error('Import failed. Please try again.');
+          $('#importBtn').prop('disabled', false).html('<i class="fas fa-upload me-2"></i>Import Students');
+        }
+      });
+    });
+
+    function updateStep(stepNumber) {
+      $('.import-step').removeClass('active completed');
+
+      for (let i = 1; i <= stepNumber; i++) {
+        if (i < stepNumber) {
+          $(`#step-${i}`).addClass('completed');
+          $(`#step-${i} .rounded-circle`).removeClass('bg-secondary').addClass('bg-success');
+          $(`#step-${i} .rounded-circle i`).removeClass().addClass('fas fa-check');
+        } else {
+          $(`#step-${i}`).addClass('active');
+          $(`#step-${i} .rounded-circle`).removeClass('bg-secondary').addClass('bg-primary');
+        }
+      }
     }
 
-    // Form submission with progress
-    $('#importForm').on('submit', function () {
-      $('#progressModal').modal('show');
+    function showUploadSection() {
+      $('#template-section').fadeOut(function () {
+        $('#upload-section').fadeIn();
+      });
+    }
 
-      // Simulate progress (you can implement real progress tracking)
-      let progress = 0;
-      const progressBar = $('.progress-bar');
+    function showTemplateSection() {
+      $('#upload-section').fadeOut(function () {
+        $('#template-section').fadeIn();
+      });
+      updateStep(1);
+    }
 
-      const interval = setInterval(function () {
-        progress += Math.random() * 15;
-        if (progress > 90) progress = 90;
+    function showResults(data) {
+      let resultsHtml = '';
 
-        progressBar.css('width', progress + '%');
-      }, 500);
+      if (data.success) {
+        resultsHtml = `
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h3 class="mb-0">${data.created}</h3>
+                                <small>Created</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h3 class="mb-0">${data.updated}</h3>
+                                <small>Updated</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-dark">
+                            <div class="card-body text-center">
+                                <h3 class="mb-0">${data.errors}</h3>
+                                <small>Errors</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h3 class="mb-0">${data.total_processed}</h3>
+                                <small>Total Processed</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
 
-      // Clear interval after 30 seconds (adjust based on your needs)
-      setTimeout(function () {
-        clearInterval(interval);
-      }, 30000);
-    });
+        if (data.errors > 0 && data.error_details) {
+          resultsHtml += `
+                    <div class="alert alert-warning">
+                        <h6 class="alert-heading">Import Errors</h6>
+                        <ul class="mb-0">
+                `;
+          data.error_details.slice(0, 5).forEach(function (error) {
+            resultsHtml += `<li>Row ${error.row}: ${error.error}</li>`;
+          });
+          if (data.error_details.length > 5) {
+            resultsHtml += `<li>... and ${data.error_details.length - 5} more errors</li>`;
+          }
+          resultsHtml += `</ul></div>`;
+        }
+
+        resultsHtml += `
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-primary" onclick="location.reload()">
+                        <i class="fas fa-plus me-2"></i>Import More Students
+                    </button>
+                    <a href="{% url 'students:student-list' %}" class="btn btn-success">
+                        <i class="fas fa-list me-2"></i>View Students
+                    </a>
+                </div>
+            `;
+
+        toastr.success(`Import completed! Created: ${data.created}, Updated: ${data.updated}, Errors: ${data.errors}`);
+      } else {
+        resultsHtml = `
+                <div class="alert alert-danger">
+                    <h6 class="alert-heading">Import Failed</h6>
+                    <p class="mb-0">${data.error}</p>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="showUploadSection()">
+                    <i class="fas fa-retry me-2"></i>Try Again
+                </button>
+            `;
+        toastr.error('Import failed: ' + data.error);
+      }
+
+      $('#results-content').html(resultsHtml);
+      $('#upload-section').fadeOut(function () {
+        $('#results-section').fadeIn();
+      });
+    }
+
+    // Initialize first step
+    updateStep(1);
   });
+
+  // Make functions global for onclick handlers
+  window.showTemplateSection = function () {
+    $('#upload-section').fadeOut(function () {
+      $('#template-section').fadeIn();
+    });
+    updateStep(1);
+  };
+
+  window.showUploadSection = function () {
+    $('#template-section').fadeOut(function () {
+      $('#upload-section').fadeIn();
+    });
+  };
 </script>
 {% endblock %}

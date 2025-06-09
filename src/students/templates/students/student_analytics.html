@@ -1,0 +1,782 @@
+{% extends "base.html" %}
+{% load static %}
+{% load student_tags %}
+
+{% block title %}Student Analytics Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+  .analytics-card {
+    border: none;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border-radius: 15px;
+    transition: all 0.3s ease;
+  }
+
+  .analytics-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  }
+
+  .stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    transform: rotate(45deg);
+  }
+
+  .stat-number {
+    font-size: 3rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 1rem;
+    opacity: 0.9;
+    margin-top: 0.5rem;
+  }
+
+  .chart-container {
+    position: relative;
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+  }
+
+  .metric-item {
+    background: white;
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+    border-left: 4px solid #007bff;
+  }
+
+  .trend-indicator {
+    font-size: 0.875rem;
+  }
+
+  .trend-up {
+    color: #28a745;
+  }
+
+  .trend-down {
+    color: #dc3545;
+  }
+
+  .trend-neutral {
+    color: #ffc107;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            <i class="fas fa-chart-bar text-primary me-2"></i>
+            Student Analytics Dashboard
+          </h2>
+          <p class="text-muted mb-0">Comprehensive insights into student data and performance metrics</p>
+        </div>
+        <div class="btn-group">
+          <button type="button" class="btn btn-outline-primary" onclick="refreshDashboard()">
+            <i class="fas fa-sync-alt me-2"></i>Refresh Data
+          </button>
+          <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="fas fa-download me-2"></i>Export
+          </button>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#" onclick="exportDashboard('pdf')">
+                <i class="fas fa-file-pdf me-2"></i>Export as PDF
+              </a></li>
+            <li><a class="dropdown-item" href="#" onclick="exportDashboard('excel')">
+                <i class="fas fa-file-excel me-2"></i>Export as Excel
+              </a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Metrics -->
+  <div class="row mb-4">
+    <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="stat-number">{{ analytics.student_statistics.total_students|default:0 }}</div>
+            <div class="stat-label">Total Students</div>
+            <div class="trend-indicator trend-up">
+              <i class="fas fa-arrow-up me-1"></i>
+              {{ analytics.student_statistics.recent_admissions|default:0 }} this month
+            </div>
+          </div>
+          <div class="text-end">
+            <i class="fas fa-users fa-2x opacity-50"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
+      <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="stat-number">{{ analytics.student_statistics.active_students|default:0 }}</div>
+            <div class="stat-label">Active Students</div>
+            <div class="trend-indicator">
+              <i class="fas fa-percentage me-1"></i>
+              {{ analytics.student_statistics.active_percentage|default:0 }}% of total
+            </div>
+          </div>
+          <div class="text-end">
+            <i class="fas fa-user-check fa-2x opacity-50"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
+      <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="stat-number">{{ analytics.parent_statistics.total_parents|default:0 }}</div>
+            <div class="stat-label">Total Parents</div>
+            <div class="trend-indicator">
+              <i class="fas fa-shield-alt me-1"></i>
+              {{ analytics.parent_statistics.emergency_contacts|default:0 }} emergency contacts
+            </div>
+          </div>
+          <div class="text-end">
+            <i class="fas fa-user-friends fa-2x opacity-50"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
+      <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="stat-number">{{ analytics.student_statistics.completion_percentage|default:0 }}%</div>
+            <div class="stat-label">Profile Completion</div>
+            <div class="trend-indicator">
+              <i class="fas fa-check-circle me-1"></i>
+              Data quality metric
+            </div>
+          </div>
+          <div class="text-end">
+            <i class="fas fa-chart-pie fa-2x opacity-50"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 1 -->
+  <div class="row mb-4">
+    <!-- Student Status Distribution -->
+    <div class="col-lg-6 mb-4">
+      <div class="card analytics-card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-chart-pie me-2"></i>Student Status Distribution
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="statusChart" class="chart-container"></div>
+          <div class="row mt-3">
+            {% for status, count in analytics.student_statistics.status_breakdown.items %}
+            <div class="col-6 col-md-4 mb-2">
+              <div class="metric-item">
+                <div class="fw-bold text-primary">{{ count }}</div>
+                <small class="text-muted">{{ status }}</small>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Enrollment Trends -->
+    <div class="col-lg-6 mb-4">
+      <div class="card analytics-card">
+        <div class="card-header bg-success text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-chart-line me-2"></i>Enrollment Trends
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="enrollmentChart" class="chart-container"></div>
+          <div class="row mt-3">
+            <div class="col-4">
+              <div class="metric-item">
+                <div class="fw-bold text-success">{{ analytics.enrollment_trends.total_current_year|default:0 }}</div>
+                <small class="text-muted">This Year</small>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="metric-item">
+                <div class="fw-bold text-info">{{ analytics.enrollment_trends.growth_rate|default:0 }}%</div>
+                <small class="text-muted">Growth Rate</small>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="metric-item">
+                <div class="fw-bold text-warning">{{ analytics.class_distribution.total_classes|default:0 }}</div>
+                <small class="text-muted">Total Classes</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 2 -->
+  <div class="row mb-4">
+    <!-- Class Distribution -->
+    <div class="col-lg-8 mb-4">
+      <div class="card analytics-card">
+        <div class="card-header bg-info text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-chart-bar me-2"></i>Class-wise Distribution
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="classDistributionChart" class="chart-container"></div>
+          <div class="mt-3">
+            <h6>Average Class Size: <span
+                class="text-primary">{{ analytics.class_distribution.average_class_size|default:0 }} students</span>
+            </h6>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Demographics -->
+    <div class="col-lg-4 mb-4">
+      <div class="card analytics-card">
+        <div class="card-header bg-warning text-dark">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-users me-2"></i>Demographics
+          </h5>
+        </div>
+        <div class="card-body">
+          <!-- Age Statistics -->
+          <div class="mb-4">
+            <h6 class="text-muted">Age Distribution</h6>
+            {% if analytics.demographics.age_statistics.average_age %}
+            <div class="row g-2">
+              <div class="col-4">
+                <div class="metric-item border">
+                  <div class="fw-bold">{{ analytics.demographics.age_statistics.average_age }}</div>
+                  <small>Avg Age</small>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="metric-item border">
+                  <div class="fw-bold">{{ analytics.demographics.age_statistics.min_age }}</div>
+                  <small>Min Age</small>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="metric-item border">
+                  <div class="fw-bold">{{ analytics.demographics.age_statistics.max_age }}</div>
+                  <small>Max Age</small>
+                </div>
+              </div>
+            </div>
+            {% else %}
+            <p class="text-muted small">No age data available</p>
+            {% endif %}
+          </div>
+
+          <!-- Geographic Distribution -->
+          <div class="mb-4">
+            <h6 class="text-muted">Top Cities</h6>
+            {% for city, count in analytics.demographics.geographic_distribution.cities.items|slice:":5" %}
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="small">{{ city }}</span>
+              <span class="badge bg-primary">{{ count }}</span>
+            </div>
+            {% empty %}
+            <p class="text-muted small">No geographic data available</p>
+            {% endfor %}
+          </div>
+
+          <!-- Blood Group Distribution -->
+          <div>
+            <h6 class="text-muted">Blood Groups</h6>
+            <div id="bloodGroupChart"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Performance Metrics -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card analytics-card">
+        <div class="card-header bg-dark text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-tachometer-alt me-2"></i>Performance Metrics
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-4">
+            <!-- Attendance Metrics -->
+            <div class="col-lg-3">
+              <div class="text-center">
+                <div id="attendanceGauge"></div>
+                <h6 class="mt-3">Average Attendance</h6>
+                <p class="text-muted">
+                  {{ analytics.performance_metrics.attendance_metrics.average_attendance|default:0 }}%
+                </p>
+              </div>
+            </div>
+
+            <!-- Family Structure -->
+            <div class="col-lg-3">
+              <h6 class="text-center mb-3">Family Structure</h6>
+              <div class="metric-item mb-2">
+                <div class="d-flex justify-content-between">
+                  <span>Both Parents</span>
+                  <span
+                    class="fw-bold">{{ analytics.performance_metrics.family_structure.students_with_both_parents|default:0 }}</span>
+                </div>
+              </div>
+              <div class="metric-item mb-2">
+                <div class="d-flex justify-content-between">
+                  <span>Single Parent</span>
+                  <span
+                    class="fw-bold">{{ analytics.performance_metrics.family_structure.students_with_single_parent|default:0 }}</span>
+                </div>
+              </div>
+              <div class="metric-item">
+                <div class="d-flex justify-content-between">
+                  <span>Guardians</span>
+                  <span
+                    class="fw-bold">{{ analytics.performance_metrics.family_structure.students_with_guardians|default:0 }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Completion Rates -->
+            <div class="col-lg-3">
+              <h6 class="text-center mb-3">Completion Rates</h6>
+              <div class="mb-3">
+                <div class="d-flex justify-content-between mb-1">
+                  <span class="small">Profile Completion</span>
+                  <span
+                    class="small">{{ analytics.performance_metrics.completion_rates.profile_completion|default:0 }}%</span>
+                </div>
+                <div class="progress progress-sm">
+                  <div class="progress-bar bg-success"
+                    style="width: {{ analytics.performance_metrics.completion_rates.profile_completion|default:0 }}%">
+                  </div>
+                </div>
+              </div>
+              <div class="mb-3">
+                <div class="d-flex justify-content-between mb-1">
+                  <span class="small">Document Completion</span>
+                  <span
+                    class="small">{{ analytics.performance_metrics.completion_rates.document_completion|default:0 }}%</span>
+                </div>
+                <div class="progress progress-sm">
+                  <div class="progress-bar bg-info"
+                    style="width: {{ analytics.performance_metrics.completion_rates.document_completion|default:0 }}%">
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="d-flex justify-content-between mb-1">
+                  <span class="small">Parent Linkage</span>
+                  <span
+                    class="small">{{ analytics.performance_metrics.completion_rates.parent_linkage|default:0 }}%</span>
+                </div>
+                <div class="progress progress-sm">
+                  <div class="progress-bar bg-warning"
+                    style="width: {{ analytics.performance_metrics.completion_rates.parent_linkage|default:0 }}%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Communication Stats -->
+            <div class="col-lg-3">
+              <h6 class="text-center mb-3">Communication</h6>
+              <div class="metric-item mb-2">
+                <div class="d-flex justify-content-between">
+                  <span><i class="fas fa-envelope me-1"></i>Email</span>
+                  <span class="fw-bold">{{ analytics.communication_stats.email_enabled|default:0 }}</span>
+                </div>
+              </div>
+              <div class="metric-item mb-2">
+                <div class="d-flex justify-content-between">
+                  <span><i class="fas fa-sms me-1"></i>SMS</span>
+                  <span class="fw-bold">{{ analytics.communication_stats.sms_enabled|default:0 }}</span>
+                </div>
+              </div>
+              <div class="metric-item">
+                <div class="d-flex justify-content-between">
+                  <span><i class="fas fa-bell me-1"></i>Push</span>
+                  <span class="fw-bold">{{ analytics.communication_stats.push_enabled|default:0 }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card analytics-card">
+        <div class="card-header bg-secondary text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-clock me-2"></i>Real-time Metrics
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-4">
+            <div class="col-md-3">
+              <div class="metric-item text-center">
+                <i class="fas fa-user-plus fa-2x text-primary mb-2"></i>
+                <div class="h4 mb-1">{{ real_time_metrics.students_added_today|default:0 }}</div>
+                <small class="text-muted">Students Added Today</small>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="metric-item text-center">
+                <i class="fas fa-users fa-2x text-success mb-2"></i>
+                <div class="h4 mb-1">{{ real_time_metrics.parents_added_today|default:0 }}</div>
+                <small class="text-muted">Parents Added Today</small>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="metric-item text-center">
+                <i class="fas fa-link fa-2x text-info mb-2"></i>
+                <div class="h4 mb-1">{{ real_time_metrics.relationships_created_today|default:0 }}</div>
+                <small class="text-muted">Relationships Created Today</small>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="metric-item text-center">
+                <i class="fas fa-sync-alt fa-2x text-warning mb-2"></i>
+                <div class="h6 mb-1">{{ analytics.generated_at|timesince }} ago</div>
+                <small class="text-muted">Last Updated</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+  // Prepare data from Django context
+  const analyticsData = {
+    studentStats: {{ analytics.student_statistics| safe }},
+  parentStats: { { analytics.parent_statistics | safe } },
+  enrollmentTrends: { { analytics.enrollment_trends | safe } },
+  classDistribution: { { analytics.class_distribution | safe } },
+  demographics: { { analytics.demographics | safe } },
+  performanceMetrics: { { analytics.performance_metrics | safe } },
+  communicationStats: { { analytics.communication_stats | safe } }
+};
+
+  $(document).ready(function () {
+    initializeCharts();
+    startRealTimeUpdates();
+  });
+
+  function initializeCharts() {
+    // Student Status Distribution Chart
+    if (analyticsData.studentStats && analyticsData.studentStats.status_breakdown) {
+      renderStatusChart();
+    }
+
+    // Enrollment Trends Chart
+    if (analyticsData.enrollmentTrends && analyticsData.enrollmentTrends.yearly_trends) {
+      renderEnrollmentChart();
+    }
+
+    // Class Distribution Chart
+    if (analyticsData.classDistribution && analyticsData.classDistribution.class_wise_distribution) {
+      renderClassDistributionChart();
+    }
+
+    // Blood Group Chart
+    if (analyticsData.studentStats && analyticsData.studentStats.blood_group_distribution) {
+      renderBloodGroupChart();
+    }
+
+    // Attendance Gauge
+    if (analyticsData.performanceMetrics && analyticsData.performanceMetrics.attendance_metrics) {
+      renderAttendanceGauge();
+    }
+  }
+
+  function renderStatusChart() {
+    const statusData = analyticsData.studentStats.status_breakdown;
+    const series = Object.values(statusData);
+    const labels = Object.keys(statusData);
+
+    const options = {
+      series: series,
+      chart: {
+        type: 'donut',
+        height: 300,
+        toolbar: { show: false }
+      },
+      labels: labels,
+      colors: ['#28a745', '#dc3545', '#007bff', '#ffc107', '#6f42c1', '#fd7e14'],
+      legend: {
+        position: 'bottom',
+        horizontalAlign: 'center'
+      },
+      responsive: [{
+        breakpoint: 480,
+        options: {
+          chart: { width: 200 },
+          legend: { position: 'bottom' }
+        }
+      }],
+      plotOptions: {
+        pie: {
+          donut: {
+            size: '70%',
+            labels: {
+              show: true,
+              total: {
+                show: true,
+                label: 'Total Students',
+                formatter: function (w) {
+                  return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                }
+              }
+            }
+          }
+        }
+      }
+    };
+
+    const chart = new ApexCharts(document.querySelector("#statusChart"), options);
+    chart.render();
+  }
+
+  function renderEnrollmentChart() {
+    const enrollmentData = analyticsData.enrollmentTrends.yearly_trends;
+    const categories = enrollmentData.map(item => item.year);
+    const series = enrollmentData.map(item => item.count);
+
+    const options = {
+      series: [{
+        name: 'Enrollments',
+        data: series
+      }],
+      chart: {
+        type: 'line',
+        height: 300,
+        toolbar: { show: false }
+      },
+      xaxis: {
+        categories: categories,
+        title: { text: 'Year' }
+      },
+      yaxis: {
+        title: { text: 'Number of Students' }
+      },
+      stroke: {
+        curve: 'smooth',
+        width: 3
+      },
+      colors: ['#28a745'],
+      markers: {
+        size: 6,
+        colors: ['#fff'],
+        strokeColors: '#28a745',
+        strokeWidth: 2
+      },
+      grid: {
+        borderColor: '#e7e7e7'
+      }
+    };
+
+    const chart = new ApexCharts(document.querySelector("#enrollmentChart"), options);
+    chart.render();
+  }
+
+  function renderClassDistributionChart() {
+    const classData = analyticsData.classDistribution.class_wise_distribution;
+    const categories = classData.map(item =>
+      `${item.current_class__grade__name} ${item.current_class__section__name}`
+    );
+    const series = classData.map(item => item.student_count);
+
+    const options = {
+      series: [{
+        name: 'Students',
+        data: series
+      }],
+      chart: {
+        type: 'bar',
+        height: 350,
+        toolbar: { show: false }
+      },
+      xaxis: {
+        categories: categories,
+        labels: {
+          rotate: -45
+        }
+      },
+      yaxis: {
+        title: { text: 'Number of Students' }
+      },
+      colors: ['#007bff'],
+      plotOptions: {
+        bar: {
+          borderRadius: 4,
+          dataLabels: {
+            position: 'top'
+          }
+        }
+      },
+      dataLabels: {
+        enabled: true,
+        offsetY: -20,
+        style: {
+          fontSize: '12px',
+          colors: ["#304758"]
+        }
+      }
+    };
+
+    const chart = new ApexCharts(document.querySelector("#classDistributionChart"), options);
+    chart.render();
+  }
+
+  function renderBloodGroupChart() {
+    const bloodData = analyticsData.studentStats.blood_group_distribution;
+    const series = Object.values(bloodData);
+    const labels = Object.keys(bloodData);
+
+    const options = {
+      series: series,
+      chart: {
+        type: 'pie',
+        height: 200,
+        toolbar: { show: false }
+      },
+      labels: labels,
+      colors: ['#dc3545', '#28a745', '#007bff', '#ffc107', '#6f42c1', '#fd7e14', '#20c997', '#6c757d'],
+      legend: { show: false },
+      dataLabels: {
+        enabled: true,
+        formatter: function (val, opts) {
+          return opts.w.config.labels[opts.seriesIndex];
+        }
+      }
+    };
+
+    const chart = new ApexCharts(document.querySelector("#bloodGroupChart"), options);
+    chart.render();
+  }
+
+  function renderAttendanceGauge() {
+    const attendancePercent = analyticsData.performanceMetrics.attendance_metrics.average_attendance || 0;
+
+    const options = {
+      series: [attendancePercent],
+      chart: {
+        type: 'radialBar',
+        height: 200,
+        toolbar: { show: false }
+      },
+      plotOptions: {
+        radialBar: {
+          hollow: {
+            size: '60%'
+          },
+          dataLabels: {
+            show: true,
+            name: { show: false },
+            value: {
+              fontSize: '16px',
+              fontWeight: 'bold',
+              formatter: function (val) {
+                return val + '%';
+              }
+            }
+          }
+        }
+      },
+      colors: [attendancePercent >= 85 ? '#28a745' : attendancePercent >= 70 ? '#ffc107' : '#dc3545'],
+      stroke: {
+        lineCap: 'round'
+      }
+    };
+
+    const chart = new ApexCharts(document.querySelector("#attendanceGauge"), options);
+    chart.render();
+  }
+
+  function refreshDashboard() {
+    // Show loading indicator
+    const refreshBtn = $('button[onclick="refreshDashboard()"]');
+    const originalContent = refreshBtn.html();
+    refreshBtn.html('<i class="fas fa-spinner fa-spin me-2"></i>Refreshing...');
+    refreshBtn.prop('disabled', true);
+
+    // Simulate refresh (in real implementation, make AJAX call)
+    setTimeout(function () {
+      location.reload();
+    }, 2000);
+  }
+
+  function exportDashboard(format) {
+    // This would trigger the backend export functionality
+    alert(`Exporting dashboard as ${format.toUpperCase()}...`);
+    // In real implementation:
+    // window.location.href = `/students/analytics/export/${format}/`;
+  }
+
+  function startRealTimeUpdates() {
+    // Update real-time metrics every 30 seconds
+    setInterval(function () {
+      // In real implementation, make AJAX call to get updated metrics
+      console.log('Updating real-time metrics...');
+    }, 30000);
+  }
+
+  // Responsive chart handling
+  $(window).on('resize', function () {
+    // Charts will auto-resize, but you can add custom logic here if needed
+  });
+</script>
+{% endblock %}

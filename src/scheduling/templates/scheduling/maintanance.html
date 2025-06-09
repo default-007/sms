@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maintenance Mode - Scheduling System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css"
+      rel="stylesheet">
+
+    <style>
+      body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      .maintenance-container {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        padding: 3rem;
+        text-align: center;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .maintenance-icon {
+        font-size: 5rem;
+        color: #667eea;
+        margin-bottom: 2rem;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+        }
+
+        50% {
+          transform: scale(1.05);
+        }
+
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .maintenance-title {
+        color: #2d3748;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        font-size: 2.5rem;
+      }
+
+      .maintenance-message {
+        color: #4a5568;
+        font-size: 1.1rem;
+        line-height: 1.6;
+        margin-bottom: 2rem;
+      }
+
+      .progress-container {
+        background: #e2e8f0;
+        border-radius: 10px;
+        height: 8px;
+        margin: 2rem 0;
+        overflow: hidden;
+      }
+
+      .progress-bar {
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        height: 100%;
+        border-radius: 10px;
+        animation: progress 3s infinite;
+      }
+
+      @keyframes progress {
+        0% {
+          width: 0%;
+        }
+
+        50% {
+          width: 75%;
+        }
+
+        100% {
+          width: 0%;
+        }
+      }
+
+      .status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin: 2rem 0;
+      }
+
+      .status-item {
+        background: rgba(102, 126, 234, 0.1);
+        border-radius: 10px;
+        padding: 1rem;
+        text-align: center;
+      }
+
+      .status-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .status-text {
+        font-size: 0.9rem;
+        color: #4a5568;
+      }
+
+      .contact-info {
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-top: 2rem;
+        border-left: 4px solid #667eea;
+      }
+
+      .estimated-time {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 50px;
+        padding: 0.5rem 1.5rem;
+        display: inline-block;
+        font-weight: 600;
+        margin: 1rem 0;
+      }
+
+      .refresh-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 50px;
+        color: white;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        transition: transform 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+      }
+
+      .refresh-btn:hover {
+        transform: translateY(-2px);
+        color: white;
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+      }
+
+      .footer-text {
+        margin-top: 2rem;
+        color: #718096;
+        font-size: 0.9rem;
+      }
+
+      .social-links {
+        margin-top: 1rem;
+      }
+
+      .social-links a {
+        color: #667eea;
+        font-size: 1.5rem;
+        margin: 0 0.5rem;
+        transition: color 0.2s ease;
+      }
+
+      .social-links a:hover {
+        color: #764ba2;
+      }
+
+      .floating-shapes {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: -1;
+      }
+
+      .shape {
+        position: absolute;
+        opacity: 0.1;
+        animation: float 6s ease-in-out infinite;
+      }
+
+      .shape:nth-child(1) {
+        top: 10%;
+        left: 10%;
+        animation-delay: 0s;
+      }
+
+      .shape:nth-child(2) {
+        top: 20%;
+        right: 10%;
+        animation-delay: 2s;
+      }
+
+      .shape:nth-child(3) {
+        bottom: 10%;
+        left: 20%;
+        animation-delay: 4s;
+      }
+
+      @keyframes float {
+
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+
+        50% {
+          transform: translateY(-20px);
+        }
+      }
+
+      @media (max-width: 768px) {
+        .maintenance-container {
+          margin: 1rem;
+          padding: 2rem;
+        }
+
+        .maintenance-title {
+          font-size: 2rem;
+        }
+
+        .maintenance-icon {
+          font-size: 4rem;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Floating Background Shapes -->
+    <div class="floating-shapes">
+      <div class="shape">
+        <i class="bi bi-gear" style="font-size: 3rem;"></i>
+      </div>
+      <div class="shape">
+        <i class="bi bi-tools" style="font-size: 2.5rem;"></i>
+      </div>
+      <div class="shape">
+        <i class="bi bi-wrench" style="font-size: 2rem;"></i>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="maintenance-container">
+        <!-- Maintenance Icon -->
+        <div class="maintenance-icon">
+          <i class="bi bi-gear-fill"></i>
+        </div>
+
+        <!-- Title -->
+        <h1 class="maintenance-title">System Maintenance</h1>
+
+        <!-- Message -->
+        <div class="maintenance-message">
+          {% if message %}
+          {{ message }}
+          {% else %}
+          We're currently performing scheduled maintenance on our scheduling system to improve your experience.
+          We'll be back online shortly!
+          {% endif %}
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container">
+          <div class="progress-bar"></div>
+        </div>
+
+        <!-- Estimated Time -->
+        <div class="estimated-time">
+          <i class="bi bi-clock"></i> Estimated completion: 30 minutes
+        </div>
+
+        <!-- Status Grid -->
+        <div class="status-grid">
+          <div class="status-item">
+            <div class="status-icon text-warning">
+              <i class="bi bi-database-fill"></i>
+            </div>
+            <div class="status-text">Database Optimization</div>
+          </div>
+          <div class="status-item">
+            <div class="status-icon text-info">
+              <i class="bi bi-cloud-arrow-up"></i>
+            </div>
+            <div class="status-text">System Updates</div>
+          </div>
+          <div class="status-item">
+            <div class="status-icon text-success">
+              <i class="bi bi-shield-check"></i>
+            </div>
+            <div class="status-text">Security Patches</div>
+          </div>
+          <div class="status-item">
+            <div class="status-icon text-primary">
+              <i class="bi bi-speedometer2"></i>
+            </div>
+            <div class="status-text">Performance Tuning</div>
+          </div>
+        </div>
+
+        <!-- Refresh Button -->
+        <a href="#" class="refresh-btn" onclick="location.reload()">
+          <i class="bi bi-arrow-clockwise"></i> Check Status
+        </a>
+
+        <!-- Contact Information -->
+        <div class="contact-info">
+          <h5 class="mb-3">
+            <i class="bi bi-info-circle"></i> Need Immediate Assistance?
+          </h5>
+          <p class="mb-2">
+            <strong>Support Email:</strong>
+            <a href="mailto:support@schoolsms.com" class="text-decoration-none">support@schoolsms.com</a>
+          </p>
+          <p class="mb-2">
+            <strong>Emergency Contact:</strong>
+            <a href="tel:+1234567890" class="text-decoration-none">+1 (234) 567-8900</a>
+          </p>
+          <p class="mb-0">
+            <strong>Status Updates:</strong>
+            <a href="#" class="text-decoration-none">status.schoolsms.com</a>
+          </p>
+        </div>
+
+        <!-- What's Being Updated -->
+        <div class="mt-4">
+          <h6 class="text-muted mb-3">What's being updated:</h6>
+          <div class="text-start">
+            <div class="d-flex align-items-center mb-2">
+              <i class="bi bi-check-circle text-success me-2"></i>
+              <span class="small">Timetable optimization algorithms</span>
+            </div>
+            <div class="d-flex align-items-center mb-2">
+              <i class="bi bi-arrow-clockwise text-warning me-2"></i>
+              <span class="small">Conflict resolution engine</span>
+            </div>
+            <div class="d-flex align-items-center mb-2">
+              <i class="bi bi-hourglass text-info me-2"></i>
+              <span class="small">Analytics and reporting system</span>
+            </div>
+            <div class="d-flex align-items-center">
+              <i class="bi bi-hourglass text-secondary me-2"></i>
+              <span class="small">User interface improvements</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Social Links -->
+        <div class="social-links">
+          <a href="#" title="Twitter">
+            <i class="bi bi-twitter"></i>
+          </a>
+          <a href="#" title="Facebook">
+            <i class="bi bi-facebook"></i>
+          </a>
+          <a href="#" title="LinkedIn">
+            <i class="bi bi-linkedin"></i>
+          </a>
+          <a href="#" title="Email">
+            <i class="bi bi-envelope"></i>
+          </a>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer-text">
+          <p class="mb-1">
+            <strong>School Management System</strong> - Scheduling Module
+          </p>
+          <p class="mb-0">
+            Thank you for your patience while we improve your experience.
+          </p>
+          <small class="text-muted">
+            Last updated: <span id="lastUpdated"></span>
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      // Update the last updated time
+      document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+
+      // Auto-refresh every 30 seconds
+      setTimeout(function () {
+        location.reload();
+      }, 30000);
+
+      // Add some interactivity to the status items
+      document.querySelectorAll('.status-item').forEach(item => {
+        item.addEventListener('mouseenter', function () {
+          this.style.transform = 'scale(1.05)';
+          this.style.transition = 'transform 0.2s ease';
+        });
+
+        item.addEventListener('mouseleave', function () {
+          this.style.transform = 'scale(1)';
+        });
+      });
+
+      // Simulate progress updates
+      let progressSteps = 0;
+      const maxSteps = 100;
+      const progressInterval = setInterval(function () {
+        progressSteps += Math.random() * 5;
+        if (progressSteps >= maxSteps) {
+          clearInterval(progressInterval);
+          // Optionally redirect or show completion message
+        }
+      }, 1000);
+
+      // Add click handlers for contact links
+      document.addEventListener('DOMContentLoaded', function () {
+        // Track clicks for analytics (if needed)
+        document.querySelectorAll('a[href^="mailto:"], a[href^="tel:"]').forEach(link => {
+          link.addEventListener('click', function () {
+            console.log('Contact link clicked:', this.href);
+          });
+        });
+      });
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', function (e) {
+        // Press 'R' to refresh
+        if (e.key === 'r' || e.key === 'R') {
+          location.reload();
+        }
+
+        // Press 'S' to go to status page
+        if (e.key === 's' || e.key === 'S') {
+          window.open('#', '_blank'); // Replace with actual status page URL
+        }
+      });
+
+      // Show additional tips after some time
+      setTimeout(function () {
+        const tipsDiv = document.createElement('div');
+        tipsDiv.className = 'alert alert-info mt-3';
+        tipsDiv.innerHTML = `
+                <h6><i class="bi bi-lightbulb"></i> Pro Tip:</h6>
+                <p class="mb-0">Bookmark this page to quickly check maintenance status, or follow us on social media for real-time updates.</p>
+            `;
+        document.querySelector('.maintenance-container').appendChild(tipsDiv);
+      }, 10000); // Show after 10 seconds
+    </script>
+  </body>
+
+</html>

@@ -1,0 +1,517 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load student_tags %}
+
+{% block title %}Student Management Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+  .metric-card {
+    transition: transform 0.2s;
+  }
+
+  .metric-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .chart-container {
+    position: relative;
+    height: 300px;
+  }
+
+  .stat-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+  }
+
+  .trend-indicator {
+    font-size: 0.875rem;
+  }
+
+  .trend-up {
+    color: #28a745;
+  }
+
+  .trend-down {
+    color: #dc3545;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h2>
+          <p class="text-muted">Overview of student management system</p>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-primary" id="refreshData">
+            <i class="fas fa-sync-alt me-2"></i>Refresh
+          </button>
+          <div class="dropdown">
+            <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-download me-2"></i>Export
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="{% url 'students:student-export' %}">
+                  <i class="fas fa-file-csv me-2"></i>Student Data (CSV)
+                </a></li>
+              <li><a class="dropdown-item" href="{% url 'students:parent-export' %}">
+                  <i class="fas fa-file-csv me-2"></i>Parent Data (CSV)
+                </a></li>
+              <li><a class="dropdown-item" href="{% url 'students:bulk-export' %}">
+                  <i class="fas fa-file-pdf me-2"></i>Analytics Report (PDF)
+                </a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="row mb-4">
+    <div class="col-12">
+      {% student_quick_stats %}
+    </div>
+  </div>
+
+  <!-- Main Analytics Row -->
+  <div class="row mb-4">
+    <!-- Enrollment Trends Chart -->
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light">
+          <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Enrollment Trends</h6>
+            <div class="btn-group btn-group-sm" role="group">
+              <input type="radio" class="btn-check" name="trendPeriod" id="monthly" checked>
+              <label class="btn btn-outline-primary" for="monthly">Monthly</label>
+
+              <input type="radio" class="btn-check" name="trendPeriod" id="yearly">
+              <label class="btn btn-outline-primary" for="yearly">Yearly</label>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <canvas id="enrollmentChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Student Status Distribution -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light">
+          <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Student Status</h6>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <canvas id="statusChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Class Distribution and Parent Stats -->
+  <div class="row mb-4">
+    <!-- Class-wise Distribution -->
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light">
+          <h6 class="mb-0"><i class="fas fa-school me-2"></i>Class Distribution</h6>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <canvas id="classChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Parent Statistics -->
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light">
+          <h6 class="mb-0"><i class="fas fa-users me-2"></i>Parent Analytics</h6>
+        </div>
+        <div class="card-body">
+          {% parent_quick_stats %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Analytics Cards -->
+  <div class="row mb-4">
+    <!-- Attendance Overview -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm metric-card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <div class="bg-info bg-gradient rounded-circle p-3">
+                <i class="fas fa-calendar-check text-white fs-4"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <div class="stat-number text-info">87.5%</div>
+              <div class="text-muted">Average Attendance</div>
+              <div class="trend-indicator trend-up">
+                <i class="fas fa-arrow-up me-1"></i>+2.3% from last month
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer bg-transparent">
+          <a href="#" class="btn btn-sm btn-outline-info w-100">View Attendance Report</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Academic Performance -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm metric-card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <div class="bg-success bg-gradient rounded-circle p-3">
+                <i class="fas fa-graduation-cap text-white fs-4"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <div class="stat-number text-success">92.1%</div>
+              <div class="text-muted">Pass Rate</div>
+              <div class="trend-indicator trend-up">
+                <i class="fas fa-arrow-up me-1"></i>+1.8% from last term
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer bg-transparent">
+          <a href="#" class="btn btn-sm btn-outline-success w-100">View Performance Report</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fee Collection -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm metric-card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <div class="bg-warning bg-gradient rounded-circle p-3">
+                <i class="fas fa-money-bill-wave text-white fs-4"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <div class="stat-number text-warning">₹2.4M</div>
+              <div class="text-muted">Fee Collection</div>
+              <div class="trend-indicator trend-up">
+                <i class="fas fa-arrow-up me-1"></i>+5.2% from last month
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer bg-transparent">
+          <a href="#" class="btn btn-sm btn-outline-warning w-100">View Finance Report</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Activities and Quick Actions -->
+  <div class="row mb-4">
+    <!-- Recent Activities -->
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light">
+          <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="fas fa-clock me-2"></i>Recent Activities</h6>
+            <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-marker bg-success"></div>
+              <div class="timeline-content">
+                <h6 class="timeline-title">5 new students enrolled</h6>
+                <p class="timeline-text text-muted">Added to Grade 1 and Grade 2 classes</p>
+                <small class="timeline-time text-muted">2 hours ago</small>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-marker bg-info"></div>
+              <div class="timeline-content">
+                <h6 class="timeline-title">Parent contact information updated</h6>
+                <p class="timeline-text text-muted">15 parent records updated with new phone numbers</p>
+                <small class="timeline-time text-muted">4 hours ago</small>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-marker bg-warning"></div>
+              <div class="timeline-content">
+                <h6 class="timeline-title">Attendance alerts sent</h6>
+                <p class="timeline-text text-muted">12 parents notified about low attendance</p>
+                <small class="timeline-time text-muted">6 hours ago</small>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-marker bg-primary"></div>
+              <div class="timeline-content">
+                <h6 class="timeline-title">Monthly reports generated</h6>
+                <p class="timeline-text text-muted">Academic and financial reports for all classes</p>
+                <small class="timeline-time text-muted">1 day ago</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light">
+          <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h6>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-3">
+            <a href="{% url 'students:student-create' %}" class="btn btn-primary">
+              <i class="fas fa-user-plus me-2"></i>Add New Student
+            </a>
+            <a href="{% url 'students:parent-create' %}" class="btn btn-success">
+              <i class="fas fa-users me-2"></i>Add New Parent
+            </a>
+            <a href="{% url 'students:student-import' %}" class="btn btn-info">
+              <i class="fas fa-upload me-2"></i>Bulk Import Students
+            </a>
+            <a href="{% url 'students:student-promotion' %}" class="btn btn-warning">
+              <i class="fas fa-graduation-cap me-2"></i>Promote Students
+            </a>
+            <a href="{% url 'students:bulk-export' %}" class="btn btn-outline-primary">
+              <i class="fas fa-download me-2"></i>Generate Reports
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Status -->
+      <div class="card border-0 shadow-sm mt-3">
+        <div class="card-header bg-light">
+          <h6 class="mb-0"><i class="fas fa-server me-2"></i>System Status</h6>
+        </div>
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="small">Database</span>
+            <span class="badge bg-success">Online</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="small">Email Service</span>
+            <span class="badge bg-success">Online</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="small">SMS Service</span>
+            <span class="badge bg-warning">Limited</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="small">Last Backup</span>
+            <span class="small text-muted">2 hours ago</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Blood Group Distribution -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light">
+          <h6 class="mb-0"><i class="fas fa-tint me-2"></i>Blood Group Distribution</h6>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-md-3 col-6">
+              <div class="p-3 border rounded">
+                <div class="fw-bold text-danger fs-4">{% student_count_by_blood_group 'O+' %}</div>
+                <div class="text-muted">O+</div>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="p-3 border rounded">
+                <div class="fw-bold text-primary fs-4">{% student_count_by_blood_group 'A+' %}</div>
+                <div class="text-muted">A+</div>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="p-3 border rounded">
+                <div class="fw-bold text-success fs-4">{% student_count_by_blood_group 'B+' %}</div>
+                <div class="text-muted">B+</div>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="p-3 border rounded">
+                <div class="fw-bold text-warning fs-4">{% student_count_by_blood_group 'AB+' %}</div>
+                <div class="text-muted">AB+</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Enrollment Trends Chart
+    const enrollmentCtx = document.getElementById('enrollmentChart').getContext('2d');
+    const enrollmentChart = new Chart(enrollmentCtx, {
+      type: 'line',
+      data: {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        datasets: [{
+          label: 'New Enrollments',
+          data: [12, 19, 15, 25, 22, 30, 35, 32, 28, 26, 24, 18],
+          borderColor: '#007bff',
+          backgroundColor: 'rgba(0, 123, 255, 0.1)',
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+
+    // Student Status Chart
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    const statusChart = new Chart(statusCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Active', 'Inactive', 'Graduated', 'Suspended'],
+        datasets: [{
+          data: [{% student_count_by_status 'Active' %}, {% student_count_by_status 'Inactive' %}, {% student_count_by_status 'Graduated' %}, {% student_count_by_status 'Suspended' %}],
+    backgroundColor: ['#28a745', '#6c757d', '#17a2b8', '#ffc107']
+            }]
+        },
+    options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom'
+      }
+    }
+  }
+    });
+
+  // Class Distribution Chart
+  const classCtx = document.getElementById('classChart').getContext('2d');
+  const classChart = new Chart(classCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'],
+      datasets: [{
+        label: 'Students',
+        data: [45, 52, 48, 43, 38, 41],
+        backgroundColor: '#007bff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+  // Refresh Data
+  document.getElementById('refreshData').addEventListener('click', function () {
+    this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Refreshing...';
+    this.disabled = true;
+
+    // Simulate data refresh
+    setTimeout(() => {
+      location.reload();
+    }, 1000);
+  });
+
+  // Timeline styling
+  const timelineStyle = `
+        <style>
+        .timeline {
+            position: relative;
+            padding-left: 20px;
+        }
+        .timeline-item {
+            position: relative;
+            padding-bottom: 20px;
+        }
+        .timeline-item:not(:last-child)::before {
+            content: '';
+            position: absolute;
+            left: -15px;
+            top: 20px;
+            width: 2px;
+            height: calc(100% - 10px);
+            background: #dee2e6;
+        }
+        .timeline-marker {
+            position: absolute;
+            left: -20px;
+            top: 5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 2px #dee2e6;
+        }
+        .timeline-title {
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .timeline-text {
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+        .timeline-time {
+            font-size: 11px;
+        }
+        </style>
+    `;
+  document.head.insertAdjacentHTML('beforeend', timelineStyle);
+});
+</script>
+{% endblock %}

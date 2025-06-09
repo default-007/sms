@@ -1,0 +1,635 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Teacher Schedule Report{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css"
+  href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.4/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Teacher Schedule Report</h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:dashboard' %}">Scheduling</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:reports' %}">Reports</a></li>
+              <li class="breadcrumb-item active">Teacher Schedule</li>
+            </ol>
+          </nav>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="printReport()">
+            <i class="bi bi-printer"></i> Print
+          </button>
+          <button class="btn btn-outline-secondary" onclick="exportReport()">
+            <i class="bi bi-download"></i> Export
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <label for="termSelect" class="form-label">Select Term</label>
+          <select class="form-select" id="termSelect" onchange="loadTermData()">
+            {% for available_term in available_terms %}
+            <option value="{{ available_term.id }}" {% if available_term == term %}selected{% endif %}>
+              {{ available_term.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <label for="teacherSelect" class="form-label">Select Teacher</label>
+          <select class="form-select" id="teacherSelect" onchange="loadTeacherData()">
+            <option value="">All Teachers</option>
+            {% for available_teacher in available_teachers %}
+            <option value="{{ available_teacher.id }}" {% if available_teacher == teacher %}selected{% endif %}>
+              {{ available_teacher.user.get_full_name }} ({{ available_teacher.employee_id }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <label for="reportType" class="form-label">Report Format</label>
+          <select class="form-select" id="reportType" onchange="changeReportType()">
+            <option value="detailed">Detailed Schedule</option>
+            <option value="summary">Summary View</option>
+            <option value="workload">Workload Analysis</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if schedule_data and teacher %}
+  <!-- Teacher Info Card -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-md-2 text-center">
+              <div class="avatar-lg mb-3">
+                <img src="{{ teacher.user.profile_picture.url|default:'/static/images/default-avatar.png' }}"
+                  alt="{{ teacher.user.get_full_name }}" class="rounded-circle"
+                  style="width: 80px; height: 80px; object-fit: cover;">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <h4 class="mb-1">{{ teacher.user.get_full_name }}</h4>
+              <p class="text-muted mb-2">
+                <i class="bi bi-person-badge"></i> {{ teacher.employee_id }}
+                {% if teacher.position %}
+                <span class="mx-2">|</span>
+                <i class="bi bi-briefcase"></i> {{ teacher.position }}
+                {% endif %}
+              </p>
+              <p class="text-muted mb-0">
+                <i class="bi bi-calendar3"></i> {{ term.name }}
+                <span class="mx-2">|</span>
+                <i class="bi bi-building"></i> {{ teacher.department.name|default:"No Department" }}
+              </p>
+            </div>
+            <div class="col-md-4">
+              {% if workload_data %}
+              <div class="row text-center">
+                <div class="col-4">
+                  <small class="text-muted d-block">Total Periods</small>
+                  <span class="h4 text-primary">{{ workload_data.total_periods }}</span>
+                </div>
+                <div class="col-4">
+                  <small class="text-muted d-block">Classes</small>
+                  <span class="h4 text-success">{{ workload_data.classes_taught }}</span>
+                </div>
+                <div class="col-4">
+                  <small class="text-muted d-block">Subjects</small>
+                  <span class="h4 text-info">{{ workload_data.subjects_taught }}</span>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Schedule View -->
+  <div id="detailedView" class="report-container">
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Weekly Schedule - {{ teacher.user.get_full_name }}</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-bordered teacher-schedule-grid">
+                <thead class="table-light">
+                  <tr>
+                    <th class="text-center" style="width: 100px;">Time</th>
+                    <th class="text-center">Monday</th>
+                    <th class="text-center">Tuesday</th>
+                    <th class="text-center">Wednesday</th>
+                    <th class="text-center">Thursday</th>
+                    <th class="text-center">Friday</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Period 1 -->
+                  <tr>
+                    <td class="time-slot text-center fw-semibold">
+                      <div>8:00</div>
+                      <div>8:45</div>
+                    </td>
+                    <td class="schedule-cell">
+                      <div class="class-card grade-5">
+                        <div class="class-name">Grade 5 A</div>
+                        <div class="subject">Mathematics</div>
+                        <div class="room">Room 201</div>
+                      </div>
+                    </td>
+                    <td class="schedule-cell">
+                      <div class="class-card grade-6">
+                        <div class="class-name">Grade 6 B</div>
+                        <div class="subject">Mathematics</div>
+                        <div class="room">Room 202</div>
+                      </div>
+                    </td>
+                    <td class="schedule-cell">
+                      <div class="free-period">
+                        <i class="bi bi-clock text-muted"></i>
+                        <div class="text-muted">Free Period</div>
+                      </div>
+                    </td>
+                    <td class="schedule-cell">
+                      <div class="class-card grade-5">
+                        <div class="class-name">Grade 5 C</div>
+                        <div class="subject">Mathematics</div>
+                        <div class="room">Room 203</div>
+                      </div>
+                    </td>
+                    <td class="schedule-cell">
+                      <div class="class-card grade-7">
+                        <div class="class-name">Grade 7 A</div>
+                        <div class="subject">Algebra</div>
+                        <div class="room">Room 204</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <!-- Period 2 -->
+                  <tr>
+                    <td class="time-slot text-center fw-semibold">
+                      <div>9:00</div>
+                      <div>9:45</div>
+                    </td>
+                    <td class="schedule-cell">
+                      <div class="free-period">
+                        <i class="bi bi-clock text-muted"></i>
+                        <div class="text-muted">Free Period</div>
+                      </div>
+                    </td>
+                    <td class="schedule-cell">
+                      <div class="class-card grade-5">
+                        <div class="class-name">Grade 5 A</div>
+                        <div class="subject">Mathematics</div>
+                        <div class="room">Room 201</div>
+                      </div>
+                    </td>
+                    <td class="schedule-cell">
+                      <div class="class-card grade-6">
+                        <div class="class-name">Grade 6 A</div>
+                        <div class="subject">Mathematics</div>
+                        <div class="room">Room 205</div>
+                      </div>
+                    </td>
+                    <td class="schedule-cell">
+                      <div class="class-card grade-6">
+                        <div class="class-name">Grade 6 B</div>
+                        <div class="subject">Mathematics</div>
+                        <div class="room">Room 202</div>
+                      </div>
+                    </td>
+                    <td class="schedule-cell">
+                      <div class="free-period">
+                        <i class="bi bi-clock text-muted"></i>
+                        <div class="text-muted">Free Period</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <!-- Break -->
+                  <tr class="break-row">
+                    <td class="time-slot text-center fw-semibold bg-light">
+                      <div>10:00</div>
+                      <div>10:15</div>
+                    </td>
+                    <td colspan="5" class="text-center bg-light text-muted">
+                      <i class="bi bi-cup-hot"></i> Break
+                    </td>
+                  </tr>
+                  <!-- Additional periods... -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary View -->
+  <div id="summaryView" class="report-container" style="display: none;">
+    <div class="row">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Class Distribution</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover" id="classDistributionTable">
+                <thead>
+                  <tr>
+                    <th>Class</th>
+                    <th>Subject</th>
+                    <th>Periods/Week</th>
+                    <th>Day Distribution</th>
+                    <th>Room</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for day, periods in schedule_data.items %}
+                  {% for period in periods %}
+                  <tr>
+                    <td>
+                      <span class="badge bg-light text-dark">{{ period.class_assigned.grade.name }}
+                        {{ period.class_assigned.name }}</span>
+                    </td>
+                    <td>{{ period.subject.name }}</td>
+                    <td><strong>5</strong></td>
+                    <td>
+                      <div class="d-flex gap-1">
+                        <span class="badge bg-primary">M</span>
+                        <span class="badge bg-success">T</span>
+                        <span class="badge bg-info">W</span>
+                        <span class="badge bg-warning">T</span>
+                        <span class="badge bg-secondary">F</span>
+                      </div>
+                    </td>
+                    <td>
+                      {% if period.room %}
+                      {{ period.room.number }}
+                      {% else %}
+                      <span class="text-muted">TBD</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <span class="badge bg-success">Active</span>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Weekly Overview</h5>
+          </div>
+          <div class="card-body">
+            {% if workload_data %}
+            <div class="list-group list-group-flush">
+              {% for day, count in workload_data.periods_per_day.items %}
+              <div class="list-group-item border-0 px-0">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span>{{ day }}</span>
+                  <div>
+                    <span class="badge bg-primary me-2">{{ count }} periods</span>
+                    <div class="progress" style="width: 60px; height: 8px;">
+                      <div class="progress-bar" style="width: {% widthratio count 8 100 %}%"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Workload Analysis View -->
+  <div id="workloadView" class="report-container" style="display: none;">
+    <div class="row">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Workload Distribution</h5>
+          </div>
+          <div class="card-body">
+            <div id="workloadChart"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Workload Metrics</h5>
+          </div>
+          <div class="card-body">
+            {% if workload_data %}
+            <div class="text-center mb-4">
+              <h3 class="text-primary">{{ workload_data.average_periods_per_day|floatformat:1 }}</h3>
+              <p class="text-muted mb-0">Average Periods/Day</p>
+            </div>
+
+            <div class="row text-center mb-4">
+              <div class="col-6">
+                <h5 class="text-success">{{ workload_data.total_periods }}</h5>
+                <small class="text-muted">Total Periods</small>
+              </div>
+              <div class="col-6">
+                <h5 class="text-info">{{ workload_data.classes_taught }}</h5>
+                <small class="text-muted">Classes</small>
+              </div>
+            </div>
+
+            <div class="alert alert-light border">
+              <h6 class="alert-heading">Workload Status</h6>
+              <p class="mb-0 text-success">
+                <i class="bi bi-check-circle"></i> Balanced workload
+              </p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <!-- No Data State -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <i class="bi bi-person-x text-muted" style="font-size: 4rem;"></i>
+          <h4 class="text-muted mt-3">No Schedule Data Available</h4>
+          <p class="text-muted">Please select a term and teacher to view the schedule report.</p>
+          {% if not teacher %}
+          <p class="text-info">Please select a teacher from the dropdown above to view their schedule.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Custom CSS -->
+<style>
+  .teacher-schedule-grid {
+    font-size: 0.9rem;
+  }
+
+  .schedule-cell {
+    padding: 8px !important;
+    vertical-align: top;
+    min-height: 80px;
+  }
+
+  .class-card {
+    border-radius: 6px;
+    padding: 10px;
+    color: white;
+    text-align: center;
+    height: 100%;
+    min-height: 70px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .class-card.grade-5 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  .class-card.grade-6 {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  }
+
+  .class-card.grade-7 {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  }
+
+  .class-card .class-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 3px;
+  }
+
+  .class-card .subject {
+    font-size: 0.8rem;
+    opacity: 0.9;
+    margin-bottom: 3px;
+  }
+
+  .class-card .room {
+    font-size: 0.75rem;
+    opacity: 0.8;
+  }
+
+  .free-period {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 70px;
+    border: 2px dashed #dee2e6;
+    border-radius: 6px;
+  }
+
+  .time-slot {
+    background-color: #f8f9fa;
+    font-size: 0.8rem;
+    line-height: 1.2;
+  }
+
+  .break-row {
+    height: 40px;
+  }
+
+  .report-container {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.41.0/apexcharts.min.js"></script>
+
+<script>
+  // Workload Chart
+  const workloadOptions = {
+    series: [{
+      name: 'Periods',
+      data: [
+        {% if workload_data %}
+                {% for day, count in workload_data.periods_per_day.items %}
+  { { count } } {% if not forloop.last %}, {% endif %}
+  {% endfor %}
+  {% else %}
+  5, 6, 4, 7, 3
+  {% endif %}
+        ]
+    }],
+  chart: {
+    type: 'bar',
+      height: 350,
+        toolbar: {
+      show: false
+    }
+  },
+  plotOptions: {
+    bar: {
+      borderRadius: 4,
+        horizontal: false,
+          columnWidth: '55%',
+        }
+  },
+  dataLabels: {
+    enabled: true
+  },
+  stroke: {
+    show: true,
+      width: 2,
+        colors: ['transparent']
+  },
+  xaxis: {
+    categories: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+  },
+  yaxis: {
+    title: {
+      text: 'Number of Periods'
+    },
+    max: 8
+  },
+  fill: {
+    opacity: 1
+  },
+  tooltip: {
+    y: {
+      formatter: function (val) {
+        return val + " periods"
+      }
+    }
+  },
+  colors: ['#008FFB']
+};
+
+  // Initialize components
+  document.addEventListener('DOMContentLoaded', function () {
+    {% if schedule_data and teacher %}
+    // Initialize DataTable for summary view
+    $('#classDistributionTable').DataTable({
+      responsive: true,
+      pageLength: 10,
+      order: [[0, 'asc']],
+      columnDefs: [
+        { orderable: false, targets: [3, 5] }
+      ]
+    });
+
+    // Initialize workload chart
+    const workloadChart = new ApexCharts(document.querySelector("#workloadChart"), workloadOptions);
+    workloadChart.render();
+    {% endif %}
+  });
+
+  // Functions
+  function loadTermData() {
+    const termId = document.getElementById('termSelect').value;
+    const teacherId = document.getElementById('teacherSelect').value;
+    const params = new URLSearchParams();
+    if (termId) params.append('term_id', termId);
+    if (teacherId) params.append('teacher_id', teacherId);
+    window.location.href = `?${params.toString()}`;
+  }
+
+  function loadTeacherData() {
+    loadTermData(); // Same functionality
+  }
+
+  function changeReportType() {
+    const reportType = document.getElementById('reportType').value;
+
+    // Hide all report containers
+    document.querySelectorAll('.report-container').forEach(container => {
+      container.style.display = 'none';
+    });
+
+    // Show selected report type
+    document.getElementById(reportType + 'View').style.display = 'block';
+  }
+
+  function printReport() {
+    window.print();
+  }
+
+  function exportReport() {
+    const termId = document.getElementById('termSelect').value;
+    const teacherId = document.getElementById('teacherSelect').value;
+
+    if (!teacherId) {
+      alert('Please select a teacher to export');
+      return;
+    }
+
+    const params = new URLSearchParams();
+    if (termId) params.append('term_id', termId);
+
+    window.location.href = `{% url 'scheduling:export_teacher_schedule' 'TEACHER_ID' %}`.replace('TEACHER_ID', teacherId) + `?${params.toString()}`;
+  }
+</script>
+{% endblock %}

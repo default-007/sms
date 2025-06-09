@@ -1,0 +1,767 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Conflict Report{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css"
+  href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.4/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Scheduling Conflict Report</h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:dashboard' %}">Scheduling</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:reports' %}">Reports</a></li>
+              <li class="breadcrumb-item active">Conflict Report</li>
+            </ol>
+          </nav>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-warning" onclick="rescanConflicts()">
+            <i class="bi bi-search"></i> Rescan
+          </button>
+          <button class="btn btn-primary" onclick="autoResolve()">
+            <i class="bi bi-gear"></i> Auto Resolve
+          </button>
+          <button class="btn btn-outline-secondary" onclick="exportReport()">
+            <i class="bi bi-download"></i> Export
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <label for="termSelect" class="form-label">Select Term</label>
+          <select class="form-select" id="termSelect" onchange="loadTermData()">
+            {% for available_term in available_terms %}
+            <option value="{{ available_term.id }}" {% if available_term == term %}selected{% endif %}>
+              {{ available_term.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <label for="conflictType" class="form-label">Conflict Type</label>
+          <select class="form-select" id="conflictType" onchange="filterByType()">
+            <option value="">All Types</option>
+            <option value="teacher">Teacher Conflicts</option>
+            <option value="room">Room Conflicts</option>
+            <option value="class">Class Conflicts</option>
+            <option value="resource">Resource Conflicts</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <label for="severityFilter" class="form-label">Severity</label>
+          <select class="form-select" id="severityFilter" onchange="filterBySeverity()">
+            <option value="">All Severities</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <label for="statusFilter" class="form-label">Status</label>
+          <select class="form-select" id="statusFilter" onchange="filterByStatus()">
+            <option value="">All Status</option>
+            <option value="unresolved">Unresolved</option>
+            <option value="resolved">Resolved</option>
+            <option value="ignored">Ignored</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if conflict_data %}
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card border-danger">
+        <div class="card-body text-center">
+          <i class="bi bi-exclamation-triangle text-danger" style="font-size: 2.5rem;"></i>
+          <h3 class="mt-2 mb-1 text-danger">{{ conflict_data.teacher_conflicts }}</h3>
+          <p class="text-muted mb-0">Teacher Conflicts</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card border-warning">
+        <div class="card-body text-center">
+          <i class="bi bi-building text-warning" style="font-size: 2.5rem;"></i>
+          <h3 class="mt-2 mb-1 text-warning">{{ conflict_data.room_conflicts }}</h3>
+          <p class="text-muted mb-0">Room Conflicts</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card border-info">
+        <div class="card-body text-center">
+          <i class="bi bi-geo-alt text-info" style="font-size: 2.5rem;"></i>
+          <h3 class="mt-2 mb-1 text-info">{{ conflict_data.unassigned_rooms }}</h3>
+          <p class="text-muted mb-0">Unassigned Rooms</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card border-success">
+        <div class="card-body text-center">
+          <i class="bi bi-check-circle text-success" style="font-size: 2.5rem;"></i>
+          <h3 class="mt-2 mb-1 text-success">85%</h3>
+          <p class="text-muted mb-0">Conflict-Free</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Conflict Trend Chart -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Conflict Trend Analysis</h5>
+        </div>
+        <div class="card-body">
+          <div id="conflictTrendChart"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Conflict Distribution</h5>
+        </div>
+        <div class="card-body">
+          <div id="conflictDistributionChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Critical Conflicts Alert -->
+  {% if conflict_data.teacher_conflicts > 0 or conflict_data.room_conflicts > 0 %}
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="alert alert-danger border-left-danger">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-exclamation-triangle fs-3 me-3"></i>
+          <div class="flex-grow-1">
+            <h5 class="alert-heading mb-1">Critical Conflicts Detected!</h5>
+            <p class="mb-2">{{ conflict_data.teacher_conflicts }} teacher conflicts and
+              {{ conflict_data.room_conflicts }} room conflicts require immediate attention.
+            </p>
+            <div class="btn-group">
+              <button class="btn btn-danger btn-sm" onclick="viewCriticalConflicts()">
+                <i class="bi bi-eye"></i> View Details
+              </button>
+              <button class="btn btn-outline-danger btn-sm" onclick="resolveAllCritical()">
+                <i class="bi bi-tools"></i> Resolve All
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Detailed Conflict Table -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Detailed Conflict Analysis</h5>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-primary active" onclick="switchView('all')">All</button>
+            <button class="btn btn-outline-danger" onclick="switchView('critical')">Critical</button>
+            <button class="btn btn-outline-warning" onclick="switchView('unresolved')">Unresolved</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover" id="conflictTable">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Severity</th>
+                  <th>Description</th>
+                  <th>Affected Resources</th>
+                  <th>Time Slot</th>
+                  <th>Date Range</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Teacher Conflicts -->
+                {% for conflict in conflict_data.conflict_details.teacher_double_bookings %}
+                <tr class="conflict-row" data-type="teacher" data-severity="critical">
+                  <td>
+                    <span class="badge bg-danger">
+                      <i class="bi bi-person-x"></i> Teacher
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge bg-danger">Critical</span>
+                  </td>
+                  <td>
+                    <div>
+                      <strong>Teacher Double Booking</strong>
+                      <p class="mb-0 text-muted small">Teacher assigned to multiple classes simultaneously</p>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="avatar-sm me-2">
+                        <img src="/static/images/default-avatar.png" alt="Teacher" class="rounded-circle"
+                          style="width: 30px; height: 30px;">
+                      </div>
+                      <div>
+                        <div class="fw-semibold">Ms. Johnson</div>
+                        <small class="text-muted">Grade 5A & 5B</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-primary">Period 2</span>
+                    <small class="text-muted d-block">9:00 - 9:45</small>
+                  </td>
+                  <td>
+                    <span class="small">Oct 15 - Dec 20</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-danger">Unresolved</span>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-primary" onclick="viewConflictDetails('teacher-1')">
+                        <i class="bi bi-eye"></i>
+                      </button>
+                      <button class="btn btn-outline-success" onclick="resolveConflict('teacher-1')">
+                        <i class="bi bi-check"></i>
+                      </button>
+                      <button class="btn btn-outline-secondary" onclick="ignoreConflict('teacher-1')">
+                        <i class="bi bi-x"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+
+                <!-- Room Conflicts -->
+                {% for conflict in conflict_data.conflict_details.room_double_bookings %}
+                <tr class="conflict-row" data-type="room" data-severity="high">
+                  <td>
+                    <span class="badge bg-warning">
+                      <i class="bi bi-building"></i> Room
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge bg-warning">High</span>
+                  </td>
+                  <td>
+                    <div>
+                      <strong>Room Double Booking</strong>
+                      <p class="mb-0 text-muted small">Multiple classes assigned to same room</p>
+                    </div>
+                  </td>
+                  <td>
+                    <div>
+                      <div class="fw-semibold">Room 201</div>
+                      <small class="text-muted">Science Lab</small>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-primary">Period 4</span>
+                    <small class="text-muted d-block">11:00 - 11:45</small>
+                  </td>
+                  <td>
+                    <span class="small">Oct 20 - Nov 15</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-warning">Unresolved</span>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-primary" onclick="viewConflictDetails('room-1')">
+                        <i class="bi bi-eye"></i>
+                      </button>
+                      <button class="btn btn-outline-success" onclick="resolveConflict('room-1')">
+                        <i class="bi bi-check"></i>
+                      </button>
+                      <button class="btn btn-outline-secondary" onclick="ignoreConflict('room-1')">
+                        <i class="bi bi-x"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+
+                <!-- Unassigned Room Conflicts -->
+                <tr class="conflict-row" data-type="resource" data-severity="medium">
+                  <td>
+                    <span class="badge bg-info">
+                      <i class="bi bi-geo-alt"></i> Resource
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge bg-info">Medium</span>
+                  </td>
+                  <td>
+                    <div>
+                      <strong>Unassigned Room</strong>
+                      <p class="mb-0 text-muted small">Class scheduled without room assignment</p>
+                    </div>
+                  </td>
+                  <td>
+                    <div>
+                      <div class="fw-semibold">Grade 6 A</div>
+                      <small class="text-muted">Mathematics</small>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-primary">Period 1</span>
+                    <small class="text-muted d-block">8:00 - 8:45</small>
+                  </td>
+                  <td>
+                    <span class="small">Nov 1 - Dec 15</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-info">Pending</span>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-primary" onclick="assignRoom('unassigned-1')">
+                        <i class="bi bi-plus-circle"></i>
+                      </button>
+                      <button class="btn btn-outline-success" onclick="autoAssignRoom('unassigned-1')">
+                        <i class="bi bi-gear"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Resolved Conflict Example -->
+                <tr class="conflict-row" data-type="teacher" data-severity="low" data-status="resolved">
+                  <td>
+                    <span class="badge bg-success">
+                      <i class="bi bi-person-check"></i> Teacher
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge bg-success">Resolved</span>
+                  </td>
+                  <td>
+                    <div>
+                      <strong>Teacher Conflict - Resolved</strong>
+                      <p class="mb-0 text-muted small">Conflict was automatically resolved by rescheduling</p>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="avatar-sm me-2">
+                        <img src="/static/images/default-avatar.png" alt="Teacher" class="rounded-circle"
+                          style="width: 30px; height: 30px;">
+                      </div>
+                      <div>
+                        <div class="fw-semibold">Mr. Smith</div>
+                        <small class="text-muted">Grade 7A</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-success">Period 3</span>
+                    <small class="text-muted d-block">10:00 - 10:45</small>
+                  </td>
+                  <td>
+                    <span class="small">Oct 10 - Oct 25</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-success">Resolved</span>
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-info" onclick="viewResolution('resolved-1')">
+                      <i class="bi bi-info-circle"></i> Details
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resolution Suggestions -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-lightbulb"></i> Conflict Resolution Suggestions
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-lg-8">
+              <div class="list-group list-group-flush">
+                <div class="list-group-item border-0 px-0">
+                  <div class="d-flex align-items-start">
+                    <i class="bi bi-arrow-right-circle text-primary me-3 mt-1"></i>
+                    <div class="flex-grow-1">
+                      <h6 class="mb-1">Reschedule Ms. Johnson's Grade 5B Mathematics</h6>
+                      <p class="mb-2 text-muted">Move from Period 2 Monday to Period 3 Monday to resolve teacher
+                        conflict.</p>
+                      <button class="btn btn-sm btn-outline-primary" onclick="applyResolution('reschedule-1')">
+                        Apply Solution
+                      </button>
+                    </div>
+                    <span class="badge bg-success">Recommended</span>
+                  </div>
+                </div>
+                <div class="list-group-item border-0 px-0">
+                  <div class="d-flex align-items-start">
+                    <i class="bi bi-arrow-right-circle text-warning me-3 mt-1"></i>
+                    <div class="flex-grow-1">
+                      <h6 class="mb-1">Assign Room 203 to Grade 6A Mathematics</h6>
+                      <p class="mb-2 text-muted">Room 203 is available during Period 1 and suitable for mathematics
+                        classes.</p>
+                      <button class="btn btn-sm btn-outline-warning" onclick="applyResolution('assign-room-1')">
+                        Assign Room
+                      </button>
+                    </div>
+                    <span class="badge bg-warning">Alternative</span>
+                  </div>
+                </div>
+                <div class="list-group-item border-0 px-0">
+                  <div class="d-flex align-items-start">
+                    <i class="bi bi-arrow-right-circle text-info me-3 mt-1"></i>
+                    <div class="flex-grow-1">
+                      <h6 class="mb-1">Split Science Lab sessions</h6>
+                      <p class="mb-2 text-muted">Use both Lab 1 and Lab 2 to distribute the load and reduce conflicts.
+                      </p>
+                      <button class="btn btn-sm btn-outline-info" onclick="applyResolution('split-lab-1')">
+                        Split Sessions
+                      </button>
+                    </div>
+                    <span class="badge bg-info">Advanced</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="card bg-light">
+                <div class="card-body text-center">
+                  <h6 class="text-muted mb-3">Resolution Success Rate</h6>
+                  <div class="mb-3">
+                    <div class="progress" style="height: 20px;">
+                      <div class="progress-bar bg-success" style="width: 85%">85%</div>
+                    </div>
+                  </div>
+                  <div class="row text-center">
+                    <div class="col-6">
+                      <h5 class="text-success mb-0">23</h5>
+                      <small class="text-muted">Resolved</small>
+                    </div>
+                    <div class="col-6">
+                      <h5 class="text-danger mb-0">4</h5>
+                      <small class="text-muted">Pending</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <!-- No Conflicts State -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <i class="bi bi-check-circle text-success" style="font-size: 4rem;"></i>
+          <h4 class="text-success mt-3">No Conflicts Detected!</h4>
+          <p class="text-muted">Your timetable is conflict-free for the selected term.</p>
+          <button class="btn btn-success" onclick="generateReport()">
+            <i class="bi bi-search"></i> Scan Again
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Custom CSS -->
+<style>
+  .border-left-danger {
+    border-left: 4px solid #dc3545 !important;
+  }
+
+  .conflict-row {
+    transition: background-color 0.2s ease;
+  }
+
+  .conflict-row:hover {
+    background-color: rgba(0, 0, 0, 0.025);
+  }
+
+  .avatar-sm {
+    width: 30px;
+    height: 30px;
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.41.0/apexcharts.min.js"></script>
+
+<script>
+  // Conflict Trend Chart
+  const trendOptions = {
+    series: [{
+      name: 'Teacher Conflicts',
+      data: [8, 12, 6, 4, 7, 5, 3]
+    }, {
+      name: 'Room Conflicts',
+      data: [5, 8, 4, 2, 3, 2, 1]
+    }, {
+      name: 'Resource Conflicts',
+      data: [12, 15, 10, 8, 6, 4, 2]
+    }],
+    chart: {
+      type: 'line',
+      height: 350,
+      toolbar: {
+        show: true
+      }
+    },
+    stroke: {
+      curve: 'smooth',
+      width: 3
+    },
+    xaxis: {
+      categories: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7']
+    },
+    yaxis: {
+      title: {
+        text: 'Number of Conflicts'
+      }
+    },
+    colors: ['#dc3545', '#ffc107', '#17a2b8'],
+    markers: {
+      size: 6
+    }
+  };
+
+  // Conflict Distribution
+  const distributionOptions = {
+    series: [
+      {{ conflict_data.teacher_conflicts |default: 0 }},
+    {{ conflict_data.room_conflicts|default: 0 }},
+  { { conflict_data.unassigned_rooms |default: 0 } }
+    ],
+  chart: {
+    type: 'donut',
+      height: 350
+  },
+  labels: ['Teacher Conflicts', 'Room Conflicts', 'Unassigned Rooms'],
+    colors: ['#dc3545', '#ffc107', '#17a2b8'],
+      responsive: [{
+        breakpoint: 480,
+        options: {
+          chart: {
+            width: 200
+          },
+          legend: {
+            position: 'bottom'
+          }
+        }
+      }]
+};
+
+  // Initialize components
+  document.addEventListener('DOMContentLoaded', function () {
+    {% if conflict_data %}
+    // Initialize DataTable
+    $('#conflictTable').DataTable({
+      responsive: true,
+      pageLength: 15,
+      order: [[1, 'desc']], // Sort by severity
+      columnDefs: [
+        { orderable: false, targets: [7] }
+      ]
+    });
+
+    // Initialize Charts
+    const trendChart = new ApexCharts(document.querySelector("#conflictTrendChart"), trendOptions);
+    trendChart.render();
+
+    const distributionChart = new ApexCharts(document.querySelector("#conflictDistributionChart"), distributionOptions);
+    distributionChart.render();
+    {% endif %}
+  });
+
+  // Functions
+  function loadTermData() {
+    const termId = document.getElementById('termSelect').value;
+    window.location.href = `?term_id=${termId}`;
+  }
+
+  function filterByType() {
+    const type = document.getElementById('conflictType').value;
+    const table = $('#conflictTable').DataTable();
+
+    if (type) {
+      table.column(0).search(type).draw();
+    } else {
+      table.column(0).search('').draw();
+    }
+  }
+
+  function filterBySeverity() {
+    const severity = document.getElementById('severityFilter').value;
+    const table = $('#conflictTable').DataTable();
+
+    if (severity) {
+      table.column(1).search(severity).draw();
+    } else {
+      table.column(1).search('').draw();
+    }
+  }
+
+  function filterByStatus() {
+    const status = document.getElementById('statusFilter').value;
+    const table = $('#conflictTable').DataTable();
+
+    if (status) {
+      table.column(6).search(status).draw();
+    } else {
+      table.column(6).search('').draw();
+    }
+  }
+
+  function switchView(viewType) {
+    const rows = document.querySelectorAll('.conflict-row');
+
+    rows.forEach(row => {
+      row.style.display = 'table-row';
+
+      if (viewType === 'critical') {
+        if (!row.dataset.severity || row.dataset.severity !== 'critical') {
+          row.style.display = 'none';
+        }
+      } else if (viewType === 'unresolved') {
+        if (row.dataset.status === 'resolved') {
+          row.style.display = 'none';
+        }
+      }
+    });
+
+    // Update button states
+    document.querySelectorAll('.btn-group .btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+  }
+
+  function rescanConflicts() {
+    console.log('Rescanning for conflicts...');
+    // Show loading spinner and trigger rescan
+  }
+
+  function autoResolve() {
+    if (confirm('This will attempt to automatically resolve conflicts. Continue?')) {
+      console.log('Starting auto-resolution...');
+    }
+  }
+
+  function viewConflictDetails(conflictId) {
+    console.log('Viewing conflict details:', conflictId);
+  }
+
+  function resolveConflict(conflictId) {
+    if (confirm('Are you sure you want to resolve this conflict?')) {
+      console.log('Resolving conflict:', conflictId);
+    }
+  }
+
+  function ignoreConflict(conflictId) {
+    if (confirm('Are you sure you want to ignore this conflict?')) {
+      console.log('Ignoring conflict:', conflictId);
+    }
+  }
+
+  function assignRoom(conflictId) {
+    console.log('Assigning room for:', conflictId);
+  }
+
+  function autoAssignRoom(conflictId) {
+    console.log('Auto-assigning room for:', conflictId);
+  }
+
+  function viewResolution(resolutionId) {
+    console.log('Viewing resolution details:', resolutionId);
+  }
+
+  function applyResolution(resolutionId) {
+    if (confirm('Apply this resolution?')) {
+      console.log('Applying resolution:', resolutionId);
+    }
+  }
+
+  function viewCriticalConflicts() {
+    switchView('critical');
+  }
+
+  function resolveAllCritical() {
+    if (confirm('This will attempt to resolve all critical conflicts. Continue?')) {
+      console.log('Resolving all critical conflicts...');
+    }
+  }
+
+  function exportReport() {
+    const termId = document.getElementById('termSelect').value;
+    const params = new URLSearchParams();
+    if (termId) params.append('term_id', termId);
+
+    console.log('Exporting conflict report...');
+  }
+
+  function generateReport() {
+    console.log('Generating conflict report...');
+  }
+</script>
+{% endblock %>

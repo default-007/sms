@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ grade.name }} Timetable - Scheduling{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">{{ grade.name }} Timetable</h1>
+          <p class="text-muted">{{ term.name }} - {{ term.academic_year.name }}</p>
+        </div>
+        <div>
+          <div class="btn-group me-2">
+            <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="fas fa-filter me-2"></i>{{ term.name }}
+            </button>
+            <ul class="dropdown-menu">
+              {% for available_term in available_terms %}
+              <li>
+                <a class="dropdown-item {% if available_term == term %}active{% endif %}"
+                  href="?term_id={{ available_term.id }}">
+                  {{ available_term.name }}
+                </a>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="fas fa-download me-2"></i>Export
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#" onclick="printTimetable()">
+                  <i class="fas fa-print me-2"></i>Print
+                </a></li>
+              <li><a class="dropdown-item" href="#" onclick="exportToCSV()">
+                  <i class="fas fa-file-csv me-2"></i>Export CSV
+                </a></li>
+              <li><a class="dropdown-item" href="#" onclick="exportToPDF()">
+                  <i class="fas fa-file-pdf me-2"></i>Export PDF
+                </a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Class Tabs -->
+  <div class="row mb-3">
+    <div class="col-12">
+      <ul class="nav nav-tabs" id="classTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview"
+            type="button" role="tab">
+            <i class="fas fa-th-large me-2"></i>Overview
+          </button>
+        </li>
+        {% for class_obj in classes %}
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="class-{{ class_obj.id }}-tab" data-bs-toggle="tab"
+            data-bs-target="#class-{{ class_obj.id }}" type="button" role="tab">
+            {{ class_obj.name }}
+            <span class="badge bg-secondary ms-2">{{ class_obj.students.count }} students</span>
+          </button>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tab-content" id="classTabContent">
+    <!-- Overview Tab -->
+    <div class="tab-pane fade show active" id="overview" role="tabpanel">
+      <div class="row">
+        <!-- Grade Summary Card -->
+        <div class="col-lg-3 col-md-6 mb-4">
+          <div class="card">
+            <div class="card-body text-center">
+              <div class="text-primary mb-3">
+                <i class="fas fa-users fa-2x"></i>
+              </div>
+              <h4 class="mb-0">{{ classes|length }}</h4>
+              <p class="text-muted mb-0">Classes</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-4">
+          <div class="card">
+            <div class="card-body text-center">
+              <div class="text-success mb-3">
+                <i class="fas fa-user-graduate fa-2x"></i>
+              </div>
+              <h4 class="mb-0">{{ total_students }}</h4>
+              <p class="text-muted mb-0">Total Students</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-4">
+          <div class="card">
+            <div class="card-body text-center">
+              <div class="text-info mb-3">
+                <i class="fas fa-chalkboard-teacher fa-2x"></i>
+              </div>
+              <h4 class="mb-0" id="totalTeachers">0</h4>
+              <p class="text-muted mb-0">Teachers</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-4">
+          <div class="card">
+            <div class="card-body text-center">
+              <div class="text-warning mb-3">
+                <i class="fas fa-clock fa-2x"></i>
+              </div>
+              <h4 class="mb-0" id="totalPeriods">0</h4>
+              <p class="text-muted mb-0">Weekly Periods</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grade-wide Timetable Grid -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-calendar-alt me-2"></i>Grade Timetable Overview
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover" id="overviewTable">
+              <thead class="table-primary">
+                <tr>
+                  <th>Time / Class</th>
+                  {% for class_obj in classes %}
+                  <th class="text-center">{{ class_obj.name }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for day_name, day_periods in overview_schedule.items %}
+                {% for period_data in day_periods %}
+                <tr>
+                  {% if forloop.first %}
+                  <td rowspan="{{ day_periods|length }}" class="text-center fw-bold table-secondary align-middle">
+                    {{ day_name }}
+                  </td>
+                  {% endif %}
+                  {% for class_obj in classes %}
+                  <td class="text-center">
+                    {% for timetable in period_data.timetables %}
+                    {% if timetable.class_assigned == class_obj %}
+                    <div class="timetable-cell">
+                      <strong>{{ timetable.subject.name }}</strong><br>
+                      <small class="text-muted">{{ timetable.teacher.user.get_full_name }}</small><br>
+                      <small class="text-info">{{ timetable.room.number|default:"TBD" }}</small>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                  </td>
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Individual Class Tabs -->
+    {% for class_obj in classes %}
+    <div class="tab-pane fade" id="class-{{ class_obj.id }}" role="tabpanel">
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-calendar me-2"></i>{{ class_obj.name }} Timetable
+            </h5>
+            <div>
+              <span class="badge bg-primary">{{ class_obj.students.count }} Students</span>
+              {% if class_obj.class_teacher %}
+              <span class="badge bg-success">Teacher: {{ class_obj.class_teacher.user.get_full_name }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+              <thead class="table-primary">
+                <tr>
+                  <th>Period</th>
+                  <th>Monday</th>
+                  <th>Tuesday</th>
+                  <th>Wednesday</th>
+                  <th>Thursday</th>
+                  <th>Friday</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for period in 1|range:9 %}
+                <tr>
+                  <td class="fw-bold table-secondary text-center">
+                    Period {{ period }}
+                  </td>
+                  {% for day in 0|range:5 %}
+                  <td class="text-center">
+                    {% for timetable_entry in timetable_data|get_item:class_obj %}
+                    {% if timetable_entry.time_slot.day_of_week == day and timetable_entry.time_slot.period_number == period %}
+                    <div class="timetable-cell">
+                      <strong class="text-primary">{{ timetable_entry.subject.name }}</strong><br>
+                      <small class="text-muted">{{ timetable_entry.teacher.user.get_full_name }}</small><br>
+                      <small class="text-info">
+                        <i class="fas fa-door-open me-1"></i>{{ timetable_entry.room.number|default:"TBD" }}
+                      </small><br>
+                      <small class="text-secondary">
+                        {{ timetable_entry.time_slot.start_time }} - {{ timetable_entry.time_slot.end_time }}
+                      </small>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                  </td>
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable for overview
+    $('#overviewTable').DataTable({
+      paging: false,
+      searching: false,
+      info: false,
+      scrollX: true,
+      fixedColumns: {
+        leftColumns: 1
+      }
+    });
+
+    // Calculate statistics
+    calculateStats();
+
+    // Print functionality
+    window.printTimetable = function () {
+      window.print();
+    };
+
+    // Export to CSV
+    window.exportToCSV = function () {
+      // Implementation for CSV export
+      console.log('Exporting to CSV...');
+    };
+
+    // Export to PDF
+    window.exportToPDF = function () {
+      // Implementation for PDF export
+      console.log('Exporting to PDF...');
+    };
+
+    function calculateStats() {
+      let totalTeachers = new Set();
+      let totalPeriods = 0;
+
+      // Count unique teachers and total periods
+      $('.timetable-cell').each(function () {
+        const teacherText = $(this).find('small.text-muted').text();
+        if (teacherText) {
+          totalTeachers.add(teacherText);
+          totalPeriods++;
+        }
+      });
+
+      $('#totalTeachers').text(totalTeachers.size);
+      $('#totalPeriods').text(totalPeriods);
+    }
+  });
+
+  // Custom filter for Django template
+  $.extend($.fn.dataTable.ext.type.order, {
+    "custom-pre": function (data) {
+      return data;
+    }
+  });
+</script>
+
+<style>
+  .timetable-cell {
+    padding: 8px;
+    margin: 2px;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+    border-left: 3px solid #0d6efd;
+    min-height: 60px;
+  }
+
+  .nav-tabs .nav-link {
+    color: #495057;
+  }
+
+  .nav-tabs .nav-link.active {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+  }
+
+  @media print {
+
+    .btn-group,
+    .nav-tabs {
+      display: none !important;
+    }
+  }
+</style>
+{% endblock %}

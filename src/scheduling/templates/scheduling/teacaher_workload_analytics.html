@@ -1,0 +1,573 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Teacher Workload Analytics - Scheduling{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="h3 mb-0">Teacher Workload Analytics</h1>
+          <p class="text-muted mb-0">Analyze teacher workload distribution and balance</p>
+        </div>
+        <div>
+          <div class="d-flex gap-2">
+            <select class="form-select" id="termSelect" onchange="changeTerm()">
+              {% for term_option in available_terms %}
+              <option value="{{ term_option.id }}" {% if term_option == term %}selected{% endif %}>
+                {{ term_option.name }}
+              </option>
+              {% endfor %}
+            </select>
+            <button class="btn btn-outline-primary" onclick="refreshData()">
+              <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+            <button class="btn btn-success" onclick="exportData()">
+              <i class="fas fa-download"></i> Export
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if workload_data %}
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ workload_data.summary.total_teachers }}</h4>
+              <p class="card-text">Total Teachers</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-users fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ workload_data.summary.average_periods_per_teacher|floatformat:1 }}</h4>
+              <p class="card-text">Avg Periods/Teacher</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-chart-bar fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ workload_data.summary.most_loaded_teacher.total_periods }}</h4>
+              <p class="card-text">Max Periods</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-arrow-up fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ workload_data.summary.workload_variance|floatformat:1 }}</h4>
+              <p class="card-text">Workload Variance</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-balance-scale fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Workload Distribution Chart -->
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Workload Distribution</h5>
+        </div>
+        <div class="card-body">
+          <div id="workloadDistributionChart"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Balance Analysis Chart -->
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Daily Workload Balance</h5>
+        </div>
+        <div class="card-body">
+          <div id="balanceAnalysisChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Teacher Data -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Teacher Workload Details</h5>
+            <div class="btn-group" role="group">
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="showOnlyOverloaded()">
+                Show Overloaded
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-warning" onclick="showOnlyUnderloaded()">
+                Show Underloaded
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" onclick="showAll()">
+                Show All
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="teacherWorkloadTable" class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Teacher</th>
+                  <th>Total Periods</th>
+                  <th>Classes</th>
+                  <th>Subjects</th>
+                  <th>Max Daily</th>
+                  <th>Min Daily</th>
+                  <th>Avg Daily</th>
+                  <th>Balance Score</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for teacher in workload_data.teacher_workloads %}
+                <tr data-balance-score="{{ teacher.workload_balance }}">
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div>
+                        <strong>{{ teacher.teacher__first_name }} {{ teacher.teacher__last_name }}</strong>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-primary">{{ teacher.total_periods }}</span>
+                  </td>
+                  <td>{{ teacher.unique_classes }}</td>
+                  <td>{{ teacher.unique_subjects }}</td>
+                  <td>{{ teacher.max_daily_periods }}</td>
+                  <td>{{ teacher.min_daily_periods }}</td>
+                  <td>{{ teacher.avg_daily_periods|floatformat:1 }}</td>
+                  <td>
+                    <div class="progress" style="height: 20px;">
+                      <div
+                        class="progress-bar {% if teacher.workload_balance >= 0.8 %}bg-success{% elif teacher.workload_balance >= 0.6 %}bg-warning{% else %}bg-danger{% endif %}"
+                        style="width: {{ teacher.workload_balance|floatformat:0 }}%">
+                        {{ teacher.workload_balance|floatformat:2 }}
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    {% if teacher.workload_balance >= 0.8 %}
+                    <span class="badge bg-success">Well Balanced</span>
+                    {% elif teacher.workload_balance >= 0.6 %}
+                    <span class="badge bg-warning">Moderately Balanced</span>
+                    {% else %}
+                    <span class="badge bg-danger">Unbalanced</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="btn-group" role="group">
+                      <button type="button" class="btn btn-sm btn-outline-primary"
+                        onclick="viewTeacherDetails({{ teacher.teacher__id }})">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-success"
+                        onclick="optimizeTeacherWorkload({{ teacher.teacher__id }})">
+                        <i class="fas fa-magic"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top/Bottom Performers -->
+  <div class="row mt-4">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header bg-success text-white">
+          <h6 class="card-title mb-0">Most Loaded Teachers</h6>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            {% for teacher in workload_data.teacher_workloads|slice:":5" %}
+            <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <div>
+                <strong>{{ teacher.teacher__first_name }} {{ teacher.teacher__last_name }}</strong>
+                <small class="d-block text-muted">{{ teacher.unique_classes }} classes, {{ teacher.unique_subjects }}
+                  subjects</small>
+              </div>
+              <span class="badge bg-primary rounded-pill">{{ teacher.total_periods }} periods</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header bg-info text-white">
+          <h6 class="card-title mb-0">Best Balanced Teachers</h6>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            {% for teacher in workload_data.teacher_workloads %}
+            {% if teacher.workload_balance >= 0.9 %}
+            <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <div>
+                <strong>{{ teacher.teacher__first_name }} {{ teacher.teacher__last_name }}</strong>
+                <small class="d-block text-muted">{{ teacher.total_periods }} periods across
+                  {{ teacher.unique_classes }} classes</small>
+              </div>
+              <span class="badge bg-success rounded-pill">{{ teacher.workload_balance|floatformat:2 }}</span>
+            </div>
+            {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
+          <h4>No Workload Data Available</h4>
+          <p class="text-muted">No timetable data found for the selected term.</p>
+          <a href="{% url 'scheduling:timetable_generation' %}" class="btn btn-primary">
+            Generate Timetable
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Teacher Details Modal -->
+<div class="modal fade" id="teacherDetailsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Teacher Workload Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="teacherDetailsContent">
+          <!-- Teacher details will be loaded here -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  let workloadTable;
+
+  $(document).ready(function () {
+    // Initialize DataTable
+    workloadTable = $('#teacherWorkloadTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[1, 'desc']], // Order by total periods
+      columnDefs: [
+        {
+          targets: [7], // Balance Score column
+          render: function (data, type, row) {
+            if (type === 'display') {
+              const percentage = (data * 100).toFixed(0);
+              let colorClass = 'bg-danger';
+              if (data >= 0.8) colorClass = 'bg-success';
+              else if (data >= 0.6) colorClass = 'bg-warning';
+
+              return `<div class="progress" style="height: 20px;">
+                                  <div class="progress-bar ${colorClass}" style="width: ${percentage}%">
+                                    ${data.toFixed(2)}
+                                  </div>
+                                </div>`;
+            }
+            return data;
+          }
+        }
+      ]
+    });
+
+    // Initialize charts if data is available
+    {% if workload_data %}
+    initializeCharts();
+    {% endif %}
+  });
+
+  function initializeCharts() {
+    // Workload Distribution Chart
+    const workloadData = [
+      {% for teacher in workload_data.teacher_workloads %}
+  {
+    name: '{{ teacher.teacher__first_name }} {{ teacher.teacher__last_name }}',
+      periods: { { teacher.total_periods } }
+  } {% if not forloop.last %}, {% endif %}
+  {% endfor %}
+    ];
+
+  const workloadChart = new ApexCharts(document.querySelector("#workloadDistributionChart"), {
+    series: [{
+      name: 'Periods',
+      data: workloadData.map(d => d.periods)
+    }],
+    chart: {
+      type: 'column',
+      height: 350
+    },
+    xaxis: {
+      categories: workloadData.map(d => d.name),
+      labels: {
+        rotate: -45
+      }
+    },
+    yaxis: {
+      title: {
+        text: 'Number of Periods'
+      }
+    },
+    colors: ['#3b82f6'],
+    dataLabels: {
+      enabled: true
+    }
+  });
+  workloadChart.render();
+
+  // Balance Analysis Chart
+  const balanceData = [
+    {% for teacher in workload_data.teacher_workloads %}
+  {
+    name: '{{ teacher.teacher__first_name|truncatechars:10 }}',
+      balance: { { teacher.workload_balance | floatformat: 2 } }
+  } {% if not forloop.last %}, {% endif %}
+  {% endfor %}
+    ];
+
+  const balanceChart = new ApexCharts(document.querySelector("#balanceAnalysisChart"), {
+    series: [{
+      name: 'Balance Score',
+      data: balanceData.map(d => d.balance)
+    }],
+    chart: {
+      type: 'bar',
+      height: 350
+    },
+    xaxis: {
+      categories: balanceData.map(d => d.name)
+    },
+    yaxis: {
+      min: 0,
+      max: 1,
+      title: {
+        text: 'Balance Score'
+      }
+    },
+    colors: ['#10b981'],
+    plotOptions: {
+      bar: {
+        horizontal: true
+      }
+    }
+  });
+  balanceChart.render();
+}
+
+  function changeTerm() {
+    const termId = document.getElementById('termSelect').value;
+    window.location.href = `?term_id=${termId}`;
+  }
+
+  function refreshData() {
+    window.location.reload();
+  }
+
+  function exportData() {
+    const termId = document.getElementById('termSelect').value;
+    window.open(`/scheduling/analytics/teacher-workload/export/?term_id=${termId}`, '_blank');
+  }
+
+  function showOnlyOverloaded() {
+    workloadTable.column(7).search('0\\.[0-5]', true, false).draw();
+  }
+
+  function showOnlyUnderloaded() {
+    // Show teachers with very low total periods
+    workloadTable.column(1).search('^[0-9]$|^1[0-5]$', true, false).draw();
+  }
+
+  function showAll() {
+    workloadTable.search('').columns().search('').draw();
+  }
+
+  function viewTeacherDetails(teacherId) {
+    const termId = document.getElementById('termSelect').value;
+
+    fetch(`/scheduling/analytics/teacher-details/${teacherId}/?term_id=${termId}`)
+      .then(response => response.json())
+      .then(data => {
+        let content = `<h6>${data.teacher_name} - Detailed Schedule</h6>`;
+        content += '<div class="table-responsive">';
+        content += '<table class="table table-sm table-bordered">';
+        content += '<thead><tr><th>Day</th><th>Period 1</th><th>Period 2</th><th>Period 3</th><th>Period 4</th><th>Period 5</th><th>Period 6</th><th>Period 7</th><th>Period 8</th></tr></thead>';
+        content += '<tbody>';
+
+        ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].forEach(day => {
+          content += `<tr><td><strong>${day}</strong></td>`;
+          for (let period = 1; period <= 8; period++) {
+            const entry = data.schedule.find(s =>
+              s.day === day && s.period === period
+            );
+            if (entry) {
+              content += `<td class="bg-light">${entry.subject}<br><small>${entry.class}</small></td>`;
+            } else {
+              content += '<td></td>';
+            }
+          }
+          content += '</tr>';
+        });
+
+        content += '</tbody></table></div>';
+
+        content += `<div class="row mt-3">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h6>Total Periods</h6>
+                            <h4 class="text-primary">${data.total_periods}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h6>Classes Taught</h6>
+                            <h4 class="text-success">${data.classes_taught}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h6>Balance Score</h6>
+                            <h4 class="text-info">${data.balance_score}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+        document.getElementById('teacherDetailsContent').innerHTML = content;
+        $('#teacherDetailsModal').modal('show');
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to load teacher details');
+      });
+  }
+
+  function optimizeTeacherWorkload(teacherId) {
+    if (confirm('This will attempt to optimize the teacher\'s workload. Continue?')) {
+      const termId = document.getElementById('termSelect').value;
+
+      fetch('/scheduling/analytics/optimize-teacher-workload/', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          teacher_id: teacherId,
+          term_id: termId
+        })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Teacher workload optimized successfully!');
+            window.location.reload();
+          } else {
+            alert('Failed to optimize workload: ' + data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred while optimizing workload');
+        });
+    }
+  }
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+</script>
+{% endblock %}

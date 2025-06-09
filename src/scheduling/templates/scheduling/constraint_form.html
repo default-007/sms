@@ -1,0 +1,542 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+{% if object %}Edit Constraint{% else %}Create Constraint{% endif %} - Scheduling
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/default.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="h3 mb-0">
+            {% if object %}Edit Constraint{% else %}Create New Constraint{% endif %}
+          </h1>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:dashboard' %}">Scheduling</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'scheduling:constraint_list' %}">Constraints</a></li>
+              <li class="breadcrumb-item active">
+                {% if object %}Edit Constraint{% else %}Create Constraint{% endif %}
+              </li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <a href="{% url 'scheduling:constraint_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Constraints
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <form method="post" id="constraintForm">
+    {% csrf_token %}
+    <div class="row">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Constraint Information</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.name.id_for_label }}" class="form-label">Constraint Name</label>
+                  {{ form.name }}
+                  {% if form.name.errors %}
+                  <div class="text-danger small">{{ form.name.errors.0 }}</div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.constraint_type.id_for_label }}" class="form-label">Constraint Type</label>
+                  {{ form.constraint_type }}
+                  {% if form.constraint_type.errors %}
+                  <div class="text-danger small">{{ form.constraint_type.errors.0 }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.priority.id_for_label }}" class="form-label">Priority (1-10)</label>
+                  {{ form.priority }}
+                  {% if form.priority.errors %}
+                  <div class="text-danger small">{{ form.priority.errors.0 }}</div>
+                  {% endif %}
+                  <div class="form-text">Higher values mean higher priority</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <div class="form-check form-switch">
+                    {{ form.is_hard_constraint }}
+                    <label for="{{ form.is_hard_constraint.id_for_label }}" class="form-check-label">
+                      Hard Constraint
+                    </label>
+                  </div>
+                  <div class="form-text">Hard constraints must be satisfied, soft constraints are preferences</div>
+                  {% if form.is_hard_constraint.errors %}
+                  <div class="text-danger small">{{ form.is_hard_constraint.errors.0 }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <div class="form-check form-switch">
+                {{ form.is_active }}
+                <label for="{{ form.is_active.id_for_label }}" class="form-check-label">
+                  Active
+                </label>
+              </div>
+              <div class="form-text">Only active constraints are used during optimization</div>
+              {% if form.is_active.errors %}
+              <div class="text-danger small">{{ form.is_active.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">Constraint Parameters</h5>
+              <div class="btn-group" role="group">
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="showParameterHelp()">
+                  <i class="fas fa-question-circle"></i> Help
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-success" onclick="validateParameters()">
+                  <i class="fas fa-check"></i> Validate
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-info" onclick="formatParameters()">
+                  <i class="fas fa-code"></i> Format
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label for="{{ form.parameters.id_for_label }}" class="form-label">
+                Parameters (JSON)
+              </label>
+              <div id="parametersEditor" style="height: 300px; border: 1px solid #dee2e6;"></div>
+              {{ form.parameters }}
+              {% if form.parameters.errors %}
+              <div class="text-danger small">{{ form.parameters.errors.0 }}</div>
+              {% endif %}
+              <div class="form-text">
+                Define constraint-specific parameters in JSON format. Parameters vary by constraint type.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card">
+          <div class="card-header">
+            <h6 class="card-title mb-0">Constraint Types</h6>
+          </div>
+          <div class="card-body">
+            <div class="list-group list-group-flush">
+              <div class="list-group-item px-0">
+                <strong>Teacher Availability</strong>
+                <small class="d-block text-muted">Define when teachers are available</small>
+              </div>
+              <div class="list-group-item px-0">
+                <strong>Room Requirement</strong>
+                <small class="d-block text-muted">Specify room type requirements</small>
+              </div>
+              <div class="list-group-item px-0">
+                <strong>Subject Priority</strong>
+                <small class="d-block text-muted">Set subject scheduling priorities</small>
+              </div>
+              <div class="list-group-item px-0">
+                <strong>Consecutive Periods</strong>
+                <small class="d-block text-muted">Control consecutive class scheduling</small>
+              </div>
+              <div class="list-group-item px-0">
+                <strong>Daily Limit</strong>
+                <small class="d-block text-muted">Limit periods per day</small>
+              </div>
+              <div class="list-group-item px-0">
+                <strong>Time Preference</strong>
+                <small class="d-block text-muted">Preferred time slots</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-3">
+          <div class="card-header">
+            <h6 class="card-title mb-0">Quick Parameters</h6>
+          </div>
+          <div class="card-body">
+            <div class="d-grid gap-2">
+              <button type="button" class="btn btn-outline-primary btn-sm"
+                onclick="loadParameterTemplate('teacher_availability')">
+                Teacher Availability
+              </button>
+              <button type="button" class="btn btn-outline-success btn-sm"
+                onclick="loadParameterTemplate('room_requirement')">
+                Room Requirement
+              </button>
+              <button type="button" class="btn btn-outline-info btn-sm"
+                onclick="loadParameterTemplate('time_preference')">
+                Time Preference
+              </button>
+              <button type="button" class="btn btn-outline-warning btn-sm"
+                onclick="loadParameterTemplate('daily_limit')">
+                Daily Limit
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-3">
+          <div class="card-header">
+            <h6 class="card-title mb-0">Actions</h6>
+          </div>
+          <div class="card-body">
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Save Constraint
+              </button>
+              {% if object %}
+              <button type="button" class="btn btn-success" onclick="testConstraint()">
+                <i class="fas fa-play"></i> Test Constraint
+              </button>
+              {% endif %}
+              <a href="{% url 'scheduling:constraint_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-times"></i> Cancel
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Parameter Help Modal -->
+<div class="modal fade" id="parameterHelpModal" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Constraint Parameters Help</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6">
+            <h6>Teacher Availability</h6>
+            <pre><code>{
+                "teacher_id": 123,
+                "available_days": [0, 1, 2, 3, 4],
+                "available_periods": [1, 2, 3, 4, 5, 6],
+                "unavailable_slots": [
+                {"day": 0, "period": 1},
+                {"day": 2, "period": 6}
+                ]
+                }</code></pre>
+
+            <h6 class="mt-3">Room Requirement</h6>
+            <pre><code>{
+                "subject": "Physics",
+                "required_room_type": "laboratory",
+                "min_capacity": 25,
+                "required_equipment": [
+                "laboratory_equipment",
+                "safety_equipment"
+                ]
+                }</code></pre>
+          </div>
+          <div class="col-md-6">
+            <h6>Time Preference</h6>
+            <pre><code>{
+                "subject": "Mathematics",
+                "preferred_periods": [1, 2, 3],
+                "avoided_periods": [7, 8],
+                "core_subject": true,
+                "morning_preferred": true
+                }</code></pre>
+
+            <h6 class="mt-3">Daily Limit</h6>
+            <pre><code>{
+                "max_periods_per_day": 6,
+                "max_consecutive_periods": 3,
+                "min_break_periods": 1,
+                "applies_to": "all_teachers"
+                }</code></pre>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Test Results Modal -->
+<div class="modal fade" id="testResultsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Constraint Test Results</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="testResults">
+          <!-- Test results will be loaded here -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+
+<script>
+  let parametersEditor;
+
+  $(document).ready(function () {
+    // Initialize CodeMirror editor
+    parametersEditor = CodeMirror(document.getElementById('parametersEditor'), {
+      mode: { name: "javascript", json: true },
+      lineNumbers: true,
+      autoCloseBrackets: true,
+      matchBrackets: true,
+      indentUnit: 2,
+      tabSize: 2,
+      lineWrapping: true,
+      value: $('#id_parameters').val() || '{}'
+    });
+
+    // Update hidden textarea when editor changes
+    parametersEditor.on('change', function (editor) {
+      $('#id_parameters').val(editor.getValue());
+    });
+
+    // Form styling
+    $('#id_name').addClass('form-control');
+    $('#id_constraint_type').addClass('form-select');
+    $('#id_priority').addClass('form-control');
+    $('#id_is_hard_constraint').addClass('form-check-input');
+    $('#id_is_active').addClass('form-check-input');
+    $('#id_parameters').hide(); // Hide the original textarea
+
+    // Update parameters when constraint type changes
+    $('#id_constraint_type').on('change', function () {
+      const constraintType = $(this).val();
+      if (constraintType) {
+        loadParameterTemplate(constraintType);
+      }
+    });
+  });
+
+  function showParameterHelp() {
+    $('#parameterHelpModal').modal('show');
+  }
+
+  function validateParameters() {
+    try {
+      const params = JSON.parse(parametersEditor.getValue());
+      const constraintType = $('#id_constraint_type').val();
+
+      // Basic validation based on constraint type
+      let isValid = true;
+      let errors = [];
+
+      switch (constraintType) {
+        case 'teacher_availability':
+          if (!params.teacher_id) {
+            errors.push('teacher_id is required');
+            isValid = false;
+          }
+          break;
+        case 'room_requirement':
+          if (!params.subject && !params.required_room_type) {
+            errors.push('Either subject or required_room_type is required');
+            isValid = false;
+          }
+          break;
+        case 'time_preference':
+          if (!params.subject && !params.preferred_periods) {
+            errors.push('Subject and preferred_periods are required');
+            isValid = false;
+          }
+          break;
+        case 'daily_limit':
+          if (!params.max_periods_per_day) {
+            errors.push('max_periods_per_day is required');
+            isValid = false;
+          }
+          break;
+      }
+
+      if (isValid) {
+        alert('Parameters are valid!');
+      } else {
+        alert('Parameter errors:\n' + errors.join('\n'));
+      }
+    } catch (error) {
+      alert('Parameter error: ' + error.message);
+    }
+  }
+
+  function formatParameters() {
+    try {
+      const params = JSON.parse(parametersEditor.getValue());
+      const formatted = JSON.stringify(params, null, 2);
+      parametersEditor.setValue(formatted);
+    } catch (error) {
+      alert('Cannot format invalid JSON: ' + error.message);
+    }
+  }
+
+  function loadParameterTemplate(type) {
+    let template = {};
+
+    switch (type) {
+      case 'teacher_availability':
+        template = {
+          "teacher_id": null,
+          "available_days": [0, 1, 2, 3, 4],
+          "available_periods": [1, 2, 3, 4, 5, 6, 7, 8],
+          "unavailable_slots": []
+        };
+        break;
+      case 'room_requirement':
+        template = {
+          "subject": "",
+          "required_room_type": "classroom",
+          "min_capacity": 30,
+          "required_equipment": []
+        };
+        break;
+      case 'subject_priority':
+        template = {
+          "subject": "",
+          "priority_level": 5,
+          "preferred_periods": [1, 2, 3, 4],
+          "core_subject": false
+        };
+        break;
+      case 'consecutive_periods':
+        template = {
+          "subject": "",
+          "allow_consecutive": false,
+          "max_consecutive": 2,
+          "preferred_gap": 1
+        };
+        break;
+      case 'daily_limit':
+        template = {
+          "max_periods_per_day": 6,
+          "max_consecutive_periods": 3,
+          "min_break_periods": 1,
+          "applies_to": "all_teachers"
+        };
+        break;
+      case 'time_preference':
+        template = {
+          "subject": "",
+          "preferred_periods": [1, 2, 3, 4],
+          "avoided_periods": [7, 8],
+          "morning_preferred": true
+        };
+        break;
+    }
+
+    parametersEditor.setValue(JSON.stringify(template, null, 2));
+  }
+
+  function testConstraint() {
+    const constraintData = {
+      name: $('#id_name').val(),
+      constraint_type: $('#id_constraint_type').val(),
+      parameters: parametersEditor.getValue(),
+      priority: $('#id_priority').val(),
+      is_hard_constraint: $('#id_is_hard_constraint').is(':checked')
+    };
+
+    fetch('/scheduling/constraints/test/', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(constraintData)
+    })
+      .then(response => response.json())
+      .then(data => {
+        let results = '<h6>Test Results:</h6>';
+
+        if (data.success) {
+          results += '<div class="alert alert-success">Constraint is valid and ready to use</div>';
+          results += '<h6>Constraint Analysis:</h6>';
+          results += '<ul>';
+
+          data.analysis.forEach(item => {
+            results += `<li>${item}</li>`;
+          });
+
+          results += '</ul>';
+
+          if (data.affected_timetables > 0) {
+            results += `<div class="alert alert-info">This constraint would affect ${data.affected_timetables} existing timetable entries</div>`;
+          }
+        } else {
+          results += '<div class="alert alert-danger">Constraint validation failed</div>';
+          results += '<ul>';
+          data.errors.forEach(error => {
+            results += `<li>${error}</li>`;
+          });
+          results += '</ul>';
+        }
+
+        $('#testResults').html(results);
+        $('#testResultsModal').modal('show');
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to test constraint');
+      });
+  }
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+</script>
+{% endblock %}

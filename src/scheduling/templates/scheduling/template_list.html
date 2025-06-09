@@ -1,0 +1,484 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Timetable Templates - Scheduling{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">Timetable Templates</h1>
+          <p class="text-muted">Manage reusable timetable templates for different grades</p>
+        </div>
+        <div>
+          <a href="{% url 'scheduling:template_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Create Template
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="text-primary mb-3">
+            <i class="fas fa-file-alt fa-2x"></i>
+          </div>
+          <h4 class="mb-0">{{ templates|length }}</h4>
+          <p class="text-muted mb-0">Total Templates</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="text-success mb-3">
+            <i class="fas fa-star fa-2x"></i>
+          </div>
+          <h4 class="mb-0" id="defaultTemplates">0</h4>
+          <p class="text-muted mb-0">Default Templates</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="text-info mb-3">
+            <i class="fas fa-graduation-cap fa-2x"></i>
+          </div>
+          <h4 class="mb-0" id="gradesWithTemplates">0</h4>
+          <p class="text-muted mb-0">Grades with Templates</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="text-warning mb-3">
+            <i class="fas fa-clock fa-2x"></i>
+          </div>
+          <h4 class="mb-0" id="recentTemplates">0</h4>
+          <p class="text-muted mb-0">This Month</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-3">
+          <label class="form-label">Grade</label>
+          <select class="form-select" id="gradeFilter">
+            <option value="">All Grades</option>
+            {% for grade in grades %}
+            <option value="{{ grade.name }}">{{ grade.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="statusFilter">
+            <option value="">All Templates</option>
+            <option value="default">Default Templates</option>
+            <option value="custom">Custom Templates</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Created Date</label>
+          <select class="form-select" id="dateFilter">
+            <option value="">All Time</option>
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">&nbsp;</label>
+          <div>
+            <button type="button" class="btn btn-outline-secondary" id="clearFilters">
+              <i class="fas fa-times me-2"></i>Clear Filters
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Templates Table -->
+  <div class="card">
+    <div class="card-header">
+      <h5 class="card-title mb-0">
+        <i class="fas fa-list me-2"></i>Templates
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover" id="templatesTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Grade</th>
+              <th>Status</th>
+              <th>Created By</th>
+              <th>Created Date</th>
+              <th>Last Modified</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for template in templates %}
+            <tr data-grade="{{ template.grade.name }}" data-default="{{ template.is_default|yesno:'default,custom' }}">
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="me-3">
+                    <i
+                      class="fas {% if template.is_default %}fa-star text-warning{% else %}fa-file-alt text-muted{% endif %} fa-lg"></i>
+                  </div>
+                  <div>
+                    <h6 class="mb-0">{{ template.name }}</h6>
+                    {% if template.description %}
+                    <small class="text-muted">{{ template.description|truncatechars:50 }}</small>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge bg-primary">{{ template.grade.name }}</span>
+              </td>
+              <td>
+                {% if template.is_default %}
+                <span class="badge bg-warning">
+                  <i class="fas fa-star me-1"></i>Default
+                </span>
+                {% else %}
+                <span class="badge bg-secondary">Custom</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if template.created_by %}
+                <div class="d-flex align-items-center">
+                  <img
+                    src="{% if template.created_by.profile_picture %}{{ template.created_by.profile_picture.url }}{% else %}{% static 'images/default-avatar.png' %}{% endif %}"
+                    alt="User" class="rounded-circle me-2" width="24" height="24">
+                  <small>{{ template.created_by.get_full_name }}</small>
+                </div>
+                {% else %}
+                <span class="text-muted">System</span>
+                {% endif %}
+              </td>
+              <td>
+                <div>{{ template.created_at|date:"M d, Y" }}</div>
+                <small class="text-muted">{{ template.created_at|time:"H:i" }}</small>
+              </td>
+              <td>
+                <div>{{ template.updated_at|date:"M d, Y" }}</div>
+                <small class="text-muted">{{ template.updated_at|time:"H:i" }}</small>
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <a href="{% url 'scheduling:template_detail' template.pk %}" class="btn btn-outline-primary"
+                    title="View Details">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  <a href="{% url 'scheduling:template_edit' template.pk %}" class="btn btn-outline-warning"
+                    title="Edit Template">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <button type="button" class="btn btn-outline-success" onclick="applyTemplate('{{ template.pk }}')"
+                    title="Apply Template">
+                    <i class="fas fa-play"></i>
+                  </button>
+                  <button type="button" class="btn btn-outline-info" onclick="duplicateTemplate('{{ template.pk }}')"
+                    title="Duplicate">
+                    <i class="fas fa-copy"></i>
+                  </button>
+                  <a href="{% url 'scheduling:template_delete' template.pk %}" class="btn btn-outline-danger"
+                    title="Delete Template">
+                    <i class="fas fa-trash"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center py-4">
+                <div class="text-muted">
+                  <i class="fas fa-inbox fa-2x mb-3"></i><br>
+                  No templates found.<br>
+                  <a href="{% url 'scheduling:template_create' %}" class="btn btn-primary btn-sm mt-2">
+                    Create Your First Template
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Apply Template Modal -->
+<div class="modal fade" id="applyTemplateModal" tabindex="-1" aria-labelledby="applyTemplateModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="applyTemplateModalLabel">
+          <i class="fas fa-play me-2"></i>Apply Template
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="applyTemplateForm">
+          <div class="mb-3">
+            <label for="targetTerm" class="form-label">Target Term</label>
+            <select class="form-select" id="targetTerm" required>
+              <option value="">Select Term</option>
+              {% for term in available_terms %}
+              <option value="{{ term.id }}">{{ term.name }} - {{ term.academic_year.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="targetClasses" class="form-label">Target Classes (Optional)</label>
+            <select class="form-select" id="targetClasses" multiple>
+              <!-- Classes will be populated based on selected term -->
+            </select>
+            <small class="form-text text-muted">Leave empty to apply to all classes in the grade</small>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="overwriteExisting">
+            <label class="form-check-label" for="overwriteExisting">
+              Overwrite existing timetable entries
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" id="confirmApplyTemplate">
+          <i class="fas fa-play me-2"></i>Apply Template
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Duplicate Template Modal -->
+<div class="modal fade" id="duplicateTemplateModal" tabindex="-1" aria-labelledby="duplicateTemplateModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="duplicateTemplateModalLabel">
+          <i class="fas fa-copy me-2"></i>Duplicate Template
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="duplicateTemplateForm">
+          <div class="mb-3">
+            <label for="newTemplateName" class="form-label">New Template Name</label>
+            <input type="text" class="form-control" id="newTemplateName" required>
+          </div>
+          <div class="mb-3">
+            <label for="newTemplateGrade" class="form-label">Target Grade</label>
+            <select class="form-select" id="newTemplateGrade" required>
+              <option value="">Select Grade</option>
+              {% for grade in grades %}
+              <option value="{{ grade.id }}">{{ grade.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="newTemplateDescription" class="form-label">Description (Optional)</label>
+            <textarea class="form-control" id="newTemplateDescription" rows="3"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-info" id="confirmDuplicateTemplate">
+          <i class="fas fa-copy me-2"></i>Duplicate Template
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    const table = $('#templatesTable').DataTable({
+      order: [[4, 'desc']], // Sort by created date descending
+      pageLength: 25,
+      responsive: true,
+      dom: 'Bfrtip',
+      buttons: [
+        {
+          extend: 'csv',
+          text: '<i class="fas fa-file-csv me-2"></i>Export CSV',
+          className: 'btn btn-outline-success btn-sm'
+        }
+      ],
+      columnDefs: [
+        { targets: [6], orderable: false } // Actions column
+      ]
+    });
+
+    // Calculate and display statistics
+    calculateStats();
+
+    // Filter handlers
+    $('#gradeFilter').change(function () {
+      const grade = $(this).val();
+      if (grade) {
+        table.column(1).search(grade).draw();
+      } else {
+        table.column(1).search('').draw();
+      }
+    });
+
+    $('#statusFilter').change(function () {
+      const status = $(this).val();
+      if (status) {
+        table.column(2).search(status === 'default' ? 'Default' : 'Custom').draw();
+      } else {
+        table.column(2).search('').draw();
+      }
+    });
+
+    $('#clearFilters').click(function () {
+      $('#gradeFilter, #statusFilter, #dateFilter').val('');
+      table.search('').columns().search('').draw();
+    });
+
+    function calculateStats() {
+      const rows = $('#templatesTable tbody tr');
+      let defaultCount = 0, gradesSet = new Set(), recentCount = 0;
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+      rows.each(function () {
+        if ($(this).find('.badge:contains("Default")').length > 0) {
+          defaultCount++;
+        }
+
+        const grade = $(this).data('grade');
+        if (grade) gradesSet.add(grade);
+
+        // This is simplified - in real implementation, you'd parse the date
+        const createdText = $(this).find('td:eq(4)').text();
+        if (createdText.includes('2024')) { // Current year check
+          recentCount++;
+        }
+      });
+
+      $('#defaultTemplates').text(defaultCount);
+      $('#gradesWithTemplates').text(gradesSet.size);
+      $('#recentTemplates').text(recentCount);
+    }
+  });
+
+  // Global variables
+  let currentTemplateId = null;
+  const applyTemplateModal = new bootstrap.Modal(document.getElementById('applyTemplateModal'));
+  const duplicateTemplateModal = new bootstrap.Modal(document.getElementById('duplicateTemplateModal'));
+
+  function applyTemplate(templateId) {
+    currentTemplateId = templateId;
+    applyTemplateModal.show();
+  }
+
+  function duplicateTemplate(templateId) {
+    currentTemplateId = templateId;
+    // Pre-fill the name with "Copy of ..."
+    const originalName = $(`tr:has([onclick*="${templateId}"]) h6`).text();
+    $('#newTemplateName').val(`Copy of ${originalName}`);
+    duplicateTemplateModal.show();
+  }
+
+  $('#confirmApplyTemplate').click(function () {
+    const termId = $('#targetTerm').val();
+    const overwrite = $('#overwriteExisting').is(':checked');
+
+    if (!termId) {
+      alert('Please select a target term.');
+      return;
+    }
+
+    // Make AJAX call to apply template
+    $.ajax({
+      url: `/scheduling/templates/${currentTemplateId}/apply/`,
+      method: 'POST',
+      data: {
+        'term_id': termId,
+        'overwrite': overwrite,
+        'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+      },
+      success: function (response) {
+        applyTemplateModal.hide();
+        alert('Template applied successfully!');
+      },
+      error: function (xhr, status, error) {
+        alert('Failed to apply template: ' + error);
+      }
+    });
+  });
+
+  $('#confirmDuplicateTemplate').click(function () {
+    const name = $('#newTemplateName').val();
+    const gradeId = $('#newTemplateGrade').val();
+    const description = $('#newTemplateDescription').val();
+
+    if (!name || !gradeId) {
+      alert('Please fill in all required fields.');
+      return;
+    }
+
+    // Make AJAX call to duplicate template
+    $.ajax({
+      url: `/scheduling/templates/${currentTemplateId}/duplicate/`,
+      method: 'POST',
+      data: {
+        'name': name,
+        'grade_id': gradeId,
+        'description': description,
+        'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+      },
+      success: function (response) {
+        duplicateTemplateModal.hide();
+        location.reload();
+      },
+      error: function (xhr, status, error) {
+        alert('Failed to duplicate template: ' + error);
+      }
+    });
+  });
+</script>
+{% endblock %}

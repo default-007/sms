@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Bulk Timetable Creation - Scheduling{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/select/1.7.0/css/select.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">Bulk Timetable Creation</h1>
+          <p class="text-muted">Create multiple timetable entries or copy from existing term</p>
+        </div>
+        <div>
+          <a href="{% url 'scheduling:timetable_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Timetables
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Creation Form -->
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-calendar-plus me-2"></i>Bulk Creation Options
+          </h5>
+        </div>
+        <div class="card-body">
+          <form method="post" id="bulkTimetableForm">
+            {% csrf_token %}
+
+            <!-- Term Selection -->
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="{{ form.term.id_for_label }}" class="form-label">
+                  Target Term <span class="text-danger">*</span>
+                </label>
+                {{ form.term }}
+                {% if form.term.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.term.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="{{ form.copy_from_term.id_for_label }}" class="form-label">
+                  Copy From Term (Optional)
+                </label>
+                {{ form.copy_from_term }}
+                <small class="form-text text-muted">
+                  Leave empty to create new timetables
+                </small>
+                {% if form.copy_from_term.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.copy_from_term.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Grade Selection -->
+            <div class="mb-3">
+              <label class="form-label">
+                Select Grades <span class="text-danger">*</span>
+              </label>
+              <div class="row">
+                {% for choice in form.grades %}
+                <div class="col-md-4 col-sm-6 mb-2">
+                  <div class="form-check">
+                    {{ choice.tag }}
+                    <label class="form-check-label" for="{{ choice.id_for_label }}">
+                      {{ choice.choice_label }}
+                    </label>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+              {% if form.grades.errors %}
+              <div class="invalid-feedback d-block">
+                {{ form.grades.errors.0 }}
+              </div>
+              {% endif %}
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex justify-content-between">
+              <div>
+                <button type="button" class="btn btn-outline-secondary" id="selectAllGrades">
+                  <i class="fas fa-check-square me-2"></i>Select All
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="clearAllGrades">
+                  <i class="fas fa-square me-2"></i>Clear All
+                </button>
+              </div>
+              <div>
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                  <i class="fas fa-plus me-2"></i>Create Timetables
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Help & Information -->
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-info-circle me-2"></i>Information
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info">
+            <strong>Copy from Existing Term:</strong>
+            <ul class="mb-0">
+              <li>Copies all timetable entries from selected term</li>
+              <li>Maintains teacher and subject assignments</li>
+              <li>Updates effective dates to target term</li>
+              <li>Skips conflicting entries</li>
+            </ul>
+          </div>
+
+          <div class="alert alert-warning">
+            <strong>Create New:</strong>
+            <ul class="mb-0">
+              <li>Creates empty timetable structure</li>
+              <li>Requires manual assignment of subjects and teachers</li>
+              <li>Use when starting fresh or major changes needed</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistics Card -->
+      <div class="card mt-3">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-chart-bar me-2"></i>Quick Stats
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-6">
+              <div class="border-end">
+                <h4 class="text-primary mb-0" id="totalGrades">0</h4>
+                <small class="text-muted">Total Grades</small>
+              </div>
+            </div>
+            <div class="col-6">
+              <h4 class="text-success mb-0" id="selectedGrades">0</h4>
+              <small class="text-muted">Selected</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress Modal -->
+  <div class="modal fade" id="progressModal" tabindex="-1" aria-labelledby="progressModalLabel" aria-hidden="true"
+    data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="progressModalLabel">
+            <i class="fas fa-cog fa-spin me-2"></i>Creating Timetables
+          </h5>
+        </div>
+        <div class="modal-body text-center">
+          <div class="progress mb-3">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"
+              id="progressBar"></div>
+          </div>
+          <p class="mb-0" id="progressText">Preparing to create timetables...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/select/1.7.0/js/dataTables.select.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    const progressModal = new bootstrap.Modal(document.getElementById('progressModal'));
+
+    // Update stats on page load
+    updateStats();
+
+    // Grade selection handlers
+    $('#selectAllGrades').click(function () {
+      $('input[name="grades"]').prop('checked', true);
+      updateStats();
+    });
+
+    $('#clearAllGrades').click(function () {
+      $('input[name="grades"]').prop('checked', false);
+      updateStats();
+    });
+
+    // Update stats when checkboxes change
+    $('input[name="grades"]').change(function () {
+      updateStats();
+    });
+
+    // Form submission
+    $('#bulkTimetableForm').submit(function (e) {
+      e.preventDefault();
+
+      const selectedGrades = $('input[name="grades"]:checked').length;
+      if (selectedGrades === 0) {
+        alert('Please select at least one grade.');
+        return;
+      }
+
+      // Show progress modal
+      progressModal.show();
+      updateProgress(25, 'Validating selections...');
+
+      // Simulate progress (replace with actual AJAX call)
+      setTimeout(() => updateProgress(50, 'Processing grades...'), 1000);
+      setTimeout(() => updateProgress(75, 'Creating timetable entries...'), 2000);
+      setTimeout(() => {
+        updateProgress(100, 'Complete!');
+        setTimeout(() => {
+          this.submit(); // Actually submit the form
+        }, 500);
+      }, 3000);
+    });
+
+    function updateStats() {
+      const totalGrades = $('input[name="grades"]').length;
+      const selectedGrades = $('input[name="grades"]:checked').length;
+
+      $('#totalGrades').text(totalGrades);
+      $('#selectedGrades').text(selectedGrades);
+    }
+
+    function updateProgress(percent, text) {
+      $('#progressBar').css('width', percent + '%');
+      $('#progressText').text(text);
+    }
+  });
+</script>
+{% endblock %}

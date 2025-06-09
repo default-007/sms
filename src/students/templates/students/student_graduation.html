@@ -1,221 +1,349 @@
-<!-- students/templates/students/student_graduation.html -->
-{% extends "base.html" %}
-{% load static %}
+{% extends 'base.html' %}
+{% load student_tags %}
 
 {% block title %}Student Graduation{% endblock %}
 
 {% block extra_css %}
-<style>
-  .graduation-card {
-    background-color: #f8f9fa;
-    border-left: 4px solid #17a2b8;
-    margin-bottom: 1.5rem;
-  }
-
-  .student-checkbox {
-    margin-right: 10px;
-  }
-
-  .student-item {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-    transition: background-color 0.2s;
-    display: flex;
-    align-items: center;
-  }
-
-  .student-item:hover {
-    background-color: #f1f1f1;
-  }
-
-  .student-item:last-child {
-    border-bottom: none;
-  }
-
-  .student-info {
-    display: flex;
-    flex-grow: 1;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .student-name {
-    font-weight: 500;
-  }
-
-  .student-details {
-    color: #6c757d;
-    font-size: 0.875rem;
-  }
-
-  .student-container {
-    max-height: 500px;
-    overflow-y: auto;
-    border: 1px solid #dee2e6;
-    border-radius: 0.25rem;
-  }
-
-  .select-all-container {
-    padding: 10px;
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #dee2e6;
-    position: sticky;
-    top: 0;
-    z-index: 1;
-  }
-
-  .graduation-icon {
-    font-size: 3rem;
-    color: #17a2b8;
-    margin-bottom: 1rem;
-  }
-
-  .student-photo {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin-right: 10px;
-  }
-
-  .student-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: #dee2e6;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #6c757d;
-    margin-right: 10px;
-  }
-</style>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/select/1.7.0/css/select.bootstrap5.min.css">
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4">
-  <h1 class="mt-4">Student Graduation</h1>
-  <ol class="breadcrumb mb-4">
-    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
-    <li class="breadcrumb-item"><a href="{% url 'students:student-list' %}">Students</a></li>
-    <li class="breadcrumb-item active">Graduation</li>
-  </ol>
-
-  {% if messages %}
-  {% for message in messages %}
-  <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-    {{ message }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-  </div>
-  {% endfor %}
-  {% endif %}
-
-  <div class="row">
-    <div class="col-lg-4">
-      <div class="card mb-4 graduation-card">
-        <div class="card-body text-center">
-          <div class="graduation-icon">
-            <i class="fas fa-graduation-cap"></i>
-          </div>
-          <h5 class="card-title">Student Graduation</h5>
-          <p class="card-text">Select students who have completed their education to mark them as graduated. Graduated
-            students will no longer be considered active.</p>
-          <div class="alert alert-info small">
-            <i class="fas fa-info-circle"></i>
-            Graduating a student will:
-            <ul class="text-start small mb-0 mt-2">
-              <li>Change status to "Graduated"</li>
-              <li>Generate graduation certificates</li>
-              <li>Send notifications to students and parents</li>
-              <li>Create graduation records</li>
-            </ul>
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card bg-gradient-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h2 class="card-title mb-1">
+                <i class="fas fa-graduation-cap me-2"></i>
+                Student Graduation Management
+              </h2>
+              <p class="card-text mb-0">
+                Mark students as graduated and generate certificates
+              </p>
+            </div>
+            <div class="text-end">
+              <div class="h1 mb-0">🎓</div>
+            </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <div class="col-lg-8">
-      <div class="card mb-4">
-        <div class="card-header">
-          <h5 class="card-title mb-0">Eligible Students for Graduation</h5>
-        </div>
+  <!-- Graduation Statistics -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card text-center">
         <div class="card-body">
-          {% if students %}
-          <form method="post" id="graduationForm">
-            {% csrf_token %}
-            <div class="student-container">
-              <div class="select-all-container">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="selectAllStudents">
-                  <label class="form-check-label" for="selectAllStudents">
-                    <strong>Select All Students</strong>
-                  </label>
-                </div>
-              </div>
-
-              {% for student in students %}
-              <div class="student-item">
-                <div class="form-check">
-                  <input class="form-check-input student-checkbox" type="checkbox" name="student_ids"
-                    value="{{ student.id }}" id="student_{{ student.id }}">
-                  <label class="form-check-label w-100" for="student_{{ student.id }}">
-                    <div class="d-flex align-items-center">
-                      {% if student.photo %}
-                      <img src="{{ student.photo.url }}" alt="{{ student.get_full_name }}" class="student-photo">
-                      {% else %}
-                      <div class="student-avatar">
-                        <i class="fas fa-user"></i>
-                      </div>
-                      {% endif %}
-
-                      <div class="student-info">
-                        <div>
-                          <span class="student-name">{{ student.get_full_name }}</span>
-                          <span class="student-details ms-2">{{ student.admission_number }}</span>
-                        </div>
-                        <div class="student-details">
-                          {{ student.current_class|default:"No Class" }}
-                        </div>
-                      </div>
-                    </div>
-                  </label>
-                </div>
-              </div>
-              {% endfor %}
-            </div>
-
-            <div class="form-check mt-3 mb-3">
-              <input class="form-check-input" type="checkbox" name="send_notifications" id="send_notifications" checked>
-              <label class="form-check-label" for="send_notifications">
-                Send notification emails to graduated students and their parents
-              </label>
-            </div>
-
-            <div class="d-flex justify-content-between mt-4">
-              <div>
-                <a href="{% url 'students:student-list' %}" class="btn btn-secondary">
-                  <i class="fas fa-arrow-left me-2"></i>Cancel
-                </a>
-              </div>
-              <div>
-                <button type="submit" class="btn btn-info" id="graduateBtn">
-                  <i class="fas fa-graduation-cap me-2"></i>Graduate Selected Students
-                </button>
-              </div>
-            </div>
-          </form>
-          {% else %}
-          <div class="alert alert-warning">
-            <i class="fas fa-exclamation-circle me-2"></i>
-            No students eligible for graduation at this time. Eligible students are typically in the final year classes.
+          <div class="text-primary mb-2">
+            <i class="fas fa-users fa-2x"></i>
           </div>
-          <div class="text-center mt-4">
-            <a href="{% url 'students:student-list' %}" class="btn btn-primary">
-              <i class="fas fa-arrow-left me-2"></i>Back to Students
-            </a>
-          </div>
-          {% endif %}
+          <h3 class="card-title">{{ eligible_students.count }}</h3>
+          <p class="card-text">Eligible Students</p>
         </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <div class="text-success mb-2">
+            <i class="fas fa-graduation-cap fa-2x"></i>
+          </div>
+          <h3 class="card-title">0</h3>
+          <p class="card-text">Selected for Graduation</p>
+          <small id="selectedCount" class="text-muted">Select students below</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <div class="text-info mb-2">
+            <i class="fas fa-calendar-alt fa-2x"></i>
+          </div>
+          <h3 class="card-title">{{ current_year }}</h3>
+          <p class="card-text">Academic Year</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <div class="text-warning mb-2">
+            <i class="fas fa-certificate fa-2x"></i>
+          </div>
+          <h3 class="card-title">0</h3>
+          <p class="card-text">Certificates Generated</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Graduation Form -->
+  <div class="card">
+    <div class="card-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-list me-2"></i>Eligible Students for Graduation
+        </h5>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectAll()">
+            <i class="fas fa-check-square me-1"></i>Select All
+          </button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearSelection()">
+            <i class="fas fa-square me-1"></i>Clear All
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <form method="post" id="graduationForm">
+        {% csrf_token %}
+
+        <!-- Graduation Options -->
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <div class="card bg-light">
+              <div class="card-body">
+                <h6 class="card-title">
+                  <i class="fas fa-cogs me-2"></i>Graduation Options
+                </h6>
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" name="send_notifications" checked
+                    id="sendNotifications">
+                  <label class="form-check-label" for="sendNotifications">
+                    Send graduation notifications to students and parents
+                  </label>
+                </div>
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" name="generate_certificates" checked
+                    id="generateCertificates">
+                  <label class="form-check-label" for="generateCertificates">
+                    Generate graduation certificates
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="update_alumni_records" id="updateAlumni">
+                  <label class="form-check-label" for="updateAlumni">
+                    Add to alumni database
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card bg-light">
+              <div class="card-body">
+                <h6 class="card-title">
+                  <i class="fas fa-calendar me-2"></i>Graduation Details
+                </h6>
+                <div class="mb-3">
+                  <label class="form-label">Graduation Date</label>
+                  <input type="date" class="form-control" name="graduation_date" value="{{ today|date:'Y-m-d' }}"
+                    required>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Ceremony Venue</label>
+                  <input type="text" class="form-control" name="ceremony_venue" placeholder="School Auditorium">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Students Table -->
+        <div class="table-responsive">
+          <table id="graduationTable" class="table table-striped table-hover">
+            <thead class="table-dark">
+              <tr>
+                <th width="50">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="selectAllCheckbox">
+                  </div>
+                </th>
+                <th>Student</th>
+                <th>Admission No.</th>
+                <th>Current Class</th>
+                <th>Status</th>
+                <th>Attendance %</th>
+                <th>Parent Contact</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for student in eligible_students %}
+              <tr>
+                <td>
+                  <div class="form-check">
+                    <input class="form-check-input student-checkbox" type="checkbox" name="student_ids"
+                      value="{{ student.id }}" id="student_{{ student.id }}">
+                  </div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    {% if student.photo %}
+                    <img src="{{ student.photo.url }}" class="rounded-circle me-2" width="40" height="40" alt="Photo">
+                    {% else %}
+                    <div
+                      class="bg-primary rounded-circle me-2 d-flex align-items-center justify-content-center text-white"
+                      style="width: 40px; height: 40px;">
+                      {{ student.user.first_name|first }}{{ student.user.last_name|first }}
+                    </div>
+                    {% endif %}
+                    <div>
+                      <strong>{{ student.get_full_name }}</strong>
+                      <br>
+                      <small class="text-muted">{{ student.user.email }}</small>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge bg-secondary">{{ student.admission_number }}</span>
+                </td>
+                <td>
+                  {% if student.current_class %}
+                  <span class="badge bg-info">{{ student.current_class }}</span>
+                  {% else %}
+                  <span class="text-muted">Not assigned</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% student_status_badge student.status %}
+                </td>
+                <td>
+                  {% with attendance=student.get_attendance_percentage %}
+                  <div class="d-flex align-items-center">
+                    <div class="progress me-2" style="width: 60px; height: 8px;">
+                      <div class="progress-bar bg-{{ attendance|attendance_percentage_color }}"
+                        style="width: {{ attendance }}%"></div>
+                    </div>
+                    <span class="small">{{ attendance }}%</span>
+                  </div>
+                  {% endwith %}
+                </td>
+                <td>
+                  {% with primary_parent=student.get_primary_parent %}
+                  {% if primary_parent %}
+                  <div>
+                    <strong>{{ primary_parent.get_full_name }}</strong>
+                    <br>
+                    <small class="text-muted">
+                      <i class="fas fa-phone me-1"></i>
+                      {{ primary_parent.user.phone_number|default:"No phone" }}
+                    </small>
+                  </div>
+                  {% else %}
+                  <span class="text-muted">No primary contact</span>
+                  {% endif %}
+                  {% endwith %}
+                </td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <a href="{% url 'students:student-detail' student.id %}" class="btn btn-outline-info"
+                      title="View Profile">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <button type="button" class="btn btn-outline-primary"
+                      onclick="previewCertificate('{{ student.id }}')" title="Preview Certificate">
+                      <i class="fas fa-certificate"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="8" class="text-center py-4">
+                  <div class="text-muted">
+                    <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                    <h5>No eligible students found</h5>
+                    <p>There are no students eligible for graduation at this time.</p>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Graduation Actions -->
+        {% if eligible_students %}
+        <div class="row mt-4">
+          <div class="col-12">
+            <div class="card bg-warning bg-opacity-10 border-warning">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="card-title mb-1">
+                      <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                      Ready to Graduate Students?
+                    </h6>
+                    <p class="card-text mb-0">
+                      This action will mark selected students as graduated and cannot be easily undone.
+                    </p>
+                  </div>
+                  <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary" onclick="previewGraduation()">
+                      <i class="fas fa-eye me-1"></i>Preview
+                    </button>
+                    <button type="submit" class="btn btn-success" id="graduateButton" disabled>
+                      <i class="fas fa-graduation-cap me-1"></i>
+                      Graduate Selected Students
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Graduation Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="previewContent">
+          <!-- Preview content will be loaded here -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="downloadPreview()">
+          <i class="fas fa-download me-1"></i>Download Preview
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Progress Modal -->
+<div class="modal fade" id="progressModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Processing Graduation...</h5>
+      </div>
+      <div class="modal-body text-center">
+        <div class="spinner-border text-primary mb-3" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mb-2">Processing student graduation...</p>
+        <div class="progress">
+          <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%" id="progressBar"></div>
+        </div>
+        <small class="text-muted mt-2 d-block" id="progressText">Initializing...</small>
       </div>
     </div>
   </div>
@@ -223,51 +351,201 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/select/1.7.0/js/dataTables.select.min.js"></script>
+
 <script>
   $(document).ready(function () {
-    // Toggle all students
-    $('#selectAllStudents').change(function () {
-      $('.student-checkbox').prop('checked', $(this).is(':checked'));
-      updateButtonState();
+    // Initialize DataTable
+    const table = $('#graduationTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[2, 'asc']],
+      columnDefs: [
+        { targets: [0, 7], orderable: false }
+      ],
+      language: {
+        search: "Search students:",
+        lengthMenu: "Show _MENU_ students per page"
+      }
     });
 
-    // Update the "select all" checkbox when individual checkboxes change
-    $('.student-checkbox').change(function () {
-      if ($('.student-checkbox:checked').length === $('.student-checkbox').length) {
-        $('#selectAllStudents').prop('checked', true);
-      } else {
-        $('#selectAllStudents').prop('checked', false);
-      }
-      updateButtonState();
+    // Handle checkbox changes
+    $('.student-checkbox').on('change', updateSelectionCount);
+    $('#selectAllCheckbox').on('change', function () {
+      const isChecked = $(this).is(':checked');
+      $('.student-checkbox').prop('checked', isChecked).trigger('change');
     });
 
-    // Update graduate button state
-    function updateButtonState() {
-      if ($('.student-checkbox:checked').length > 0) {
-        $('#graduateBtn').removeClass('disabled');
-      } else {
-        $('#graduateBtn').addClass('disabled');
-      }
-    }
-
-    // Initial button state
-    updateButtonState();
-
-    // Form validation
+    // Handle form submission
     $('#graduationForm').on('submit', function (e) {
-      if ($('.student-checkbox:checked').length === 0) {
-        alert('Please select at least one student to graduate.');
-        e.preventDefault();
-        return false;
+      e.preventDefault();
+      const selectedCount = $('.student-checkbox:checked').length;
+
+      if (selectedCount === 0) {
+        showAlert('warning', 'Please select at least one student for graduation.');
+        return;
       }
 
-      if (!confirm('Are you sure you want to graduate the selected students? This action will change their status to "Graduated".')) {
-        e.preventDefault();
-        return false;
+      if (confirm(`Are you sure you want to graduate ${selectedCount} student(s)? This action cannot be undone.`)) {
+        processGraduation();
       }
-
-      return true;
     });
   });
+
+  function updateSelectionCount() {
+    const selectedCount = $('.student-checkbox:checked').length;
+    const totalCount = $('.student-checkbox').length;
+
+    $('#selectedCount').text(`${selectedCount} of ${totalCount} selected`);
+    $('.card-title h3').eq(1).text(selectedCount);
+
+    // Update graduate button state
+    $('#graduateButton').prop('disabled', selectedCount === 0);
+
+    // Update select all checkbox state
+    $('#selectAllCheckbox').prop('indeterminate', selectedCount > 0 && selectedCount < totalCount);
+    $('#selectAllCheckbox').prop('checked', selectedCount === totalCount && totalCount > 0);
+  }
+
+  function selectAll() {
+    $('.student-checkbox').prop('checked', true).trigger('change');
+  }
+
+  function clearSelection() {
+    $('.student-checkbox').prop('checked', false).trigger('change');
+  }
+
+  function previewGraduation() {
+    const selectedStudents = $('.student-checkbox:checked').map(function () {
+      return $(this).val();
+    }).get();
+
+    if (selectedStudents.length === 0) {
+      showAlert('warning', 'Please select students to preview graduation.');
+      return;
+    }
+
+    // Create preview content
+    const previewHtml = `
+        <div class="text-center mb-4">
+            <i class="fas fa-graduation-cap fa-3x text-primary mb-3"></i>
+            <h4>Graduation Summary</h4>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h2 class="text-primary">${selectedStudents.length}</h2>
+                        <p class="mb-0">Students to Graduate</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h2 class="text-success">${$('#sendNotifications').is(':checked') ? selectedStudents.length : 0}</h2>
+                        <p class="mb-0">Notifications to Send</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="mt-4">
+            <h6>Selected Students:</h6>
+            <div class="list-group">
+                ${selectedStudents.map(id => {
+      const row = $(`input[value="${id}"]`).closest('tr');
+      const name = row.find('td:eq(1) strong').text();
+      const admissionNo = row.find('.badge').text();
+      return `<div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>${name}</span>
+                        <span class="badge bg-secondary">${admissionNo}</span>
+                    </div>`;
+    }).join('')}
+            </div>
+        </div>
+    `;
+
+    $('#previewContent').html(previewHtml);
+    $('#previewModal').modal('show');
+  }
+
+  function previewCertificate(studentId) {
+    // Open certificate preview in new window
+    window.open(`/students/students/${studentId}/certificate-preview/`, '_blank', 'width=800,height=600');
+  }
+
+  function processGraduation() {
+    $('#progressModal').modal('show');
+
+    const formData = new FormData(document.getElementById('graduationForm'));
+
+    // Simulate progress
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+      progress += Math.random() * 30;
+      if (progress > 90) progress = 90;
+
+      $('#progressBar').css('width', progress + '%');
+
+      if (progress < 30) {
+        $('#progressText').text('Validating student records...');
+      } else if (progress < 60) {
+        $('#progressText').text('Generating certificates...');
+      } else if (progress < 90) {
+        $('#progressText').text('Sending notifications...');
+      }
+    }, 500);
+
+    // Submit form
+    $.ajax({
+      url: '{% url "students:student-graduation" %}',
+      method: 'POST',
+      data: formData,
+      processData: false,
+      contentType: false,
+      success: function (response) {
+        clearInterval(progressInterval);
+        $('#progressBar').css('width', '100%');
+        $('#progressText').text('Graduation completed successfully!');
+
+        setTimeout(() => {
+          $('#progressModal').modal('hide');
+          showAlert('success', `Successfully graduated ${response.graduated} students!`);
+
+          // Refresh page or redirect
+          window.location.reload();
+        }, 2000);
+      },
+      error: function (xhr) {
+        clearInterval(progressInterval);
+        $('#progressModal').modal('hide');
+        showAlert('danger', 'An error occurred during graduation processing.');
+      }
+    });
+  }
+
+  function downloadPreview() {
+    // Generate and download graduation preview PDF
+    window.open('/students/graduation/preview-pdf/', '_blank');
+  }
+
+  function showAlert(type, message) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'exclamation-circle'} me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+
+    $('#graduationForm').prepend(alertHtml);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      $('.alert').fadeOut();
+    }, 5000);
+  }
 </script>
 {% endblock %}

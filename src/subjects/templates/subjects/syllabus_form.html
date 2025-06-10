@@ -1,0 +1,1007 @@
+{% extends 'subjects/base.html' %}
+
+{% block title %}
+{% if object %}Edit Syllabus - {{ object.title }}{% else %}Create New Syllabus{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h2">
+    {% if object %}
+    <i class="fas fa-edit"></i> Edit Syllabus
+    {% else %}
+    <i class="fas fa-plus"></i> Create New Syllabus
+    {% endif %}
+  </h1>
+  <div class="btn-toolbar mb-2 mb-md-0">
+    <a href="{% url 'subjects:syllabus-list' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-arrow-left"></i> Back to List
+    </a>
+    {% if object %}
+    <a href="{% url 'subjects:syllabus-detail' object.pk %}" class="btn btn-sm btn-info ms-2">
+      <i class="fas fa-eye"></i> View Details
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<form id="syllabusForm" method="post" novalidate>
+  {% csrf_token %}
+
+  <div class="row">
+    <div class="col-lg-8">
+      <!-- Basic Information Card -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Basic Information</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="id_title" class="form-label">
+              Syllabus Title <span class="text-danger">*</span>
+            </label>
+            <input type="text" class="form-control {% if form.title.errors %}is-invalid{% endif %}" id="id_title"
+              name="title" value="{{ form.title.value|default:'' }}" placeholder="e.g., Mathematics Grade 5 - Term 1"
+              required>
+            {% if form.title.errors %}
+            <div class="invalid-feedback">{{ form.title.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label for="id_description" class="form-label">Description</label>
+            <textarea class="form-control {% if form.description.errors %}is-invalid{% endif %}" id="id_description"
+              name="description" rows="3"
+              placeholder="Provide a comprehensive overview of this syllabus...">{{ form.description.value|default:'' }}</textarea>
+            {% if form.description.errors %}
+            <div class="invalid-feedback">{{ form.description.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="id_subject" class="form-label">
+                  Subject <span class="text-danger">*</span>
+                </label>
+                <select class="form-select {% if form.subject.errors %}is-invalid{% endif %}" id="id_subject"
+                  name="subject" required>
+                  <option value="">Select Subject</option>
+                  {% for subject in subjects %}
+                  <option value="{{ subject.id }}" data-code="{{ subject.code }}"
+                    data-credits="{{ subject.credit_hours }}"
+                    {% if form.subject.value == subject.id|stringformat:"s" %}selected{% endif %}>
+                    {{ subject.name }} ({{ subject.code }})
+                  </option>
+                  {% endfor %}
+                </select>
+                {% if form.subject.errors %}
+                <div class="invalid-feedback">{{ form.subject.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="id_grade" class="form-label">
+                  Grade <span class="text-danger">*</span>
+                </label>
+                <select class="form-select {% if form.grade.errors %}is-invalid{% endif %}" id="id_grade" name="grade"
+                  required>
+                  <option value="">Select Grade</option>
+                  {% for grade in grades %}
+                  <option value="{{ grade.id }}"
+                    {% if form.grade.value == grade.id|stringformat:"s" %}selected{% endif %}>
+                    {{ grade.name }}
+                    {% if grade.section %}({{ grade.section.name }}){% endif %}
+                  </option>
+                  {% endfor %}
+                </select>
+                {% if form.grade.errors %}
+                <div class="invalid-feedback">{{ form.grade.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="id_academic_year" class="form-label">
+                  Academic Year <span class="text-danger">*</span>
+                </label>
+                <select class="form-select {% if form.academic_year.errors %}is-invalid{% endif %}"
+                  id="id_academic_year" name="academic_year" required>
+                  <option value="">Select Academic Year</option>
+                  {% for year in academic_years %}
+                  <option value="{{ year.id }}"
+                    {% if form.academic_year.value == year.id|stringformat:"s" %}selected{% endif %}>
+                    {{ year.name }}
+                    {% if year.is_current %} (Current){% endif %}
+                  </option>
+                  {% endfor %}
+                </select>
+                {% if form.academic_year.errors %}
+                <div class="invalid-feedback">{{ form.academic_year.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="id_term" class="form-label">
+                  Term <span class="text-danger">*</span>
+                </label>
+                <select class="form-select {% if form.term.errors %}is-invalid{% endif %}" id="id_term" name="term"
+                  required>
+                  <option value="">Select Term</option>
+                  {% for term in terms %}
+                  <option value="{{ term.id }}" data-academic-year="{{ term.academic_year.id }}"
+                    {% if form.term.value == term.id|stringformat:"s" %}selected{% endif %}>
+                    {{ term.name }}
+                  </option>
+                  {% endfor %}
+                </select>
+                {% if form.term.errors %}
+                <div class="invalid-feedback">{{ form.term.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Learning Objectives Card -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Learning Objectives</h5>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="addObjectiveBtn">
+            <i class="fas fa-plus"></i> Add Objective
+          </button>
+        </div>
+        <div class="card-body">
+          <div id="objectivesList">
+            {% for objective in form.learning_objectives.value %}
+            <div class="objective-item mb-2">
+              <div class="input-group">
+                <span class="input-group-text">{{ forloop.counter }}</span>
+                <input type="text" class="form-control" name="learning_objectives" value="{{ objective }}"
+                  placeholder="Enter learning objective...">
+                <button class="btn btn-outline-danger" type="button" onclick="removeObjective(this)">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+            {% empty %}
+            <div class="objective-item mb-2">
+              <div class="input-group">
+                <span class="input-group-text">1</span>
+                <input type="text" class="form-control" name="learning_objectives"
+                  placeholder="Enter learning objective...">
+                <button class="btn btn-outline-danger" type="button" onclick="removeObjective(this)">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="form-text">
+            Define what students should know or be able to do after completing this syllabus.
+          </div>
+        </div>
+      </div>
+
+      <!-- Syllabus Content Card -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Syllabus Content & Topics</h5>
+          <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-outline-success" id="addTopicBtn">
+              <i class="fas fa-plus"></i> Add Topic
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
+              data-bs-target="#importTopicsModal">
+              <i class="fas fa-file-import"></i> Import
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="topicsList">
+            {% if object.content.topics %}
+            {% for topic in object.content.topics %}
+            <div class="topic-item card mb-3" data-topic-index="{{ forloop.counter0 }}">
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-8">
+                    <div class="mb-2">
+                      <label class="form-label fw-bold">Topic {{ forloop.counter }}</label>
+                      <input type="text" class="form-control topic-name" value="{{ topic.name }}"
+                        placeholder="Topic name...">
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label">Description</label>
+                      <textarea class="form-control topic-description" rows="2"
+                        placeholder="Topic description...">{{ topic.description|default:'' }}</textarea>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="mb-2">
+                      <label class="form-label">Estimated Hours</label>
+                      <input type="number" class="form-control topic-hours"
+                        value="{{ topic.estimated_hours|default:'' }}" min="0" step="0.5" placeholder="0">
+                    </div>
+                    <div class="text-end">
+                      <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeTopic(this)">
+                        <i class="fas fa-trash"></i> Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="text-center text-muted py-4" id="noTopicsMessage">
+              <i class="fas fa-list fa-2x mb-3"></i>
+              <br>No topics added yet.
+              <br><button type="button" class="btn btn-primary mt-2" id="firstTopicBtn">
+                Add your first topic
+              </button>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Assessment & Prerequisites Card -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Assessment & Prerequisites</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Assessment Methods</label>
+                <div id="assessmentMethodsList">
+                  {% for method in form.assessment_methods.value %}
+                  <div class="assessment-item mb-2">
+                    <div class="input-group">
+                      <input type="text" class="form-control" name="assessment_methods" value="{{ method }}"
+                        placeholder="e.g., Written Test, Practical Assessment">
+                      <button class="btn btn-outline-danger" type="button" onclick="removeAssessment(this)">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                  {% empty %}
+                  <div class="assessment-item mb-2">
+                    <div class="input-group">
+                      <input type="text" class="form-control" name="assessment_methods"
+                        placeholder="e.g., Written Test, Practical Assessment">
+                      <button class="btn btn-outline-danger" type="button" onclick="removeAssessment(this)">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="addAssessmentBtn">
+                  <i class="fas fa-plus"></i> Add Method
+                </button>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Prerequisites</label>
+                <div id="prerequisitesList">
+                  {% for prereq in form.prerequisites.value %}
+                  <div class="prerequisite-item mb-2">
+                    <div class="input-group">
+                      <input type="text" class="form-control" name="prerequisites" value="{{ prereq }}"
+                        placeholder="e.g., Basic Algebra, Previous Term Topics">
+                      <button class="btn btn-outline-danger" type="button" onclick="removePrerequisite(this)">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                  {% empty %}
+                  <div class="prerequisite-item mb-2">
+                    <div class="input-group">
+                      <input type="text" class="form-control" name="prerequisites"
+                        placeholder="e.g., Basic Algebra, Previous Term Topics">
+                      <button class="btn btn-outline-danger" type="button" onclick="removePrerequisite(this)">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="addPrerequisiteBtn">
+                  <i class="fas fa-plus"></i> Add Prerequisite
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+      <!-- Syllabus Settings Card -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0">Syllabus Settings</h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="id_estimated_duration_hours" class="form-label">Estimated Duration (Hours)</label>
+            <input type="number" class="form-control {% if form.estimated_duration_hours.errors %}is-invalid{% endif %}"
+              id="id_estimated_duration_hours" name="estimated_duration_hours"
+              value="{{ form.estimated_duration_hours.value|default:'' }}" min="0" placeholder="e.g., 40">
+            {% if form.estimated_duration_hours.errors %}
+            <div class="invalid-feedback">{{ form.estimated_duration_hours.errors.0 }}</div>
+            {% endif %}
+            <div class="form-text" id="calculatedHours">
+              Calculated from topics: <span id="topicsHours">0</span> hours
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="id_difficulty_level" class="form-label">Difficulty Level</label>
+            <select class="form-select {% if form.difficulty_level.errors %}is-invalid{% endif %}"
+              id="id_difficulty_level" name="difficulty_level">
+              <option value="beginner" {% if form.difficulty_level.value == 'beginner' %}selected{% endif %}>
+                Beginner
+              </option>
+              <option value="intermediate" {% if form.difficulty_level.value == 'intermediate' %}selected{% endif %}>
+                Intermediate
+              </option>
+              <option value="advanced" {% if form.difficulty_level.value == 'advanced' %}selected{% endif %}>
+                Advanced
+              </option>
+              <option value="expert" {% if form.difficulty_level.value == 'expert' %}selected{% endif %}>
+                Expert
+              </option>
+            </select>
+            {% if form.difficulty_level.errors %}
+            <div class="invalid-feedback">{{ form.difficulty_level.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="id_is_active" name="is_active"
+                {% if form.is_active.value %}checked{% endif %}>
+              <label class="form-check-label" for="id_is_active">
+                Active Syllabus
+              </label>
+            </div>
+            <div class="form-text">
+              Inactive syllabi will not be visible to students or used for assignments
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress Summary -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0">Summary</h6>
+        </div>
+        <div class="card-body">
+          <div class="summary-item d-flex justify-content-between">
+            <span>Learning Objectives:</span>
+            <span class="badge bg-info" id="objectiveCount">0</span>
+          </div>
+          <div class="summary-item d-flex justify-content-between">
+            <span>Topics:</span>
+            <span class="badge bg-success" id="topicCount">0</span>
+          </div>
+          <div class="summary-item d-flex justify-content-between">
+            <span>Assessment Methods:</span>
+            <span class="badge bg-warning" id="assessmentCount">0</span>
+          </div>
+          <div class="summary-item d-flex justify-content-between">
+            <span>Prerequisites:</span>
+            <span class="badge bg-secondary" id="prerequisiteCount">0</span>
+          </div>
+          <hr>
+          <div class="summary-item d-flex justify-content-between">
+            <strong>Total Hours:</strong>
+            <strong><span id="totalHoursSummary">0</span> hours</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="card">
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary" id="saveBtn">
+              <i class="fas fa-save"></i>
+              {% if object %}Update Syllabus{% else %}Create Syllabus{% endif %}
+            </button>
+            <button type="button" class="btn btn-outline-secondary" onclick="saveDraft()">
+              <i class="fas fa-file-alt"></i> Save as Draft
+            </button>
+            <button type="button" class="btn btn-outline-info" onclick="previewSyllabus()">
+              <i class="fas fa-eye"></i> Preview
+            </button>
+            {% if object %}
+            <button type="button" class="btn btn-outline-danger" onclick="deleteSyllabus()">
+              <i class="fas fa-trash"></i> Delete
+            </button>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<!-- Import Topics Modal -->
+<div class="modal fade" id="importTopicsModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Import Topics</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Import from existing syllabus:</label>
+          <select class="form-select" id="syllabusToImport">
+            <option value="">Select syllabus...</option>
+            {% for syllabus in existing_syllabi %}
+            <option value="{{ syllabus.id }}">
+              {{ syllabus.title }} ({{ syllabus.subject.name }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Or paste topics (one per line):</label>
+          <textarea class="form-control" id="topicsText" rows="6"
+            placeholder="Topic 1&#10;Topic 2&#10;Topic 3"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="importTopics()">Import</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .summary-item {
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .topic-item {
+    border-left: 4px solid #007bff;
+  }
+
+  .objective-item,
+  .assessment-item,
+  .prerequisite-item {
+    position: relative;
+  }
+
+  .drag-handle {
+    cursor: move;
+    color: #6c757d;
+  }
+
+  .sortable-ghost {
+    opacity: 0.4;
+  }
+
+  .card-header h5,
+  .card-header h6 {
+    color: #495057;
+  }
+
+  #topicsList .card {
+    transition: all 0.3s ease;
+  }
+
+  #topicsList .card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    setupFormHandlers();
+    updateSummary();
+    setupDependentSelects();
+    calculateTopicsHours();
+
+    // Auto-generate title if creating new syllabus
+    {% if not object %}
+    setupAutoTitle();
+    {% endif %}
+  });
+
+  function setupFormHandlers() {
+    // Add objective button
+    document.getElementById('addObjectiveBtn').addEventListener('click', addObjective);
+    document.getElementById('addTopicBtn').addEventListener('click', addTopic);
+    document.getElementById('firstTopicBtn')?.addEventListener('click', addTopic);
+    document.getElementById('addAssessmentBtn').addEventListener('click', addAssessmentMethod);
+    document.getElementById('addPrerequisiteBtn').addEventListener('click', addPrerequisite);
+
+    // Form submission
+    document.getElementById('syllabusForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      submitForm();
+    });
+
+    // Summary updates
+    document.addEventListener('input', updateSummary);
+    document.addEventListener('change', updateSummary);
+  }
+
+  function addObjective() {
+    const container = document.getElementById('objectivesList');
+    const count = container.children.length + 1;
+
+    const objectiveHtml = `
+        <div class="objective-item mb-2">
+            <div class="input-group">
+                <span class="input-group-text">${count}</span>
+                <input type="text" class="form-control" name="learning_objectives" 
+                       placeholder="Enter learning objective...">
+                <button class="btn btn-outline-danger" type="button" onclick="removeObjective(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+
+    container.insertAdjacentHTML('beforeend', objectiveHtml);
+    updateObjectiveNumbers();
+    updateSummary();
+  }
+
+  function removeObjective(btn) {
+    btn.closest('.objective-item').remove();
+    updateObjectiveNumbers();
+    updateSummary();
+  }
+
+  function updateObjectiveNumbers() {
+    const objectives = document.querySelectorAll('#objectivesList .objective-item');
+    objectives.forEach((item, index) => {
+      const numberSpan = item.querySelector('.input-group-text');
+      numberSpan.textContent = index + 1;
+    });
+  }
+
+  function addTopic() {
+    const container = document.getElementById('topicsList');
+    const noTopicsMessage = document.getElementById('noTopicsMessage');
+
+    if (noTopicsMessage) {
+      noTopicsMessage.remove();
+    }
+
+    const topicIndex = container.querySelectorAll('.topic-item').length;
+    const topicNumber = topicIndex + 1;
+
+    const topicHtml = `
+        <div class="topic-item card mb-3" data-topic-index="${topicIndex}">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="mb-2">
+                            <label class="form-label fw-bold">Topic ${topicNumber}</label>
+                            <input type="text" class="form-control topic-name" 
+                                   placeholder="Topic name...">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control topic-description" rows="2" 
+                                      placeholder="Topic description..."></textarea>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <label class="form-label">Estimated Hours</label>
+                            <input type="number" class="form-control topic-hours" 
+                                   min="0" step="0.5" placeholder="0">
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                    onclick="removeTopic(this)">
+                                <i class="fas fa-trash"></i> Remove
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    container.insertAdjacentHTML('beforeend', topicHtml);
+    updateTopicNumbers();
+    updateSummary();
+    calculateTopicsHours();
+
+    // Focus on the new topic name input
+    const newTopic = container.lastElementChild;
+    newTopic.querySelector('.topic-name').focus();
+  }
+
+  function removeTopic(btn) {
+    btn.closest('.topic-item').remove();
+    updateTopicNumbers();
+    updateSummary();
+    calculateTopicsHours();
+
+    // Show no topics message if no topics left
+    const container = document.getElementById('topicsList');
+    if (container.querySelectorAll('.topic-item').length === 0) {
+      container.innerHTML = `
+            <div class="text-center text-muted py-4" id="noTopicsMessage">
+                <i class="fas fa-list fa-2x mb-3"></i>
+                <br>No topics added yet.
+                <br><button type="button" class="btn btn-primary mt-2" onclick="addTopic()">
+                    Add your first topic
+                </button>
+            </div>
+        `;
+    }
+  }
+
+  function updateTopicNumbers() {
+    const topics = document.querySelectorAll('#topicsList .topic-item');
+    topics.forEach((item, index) => {
+      const label = item.querySelector('.form-label');
+      label.textContent = `Topic ${index + 1}`;
+      item.dataset.topicIndex = index;
+    });
+  }
+
+  function addAssessmentMethod() {
+    const container = document.getElementById('assessmentMethodsList');
+
+    const methodHtml = `
+        <div class="assessment-item mb-2">
+            <div class="input-group">
+                <input type="text" class="form-control" name="assessment_methods" 
+                       placeholder="e.g., Written Test, Practical Assessment">
+                <button class="btn btn-outline-danger" type="button" onclick="removeAssessment(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+
+    container.insertAdjacentHTML('beforeend', methodHtml);
+    updateSummary();
+  }
+
+  function removeAssessment(btn) {
+    btn.closest('.assessment-item').remove();
+    updateSummary();
+  }
+
+  function addPrerequisite() {
+    const container = document.getElementById('prerequisitesList');
+
+    const prereqHtml = `
+        <div class="prerequisite-item mb-2">
+            <div class="input-group">
+                <input type="text" class="form-control" name="prerequisites" 
+                       placeholder="e.g., Basic Algebra, Previous Term Topics">
+                <button class="btn btn-outline-danger" type="button" onclick="removePrerequisite(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+
+    container.insertAdjacentHTML('beforeend', prereqHtml);
+    updateSummary();
+  }
+
+  function removePrerequisite(btn) {
+    btn.closest('.prerequisite-item').remove();
+    updateSummary();
+  }
+
+  function updateSummary() {
+    // Count objectives
+    const objectives = document.querySelectorAll('#objectivesList input[name="learning_objectives"]').length;
+    document.getElementById('objectiveCount').textContent = objectives;
+
+    // Count topics
+    const topics = document.querySelectorAll('#topicsList .topic-item').length;
+    document.getElementById('topicCount').textContent = topics;
+
+    // Count assessment methods
+    const assessments = document.querySelectorAll('#assessmentMethodsList input[name="assessment_methods"]').length;
+    document.getElementById('assessmentCount').textContent = assessments;
+
+    // Count prerequisites
+    const prerequisites = document.querySelectorAll('#prerequisitesList input[name="prerequisites"]').length;
+    document.getElementById('prerequisiteCount').textContent = prerequisites;
+  }
+
+  function calculateTopicsHours() {
+    const topicHours = document.querySelectorAll('.topic-hours');
+    let total = 0;
+
+    topicHours.forEach(input => {
+      const value = parseFloat(input.value) || 0;
+      total += value;
+    });
+
+    document.getElementById('topicsHours').textContent = total;
+    document.getElementById('totalHoursSummary').textContent = total;
+
+    // Update estimated duration if it's empty
+    const estimatedInput = document.getElementById('id_estimated_duration_hours');
+    if (!estimatedInput.value && total > 0) {
+      estimatedInput.value = Math.ceil(total);
+    }
+  }
+
+  function setupDependentSelects() {
+    const academicYearSelect = document.getElementById('id_academic_year');
+    const termSelect = document.getElementById('id_term');
+
+    academicYearSelect.addEventListener('change', function () {
+      const selectedYear = this.value;
+
+      // Hide/show terms based on selected academic year
+      Array.from(termSelect.options).forEach(option => {
+        if (option.value === '') return; // Keep default option
+
+        const termAcademicYear = option.dataset.academicYear;
+        option.style.display = !selectedYear || termAcademicYear === selectedYear ? 'block' : 'none';
+      });
+
+      // Reset term selection if current term doesn't belong to selected year
+      if (termSelect.value) {
+        const currentTerm = termSelect.options[termSelect.selectedIndex];
+        if (currentTerm.dataset.academicYear !== selectedYear) {
+          termSelect.value = '';
+        }
+      }
+    });
+
+    // Trigger on page load
+    academicYearSelect.dispatchEvent(new Event('change'));
+  }
+
+  function setupAutoTitle() {
+    const subjectSelect = document.getElementById('id_subject');
+    const gradeSelect = document.getElementById('id_grade');
+    const termSelect = document.getElementById('id_term');
+    const titleInput = document.getElementById('id_title');
+
+    function generateTitle() {
+      const subject = subjectSelect.options[subjectSelect.selectedIndex]?.text || '';
+      const grade = gradeSelect.options[gradeSelect.selectedIndex]?.text || '';
+      const term = termSelect.options[termSelect.selectedIndex]?.text || '';
+
+      if (subject && grade && term) {
+        const subjectName = subject.split('(')[0].trim(); // Remove code part
+        titleInput.value = `${subjectName} - ${grade} - ${term}`;
+      }
+    }
+
+    [subjectSelect, gradeSelect, termSelect].forEach(select => {
+      select.addEventListener('change', function () {
+        if (!titleInput.value || titleInput.dataset.autoGenerated === 'true') {
+          generateTitle();
+          titleInput.dataset.autoGenerated = 'true';
+        }
+      });
+    });
+
+    titleInput.addEventListener('input', function () {
+      this.dataset.autoGenerated = 'false';
+    });
+  }
+
+  function submitForm() {
+    const saveBtn = document.getElementById('saveBtn');
+    const originalText = saveBtn.innerHTML;
+
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+    const formData = collectFormData();
+
+    fetch(window.location.href, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData)
+    })
+      .then(response => {
+        if (response.ok) {
+          return response.json().catch(() => {
+            // If not JSON, assume success
+            window.location.href = '{% url "subjects:syllabus-list" %}';
+          });
+        } else {
+          throw new Error('Form submission failed');
+        }
+      })
+      .then(data => {
+        if (data && data.success) {
+          showToast('Syllabus saved successfully', 'success');
+          if (data.redirect_url) {
+            window.location.href = data.redirect_url;
+          } else {
+            window.location.href = '{% url "subjects:syllabus-list" %}';
+          }
+        } else if (data && data.errors) {
+          handleFormErrors(data.errors);
+        }
+      })
+      .catch(error => {
+        showToast('Error saving syllabus. Please try again.', 'danger');
+        console.error('Error:', error);
+      })
+      .finally(() => {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+      });
+  }
+
+  function collectFormData() {
+    const form = document.getElementById('syllabusForm');
+    const formData = new FormData(form);
+
+    const data = {};
+
+    // Basic form fields
+    for (let [key, value] of formData.entries()) {
+      if (key in data) {
+        if (Array.isArray(data[key])) {
+          data[key].push(value);
+        } else {
+          data[key] = [data[key], value];
+        }
+      } else {
+        data[key] = value;
+      }
+    }
+
+    // Collect topics
+    const topics = [];
+    document.querySelectorAll('#topicsList .topic-item').forEach((item, index) => {
+      const name = item.querySelector('.topic-name').value.trim();
+      const description = item.querySelector('.topic-description').value.trim();
+      const hours = parseFloat(item.querySelector('.topic-hours').value) || 0;
+
+      if (name) {
+        topics.push({
+          name: name,
+          description: description,
+          estimated_hours: hours,
+          index: index
+        });
+      }
+    });
+
+    data.content = { topics: topics };
+
+    return data;
+  }
+
+  function saveDraft() {
+    showToast('Draft save functionality will be implemented', 'info');
+  }
+
+  function previewSyllabus() {
+    const data = collectFormData();
+
+    // Open preview in new window/modal
+    showToast('Preview functionality will be implemented', 'info');
+  }
+
+  function importTopics() {
+    const syllabusId = document.getElementById('syllabusToImport').value;
+    const topicsText = document.getElementById('topicsText').value.trim();
+
+    if (syllabusId) {
+      // Import from existing syllabus
+      fetch(`/subjects/syllabi/${syllabusId}/export-topics/`)
+        .then(response => response.json())
+        .then(data => {
+          data.topics.forEach(topic => {
+            addTopicFromData(topic);
+          });
+          $('#importTopicsModal').modal('hide');
+          showToast(`Imported ${data.topics.length} topics`, 'success');
+        });
+    } else if (topicsText) {
+      // Import from text
+      const topics = topicsText.split('\n').filter(line => line.trim());
+      topics.forEach(topicName => {
+        addTopicFromData({ name: topicName.trim() });
+      });
+      $('#importTopicsModal').modal('hide');
+      showToast(`Imported ${topics.length} topics`, 'success');
+    } else {
+      showToast('Please select a syllabus or enter topics to import', 'warning');
+    }
+  }
+
+  function addTopicFromData(topicData) {
+    addTopic();
+
+    const container = document.getElementById('topicsList');
+    const lastTopic = container.lastElementChild;
+
+    if (topicData.name) {
+      lastTopic.querySelector('.topic-name').value = topicData.name;
+    }
+    if (topicData.description) {
+      lastTopic.querySelector('.topic-description').value = topicData.description;
+    }
+    if (topicData.estimated_hours) {
+      lastTopic.querySelector('.topic-hours').value = topicData.estimated_hours;
+    }
+
+    calculateTopicsHours();
+  }
+
+  {% if object %}
+  function deleteSyllabus() {
+    confirmAction('Are you sure you want to delete this syllabus? This action cannot be undone.', function () {
+      fetch('{% url "subjects:syllabus-delete" object.pk %}', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+        }
+      })
+        .then(response => {
+          if (response.ok) {
+            showToast('Syllabus deleted successfully', 'success');
+            window.location.href = '{% url "subjects:syllabus-list" %}';
+          } else {
+            showToast('Error deleting syllabus', 'danger');
+          }
+        });
+    });
+  }
+  {% endif %}
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  // Listen for topic hours changes
+  document.addEventListener('input', function (e) {
+    if (e.target.classList.contains('topic-hours')) {
+      calculateTopicsHours();
+    }
+  });
+</script>
+{% endblock %}

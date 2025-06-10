@@ -1,0 +1,759 @@
+{% extends 'subjects/base.html' %}
+
+{% block title %}
+{% if object %}Edit Subject - {{ object.name }}{% else %}Create New Subject{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h2">
+    {% if object %}
+    <i class="fas fa-edit"></i> Edit Subject
+    {% else %}
+    <i class="fas fa-plus"></i> Create New Subject
+    {% endif %}
+  </h1>
+  <div class="btn-toolbar mb-2 mb-md-0">
+    <a href="{% url 'subjects:subject-list' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-arrow-left"></i> Back to List
+    </a>
+    {% if object %}
+    <a href="{% url 'subjects:subject-detail' object.pk %}" class="btn btn-sm btn-info ms-2">
+      <i class="fas fa-eye"></i> View Details
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Subject Information</h5>
+      </div>
+      <div class="card-body">
+        <form id="subjectForm" method="post" novalidate>
+          {% csrf_token %}
+
+          <!-- Basic Information -->
+          <div class="row">
+            <div class="col-md-8">
+              <div class="mb-3">
+                <label for="id_name" class="form-label">
+                  Subject Name <span class="text-danger">*</span>
+                </label>
+                <input type="text" class="form-control {% if form.name.errors %}is-invalid{% endif %}" id="id_name"
+                  name="name" value="{{ form.name.value|default:'' }}" placeholder="e.g., Advanced Mathematics"
+                  required>
+                {% if form.name.errors %}
+                <div class="invalid-feedback">
+                  {{ form.name.errors.0 }}
+                </div>
+                {% endif %}
+                <div class="form-text">Enter the full name of the subject</div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="id_code" class="form-label">
+                  Subject Code <span class="text-danger">*</span>
+                </label>
+                <div class="input-group">
+                  <input type="text" class="form-control {% if form.code.errors %}is-invalid{% endif %}" id="id_code"
+                    name="code" value="{{ form.code.value|default:'' }}" placeholder="e.g., MATH101"
+                    style="text-transform: uppercase;" required>
+                  <button class="btn btn-outline-secondary" type="button" id="generateCodeBtn">
+                    <i class="fas fa-magic"></i>
+                  </button>
+                  {% if form.code.errors %}
+                  <div class="invalid-feedback">
+                    {{ form.code.errors.0 }}
+                  </div>
+                  {% endif %}
+                </div>
+                <div class="form-text">Unique identifier for the subject</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="id_description" class="form-label">Description</label>
+            <textarea class="form-control {% if form.description.errors %}is-invalid{% endif %}" id="id_description"
+              name="description" rows="3"
+              placeholder="Enter a detailed description of the subject...">{{ form.description.value|default:'' }}</textarea>
+            {% if form.description.errors %}
+            <div class="invalid-feedback">
+              {{ form.description.errors.0 }}
+            </div>
+            {% endif %}
+            <div class="form-text">Optional: Provide a comprehensive description of the subject</div>
+          </div>
+
+          <!-- Department and Classification -->
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="id_department" class="form-label">
+                  Department <span class="text-danger">*</span>
+                </label>
+                <select class="form-select {% if form.department.errors %}is-invalid{% endif %}" id="id_department"
+                  name="department" required>
+                  <option value="">Select Department</option>
+                  {% for dept in departments %}
+                  <option value="{{ dept.id }}"
+                    {% if form.department.value == dept.id|stringformat:"s" %}selected{% endif %}>
+                    {{ dept.name }}
+                  </option>
+                  {% endfor %}
+                </select>
+                {% if form.department.errors %}
+                <div class="invalid-feedback">
+                  {{ form.department.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="mb-3">
+                <label for="id_credit_hours" class="form-label">Credit Hours</label>
+                <input type="number" class="form-control {% if form.credit_hours.errors %}is-invalid{% endif %}"
+                  id="id_credit_hours" name="credit_hours" value="{{ form.credit_hours.value|default:1 }}" min="1"
+                  max="10">
+                {% if form.credit_hours.errors %}
+                <div class="invalid-feedback">
+                  {{ form.credit_hours.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="mb-3">
+                <label class="form-label">Subject Type</label>
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="id_is_elective" name="is_elective"
+                    {% if form.is_elective.value %}checked{% endif %}>
+                  <label class="form-check-label" for="id_is_elective">
+                    Elective Subject
+                  </label>
+                </div>
+                <div class="form-text">
+                  <span id="subjectTypeText">
+                    {% if form.is_elective.value %}Optional subject{% else %}Mandatory subject{% endif %}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Grade Level Selection -->
+          <div class="mb-3">
+            <label class="form-label">Applicable Grades</label>
+            <div class="card">
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-12 mb-3">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="allGrades">
+                      <label class="form-check-label fw-bold" for="allGrades">
+                        Apply to All Grades
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="gradeSelection">
+                  <div class="form-text mb-3">Select specific grades where this subject will be taught:</div>
+                  <div class="row">
+                    {% for grade in grades %}
+                    <div class="col-md-3 col-sm-4 col-6 mb-2">
+                      <div class="form-check">
+                        <input class="form-check-input grade-checkbox" type="checkbox" name="grade_level"
+                          value="{{ grade.id }}" id="grade_{{ grade.id }}"
+                          {% if grade.id in form.grade_level.value %}checked{% endif %}>
+                        <label class="form-check-label" for="grade_{{ grade.id }}">
+                          {{ grade.name }}
+                          {% if grade.section %}
+                          <small class="text-muted">({{ grade.section.name }})</small>
+                          {% endif %}
+                        </label>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% if form.grade_level.errors %}
+            <div class="text-danger mt-1">
+              {{ form.grade_level.errors.0 }}
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Status -->
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="id_is_active" name="is_active"
+                {% if form.is_active.value %}checked{% endif %}>
+              <label class="form-check-label" for="id_is_active">
+                Active Subject
+              </label>
+            </div>
+            <div class="form-text">
+              Inactive subjects will not be available for new syllabi or assignments
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="d-flex justify-content-between">
+            <div>
+              <button type="submit" class="btn btn-primary" id="saveBtn">
+                <i class="fas fa-save"></i>
+                {% if object %}Update Subject{% else %}Create Subject{% endif %}
+              </button>
+              <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                <i class="fas fa-undo"></i> Reset
+              </button>
+            </div>
+            <div>
+              {% if object %}
+              <button type="button" class="btn btn-outline-danger" onclick="deleteSubject()">
+                <i class="fas fa-trash"></i> Delete
+              </button>
+              {% endif %}
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="col-lg-4">
+    <!-- Preview Card -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h6 class="mb-0">Subject Preview</h6>
+      </div>
+      <div class="card-body">
+        <div class="preview-item">
+          <strong>Code:</strong>
+          <span id="previewCode" class="text-muted">-</span>
+        </div>
+        <div class="preview-item">
+          <strong>Name:</strong>
+          <span id="previewName" class="text-muted">-</span>
+        </div>
+        <div class="preview-item">
+          <strong>Department:</strong>
+          <span id="previewDepartment" class="text-muted">-</span>
+        </div>
+        <div class="preview-item">
+          <strong>Type:</strong>
+          <span id="previewType" class="badge bg-secondary">Mandatory</span>
+        </div>
+        <div class="preview-item">
+          <strong>Credit Hours:</strong>
+          <span id="previewCredits" class="text-muted">1</span>
+        </div>
+        <div class="preview-item">
+          <strong>Applicable Grades:</strong>
+          <div id="previewGrades" class="mt-1">
+            <span class="text-muted">None selected</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tips Card -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="fas fa-lightbulb"></i> Tips</h6>
+      </div>
+      <div class="card-body">
+        <ul class="list-unstyled mb-0">
+          <li class="mb-2">
+            <i class="fas fa-check text-success"></i>
+            Use descriptive subject names
+          </li>
+          <li class="mb-2">
+            <i class="fas fa-check text-success"></i>
+            Subject codes should be unique and meaningful
+          </li>
+          <li class="mb-2">
+            <i class="fas fa-check text-success"></i>
+            Select appropriate grade levels carefully
+          </li>
+          <li class="mb-2">
+            <i class="fas fa-check text-success"></i>
+            Mark elective subjects appropriately
+          </li>
+          <li class="mb-0">
+            <i class="fas fa-check text-success"></i>
+            Provide detailed descriptions for clarity
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Related Actions -->
+    {% if object %}
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0">Related Actions</h6>
+      </div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          <a href="{% url 'subjects:syllabus-list' %}?subject={{ object.id }}" class="btn btn-outline-info btn-sm">
+            <i class="fas fa-list-alt"></i> View Syllabi ({{ object.syllabi.count }})
+          </a>
+          <a href="{% url 'subjects:assignment-list' %}?subject={{ object.id }}" class="btn btn-outline-warning btn-sm">
+            <i class="fas fa-chalkboard-teacher"></i> View Assignments
+          </a>
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="duplicateSubject()">
+            <i class="fas fa-copy"></i> Duplicate Subject
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .preview-item {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  .preview-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+
+  .grade-checkbox:checked+label {
+    font-weight: bold;
+    color: #0d6efd;
+  }
+
+  #subjectForm .form-control:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  }
+
+  .card-header h6 {
+    color: #495057;
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    setupFormValidation();
+    setupPreviewUpdates();
+    setupCodeGeneration();
+    setupGradeSelection();
+
+    // Initialize preview
+    updatePreview();
+  });
+
+  function setupFormValidation() {
+    const form = document.getElementById('subjectForm');
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      if (validateForm()) {
+        submitForm();
+      }
+    });
+
+    // Real-time validation
+    const requiredFields = ['id_name', 'id_code', 'id_department'];
+    requiredFields.forEach(fieldId => {
+      const field = document.getElementById(fieldId);
+      if (field) {
+        field.addEventListener('blur', validateField);
+        field.addEventListener('input', clearValidationError);
+      }
+    });
+  }
+
+  function validateForm() {
+    let isValid = true;
+
+    // Validate required fields
+    const name = document.getElementById('id_name').value.trim();
+    const code = document.getElementById('id_code').value.trim();
+    const department = document.getElementById('id_department').value;
+
+    if (!name) {
+      showFieldError('id_name', 'Subject name is required');
+      isValid = false;
+    }
+
+    if (!code) {
+      showFieldError('id_code', 'Subject code is required');
+      isValid = false;
+    } else if (code.length < 3) {
+      showFieldError('id_code', 'Subject code must be at least 3 characters');
+      isValid = false;
+    }
+
+    if (!department) {
+      showFieldError('id_department', 'Department selection is required');
+      isValid = false;
+    }
+
+    // Validate grade selection
+    const allGradesChecked = document.getElementById('allGrades').checked;
+    const specificGradesChecked = document.querySelectorAll('.grade-checkbox:checked').length > 0;
+
+    if (!allGradesChecked && !specificGradesChecked) {
+      showToast('Please select applicable grades or choose "Apply to All Grades"', 'warning');
+      isValid = false;
+    }
+
+    return isValid;
+  }
+
+  function validateField(e) {
+    const field = e.target;
+    const value = field.value.trim();
+
+    clearValidationError(e);
+
+    if (field.hasAttribute('required') && !value) {
+      showFieldError(field.id, 'This field is required');
+      return false;
+    }
+
+    if (field.id === 'id_code' && value && value.length < 3) {
+      showFieldError(field.id, 'Subject code must be at least 3 characters');
+      return false;
+    }
+
+    return true;
+  }
+
+  function showFieldError(fieldId, message) {
+    const field = document.getElementById(fieldId);
+    field.classList.add('is-invalid');
+
+    let feedback = field.parentNode.querySelector('.invalid-feedback');
+    if (!feedback) {
+      feedback = document.createElement('div');
+      feedback.className = 'invalid-feedback';
+      field.parentNode.appendChild(feedback);
+    }
+    feedback.textContent = message;
+  }
+
+  function clearValidationError(e) {
+    const field = e.target;
+    field.classList.remove('is-invalid');
+
+    const feedback = field.parentNode.querySelector('.invalid-feedback');
+    if (feedback) {
+      feedback.remove();
+    }
+  }
+
+  function setupPreviewUpdates() {
+    // Update preview on input changes
+    const fields = ['id_name', 'id_code', 'id_department', 'id_credit_hours', 'id_is_elective'];
+    fields.forEach(fieldId => {
+      const field = document.getElementById(fieldId);
+      if (field) {
+        field.addEventListener('input', updatePreview);
+        field.addEventListener('change', updatePreview);
+      }
+    });
+
+    // Update preview when grades change
+    document.querySelectorAll('.grade-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', updatePreview);
+    });
+
+    document.getElementById('allGrades').addEventListener('change', updatePreview);
+  }
+
+  function updatePreview() {
+    // Update code preview
+    const code = document.getElementById('id_code').value.trim();
+    document.getElementById('previewCode').textContent = code || '-';
+
+    // Update name preview
+    const name = document.getElementById('id_name').value.trim();
+    document.getElementById('previewName').textContent = name || '-';
+
+    // Update department preview
+    const departmentSelect = document.getElementById('id_department');
+    const departmentText = departmentSelect.options[departmentSelect.selectedIndex]?.text || '-';
+    document.getElementById('previewDepartment').textContent = departmentText;
+
+    // Update type preview
+    const isElective = document.getElementById('id_is_elective').checked;
+    const typeSpan = document.getElementById('previewType');
+    typeSpan.textContent = isElective ? 'Elective' : 'Mandatory';
+    typeSpan.className = `badge ${isElective ? 'bg-warning' : 'bg-primary'}`;
+
+    // Update subject type text
+    const subjectTypeText = document.getElementById('subjectTypeText');
+    if (subjectTypeText) {
+      subjectTypeText.textContent = isElective ? 'Optional subject' : 'Mandatory subject';
+    }
+
+    // Update credit hours preview
+    const credits = document.getElementById('id_credit_hours').value || '1';
+    document.getElementById('previewCredits').textContent = credits;
+
+    // Update grades preview
+    updateGradesPreview();
+  }
+
+  function updateGradesPreview() {
+    const allGrades = document.getElementById('allGrades').checked;
+    const previewContainer = document.getElementById('previewGrades');
+
+    if (allGrades) {
+      previewContainer.innerHTML = '<span class="badge bg-info">All Grades</span>';
+    } else {
+      const checkedGrades = document.querySelectorAll('.grade-checkbox:checked');
+      if (checkedGrades.length === 0) {
+        previewContainer.innerHTML = '<span class="text-muted">None selected</span>';
+      } else {
+        const badges = Array.from(checkedGrades).map(checkbox => {
+          const label = document.querySelector(`label[for="${checkbox.id}"]`).textContent.trim();
+          return `<span class="badge bg-light text-dark me-1">${label}</span>`;
+        }).join('');
+        previewContainer.innerHTML = badges;
+      }
+    }
+  }
+
+  function setupCodeGeneration() {
+    document.getElementById('generateCodeBtn').addEventListener('click', function () {
+      const name = document.getElementById('id_name').value.trim();
+      const departmentSelect = document.getElementById('id_department');
+
+      if (!name) {
+        showToast('Please enter subject name first', 'warning');
+        document.getElementById('id_name').focus();
+        return;
+      }
+
+      let code = generateSubjectCode(name);
+
+      // Add department prefix if available
+      if (departmentSelect.value) {
+        const deptText = departmentSelect.options[departmentSelect.selectedIndex].text;
+        const deptPrefix = deptText.substring(0, 3).toUpperCase();
+        code = deptPrefix + code;
+      }
+
+      document.getElementById('id_code').value = code;
+      updatePreview();
+      showToast('Subject code generated', 'success');
+    });
+  }
+
+  function generateSubjectCode(name) {
+    // Remove special characters and split into words
+    const words = name.replace(/[^a-zA-Z\s]/g, '').split(/\s+/);
+
+    if (words.length === 1) {
+      return words[0].substring(0, 4).toUpperCase();
+    } else {
+      // Take first letter of each word, up to 3 words
+      return words.slice(0, 3).map(word => word.charAt(0)).join('').toUpperCase();
+    }
+  }
+
+  function setupGradeSelection() {
+    const allGradesCheckbox = document.getElementById('allGrades');
+    const gradeCheckboxes = document.querySelectorAll('.grade-checkbox');
+
+    allGradesCheckbox.addEventListener('change', function () {
+      if (this.checked) {
+        gradeCheckboxes.forEach(checkbox => {
+          checkbox.checked = false;
+          checkbox.disabled = true;
+        });
+      } else {
+        gradeCheckboxes.forEach(checkbox => {
+          checkbox.disabled = false;
+        });
+      }
+      updatePreview();
+    });
+
+    gradeCheckboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', function () {
+        if (this.checked) {
+          allGradesCheckbox.checked = false;
+        }
+        updatePreview();
+      });
+    });
+
+    // Initialize state
+    const hasCheckedGrades = Array.from(gradeCheckboxes).some(cb => cb.checked);
+    if (!hasCheckedGrades && gradeCheckboxes.length > 0) {
+      allGradesCheckbox.checked = true;
+      gradeCheckboxes.forEach(checkbox => {
+        checkbox.disabled = true;
+      });
+    }
+  }
+
+  function submitForm() {
+    const saveBtn = document.getElementById('saveBtn');
+    const originalText = saveBtn.innerHTML;
+
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+    const form = document.getElementById('subjectForm');
+    const formData = new FormData(form);
+
+    // Handle grade level selection
+    if (document.getElementById('allGrades').checked) {
+      formData.delete('grade_level');
+    }
+
+    fetch(form.action || window.location.href, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+      }
+    })
+      .then(response => {
+        if (response.ok) {
+          return response.json().catch(() => {
+            // If not JSON, assume success and redirect
+            window.location.href = '{% url "subjects:subject-list" %}';
+          });
+        } else {
+          throw new Error('Form submission failed');
+        }
+      })
+      .then(data => {
+        if (data && data.success) {
+          showToast('Subject saved successfully', 'success');
+          if (data.redirect_url) {
+            window.location.href = data.redirect_url;
+          } else {
+            window.location.href = '{% url "subjects:subject-list" %}';
+          }
+        } else if (data && data.errors) {
+          handleFormErrors(data.errors);
+        }
+      })
+      .catch(error => {
+        showToast('Error saving subject. Please try again.', 'danger');
+        console.error('Error:', error);
+      })
+      .finally(() => {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+      });
+  }
+
+  function handleFormErrors(errors) {
+    Object.keys(errors).forEach(fieldName => {
+      const fieldId = `id_${fieldName}`;
+      const field = document.getElementById(fieldId);
+      if (field) {
+        showFieldError(fieldId, errors[fieldName][0]);
+      }
+    });
+  }
+
+  function resetForm() {
+    confirmAction('Are you sure you want to reset all fields?', function () {
+      document.getElementById('subjectForm').reset();
+
+      // Clear validation errors
+      document.querySelectorAll('.is-invalid').forEach(field => {
+        field.classList.remove('is-invalid');
+      });
+
+      document.querySelectorAll('.invalid-feedback').forEach(feedback => {
+        feedback.remove();
+      });
+
+      // Reset grade selection
+      document.getElementById('allGrades').checked = true;
+      document.querySelectorAll('.grade-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+        checkbox.disabled = true;
+      });
+
+      updatePreview();
+      showToast('Form reset successfully', 'info');
+    });
+  }
+
+  {% if object %}
+  function deleteSubject() {
+    confirmAction('Are you sure you want to delete this subject? This action cannot be undone.', function () {
+      fetch('{% url "subjects:subject-delete" object.pk %}', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+        }
+      })
+        .then(response => {
+          if (response.ok) {
+            showToast('Subject deleted successfully', 'success');
+            window.location.href = '{% url "subjects:subject-list" %}';
+          } else {
+            showToast('Error deleting subject', 'danger');
+          }
+        });
+    });
+  }
+
+  function duplicateSubject() {
+    confirmAction('Create a copy of this subject?', function () {
+      fetch('{% url "subjects:subject-detail" object.pk %}/duplicate/', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            showToast('Subject duplicated successfully', 'success');
+            window.location.href = `/subjects/${data.new_subject_id}/edit/`;
+          } else {
+            showToast('Error duplicating subject', 'danger');
+          }
+        });
+    });
+  }
+  {% endif %}
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+</script>
+{% endblock %}

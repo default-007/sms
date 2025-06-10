@@ -1,0 +1,446 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+{% if object %}Edit Assignment{% else %}Create Assignment{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="fw-bold text-primary">
+            <i class="fas fa-user-plus me-2"></i>
+            {% if object %}Edit Subject Assignment{% else %}Create Subject Assignment{% endif %}
+          </h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'subjects:dashboard' %}">Dashboard</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'subjects:assignment-list' %}">Assignments</a></li>
+              <li class="breadcrumb-item active">
+                {% if object %}Edit{% else %}Create{% endif %}
+              </li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <a href="{% url 'subjects:assignment-list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Assignments
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <!-- Assignment Form Card -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light border-bottom">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-chalkboard-teacher me-2"></i>
+            Assignment Details
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <form method="post" id="assignmentForm" novalidate>
+            {% csrf_token %}
+
+            <!-- Error Display -->
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <!-- Academic Context -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h6 class="fw-bold text-secondary mb-3">
+                  <i class="fas fa-graduation-cap me-2"></i>Academic Context
+                </h6>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="{{ form.academic_year.id_for_label }}" class="form-label fw-medium">
+                  Academic Year *
+                </label>
+                {{ form.academic_year }}
+                {% if form.academic_year.errors %}
+                <div class="invalid-feedback d-block">{{ form.academic_year.errors.0 }}</div>
+                {% endif %}
+                <div class="form-text">Select the academic year for this assignment</div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="{{ form.term.id_for_label }}" class="form-label fw-medium">
+                  Term *
+                </label>
+                {{ form.term }}
+                {% if form.term.errors %}
+                <div class="invalid-feedback d-block">{{ form.term.errors.0 }}</div>
+                {% endif %}
+                <div class="form-text">Select the term for this assignment</div>
+              </div>
+            </div>
+
+            <!-- Subject and Class -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h6 class="fw-bold text-secondary mb-3">
+                  <i class="fas fa-book me-2"></i>Subject & Class Assignment
+                </h6>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="{{ form.subject.id_for_label }}" class="form-label fw-medium">
+                  Subject *
+                </label>
+                {{ form.subject }}
+                {% if form.subject.errors %}
+                <div class="invalid-feedback d-block">{{ form.subject.errors.0 }}</div>
+                {% endif %}
+                <div class="form-text">Select the subject to assign</div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="{{ form.class_assigned.id_for_label }}" class="form-label fw-medium">
+                  Class *
+                </label>
+                {{ form.class_assigned }}
+                {% if form.class_assigned.errors %}
+                <div class="invalid-feedback d-block">{{ form.class_assigned.errors.0 }}</div>
+                {% endif %}
+                <div class="form-text">Select the class for this assignment</div>
+              </div>
+            </div>
+
+            <!-- Teacher Assignment -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h6 class="fw-bold text-secondary mb-3">
+                  <i class="fas fa-user-tie me-2"></i>Teacher Assignment
+                </h6>
+              </div>
+
+              <div class="col-md-8 mb-3">
+                <label for="{{ form.teacher.id_for_label }}" class="form-label fw-medium">
+                  Teacher *
+                </label>
+                {{ form.teacher }}
+                {% if form.teacher.errors %}
+                <div class="invalid-feedback d-block">{{ form.teacher.errors.0 }}</div>
+                {% endif %}
+                <div class="form-text">Select the teacher to assign to this subject</div>
+              </div>
+
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-medium">Assignment Type</label>
+                <div class="form-check">
+                  {{ form.is_primary_teacher }}
+                  <label class="form-check-label" for="{{ form.is_primary_teacher.id_for_label }}">
+                    Primary Teacher
+                  </label>
+                </div>
+                {% if form.is_primary_teacher.errors %}
+                <div class="invalid-feedback d-block">{{ form.is_primary_teacher.errors.0 }}</div>
+                {% endif %}
+                <div class="form-text">Check if this is the main teacher for this subject</div>
+              </div>
+            </div>
+
+            <!-- Assignment Status -->
+            {% if object %}
+            <div class="row mb-4">
+              <div class="col-12">
+                <h6 class="fw-bold text-secondary mb-3">
+                  <i class="fas fa-toggle-on me-2"></i>Status
+                </h6>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <div class="form-check form-switch">
+                  {{ form.is_active }}
+                  <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                    Active Assignment
+                  </label>
+                </div>
+                {% if form.is_active.errors %}
+                <div class="invalid-feedback d-block">{{ form.is_active.errors.0 }}</div>
+                {% endif %}
+                <div class="form-text">Uncheck to deactivate this assignment</div>
+              </div>
+            </div>
+            {% endif %}
+
+            <!-- Validation Summary -->
+            <div id="validationSummary" class="alert alert-warning d-none mb-4">
+              <h6><i class="fas fa-exclamation-triangle me-2"></i>Validation Issues</h6>
+              <ul id="validationList" class="mb-0"></ul>
+            </div>
+
+            <!-- Assignment Preview -->
+            <div id="assignmentPreview" class="card bg-light border-0 mb-4 d-none">
+              <div class="card-body">
+                <h6 class="fw-bold mb-3">
+                  <i class="fas fa-eye me-2"></i>Assignment Preview
+                </h6>
+                <div class="row">
+                  <div class="col-md-6">
+                    <p class="mb-2"><strong>Subject:</strong> <span id="previewSubject">-</span></p>
+                    <p class="mb-2"><strong>Class:</strong> <span id="previewClass">-</span></p>
+                  </div>
+                  <div class="col-md-6">
+                    <p class="mb-2"><strong>Teacher:</strong> <span id="previewTeacher">-</span></p>
+                    <p class="mb-2"><strong>Type:</strong> <span id="previewType">-</span></p>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6">
+                    <p class="mb-0"><strong>Academic Year:</strong> <span id="previewYear">-</span></p>
+                  </div>
+                  <div class="col-md-6">
+                    <p class="mb-0"><strong>Term:</strong> <span id="previewTerm">-</span></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="d-flex justify-content-between align-items-center">
+              <a href="{% url 'subjects:assignment-list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-times me-1"></i>Cancel
+              </a>
+              <div>
+                <button type="button" class="btn btn-info me-2" id="previewBtn">
+                  <i class="fas fa-eye me-1"></i>Preview
+                </button>
+                <button type="submit" class="btn btn-success btn-lg">
+                  <i class="fas fa-save me-2"></i>
+                  {% if object %}Update Assignment{% else %}Create Assignment{% endif %}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Help Card -->
+      <div class="card border-0 bg-light mt-4">
+        <div class="card-body">
+          <h6 class="fw-bold mb-2">
+            <i class="fas fa-question-circle text-info me-2"></i>
+            Assignment Guidelines
+          </h6>
+          <div class="row">
+            <div class="col-md-6">
+              <ul class="list-unstyled mb-0 small">
+                <li class="mb-1"><i class="fas fa-check text-success me-2"></i>Ensure the subject is applicable for the
+                  selected class grade</li>
+                <li class="mb-1"><i class="fas fa-check text-success me-2"></i>Check teacher availability and workload
+                  before assignment</li>
+                <li class="mb-0"><i class="fas fa-check text-success me-2"></i>Primary teachers have main responsibility
+                  for the subject</li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <ul class="list-unstyled mb-0 small">
+                <li class="mb-1"><i class="fas fa-info text-info me-2"></i>Only one assignment per subject-class-term
+                  combination</li>
+                <li class="mb-1"><i class="fas fa-info text-info me-2"></i>Term must belong to the selected academic
+                  year</li>
+                <li class="mb-0"><i class="fas fa-info text-info me-2"></i>Teachers can be assigned to multiple classes
+                  for the same subject</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/select2.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize Select2 for better dropdowns
+    $('.form-select').select2({
+      theme: 'bootstrap-5',
+      width: '100%',
+      placeholder: function () {
+        return $(this).data('placeholder') || 'Select an option';
+      }
+    });
+
+    // Form validation
+    let validationRules = {
+      academic_year: { required: true, message: 'Academic year is required' },
+      term: { required: true, message: 'Term is required' },
+      subject: { required: true, message: 'Subject is required' },
+      class_assigned: { required: true, message: 'Class is required' },
+      teacher: { required: true, message: 'Teacher is required' }
+    };
+
+    // Real-time validation
+    Object.keys(validationRules).forEach(function (fieldName) {
+      $(`#id_${fieldName}`).on('change', function () {
+        validateField(fieldName);
+        updatePreview();
+      });
+    });
+
+    $('#id_is_primary_teacher').on('change', updatePreview);
+
+    // Form submission
+    $('#assignmentForm').on('submit', function (e) {
+      e.preventDefault();
+
+      if (validateForm()) {
+        showLoadingState();
+        this.submit();
+      }
+    });
+
+    // Preview functionality
+    $('#previewBtn').on('click', function () {
+      updatePreview();
+      $('#assignmentPreview').removeClass('d-none');
+    });
+
+    function validateField(fieldName) {
+      const field = $(`#id_${fieldName}`);
+      const value = field.val();
+      const rule = validationRules[fieldName];
+
+      if (rule.required && !value) {
+        showFieldError(field, rule.message);
+        return false;
+      } else {
+        clearFieldError(field);
+        return true;
+      }
+    }
+
+    function validateForm() {
+      let isValid = true;
+      const errors = [];
+
+      Object.keys(validationRules).forEach(function (fieldName) {
+        if (!validateField(fieldName)) {
+          isValid = false;
+          errors.push(validationRules[fieldName].message);
+        }
+      });
+
+      // Cross-field validation
+      const academicYear = $('#id_academic_year').val();
+      const term = $('#id_term').val();
+
+      if (academicYear && term) {
+        // Check if term belongs to academic year (this would need server-side validation)
+        // For now, we'll assume client-side data is filtered correctly
+      }
+
+      if (!isValid) {
+        showValidationSummary(errors);
+      } else {
+        hideValidationSummary();
+      }
+
+      return isValid;
+    }
+
+    function updatePreview() {
+      const subject = $('#id_subject option:selected').text();
+      const classAssigned = $('#id_class_assigned option:selected').text();
+      const teacher = $('#id_teacher option:selected').text();
+      const academicYear = $('#id_academic_year option:selected').text();
+      const term = $('#id_term option:selected').text();
+      const isPrimary = $('#id_is_primary_teacher').is(':checked');
+
+      $('#previewSubject').text(subject || '-');
+      $('#previewClass').text(classAssigned || '-');
+      $('#previewTeacher').text(teacher || '-');
+      $('#previewYear').text(academicYear || '-');
+      $('#previewTerm').text(term || '-');
+      $('#previewType').text(isPrimary ? 'Primary Teacher' : 'Secondary Teacher');
+    }
+
+    function showFieldError(field, message) {
+      field.addClass('is-invalid');
+      field.siblings('.invalid-feedback').remove();
+      field.after(`<div class="invalid-feedback">${message}</div>`);
+    }
+
+    function clearFieldError(field) {
+      field.removeClass('is-invalid');
+      field.siblings('.invalid-feedback').remove();
+    }
+
+    function showValidationSummary(errors) {
+      const errorList = errors.map(error => `<li>${error}</li>`).join('');
+      $('#validationList').html(errorList);
+      $('#validationSummary').removeClass('d-none');
+
+      // Scroll to validation summary
+      $('html, body').animate({
+        scrollTop: $('#validationSummary').offset().top - 100
+      }, 500);
+    }
+
+    function hideValidationSummary() {
+      $('#validationSummary').addClass('d-none');
+    }
+
+    function showLoadingState() {
+      const submitBtn = $('button[type="submit"]');
+      const originalText = submitBtn.html();
+      submitBtn.html('<i class="fas fa-spinner fa-spin me-2"></i>Processing...').prop('disabled', true);
+
+      // Store original text for potential restoration
+      submitBtn.data('original-text', originalText);
+    }
+
+    // Filter terms based on academic year
+    $('#id_academic_year').on('change', function () {
+      const academicYearId = $(this).val();
+      const termSelect = $('#id_term');
+
+      if (academicYearId) {
+        // This would typically make an AJAX call to get filtered terms
+        // For now, we'll assume the form is properly configured server-side
+        termSelect.prop('disabled', false);
+      } else {
+        termSelect.prop('disabled', true).val('');
+      }
+    });
+
+    // Filter classes based on academic year
+    $('#id_academic_year').on('change', function () {
+      const academicYearId = $(this).val();
+      const classSelect = $('#id_class_assigned');
+
+      if (academicYearId) {
+        classSelect.prop('disabled', false);
+      } else {
+        classSelect.prop('disabled', true).val('');
+      }
+    });
+
+    // Auto-focus on first field
+    $('#id_academic_year').focus();
+  });
+</script>
+{% endblock %}

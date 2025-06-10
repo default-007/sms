@@ -1,0 +1,494 @@
+{% extends "subjects/subjects_base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Not Found" %} - {% trans "Subjects Module" %}{% endblock %}
+
+{% block page_title %}{% trans "Content Not Found" %}{% endblock %}
+{% block page_description %}{% trans "The requested content could not be found" %}{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">{% trans "Error 404" %}</li>
+{% endblock %}
+
+{% block main_content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="text-center">
+      <!-- Animated 404 Illustration -->
+      <div class="error-illustration mb-4">
+        <svg width="300" height="200" viewBox="0 0 300 200" class="mx-auto">
+          <!-- Animated background -->
+          <defs>
+            <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#667eea;stop-opacity:0.1" />
+              <stop offset="100%" style="stop-color:#764ba2;stop-opacity:0.1" />
+            </linearGradient>
+          </defs>
+
+          <!-- Background circle -->
+          <circle cx="150" cy="100" r="80" fill="url(#bgGradient)" opacity="0.3">
+            <animate attributeName="r" values="70;90;70" dur="3s" repeatCount="indefinite" />
+          </circle>
+
+          <!-- Book icon -->
+          <g transform="translate(120, 70)">
+            <rect x="0" y="10" width="30" height="40" fill="#007bff" rx="2">
+              <animate attributeName="opacity" values="1;0.7;1" dur="2s" repeatCount="indefinite" />
+            </rect>
+            <rect x="35" y="15" width="25" height="35" fill="#6c757d" rx="2">
+              <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite" />
+            </rect>
+            <line x1="10" y1="25" x2="20" y2="25" stroke="white" stroke-width="2" />
+            <line x1="10" y1="30" x2="20" y2="30" stroke="white" stroke-width="2" />
+            <line x1="10" y1="35" x2="20" y2="35" stroke="white" stroke-width="2" />
+          </g>
+
+          <!-- Floating question marks -->
+          <text x="80" y="60" fill="#dc3545" font-size="20" font-weight="bold">?
+            <animate attributeName="y" values="60;50;60" dur="2s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="1;0.5;1" dur="2s" repeatCount="indefinite" />
+          </text>
+          <text x="200" y="140" fill="#ffc107" font-size="16" font-weight="bold">?
+            <animate attributeName="y" values="140;130;140" dur="2.5s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.5;1;0.5" dur="2.5s" repeatCount="indefinite" />
+          </text>
+          <text x="250" y="80" fill="#28a745" font-size="18" font-weight="bold">?
+            <animate attributeName="y" values="80;70;80" dur="1.8s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="1;0.3;1" dur="1.8s" repeatCount="indefinite" />
+          </text>
+        </svg>
+      </div>
+
+      <!-- Error Content -->
+      <div class="error-content">
+        <h1 class="display-1 text-primary mb-3" style="font-weight: 300;">404</h1>
+        <h2 class="h4 mb-3 text-muted">{% trans "Content Not Found" %}</h2>
+        <p class="lead mb-4">
+          {% trans "The subject, syllabus, or assignment you're looking for doesn't exist or may have been moved." %}
+        </p>
+      </div>
+
+      <!-- Helpful Suggestions -->
+      <div class="suggestions-grid">
+        <div class="row justify-content-center">
+          <div class="col-md-4 mb-3">
+            <div class="suggestion-card h-100">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                  <i class="fas fa-book text-primary fa-2x mb-3"></i>
+                  <h6>{% trans "Browse Subjects" %}</h6>
+                  <p class="small text-muted">{% trans "Explore all available subjects" %}</p>
+                  <a href="{% url 'subjects:subject-list' %}" class="btn btn-outline-primary btn-sm">
+                    {% trans "View Subjects" %}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <div class="suggestion-card h-100">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                  <i class="fas fa-file-alt text-success fa-2x mb-3"></i>
+                  <h6>{% trans "View Syllabi" %}</h6>
+                  <p class="small text-muted">{% trans "Check curriculum and syllabi" %}</p>
+                  <a href="{% url 'subjects:syllabus-list' %}" class="btn btn-outline-success btn-sm">
+                    {% trans "View Syllabi" %}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <div class="suggestion-card h-100">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                  <i class="fas fa-search text-info fa-2x mb-3"></i>
+                  <h6>{% trans "Advanced Search" %}</h6>
+                  <p class="small text-muted">{% trans "Search across all content" %}</p>
+                  <button type="button" class="btn btn-outline-info btn-sm" onclick="openAdvancedSearch()">
+                    {% trans "Search" %}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="quick-actions mt-4">
+        <h6 class="text-muted mb-3">{% trans "Quick Actions" %}</h6>
+        <div class="btn-group flex-wrap" role="group">
+          <a href="{% url 'subjects:dashboard' %}" class="btn btn-primary">
+            <i class="fas fa-home me-1"></i>
+            {% trans "Dashboard" %}
+          </a>
+          <button type="button" class="btn btn-outline-secondary" onclick="history.back()">
+            <i class="fas fa-arrow-left me-1"></i>
+            {% trans "Go Back" %}
+          </button>
+          <button type="button" class="btn btn-outline-info" onclick="window.location.reload()">
+            <i class="fas fa-redo me-1"></i>
+            {% trans "Refresh" %}
+          </button>
+          <button type="button" class="btn btn-outline-warning" onclick="reportIssue()">
+            <i class="fas fa-exclamation-triangle me-1"></i>
+            {% trans "Report Issue" %}
+          </button>
+        </div>
+      </div>
+
+      <!-- Help Section -->
+      <div class="help-section mt-5 p-4 bg-light rounded">
+        <h6 class="text-primary mb-3">
+          <i class="fas fa-question-circle me-2"></i>
+          {% trans "Need Help?" %}
+        </h6>
+        <div class="row">
+          <div class="col-md-6">
+            <h6 class="small text-muted">{% trans "Common Issues" %}</h6>
+            <ul class="list-unstyled small">
+              <li><i
+                  class="fas fa-check-circle text-success me-2"></i>{% trans "Check if the item was recently deleted" %}
+              </li>
+              <li><i class="fas fa-check-circle text-success me-2"></i>{% trans "Verify your access permissions" %}</li>
+              <li><i class="fas fa-check-circle text-success me-2"></i>{% trans "Try using the search function" %}</li>
+            </ul>
+          </div>
+          <div class="col-md-6">
+            <h6 class="small text-muted">{% trans "Get Support" %}</h6>
+            <ul class="list-unstyled small">
+              <li><i class="fas fa-envelope text-primary me-2"></i><a
+                  href="mailto:support@school.edu">{% trans "Email Support" %}</a></li>
+              <li><i class="fas fa-phone text-primary me-2"></i><a href="tel:+1234567890">{% trans "Call Support" %}</a>
+              </li>
+              <li><i class="fas fa-book text-primary me-2"></i><a href="/help"
+                  target="_blank">{% trans "View Documentation" %}</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Advanced Search Modal -->
+<div class="modal fade" id="advancedSearchModal" tabindex="-1" aria-labelledby="advancedSearchModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="advancedSearchModalLabel">
+          <i class="fas fa-search me-2"></i>
+          {% trans "Advanced Search" %}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="advancedSearchForm">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="searchTerm" class="form-label">{% trans "Search Term" %}</label>
+              <input type="text" class="form-control" id="searchTerm" placeholder="{% trans 'Enter search term...' %}">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="searchType" class="form-label">{% trans "Content Type" %}</label>
+              <select class="form-select" id="searchType">
+                <option value="all">{% trans "All Content" %}</option>
+                <option value="subjects">{% trans "Subjects" %}</option>
+                <option value="syllabi">{% trans "Syllabi" %}</option>
+                <option value="assignments">{% trans "Assignments" %}</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="searchDepartment" class="form-label">{% trans "Department" %}</label>
+              <select class="form-select" id="searchDepartment">
+                <option value="">{% trans "All Departments" %}</option>
+                <!-- Departments will be loaded dynamically -->
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="searchGrade" class="form-label">{% trans "Grade" %}</label>
+              <select class="form-select" id="searchGrade">
+                <option value="">{% trans "All Grades" %}</option>
+                <!-- Grades will be loaded dynamically -->
+              </select>
+            </div>
+          </div>
+        </form>
+
+        <div id="searchResults" class="mt-4" style="display: none;">
+          <h6>{% trans "Search Results" %}</h6>
+          <div id="searchResultsContent">
+            <!-- Results will be displayed here -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button>
+        <button type="button" class="btn btn-primary" onclick="performAdvancedSearch()">
+          <i class="fas fa-search me-1"></i>
+          {% trans "Search" %}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Issue Report Modal -->
+<div class="modal fade" id="issueReportModal" tabindex="-1" aria-labelledby="issueReportModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="issueReportModalLabel">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          {% trans "Report Issue" %}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="issueReportForm">
+          <div class="mb-3">
+            <label for="issueType" class="form-label">{% trans "Issue Type" %}</label>
+            <select class="form-select" id="issueType" required>
+              <option value="">{% trans "Select issue type..." %}</option>
+              <option value="broken_link">{% trans "Broken Link" %}</option>
+              <option value="missing_content">{% trans "Missing Content" %}</option>
+              <option value="access_denied">{% trans "Access Denied" %}</option>
+              <option value="other">{% trans "Other" %}</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="issueDescription" class="form-label">{% trans "Description" %}</label>
+            <textarea class="form-control" id="issueDescription" rows="4"
+              placeholder="{% trans 'Please describe the issue you encountered...' %}" required></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="userEmail" class="form-label">{% trans "Your Email" %}</label>
+            <input type="email" class="form-control" id="userEmail"
+              placeholder="{% trans 'Enter your email for follow-up...' %}">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+        <button type="button" class="btn btn-warning" onclick="submitIssueReport()">
+          <i class="fas fa-paper-plane me-1"></i>
+          {% trans "Submit Report" %}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+  let searchModal, issueModal;
+
+  document.addEventListener('DOMContentLoaded', function () {
+    searchModal = new bootstrap.Modal(document.getElementById('advancedSearchModal'));
+    issueModal = new bootstrap.Modal(document.getElementById('issueReportModal'));
+
+    loadSearchFilters();
+  });
+
+  function openAdvancedSearch() {
+    searchModal.show();
+  }
+
+  function reportIssue() {
+    // Pre-fill some information
+    document.getElementById('issueDescription').value =
+      'Page: ' + window.location.href + '\n' +
+      'Time: ' + new Date().toISOString() + '\n' +
+      'User Agent: ' + navigator.userAgent + '\n\n' +
+      'Issue description:\n';
+
+    issueModal.show();
+  }
+
+  function loadSearchFilters() {
+    // Simulate loading departments and grades
+    const departments = ['Mathematics', 'Science', 'Languages', 'Arts'];
+    const grades = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5'];
+
+    const deptSelect = document.getElementById('searchDepartment');
+    departments.forEach(dept => {
+      const option = document.createElement('option');
+      option.value = dept.toLowerCase();
+      option.textContent = dept;
+      deptSelect.appendChild(option);
+    });
+
+    const gradeSelect = document.getElementById('searchGrade');
+    grades.forEach(grade => {
+      const option = document.createElement('option');
+      option.value = grade.toLowerCase().replace(' ', '-');
+      option.textContent = grade;
+      gradeSelect.appendChild(option);
+    });
+  }
+
+  function performAdvancedSearch() {
+    const searchTerm = document.getElementById('searchTerm').value;
+    const searchType = document.getElementById('searchType').value;
+    const department = document.getElementById('searchDepartment').value;
+    const grade = document.getElementById('searchGrade').value;
+
+    if (!searchTerm.trim()) {
+      alert('{% trans "Please enter a search term" %}');
+      return;
+    }
+
+    // Show loading state
+    const resultsDiv = document.getElementById('searchResults');
+    const contentDiv = document.getElementById('searchResultsContent');
+
+    resultsDiv.style.display = 'block';
+    contentDiv.innerHTML = `
+        <div class="text-center py-3">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">{% trans "Searching..." %}</span>
+            </div>
+            <p class="mt-2 text-muted">{% trans "Searching..." %}</p>
+        </div>
+    `;
+
+    // Simulate search
+    setTimeout(() => {
+      const mockResults = [
+        {
+          type: 'subject',
+          title: 'Mathematics - Algebra',
+          description: 'Advanced algebraic concepts and problem solving',
+          url: '/subjects/1/'
+        },
+        {
+          type: 'syllabus',
+          title: 'Grade 10 Mathematics - Term 1',
+          description: 'Comprehensive mathematics syllabus for first term',
+          url: '/subjects/syllabi/1/'
+        }
+      ];
+
+      if (mockResults.length > 0) {
+        contentDiv.innerHTML = mockResults.map(result => `
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">
+                                    <span class="badge bg-primary me-2">${result.type}</span>
+                                    ${result.title}
+                                </h6>
+                                <p class="mb-2 small text-muted">${result.description}</p>
+                            </div>
+                            <a href="${result.url}" class="btn btn-outline-primary btn-sm">
+                                {% trans "View" %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+      } else {
+        contentDiv.innerHTML = `
+                <div class="text-center py-3 text-muted">
+                    <i class="fas fa-search fa-2x mb-2"></i>
+                    <p>{% trans "No results found for your search criteria." %}</p>
+                </div>
+            `;
+      }
+    }, 1500);
+  }
+
+  function submitIssueReport() {
+    const form = document.getElementById('issueReportForm');
+    const issueType = document.getElementById('issueType').value;
+    const description = document.getElementById('issueDescription').value;
+    const email = document.getElementById('userEmail').value;
+
+    if (!issueType || !description.trim()) {
+      alert('{% trans "Please fill in all required fields" %}');
+      return;
+    }
+
+    // Simulate submission
+    const submitBtn = event.target;
+    const originalText = submitBtn.innerHTML;
+
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>{% trans "Submitting..." %}';
+    submitBtn.disabled = true;
+
+    setTimeout(() => {
+      submitBtn.innerHTML = originalText;
+      submitBtn.disabled = false;
+      issueModal.hide();
+
+      showNotification('{% trans "Issue report submitted successfully. We will investigate this matter." %}', 'success');
+
+      // Clear form
+      form.reset();
+    }, 2000);
+  }
+
+  // Add some interactive animations
+  document.addEventListener('DOMContentLoaded', function () {
+    // Animate suggestion cards on hover
+    document.querySelectorAll('.suggestion-card').forEach(card => {
+      card.addEventListener('mouseenter', function () {
+        this.style.transform = 'translateY(-5px)';
+        this.style.transition = 'transform 0.3s ease';
+      });
+
+      card.addEventListener('mouseleave', function () {
+        this.style.transform = 'translateY(0)';
+      });
+    });
+  });
+</script>
+
+<style>
+  .error-illustration svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .suggestion-card {
+    transition: transform 0.3s ease;
+  }
+
+  .suggestion-card:hover {
+    transform: translateY(-5px);
+  }
+
+  .help-section {
+    border: 1px solid #e9ecef;
+  }
+
+  .quick-actions .btn-group {
+    gap: 0.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .quick-actions .btn-group {
+      flex-direction: column;
+      width: 100%;
+    }
+
+    .quick-actions .btn {
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+
+    .suggestions-grid .col-md-4 {
+      margin-bottom: 1rem;
+    }
+  }
+</style>
+{% endblock %}

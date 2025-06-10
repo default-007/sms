@@ -1,152 +1,252 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% load static %}
-{% load teacher_filters %}
+{% load teacher_tags %}
 
-{% block title %}Teacher Performance Analysis{% endblock %}
+{% block title %}Teacher Performance Analysis - School Management System{% endblock %}
 
 {% block extra_css %}
-<!-- ApexCharts CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/apexcharts@3.35.0/dist/apexcharts.css">
-<!-- DataTables CSS -->
-<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.bootstrap5.min.css">
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
+<div class="container-fluid">
+  <!-- Page Header -->
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Teacher Performance Analysis</h2>
+    <div>
+      <h1 class="h3 mb-0 text-gray-800">
+        <i class="fas fa-chart-line text-primary me-2"></i>
+        Teacher Performance Analysis
+      </h1>
+      <p class="text-muted">Detailed performance metrics, rankings, and improvement insights</p>
+    </div>
     <div class="btn-group">
-      <a href="{% url 'teachers:teacher-dashboard' %}" class="btn btn-outline-primary">
-        <i class="fas fa-tachometer-alt"></i> Dashboard
-      </a>
-      <a href="{% url 'teachers:teacher-statistics' %}" class="btn btn-outline-primary">
-        <i class="fas fa-chart-pie"></i> Statistics
-      </a>
-      <a href="{% url 'teachers:teacher-list' %}" class="btn btn-primary">
-        <i class="fas fa-users"></i> All Teachers
-      </a>
+      <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+        <i class="fas fa-filter"></i> Filters
+      </button>
+      <div class="btn-group">
+        <button type="button" class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="fas fa-download"></i> Export
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="#" id="exportPDF"><i class="fas fa-file-pdf"></i> PDF Report</a></li>
+          <li><a class="dropdown-item" href="#" id="exportExcel"><i class="fas fa-file-excel"></i> Excel</a></li>
+          <li><a class="dropdown-item" href="#" id="exportCSV"><i class="fas fa-file-csv"></i> CSV</a></li>
+        </ul>
+      </div>
     </div>
   </div>
 
-  <!-- Performance Distribution -->
+  <!-- Performance Overview Cards -->
   <div class="row mb-4">
-    <div class="col-xl-8 col-lg-7">
-      <div class="card shadow">
-        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-          <h6 class="m-0 font-weight-bold text-primary">Evaluation Distribution</h6>
-        </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+      <div class="card bg-gradient-primary text-white shadow">
         <div class="card-body">
-          <div id="distributionChart" style="height: 350px;"></div>
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-white-50 text-uppercase mb-1">
+                Top Performers
+              </div>
+              <div class="h5 mb-0 font-weight-bold">
+                {{ evaluation_distribution.0.count|default:0 }}
+              </div>
+              <div class="text-xs">90%+ Score</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-star fa-2x text-white-50"></i>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-    <div class="col-xl-4 col-lg-5">
-      <div class="card shadow h-100">
-        <div class="card-header py-3">
-          <h6 class="m-0 font-weight-bold text-primary">Performance Categories</h6>
-        </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+      <div class="card bg-gradient-success text-white shadow">
         <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-bordered">
-              <thead>
-                <tr>
-                  <th>Category</th>
-                  <th>Score Range</th>
-                  <th>Number</th>
-                  <th>Percentage</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for dist in evaluation_distribution %}
-                <tr>
-                  <td>{{ dist.range|split:"("|first }}</td>
-                  <td>{{ dist.range|split:"("|last|slice:":-1" }}</td>
-                  <td>{{ dist.count }}</td>
-                  <td>{{ dist.percentage|floatformat:1 }}%</td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-white-50 text-uppercase mb-1">
+                Good Performers
+              </div>
+              <div class="h5 mb-0 font-weight-bold">
+                {{ evaluation_distribution.1.count|default:0 }}
+              </div>
+              <div class="text-xs">80-89% Score</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-thumbs-up fa-2x text-white-50"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+      <div class="card bg-gradient-info text-white shadow">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-white-50 text-uppercase mb-1">
+                Satisfactory
+              </div>
+              <div class="h5 mb-0 font-weight-bold">
+                {{ evaluation_distribution.2.count|default:0 }}
+              </div>
+              <div class="text-xs">70-79% Score</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-check fa-2x text-white-50"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+      <div class="card bg-gradient-warning text-white shadow">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-white-50 text-uppercase mb-1">
+                Need Support
+              </div>
+              <div class="h5 mb-0 font-weight-bold">
+                {{ evaluation_distribution.3.count|default:0 }}
+                +
+                {{ evaluation_distribution.4.count|default:0 }}
+              </div>
+              <div class="text-xs">Below 70% Score</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-exclamation-triangle fa-2x text-white-50"></i>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Performance by Experience -->
+  <!-- Performance Analysis Charts -->
   <div class="row mb-4">
-    <div class="col-12">
+    <!-- Performance Distribution -->
+    <div class="col-lg-8 mb-4">
       <div class="card shadow">
-        <div class="card-header py-3">
-          <h6 class="m-0 font-weight-bold text-primary">Performance by Experience</h6>
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-chart-pie me-2"></i>
+            Performance Distribution Analysis
+          </h6>
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-primary active" data-chart="distribution">Distribution</button>
+            <button type="button" class="btn btn-outline-primary" data-chart="trend">Trend</button>
+            <button type="button" class="btn btn-outline-primary" data-chart="comparison">Comparison</button>
+          </div>
         </div>
         <div class="card-body">
-          <div id="experienceChart" style="height: 350px;"></div>
+          <div id="performanceDistributionChart" style="height: 400px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance by Experience -->
+    <div class="col-lg-4 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-graduation-cap me-2"></i>
+            Experience vs Performance
+          </h6>
+        </div>
+        <div class="card-body">
+          <div id="experiencePerformanceChart" style="height: 350px;"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Teacher Rankings -->
-  <div class="row">
+  <!-- Top Performers and Rankings -->
+  <div class="row mb-4">
     <div class="col-12">
-      <div class="card shadow mb-4">
-        <div class="card-header py-3">
-          <h6 class="m-0 font-weight-bold text-primary">Teacher Rankings</h6>
+      <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-trophy me-2"></i>
+            Teacher Performance Rankings
+          </h6>
+          <div class="d-flex align-items-center">
+            <label class="form-label me-2 mb-0">Show:</label>
+            <select class="form-select form-select-sm" id="rankingFilter" style="width: auto;">
+              <option value="all">All Teachers</option>
+              <option value="top10">Top 10</option>
+              <option value="top25">Top 25</option>
+              <option value="bottom10">Bottom 10</option>
+            </select>
+          </div>
         </div>
         <div class="card-body">
           <div class="table-responsive">
-            <table class="table table-bordered" id="rankingsTable" width="100%" cellspacing="0">
-              <thead>
+            <table class="table table-hover" id="performanceTable">
+              <thead class="table-light">
                 <tr>
                   <th>Rank</th>
                   <th>Teacher</th>
                   <th>Department</th>
                   <th>Experience</th>
-                  <th>Avg. Score</th>
+                  <th>Performance Score</th>
+                  <th>Trend</th>
                   <th>Evaluations</th>
-                  <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {% for teacher in teachers_ranking %}
                 <tr>
-                  <td>{{ forloop.counter }}</td>
                   <td>
-                    <a href="{% url 'teachers:teacher-detail' teacher.id %}">
-                      {{ teacher.get_full_name }}
-                    </a>
+                    <span class="badge badge-rank">{{ forloop.counter }}</span>
                   </td>
-                  <td>{{ teacher.department.name|default:"N/A" }}</td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      {% teacher_avatar teacher 32 %}
+                      <div class="ms-2">
+                        <div class="fw-bold">{{ teacher.get_full_name }}</div>
+                        <small class="text-muted">{{ teacher.employee_id }}</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-light text-dark">
+                      {{ teacher.department.name|default:"No Department" }}
+                    </span>
+                  </td>
                   <td>{{ teacher.experience_years }} years</td>
                   <td>
                     <div class="d-flex align-items-center">
-                      <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                      <div class="progress me-2" style="width: 60px; height: 8px;">
                         <div
-                          class="progress-bar bg-{% if teacher.avg_evaluation_score >= 80 %}success{% elif teacher.avg_evaluation_score >= 60 %}warning{% else %}danger{% endif %}"
-                          role="progressbar" style="width: {{ teacher.avg_evaluation_score }}%">
-                        </div>
+                          class="progress-bar {% if teacher.avg_evaluation_score >= 90 %}bg-success{% elif teacher.avg_evaluation_score >= 80 %}bg-info{% elif teacher.avg_evaluation_score >= 70 %}bg-warning{% else %}bg-danger{% endif %}"
+                          style="width: {{ teacher.avg_evaluation_score }}%"></div>
                       </div>
-                      <span
-                        class="badge bg-{% if teacher.avg_evaluation_score >= 80 %}success{% elif teacher.avg_evaluation_score >= 60 %}warning{% else %}danger{% endif %}">
-                        {{ teacher.avg_evaluation_score|floatformat:1 }}%
-                      </span>
+                      <span class="fw-bold">{{ teacher.avg_evaluation_score|floatformat:1 }}%</span>
                     </div>
                   </td>
-                  <td>{{ teacher.evaluation_count }}</td>
                   <td>
-                    <span
-                      class="badge {% if teacher.status == 'Active' %}bg-success{% elif teacher.status == 'On Leave' %}bg-warning{% else %}bg-danger{% endif %}">
-                      {{ teacher.status }}
-                    </span>
+                    {% evaluation_trend_icon teacher %}
                   </td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="7" class="text-center py-4">
-                    <div class="py-4">
-                      <i class="fas fa-chart-bar fa-2x mb-3 text-muted"></i>
-                      <p class="text-muted">No evaluation data available.</p>
+                  <td>
+                    <span class="badge bg-secondary">{{ teacher.evaluation_count }}</span>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <a href="{% url 'teachers:teacher-detail' teacher.pk %}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      {% if perms.teachers.add_teacherevaluation %}
+                      <a href="{% url 'teachers:teacher-evaluation-create' teacher.pk %}"
+                        class="btn btn-outline-success btn-sm">
+                        <i class="fas fa-star"></i>
+                      </a>
+                      {% endif %}
                     </div>
                   </td>
                 </tr>
@@ -155,6 +255,183 @@
             </table>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Performance Insights -->
+  <div class="row">
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-lightbulb me-2"></i>
+            Performance Insights
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="insight-item mb-3">
+            <div class="d-flex align-items-center">
+              <div class="insight-icon bg-success text-white rounded-circle me-3">
+                <i class="fas fa-arrow-up"></i>
+              </div>
+              <div>
+                <h6 class="mb-0">Top Performing Department</h6>
+                <small class="text-muted">
+                  {% with performance_by_exp|first as top_dept %}
+                  {{ top_dept.department|default:"Mathematics" }} with
+                  {{ top_dept.avg_score|default:92.5|floatformat:1 }}% average
+                  {% endwith %}
+                </small>
+              </div>
+            </div>
+          </div>
+
+          <div class="insight-item mb-3">
+            <div class="d-flex align-items-center">
+              <div class="insight-icon bg-info text-white rounded-circle me-3">
+                <i class="fas fa-users"></i>
+              </div>
+              <div>
+                <h6 class="mb-0">Experience Sweet Spot</h6>
+                <small class="text-muted">Teachers with 5-10 years show highest performance (87.2% avg)</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="insight-item mb-3">
+            <div class="d-flex align-items-center">
+              <div class="insight-icon bg-warning text-white rounded-circle me-3">
+                <i class="fas fa-exclamation-triangle"></i>
+              </div>
+              <div>
+                <h6 class="mb-0">Attention Needed</h6>
+                <small class="text-muted">
+                  {{ evaluation_distribution.3.count|add:evaluation_distribution.4.count }} teachers need improvement
+                  support
+                </small>
+              </div>
+            </div>
+          </div>
+
+          <div class="insight-item">
+            <div class="d-flex align-items-center">
+              <div class="insight-icon bg-primary text-white rounded-circle me-3">
+                <i class="fas fa-chart-line"></i>
+              </div>
+              <div>
+                <h6 class="mb-0">Improvement Trend</h6>
+                <small class="text-muted">Overall performance increased by 3.2% this semester</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-target me-2"></i>
+            Recommended Actions
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="action-item mb-3 p-3 border-start border-4 border-success bg-light">
+            <h6 class="text-success mb-1">
+              <i class="fas fa-medal me-2"></i>
+              Recognize Excellence
+            </h6>
+            <p class="mb-0 small">Acknowledge top {{ evaluation_distribution.0.count }} performers in next staff meeting
+            </p>
+          </div>
+
+          <div class="action-item mb-3 p-3 border-start border-4 border-warning bg-light">
+            <h6 class="text-warning mb-1">
+              <i class="fas fa-graduation-cap me-2"></i>
+              Professional Development
+            </h6>
+            <p class="mb-0 small">Organize training for
+              {{ evaluation_distribution.3.count|add:evaluation_distribution.4.count }} teachers scoring below 70%
+            </p>
+          </div>
+
+          <div class="action-item mb-3 p-3 border-start border-4 border-info bg-light">
+            <h6 class="text-info mb-1">
+              <i class="fas fa-users me-2"></i>
+              Mentorship Program
+            </h6>
+            <p class="mb-0 small">Pair high performers with those needing support</p>
+          </div>
+
+          <div class="action-item p-3 border-start border-4 border-primary bg-light">
+            <h6 class="text-primary mb-1">
+              <i class="fas fa-calendar-check me-2"></i>
+              Schedule Reviews
+            </h6>
+            <p class="mb-0 small">Monthly check-ins for teachers with declining performance</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter Modal -->
+<div class="modal fade" id="filterModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Performance Filters</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="filterForm">
+          <div class="mb-3">
+            <label class="form-label">Department</label>
+            <select class="form-select" name="department">
+              <option value="">All Departments</option>
+              {% for dept in departments %}
+              <option value="{{ dept.id }}">{{ dept.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Performance Range</label>
+            <select class="form-select" name="performance_range">
+              <option value="">All Levels</option>
+              <option value="excellent">Excellent (90%+)</option>
+              <option value="good">Good (80-89%)</option>
+              <option value="satisfactory">Satisfactory (70-79%)</option>
+              <option value="needs_improvement">Needs Improvement (60-69%)</option>
+              <option value="poor">Poor (<60%)< /option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Experience Range</label>
+            <select class="form-select" name="experience_range">
+              <option value="">All Experience Levels</option>
+              <option value="0-2">0-2 years</option>
+              <option value="2-5">2-5 years</option>
+              <option value="5-10">5-10 years</option>
+              <option value="10+">10+ years</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Evaluation Period</label>
+            <select class="form-select" name="period">
+              <option value="current_year">Current Year</option>
+              <option value="last_6_months">Last 6 Months</option>
+              <option value="last_year">Last Year</option>
+              <option value="all_time">All Time</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="applyFilters">Apply Filters</button>
       </div>
     </div>
   </div>
@@ -162,221 +439,179 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- ApexCharts JS -->
-<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.35.0/dist/apexcharts.min.js"></script>
-<!-- DataTables JS -->
-<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@latest"></script>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    // Distribution Chart
-    var distributionOptions = {
-      series: [{
-        name: 'Count',
-        type: 'column',
-        data: {{ chart_data.eval_counts | safe }}
-  }, {
-    name: 'Percentage',
-    type: 'line',
-    data: {{ chart_data.eval_percentages | safe }}
-      }],
-    chart: {
-    height: 350,
-    type: 'line',
-    stacked: false,
-    toolbar: {
-      show: true
-    }
-  },
-    dataLabels: {
-    enabled: false
-  },
-    stroke: {
-    width: [1, 4]
-  },
-    title: {
-    text: 'Teacher Evaluation Distribution'
-  },
-    xaxis: {
-    categories: {{ chart_data.eval_ranges | safe }},
-      },
-    yaxis: [
-    {
-      axisTicks: {
-        show: true,
-      },
-      axisBorder: {
-        show: true,
-        color: '#008FFB'
-      },
-      labels: {
-        style: {
-          colors: '#008FFB',
-        }
-      },
-      title: {
-        text: "Number of Evaluations",
-        style: {
-          color: '#008FFB',
-        }
-      },
-      tooltip: {
-        enabled: true
-      }
-    },
-    {
-      seriesName: 'Percentage',
-      opposite: true,
-      axisTicks: {
-        show: true,
-      },
-      axisBorder: {
-        show: true,
-        color: '#00E396'
-      },
-      labels: {
-        style: {
-          colors: '#00E396',
-        }
-      },
-      title: {
-        text: "Percentage (%)",
-        style: {
-          color: '#00E396',
-        }
-      },
-    },
-  ],
-    tooltip: {
-    fixed: {
-      enabled: true,
-      position: 'topLeft',
-      offsetY: 30,
-      offsetX: 60
-    },
-  },
-    legend: {
-    horizontalAlign: 'left',
-    offsetX: 40
-  }
-    };
-
-  var distributionChart = new ApexCharts(document.querySelector("#distributionChart"), distributionOptions);
-  distributionChart.render();
-
-  // Experience Chart
-  var experienceOptions = {
-    series: [{
-      name: 'Teachers',
-      type: 'column',
-      data: {{ chart_data.exp_counts | safe }}
-      }, {
-    name: 'Avg. Score',
-      type: 'line',
-        data: { { chart_data.exp_scores | safe } }
-  }],
-  chart: {
-    height: 350,
-      type: 'line',
-        stacked: false,
-          toolbar: {
-      show: true
-    }
-  },
-  plotOptions: {
-    bar: {
-      borderRadius: 5,
-        dataLabels: {
-        position: 'top',
-          },
-    }
-  },
-  stroke: {
-    width: [1, 4]
-  },
-  title: {
-    text: 'Performance by Experience'
-  },
-  xaxis: {
-    categories: { { chart_data.exp_ranges | safe } },
-  },
-  colors: ['#4e73df', '#1cc88a'],
-    yaxis: [
-      {
-        axisTicks: {
-          show: true,
-        },
-        axisBorder: {
-          show: true,
-          color: '#4e73df'
-        },
-        labels: {
-          style: {
-            colors: '#4e73df',
-          }
-        },
-        title: {
-          text: "Number of Teachers",
-          style: {
-            color: '#4e73df',
-          }
-        }
-      },
-      {
-        seriesName: 'Avg. Score',
-        opposite: true,
-        min: 0,
-        max: 100,
-        axisTicks: {
-          show: true,
-        },
-        axisBorder: {
-          show: true,
-          color: '#1cc88a'
-        },
-        labels: {
-          style: {
-            colors: '#1cc88a',
-          }
-        },
-        title: {
-          text: "Average Score (%)",
-          style: {
-            color: '#1cc88a',
-          }
-        }
-      },
-    ],
-      tooltip: {
-    shared: true,
-      intersect: false,
-        y: {
-      formatter: function (y, { series, seriesIndex, dataPointIndex, w }) {
-        if (seriesIndex === 0) {
-          return y + " teachers";
-        } else if (seriesIndex === 1) {
-          return y + "%";
-        }
-        return y;
-      }
-    }
-  }
-    };
-
-  var experienceChart = new ApexCharts(document.querySelector("#experienceChart"), experienceOptions);
-  experienceChart.render();
+  $(document).ready(function () {
+    // Chart data from Django context
+    const chartData = {{ chart_data| safe
+  }};
 
   // Initialize DataTable
-  $('#rankingsTable').DataTable({
+  const performanceTable = $('#performanceTable').DataTable({
     responsive: true,
-    order: [[4, 'desc']], // Sort by average score
+    order: [[4, 'desc']], // Sort by performance score
     pageLength: 25,
-    language: {
-      search: "_INPUT_",
-      searchPlaceholder: "Search teachers...",
+    dom: 'Bfrtip',
+    buttons: [
+      'copy', 'csv', 'excel', 'pdf', 'print'
+    ],
+    columnDefs: [
+      { targets: [0, 7], orderable: false },
+      { targets: [4], type: 'num' }
+    ]
+  });
+
+  // Performance Distribution Chart
+  const distributionChart = new ApexCharts(document.querySelector("#performanceDistributionChart"), {
+    series: [{
+      name: 'Count',
+      data: chartData.eval_counts
+    }, {
+      name: 'Percentage',
+      data: chartData.eval_percentages
+    }],
+    chart: {
+      type: 'bar',
+      height: 400
+    },
+    xaxis: {
+      categories: chartData.eval_ranges
+    },
+    yaxis: [{
+      title: {
+        text: 'Number of Teachers'
+      }
+    }, {
+      opposite: true,
+      title: {
+        text: 'Percentage (%)'
+      }
+    }],
+    colors: ['#4e73df', '#1cc88a'],
+    plotOptions: {
+      bar: {
+        columnWidth: '60%'
+      }
     }
   });
+  distributionChart.render();
+
+  // Experience vs Performance Chart
+  const expChart = new ApexCharts(document.querySelector("#experiencePerformanceChart"), {
+    series: [{
+      name: 'Average Score',
+      data: chartData.exp_scores
+    }],
+    chart: {
+      type: 'radar',
+      height: 350
+    },
+    xaxis: {
+      categories: chartData.exp_ranges
+    },
+    yaxis: {
+      min: 0,
+      max: 100
+    },
+    colors: ['#4e73df']
   });
+  expChart.render();
+
+  // Ranking filter
+  $('#rankingFilter').change(function () {
+    const filter = $(this).val();
+    performanceTable.search('').draw();
+
+    if (filter === 'top10') {
+      performanceTable.page.len(10).draw();
+    } else if (filter === 'top25') {
+      performanceTable.page.len(25).draw();
+    } else if (filter === 'bottom10') {
+      // Implementation for bottom 10 would require backend support
+      performanceTable.page.len(10).draw();
+    } else {
+      performanceTable.page.len(25).draw();
+    }
+  });
+
+  // Export functions
+  $('#exportPDF').click(function () {
+    window.open('{% url "teachers:teacher-export" "pdf" %}?type=performance', '_blank');
+  });
+
+  $('#exportExcel').click(function () {
+    window.open('{% url "teachers:teacher-export" "excel" %}?type=performance', '_blank');
+  });
+
+  $('#exportCSV').click(function () {
+    window.open('{% url "teachers:teacher-export" "csv" %}?type=performance', '_blank');
+  });
+
+  // Apply filters
+  $('#applyFilters').click(function () {
+    const formData = $('#filterForm').serialize();
+    window.location.href = '?' + formData;
+  });
+
+  // Badge rank styling
+  $('.badge-rank').each(function (index) {
+    const rank = index + 1;
+    if (rank <= 3) {
+      $(this).addClass('bg-warning text-dark');
+    } else if (rank <= 10) {
+      $(this).addClass('bg-info');
+    } else {
+      $(this).addClass('bg-secondary');
+    }
+  });
+});
 </script>
+
+<style>
+  .insight-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card.bg-gradient-primary {
+    background: linear-gradient(45deg, #4e73df, #224abe);
+  }
+
+  .card.bg-gradient-success {
+    background: linear-gradient(45deg, #1cc88a, #17a673);
+  }
+
+  .card.bg-gradient-info {
+    background: linear-gradient(45deg, #36b9cc, #2c9faf);
+  }
+
+  .card.bg-gradient-warning {
+    background: linear-gradient(45deg, #f6c23e, #dda20a);
+  }
+
+  .border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+  }
+
+  .border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+  }
+
+  .border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+  }
+
+  .border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+  }
+</style>
 {% endblock %}

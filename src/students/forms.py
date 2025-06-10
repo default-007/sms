@@ -48,7 +48,9 @@ class StudentForm(BaseModelForm):
     last_name = forms.CharField(
         max_length=100, required=True, help_text="Student's last name"
     )
-    email = forms.EmailField(required=True, help_text="Student's email address")
+    email = forms.EmailField(
+        required=False, help_text="Student's email address (optional)"
+    )  # Made optional
     phone_number = forms.CharField(
         max_length=20, required=False, help_text="Student's phone number"
     )
@@ -151,24 +153,18 @@ class StudentForm(BaseModelForm):
 
         # Add AJAX autocomplete for classes
         self.fields["current_class"].widget.attrs.update(
-            {"data-autocomplete-url": "/api/courses/classes/autocomplete/"}
+            {"data-autocomplete-url": "/api/academics/classes/autocomplete/"}
         )
 
-    def clean_email(self):
-        email = self.cleaned_data.get("email")
-        if self.instance and self.instance.pk:
-            try:
-                existing_users = User.objects.filter(email=email).exclude(
-                    id=self.instance.user.id
-                )
-            except Student.user.RelatedObjectDoesNotExist:
-                existing_users = User.objects.filter(email=email)
-        else:
-            existing_users = User.objects.filter(email=email)
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        confirm_password = cleaned_data.get("confirm_password")
 
-        if existing_users.exists():
-            raise ValidationError(_("This email address is already in use."))
-        return email
+        if password and password != confirm_password:
+            raise ValidationError(_("Passwords don't match."))
+
+        return cleaned_data
 
     def clean_admission_number(self):
         admission_number = self.cleaned_data.get("admission_number")
@@ -183,17 +179,37 @@ class StudentForm(BaseModelForm):
 
         if existing_students.exists():
             raise ValidationError(_("This admission number is already in use."))
+
+        # Also check if username (admission number) exists for other users
+        if self.instance and self.instance.pk:
+            existing_users = User.objects.filter(username=admission_number).exclude(
+                id=self.instance.user.id
+            )
+        else:
+            existing_users = User.objects.filter(username=admission_number)
+
+        if existing_users.exists():
+            raise ValidationError(
+                _("This admission number is already in use as username.")
+            )
+
         return admission_number
 
-    def clean(self):
-        cleaned_data = super().clean()
-        password = cleaned_data.get("password")
-        confirm_password = cleaned_data.get("confirm_password")
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if not email:  # Email is now optional
+            return email
 
-        if password and password != confirm_password:
-            raise ValidationError(_("Passwords don't match."))
+        if self.instance and self.instance.pk:
+            existing_users = User.objects.filter(email=email).exclude(
+                id=self.instance.user.id
+            )
+        else:
+            existing_users = User.objects.filter(email=email)
 
-        return cleaned_data
+        if existing_users.exists():
+            raise ValidationError(_("This email address is already in use."))
+        return email
 
     def save(self, commit=True):
         student = super().save(commit=False)
@@ -202,31 +218,31 @@ class StudentForm(BaseModelForm):
             with transaction.atomic():
                 # Handle user creation/update
                 if student.pk:
-                    try:
-                        user = student.user
-                    except Student.user.RelatedObjectDoesNotExist:
-                        # Create new user if it doesn't exist
-                        email = self.cleaned_data["email"]
-                        username = self.cleaned_data["email"]
-                        user = User(username=username, email=email)
+                    user = student.user
                 else:
-                    email = self.cleaned_data["email"]
+                    # Use admission number as username
+                    username = self.cleaned_data["admission_number"]
+                    email = self.cleaned_data.get("email", "")
+
                     try:
-                        user = User.objects.get(email=email)
+                        user = User.objects.get(username=username)
                     except User.DoesNotExist:
-                        username = self.cleaned_data["email"]
-                        user = User(username=username, email=email)
+                        user = User(username=username, email=email or "")
 
                 # Update user fields
                 for field in [
                     "first_name",
                     "last_name",
-                    "email",
                     "phone_number",
                     "date_of_birth",
                 ]:
                     if field in self.cleaned_data:
                         setattr(user, field, self.cleaned_data[field])
+
+                # Handle email separately since it's now optional
+                email = self.cleaned_data.get("email")
+                if email:
+                    user.email = email
 
                 if "gender" in self.cleaned_data and hasattr(user, "gender"):
                     user.gender = self.cleaned_data["gender"]
@@ -635,7 +651,7 @@ class QuickStudentAddForm(forms.Form):
 
     first_name = forms.CharField(max_length=100)
     last_name = forms.CharField(max_length=100)
-    email = forms.EmailField()
+    email = forms.EmailField(required=False)  # Made optional
     admission_number = forms.CharField(max_length=20)
     current_class = forms.ModelChoiceField(
         queryset=Class.objects.none(), required=False
@@ -657,6 +673,21 @@ class QuickStudentAddForm(forms.Form):
                 academic_year=current_year
             ).select_related("grade", "section")
 
+    def clean_admission_number(self):
+        admission_number = self.cleaned_data.get("admission_number")
+
+        # Check if admission number already exists
+        if Student.objects.filter(admission_number=admission_number).exists():
+            raise ValidationError(_("This admission number already exists."))
+
+        # Check if username (admission number) already exists
+        if User.objects.filter(username=admission_number).exists():
+            raise ValidationError(
+                _("This admission number is already in use as username.")
+            )
+
+        return admission_number
+
     def save(self):
         """Create student with minimal required fields"""
         from .services.student_service import StudentService
@@ -664,8 +695,10 @@ class QuickStudentAddForm(forms.Form):
         user_data = {
             "first_name": self.cleaned_data["first_name"],
             "last_name": self.cleaned_data["last_name"],
-            "email": self.cleaned_data["email"],
-            "username": self.cleaned_data["email"],
+            "email": self.cleaned_data.get("email", ""),  # Email is now optional
+            "username": self.cleaned_data[
+                "admission_number"
+            ],  # Use admission number as username
         }
 
         student_data = {

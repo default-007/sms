@@ -1,0 +1,742 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Bulk Create Syllabi" %}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/select/1.7.0/css/select.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row">
+    <div class="col-lg-12">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h4 class="card-title mb-0">
+            <i class="fas fa-layer-group me-2"></i>
+            {% trans "Bulk Create Syllabi for Term" %}
+          </h4>
+        </div>
+
+        <div class="card-body">
+          <!-- Term Information -->
+          <div class="alert alert-info mb-4">
+            <h6>
+              <i class="fas fa-info-circle me-2"></i>
+              {% trans "Term Information" %}
+            </h6>
+            <div class="row">
+              <div class="col-md-3">
+                <strong>{% trans "Academic Year" %}:</strong>
+                <span id="academicYear">-</span>
+              </div>
+              <div class="col-md-3">
+                <strong>{% trans "Term" %}:</strong>
+                <span id="termName">-</span>
+              </div>
+              <div class="col-md-3">
+                <strong>{% trans "Start Date" %}:</strong>
+                <span id="startDate">-</span>
+              </div>
+              <div class="col-md-3">
+                <strong>{% trans "End Date" %}:</strong>
+                <span id="endDate">-</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Progress Steps -->
+          <div class="row mb-4">
+            <div class="col-12">
+              <div class="d-flex justify-content-between">
+                <div class="step active" data-step="1">
+                  <div class="step-circle">1</div>
+                  <div class="step-label">{% trans "Select Assignments" %}</div>
+                </div>
+                <div class="step" data-step="2">
+                  <div class="step-circle">2</div>
+                  <div class="step-label">{% trans "Configure Template" %}</div>
+                </div>
+                <div class="step" data-step="3">
+                  <div class="step-circle">3</div>
+                  <div class="step-label">{% trans "Review & Create" %}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 1: Select Assignments -->
+          <div id="step1" class="step-content">
+            <h5>
+              <i class="fas fa-check-square me-2"></i>
+              {% trans "Select Subject Assignments" %}
+            </h5>
+            <p class="text-muted">
+              {% trans "Choose which subject assignments should have syllabi created. Only assignments without existing syllabi are shown." %}
+            </p>
+
+            <!-- Selection Controls -->
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <div class="btn-group" role="group">
+                  <button type="button" class="btn btn-outline-primary btn-sm" id="selectAll">
+                    <i class="fas fa-check-square me-1"></i>
+                    {% trans "Select All" %}
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm" id="selectNone">
+                    <i class="fas fa-square me-1"></i>
+                    {% trans "Select None" %}
+                  </button>
+                  <button type="button" class="btn btn-outline-info btn-sm" id="selectPrimary">
+                    <i class="fas fa-star me-1"></i>
+                    {% trans "Primary Only" %}
+                  </button>
+                </div>
+              </div>
+              <div class="col-md-6 text-end">
+                <span class="badge bg-info fs-6" id="selectedCount">0</span>
+                <span class="text-muted">{% trans "assignments selected" %}</span>
+              </div>
+            </div>
+
+            <!-- Assignments Table -->
+            <div class="table-responsive">
+              <table id="assignmentsTable" class="table table-sm table-hover">
+                <thead class="table-light">
+                  <tr>
+                    <th width="50px">
+                      <input type="checkbox" class="form-check-input" id="masterCheckbox">
+                    </th>
+                    <th>{% trans "Subject" %}</th>
+                    <th>{% trans "Teacher" %}</th>
+                    <th>{% trans "Class" %}</th>
+                    <th>{% trans "Department" %}</th>
+                    <th>{% trans "Type" %}</th>
+                    <th>{% trans "Credit Hours" %}</th>
+                  </tr>
+                </thead>
+                <tbody id="assignmentsTableBody">
+                  <!-- Will be populated via AJAX -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="d-flex justify-content-end mt-3">
+              <button type="button" class="btn btn-primary" id="nextStep1" disabled>
+                {% trans "Next: Configure Template" %}
+                <i class="fas fa-arrow-right ms-2"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 2: Configure Template -->
+          <div id="step2" class="step-content d-none">
+            <h5>
+              <i class="fas fa-cogs me-2"></i>
+              {% trans "Configure Syllabus Template" %}
+            </h5>
+            <p class="text-muted">
+              {% trans "Set default values that will be applied to all created syllabi. You can customize individual syllabi later." %}
+            </p>
+
+            <form id="templateForm">
+              <div class="row">
+                <div class="col-md-12 mb-3">
+                  <label for="description" class="form-label">
+                    {% trans "Default Description" %}
+                  </label>
+                  <textarea class="form-control" id="description" name="description" rows="3"
+                    placeholder="{% trans 'Enter a default description for all syllabi...' %}"></textarea>
+                  <div class="form-text">
+                    {% trans "This will be used as the base description for all syllabi. Subject-specific details will be added automatically." %}
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label for="difficultyLevel" class="form-label">
+                    {% trans "Difficulty Level" %}
+                  </label>
+                  <select class="form-select" id="difficultyLevel" name="difficulty_level">
+                    <option value="beginner">{% trans "Beginner" %}</option>
+                    <option value="intermediate" selected>{% trans "Intermediate" %}</option>
+                    <option value="advanced">{% trans "Advanced" %}</option>
+                    <option value="expert">{% trans "Expert" %}</option>
+                  </select>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label for="estimatedHours" class="form-label">
+                    {% trans "Estimated Duration (Hours)" %}
+                  </label>
+                  <input type="number" class="form-control" id="estimatedHours" name="estimated_duration_hours" min="0"
+                    max="500" value="40">
+                  <div class="form-text">
+                    {% trans "Total estimated teaching hours for the term" %}
+                  </div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label for="autoTopics" class="form-label">
+                    {% trans "Auto-generate Topics" %}
+                  </label>
+                  <select class="form-select" id="autoTopics" name="auto_topics">
+                    <option value="none">{% trans "No auto-generation" %}</option>
+                    <option value="basic" selected>{% trans "Basic topic structure" %}</option>
+                    <option value="detailed">{% trans "Detailed topic breakdown" %}</option>
+                  </select>
+                  <div class="form-text">
+                    {% trans "Automatically create initial topic structure" %}
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="learningObjectives" class="form-label">
+                    {% trans "Default Learning Objectives" %}
+                  </label>
+                  <textarea class="form-control" id="learningObjectives" name="learning_objectives" rows="4"
+                    placeholder="{% trans 'Enter each learning objective on a new line...' %}"></textarea>
+                  <div class="form-text">
+                    {% trans "One objective per line. These will be applied to all syllabi." %}
+                  </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                  <label for="assessmentMethods" class="form-label">
+                    {% trans "Assessment Methods" %}
+                  </label>
+                  <textarea class="form-control" id="assessmentMethods" name="assessment_methods" rows="4"
+                    placeholder="{% trans 'Enter each assessment method on a new line...' %}"></textarea>
+                  <div class="form-text">
+                    {% trans "One method per line (e.g., Written Test, Practical Assessment)" %}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Preview Section -->
+              <div class="card bg-light mt-4">
+                <div class="card-header">
+                  <h6 class="mb-0">
+                    <i class="fas fa-eye me-2"></i>
+                    {% trans "Template Preview" %}
+                  </h6>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <h6>{% trans "Example Syllabus Title" %}</h6>
+                      <p id="previewTitle" class="text-muted">Mathematics - Grade 5 - Term 1</p>
+
+                      <h6>{% trans "Description" %}</h6>
+                      <p id="previewDescription" class="text-muted">-</p>
+                    </div>
+                    <div class="col-md-6">
+                      <h6>{% trans "Settings" %}</h6>
+                      <ul class="list-unstyled">
+                        <li><strong>{% trans "Difficulty" %}:</strong> <span id="previewDifficulty">Intermediate</span>
+                        </li>
+                        <li><strong>{% trans "Duration" %}:</strong> <span id="previewHours">40</span> hours</li>
+                        <li><strong>{% trans "Auto Topics" %}:</strong> <span id="previewTopics">Basic structure</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </form>
+
+            <div class="d-flex justify-content-between mt-4">
+              <button type="button" class="btn btn-secondary" id="prevStep2">
+                <i class="fas fa-arrow-left me-2"></i>
+                {% trans "Previous: Select Assignments" %}
+              </button>
+              <button type="button" class="btn btn-primary" id="nextStep2">
+                {% trans "Next: Review & Create" %}
+                <i class="fas fa-arrow-right ms-2"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 3: Review & Create -->
+          <div id="step3" class="step-content d-none">
+            <h5>
+              <i class="fas fa-clipboard-check me-2"></i>
+              {% trans "Review & Create Syllabi" %}
+            </h5>
+            <p class="text-muted">
+              {% trans "Review your selections and create the syllabi. This process may take a few moments." %}
+            </p>
+
+            <!-- Summary -->
+            <div class="row mb-4">
+              <div class="col-md-4">
+                <div class="card bg-primary text-white">
+                  <div class="card-body text-center">
+                    <h3 id="summaryCount">0</h3>
+                    <p class="mb-0">{% trans "Syllabi to Create" %}</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="card bg-info text-white">
+                  <div class="card-body text-center">
+                    <h3 id="summarySubjects">0</h3>
+                    <p class="mb-0">{% trans "Unique Subjects" %}</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="card bg-success text-white">
+                  <div class="card-body text-center">
+                    <h3 id="summaryTeachers">0</h3>
+                    <p class="mb-0">{% trans "Teachers Involved" %}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Review Table -->
+            <div class="card">
+              <div class="card-header">
+                <h6 class="mb-0">
+                  <i class="fas fa-list me-2"></i>
+                  {% trans "Syllabi to be Created" %}
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-sm">
+                    <thead class="table-light">
+                      <tr>
+                        <th>{% trans "Subject" %}</th>
+                        <th>{% trans "Class" %}</th>
+                        <th>{% trans "Teacher" %}</th>
+                        <th>{% trans "Generated Title" %}</th>
+                      </tr>
+                    </thead>
+                    <tbody id="reviewTableBody">
+                      <!-- Will be populated -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Progress Section -->
+            <div id="creationProgress" class="mt-4 d-none">
+              <h6>{% trans "Creation Progress" %}</h6>
+              <div class="progress mb-3">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" id="progressBar"
+                  style="width: 0%">
+                  <span id="progressText">0%</span>
+                </div>
+              </div>
+              <div id="progressLog" class="alert alert-info" style="max-height: 200px; overflow-y: auto;">
+                <!-- Progress messages will appear here -->
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+              <button type="button" class="btn btn-secondary" id="prevStep3">
+                <i class="fas fa-arrow-left me-2"></i>
+                {% trans "Previous: Configure Template" %}
+              </button>
+              <button type="button" class="btn btn-success" id="createSyllabi">
+                <i class="fas fa-plus me-2"></i>
+                {% trans "Create Syllabi" %}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/select/1.7.0/js/dataTables.select.min.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    let selectedAssignments = [];
+    let currentStep = 1;
+    let assignmentsTable;
+
+    // Initialize
+    initializeSteps();
+    loadTermInfo();
+    loadAssignments();
+
+    function initializeSteps() {
+      // Step navigation handlers
+      $('#nextStep1').on('click', () => goToStep(2));
+      $('#prevStep2').on('click', () => goToStep(1));
+      $('#nextStep2').on('click', () => goToStep(3));
+      $('#prevStep3').on('click', () => goToStep(2));
+      $('#createSyllabi').on('click', createSyllabi);
+
+      // Selection handlers
+      $('#selectAll').on('click', selectAllAssignments);
+      $('#selectNone').on('click', selectNoAssignments);
+      $('#selectPrimary').on('click', selectPrimaryAssignments);
+      $('#masterCheckbox').on('change', toggleAllAssignments);
+
+      // Template form handlers
+      $('#description, #difficultyLevel, #estimatedHours, #autoTopics').on('input change', updatePreview);
+    }
+
+    function goToStep(step) {
+      // Hide all step contents
+      $('.step-content').addClass('d-none');
+      $('.step').removeClass('active');
+
+      // Show target step
+      $(`#step${step}`).removeClass('d-none');
+      $(`.step[data-step="${step}"]`).addClass('active');
+
+      currentStep = step;
+
+      // Handle step-specific logic
+      if (step === 3) {
+        populateReviewStep();
+      }
+    }
+
+    function loadTermInfo() {
+      // Get term ID from URL
+      const termId = window.location.pathname.split('/').slice(-2, -1)[0];
+
+      // Simulate API call to get term info
+      // In real implementation, make AJAX call to get term details
+      $('#academicYear').text('2024-2025');
+      $('#termName').text('Term 1');
+      $('#startDate').text('April 1, 2024');
+      $('#endDate').text('July 31, 2024');
+    }
+
+    function loadAssignments() {
+      // Simulate loading assignments that don't have syllabi yet
+      const sampleAssignments = [
+        {
+          id: 1,
+          subject: 'Mathematics',
+          subject_code: 'MATH101',
+          teacher: 'John Smith',
+          class: 'Grade 5 North',
+          department: 'Mathematics',
+          is_primary: true,
+          credit_hours: 4
+        },
+        {
+          id: 2,
+          subject: 'Science',
+          subject_code: 'SCI101',
+          teacher: 'Jane Doe',
+          class: 'Grade 5 North',
+          department: 'Science',
+          is_primary: true,
+          credit_hours: 3
+        },
+        {
+          id: 3,
+          subject: 'English',
+          subject_code: 'ENG101',
+          teacher: 'Bob Johnson',
+          class: 'Grade 5 North',
+          department: 'Languages',
+          is_primary: false,
+          credit_hours: 3
+        }
+      ];
+
+      const tbody = $('#assignmentsTableBody');
+      tbody.empty();
+
+      sampleAssignments.forEach(assignment => {
+        const row = `
+                <tr data-assignment-id="${assignment.id}">
+                    <td>
+                        <input type="checkbox" class="form-check-input assignment-checkbox" 
+                               value="${assignment.id}">
+                    </td>
+                    <td>
+                        <span class="badge bg-primary me-2">${assignment.subject_code}</span>
+                        ${assignment.subject}
+                    </td>
+                    <td>${assignment.teacher}</td>
+                    <td>${assignment.class}</td>
+                    <td>${assignment.department}</td>
+                    <td>
+                        ${assignment.is_primary ?
+            '<span class="badge bg-success"><i class="fas fa-star me-1"></i>Primary</span>' :
+            '<span class="badge bg-secondary">Secondary</span>'
+          }
+                    </td>
+                    <td>${assignment.credit_hours}</td>
+                </tr>
+            `;
+        tbody.append(row);
+      });
+
+      // Initialize DataTable
+      assignmentsTable = $('#assignmentsTable').DataTable({
+        pageLength: 25,
+        order: [[1, 'asc']],
+        columnDefs: [
+          { orderable: false, targets: [0] }
+        ]
+      });
+
+      // Add checkbox change handlers
+      $('.assignment-checkbox').on('change', updateSelectedCount);
+    }
+
+    function selectAllAssignments() {
+      $('.assignment-checkbox').prop('checked', true);
+      $('#masterCheckbox').prop('checked', true);
+      updateSelectedCount();
+    }
+
+    function selectNoAssignments() {
+      $('.assignment-checkbox').prop('checked', false);
+      $('#masterCheckbox').prop('checked', false);
+      updateSelectedCount();
+    }
+
+    function selectPrimaryAssignments() {
+      $('.assignment-checkbox').prop('checked', false);
+      $('.assignment-checkbox').each(function () {
+        const row = $(this).closest('tr');
+        const isPrimary = row.find('.badge-success').length > 0;
+        if (isPrimary) {
+          $(this).prop('checked', true);
+        }
+      });
+      updateSelectedCount();
+    }
+
+    function toggleAllAssignments() {
+      const isChecked = $('#masterCheckbox').is(':checked');
+      $('.assignment-checkbox').prop('checked', isChecked);
+      updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+      const checkedCount = $('.assignment-checkbox:checked').length;
+      $('#selectedCount').text(checkedCount);
+      $('#nextStep1').prop('disabled', checkedCount === 0);
+
+      // Update master checkbox state
+      const totalCount = $('.assignment-checkbox').length;
+      $('#masterCheckbox').prop('indeterminate', checkedCount > 0 && checkedCount < totalCount);
+      $('#masterCheckbox').prop('checked', checkedCount === totalCount);
+    }
+
+    function updatePreview() {
+      const description = $('#description').val() || 'Standard syllabus for the term.';
+      const difficulty = $('#difficultyLevel option:selected').text();
+      const hours = $('#estimatedHours').val() || '40';
+      const topics = $('#autoTopics option:selected').text();
+
+      $('#previewDescription').text(description);
+      $('#previewDifficulty').text(difficulty);
+      $('#previewHours').text(hours);
+      $('#previewTopics').text(topics);
+    }
+
+    function populateReviewStep() {
+      // Get selected assignments
+      selectedAssignments = [];
+      $('.assignment-checkbox:checked').each(function () {
+        const row = $(this).closest('tr');
+        const assignmentId = $(this).val();
+        const subjectCode = row.find('.badge').text();
+        const subjectName = row.find('td:eq(1)').text().replace(subjectCode, '').trim();
+        const teacher = row.find('td:eq(2)').text();
+        const className = row.find('td:eq(3)').text();
+
+        selectedAssignments.push({
+          id: assignmentId,
+          subject_code: subjectCode,
+          subject_name: subjectName,
+          teacher: teacher,
+          class: className,
+          title: `${subjectName} - ${className} - Term 1`
+        });
+      });
+
+      // Update summary cards
+      $('#summaryCount').text(selectedAssignments.length);
+
+      const uniqueSubjects = [...new Set(selectedAssignments.map(a => a.subject_name))];
+      $('#summarySubjects').text(uniqueSubjects.length);
+
+      const uniqueTeachers = [...new Set(selectedAssignments.map(a => a.teacher))];
+      $('#summaryTeachers').text(uniqueTeachers.length);
+
+      // Populate review table
+      const reviewBody = $('#reviewTableBody');
+      reviewBody.empty();
+
+      selectedAssignments.forEach(assignment => {
+        const row = `
+                <tr>
+                    <td>
+                        <span class="badge bg-primary me-2">${assignment.subject_code}</span>
+                        ${assignment.subject_name}
+                    </td>
+                    <td>${assignment.class}</td>
+                    <td>${assignment.teacher}</td>
+                    <td>${assignment.title}</td>
+                </tr>
+            `;
+        reviewBody.append(row);
+      });
+    }
+
+    function createSyllabi() {
+      $('#creationProgress').removeClass('d-none');
+      $('#createSyllabi').prop('disabled', true);
+
+      const formData = {
+        assignments: selectedAssignments.map(a => a.id),
+        description: $('#description').val(),
+        difficulty_level: $('#difficultyLevel').val(),
+        estimated_duration_hours: $('#estimatedHours').val(),
+        auto_topics: $('#autoTopics').val(),
+        learning_objectives: $('#learningObjectives').val().split('\n').filter(o => o.trim()),
+        assessment_methods: $('#assessmentMethods').val().split('\n').filter(m => m.trim())
+      };
+
+      // Simulate creation process
+      simulateCreation(selectedAssignments);
+    }
+
+    function simulateCreation(assignments) {
+      let completed = 0;
+      const total = assignments.length;
+      const progressLog = $('#progressLog');
+
+      progressLog.html('<strong>Starting syllabus creation...</strong><br>');
+
+      function createNext() {
+        if (completed >= total) {
+          // All done
+          $('#progressBar').removeClass('progress-bar-animated');
+          $('#progressText').text('Complete!');
+          progressLog.append('<br><strong class="text-success">✓ All syllabi created successfully!</strong><br>');
+
+          setTimeout(() => {
+            window.location.href = '/subjects/syllabi/';
+          }, 2000);
+          return;
+        }
+
+        const assignment = assignments[completed];
+        const progress = Math.round(((completed + 1) / total) * 100);
+
+        $('#progressBar').css('width', `${progress}%`);
+        $('#progressText').text(`${progress}%`);
+
+        progressLog.append(`Creating syllabus for ${assignment.subject_name} - ${assignment.class}...<br>`);
+        progressLog.scrollTop(progressLog[0].scrollHeight);
+
+        completed++;
+
+        // Simulate creation delay
+        setTimeout(createNext, 1000);
+      }
+
+      createNext();
+    }
+
+    // Initialize preview
+    updatePreview();
+  });
+</script>
+
+<style>
+  .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    position: relative;
+  }
+
+  .step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 20px;
+    right: -50%;
+    width: 100%;
+    height: 2px;
+    background-color: #dee2e6;
+    z-index: 1;
+  }
+
+  .step.active:not(:last-child)::after {
+    background-color: #007bff;
+  }
+
+  .step-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #dee2e6;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    position: relative;
+    z-index: 2;
+  }
+
+  .step.active .step-circle {
+    background-color: #007bff;
+    color: white;
+  }
+
+  .step-label {
+    margin-top: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+  }
+
+  .step.active .step-label {
+    color: #007bff;
+  }
+
+  #progressLog {
+    font-family: monospace;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .table th {
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  @media (max-width: 768px) {
+    .step-label {
+      font-size: 12px;
+    }
+
+    .step-circle {
+      width: 35px;
+      height: 35px;
+    }
+  }
+</style>
+{% endblock %}

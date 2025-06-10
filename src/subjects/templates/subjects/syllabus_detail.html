@@ -1,0 +1,583 @@
+{% extends 'subjects/base.html' %}
+
+{% block title %}{{ syllabus.title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h2">{{ syllabus.title }}</h1>
+  <div class="btn-toolbar mb-2 mb-md-0">
+    <div class="btn-group me-2">
+      <a href="{% url 'subjects:syllabus-progress' syllabus.id %}" class="btn btn-sm btn-info">
+        <i class="fas fa-chart-line"></i> Progress
+      </a>
+      <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="fas fa-cog"></i> Actions
+      </button>
+      <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="{% url 'subjects:syllabus-update' syllabus.pk %}">
+            <i class="fas fa-edit"></i> Edit Syllabus</a></li>
+        <li><a class="dropdown-item" href="#" onclick="exportSyllabus()">
+            <i class="fas fa-download"></i> Export PDF</a></li>
+        <li><a class="dropdown-item" href="#" onclick="duplicateSyllabus()">
+            <i class="fas fa-copy"></i> Duplicate</a></li>
+        <li>
+          <hr class="dropdown-divider">
+        </li>
+        <li><a class="dropdown-item text-danger" href="#" onclick="deleteSyllabus()">
+            <i class="fas fa-trash"></i> Delete</a></li>
+      </ul>
+    </div>
+    <a href="{% url 'subjects:syllabus-update' syllabus.pk %}" class="btn btn-sm btn-primary">
+      <i class="fas fa-edit"></i> Edit
+    </a>
+  </div>
+</div>
+
+<!-- Syllabus Info Cards -->
+<div class="row mb-4">
+  <div class="col-lg-8">
+    <!-- Main Info Card -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Syllabus Information</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <table class="table table-borderless table-sm">
+              <tr>
+                <td><strong>Subject:</strong></td>
+                <td>
+                  <a href="{% url 'subjects:subject-detail' syllabus.subject.pk %}">
+                    {{ syllabus.subject.name }} ({{ syllabus.subject.code }})
+                  </a>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Grade:</strong></td>
+                <td>{{ syllabus.grade.name }}</td>
+              </tr>
+              <tr>
+                <td><strong>Academic Year:</strong></td>
+                <td>{{ syllabus.academic_year.name }}</td>
+              </tr>
+              <tr>
+                <td><strong>Term:</strong></td>
+                <td>{{ syllabus.term.name }}</td>
+              </tr>
+            </table>
+          </div>
+          <div class="col-md-6">
+            <table class="table table-borderless table-sm">
+              <tr>
+                <td><strong>Difficulty Level:</strong></td>
+                <td>
+                  <span class="badge bg-secondary">{{ syllabus.get_difficulty_level_display }}</span>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Duration:</strong></td>
+                <td>{{ syllabus.estimated_duration_hours }} hours</td>
+              </tr>
+              <tr>
+                <td><strong>Created By:</strong></td>
+                <td>{{ syllabus.created_by.get_full_name }}</td>
+              </tr>
+              <tr>
+                <td><strong>Last Updated:</strong></td>
+                <td>{{ syllabus.last_updated_at|date:"M d, Y H:i" }}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        {% if syllabus.description %}
+        <div class="mt-3">
+          <h6>Description</h6>
+          <p class="text-muted">{{ syllabus.description }}</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Learning Objectives -->
+    {% if syllabus.learning_objectives %}
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Learning Objectives</h5>
+      </div>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+          {% for objective in syllabus.learning_objectives %}
+          <li class="list-group-item d-flex align-items-start">
+            <i class="fas fa-check-circle text-success me-2 mt-1"></i>
+            {{ objective }}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Topics and Progress -->
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Topics and Progress</h5>
+        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addTopicModal">
+          <i class="fas fa-plus"></i> Add Topic
+        </button>
+      </div>
+      <div class="card-body">
+        {% if progress_data.topics_detail %}
+        <div class="table-responsive">
+          <table class="table table-hover" id="topicsTable">
+            <thead class="table-light">
+              <tr>
+                <th width="5%">#</th>
+                <th width="40%">Topic Name</th>
+                <th width="15%">Hours Taught</th>
+                <th width="15%">Status</th>
+                <th width="15%">Completion Date</th>
+                <th width="10%">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for topic in progress_data.topics_detail %}
+              <tr data-topic-index="{{ topic.index }}">
+                <td>{{ forloop.counter }}</td>
+                <td>
+                  <strong>{{ topic.name }}</strong>
+                </td>
+                <td>
+                  <span class="badge bg-info">{{ topic.hours_taught|default:0 }}h</span>
+                </td>
+                <td>
+                  {% if topic.completed %}
+                  <span class="badge bg-success">
+                    <i class="fas fa-check"></i> Completed
+                  </span>
+                  {% else %}
+                  <span class="badge bg-warning">
+                    <i class="fas fa-clock"></i> Pending
+                  </span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if topic.completion_date %}
+                  {{ topic.completion_date|date:"M d, Y" }}
+                  {% else %}
+                  <span class="text-muted">-</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if not topic.completed %}
+                  <button class="btn btn-sm btn-success" onclick="markTopicComplete({{ topic.index }})"
+                    title="Mark as Complete">
+                    <i class="fas fa-check"></i>
+                  </button>
+                  {% endif %}
+                  <button class="btn btn-sm btn-outline-primary" onclick="editTopic({{ topic.index }})"
+                    title="Edit Topic">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-4">
+          <i class="fas fa-list fa-3x mb-3"></i>
+          <br>No topics added yet.
+          <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTopicModal">
+            Add your first topic
+          </button>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress Sidebar -->
+  <div class="col-lg-4">
+    <!-- Progress Overview -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Progress Overview</h5>
+      </div>
+      <div class="card-body text-center">
+        <div id="progressChart" style="height: 200px;"></div>
+        <div class="mt-3">
+          <h4 class="text-primary">{{ progress_data.completion_percentage|floatformat:1 }}%</h4>
+          <p class="text-muted mb-0">Completion Rate</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Quick Statistics</h5>
+      </div>
+      <div class="card-body">
+        <div class="row text-center">
+          <div class="col-6 border-end">
+            <h4 class="text-success">{{ progress_data.completed_topics }}</h4>
+            <small class="text-muted">Completed</small>
+          </div>
+          <div class="col-6">
+            <h4 class="text-warning">{{ progress_data.remaining_topics }}</h4>
+            <small class="text-muted">Remaining</small>
+          </div>
+        </div>
+        <hr>
+        <div class="row text-center">
+          <div class="col-6 border-end">
+            <h4 class="text-info">{{ progress_data.total_hours_taught|floatformat:0 }}h</h4>
+            <small class="text-muted">Hours Taught</small>
+          </div>
+          <div class="col-6">
+            <h4 class="text-secondary">{{ progress_data.estimated_duration }}h</h4>
+            <small class="text-muted">Estimated</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Recent Activity</h5>
+      </div>
+      <div class="card-body">
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-marker bg-success"></div>
+            <div class="timeline-content">
+              <h6 class="timeline-title">Topic Completed</h6>
+              <p class="timeline-description">Algebra Basics marked as completed</p>
+              <small class="text-muted">2 hours ago</small>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-marker bg-info"></div>
+            <div class="timeline-content">
+              <h6 class="timeline-title">Progress Updated</h6>
+              <p class="timeline-description">Added 3 hours to teaching time</p>
+              <small class="text-muted">1 day ago</small>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-marker bg-warning"></div>
+            <div class="timeline-content">
+              <h6 class="timeline-title">Topic Added</h6>
+              <p class="timeline-description">New topic "Advanced Equations" added</p>
+              <small class="text-muted">3 days ago</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Topic Modal -->
+<div class="modal fade" id="addTopicModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add New Topic</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="addTopicForm">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="topicName" class="form-label">Topic Name *</label>
+            <input type="text" class="form-control" id="topicName" required>
+          </div>
+          <div class="mb-3">
+            <label for="topicDescription" class="form-label">Description</label>
+            <textarea class="form-control" id="topicDescription" rows="3"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="estimatedHours" class="form-label">Estimated Hours</label>
+            <input type="number" class="form-control" id="estimatedHours" min="0" step="0.5">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Topic</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Mark Complete Modal -->
+<div class="modal fade" id="markCompleteModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Mark Topic as Complete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="markCompleteForm">
+        <div class="modal-body">
+          <input type="hidden" id="topicIndex" name="topicIndex">
+          <div class="mb-3">
+            <label for="hoursSpent" class="form-label">Hours Spent Teaching</label>
+            <input type="number" class="form-control" id="hoursSpent" min="0" step="0.5">
+          </div>
+          <div class="mb-3">
+            <label for="teachingMethod" class="form-label">Teaching Method</label>
+            <select class="form-select" id="teachingMethod">
+              <option value="">Select method...</option>
+              <option value="Lecture">Lecture</option>
+              <option value="Interactive">Interactive</option>
+              <option value="Practical">Practical</option>
+              <option value="Group Work">Group Work</option>
+              <option value="Individual Study">Individual Study</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="completionNotes" class="form-label">Notes</label>
+            <textarea class="form-control" id="completionNotes" rows="3"
+              placeholder="Any notes about teaching this topic..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success">Mark Complete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .timeline {
+    position: relative;
+    padding-left: 30px;
+  }
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .timeline-marker {
+    position: absolute;
+    left: -35px;
+    top: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+
+  .timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: -30px;
+    top: 12px;
+    bottom: -20px;
+    width: 2px;
+    background-color: #dee2e6;
+  }
+
+  .timeline-title {
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+  }
+
+  .timeline-description {
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+    color: #6c757d;
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Initialize progress chart
+    const progressOptions = {
+      series: [{{ progress_data.completion_percentage |default: 0 }}],
+      chart: {
+        type: 'radialBar',
+        height: 200
+      },
+      plotOptions: {
+        radialBar: {
+          hollow: {
+            margin: 15,
+            size: '70%'
+          },
+          dataLabels: {
+            name: {
+              show: false
+            },
+            value: {
+              fontSize: '24px',
+              formatter: function (val) {
+                return val + '%'
+  }
+                    }
+                }
+            }
+        },
+    colors: ['#28a745'],
+    stroke: {
+    lineCap: 'round'
+  }
+    };
+
+  const progressChart = new ApexCharts(document.querySelector("#progressChart"), progressOptions);
+  progressChart.render();
+
+  // Initialize topics table
+  $('#topicsTable').DataTable({
+    pageLength: 10,
+    order: [[0, 'asc']],
+    columnDefs: [
+      { targets: [5], orderable: false }
+    ]
+  });
+
+  // Add topic form submission
+  $('#addTopicForm').on('submit', function (e) {
+    e.preventDefault();
+
+    const formData = {
+      name: $('#topicName').val(),
+      description: $('#topicDescription').val(),
+      estimated_hours: $('#estimatedHours').val()
+    };
+
+    fetch(`/subjects/syllabi/{{ syllabus.id }}/add-topic/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData)
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          location.reload();
+        } else {
+          showToast('Error adding topic: ' + data.error, 'danger');
+        }
+      })
+      .catch(error => {
+        showToast('Network error occurred', 'danger');
+        console.error('Error:', error);
+      });
+  });
+
+  // Mark complete form submission
+  $('#markCompleteForm').on('submit', function (e) {
+    e.preventDefault();
+
+    const topicIndex = $('#topicIndex').val();
+    const formData = {
+      hours_taught: $('#hoursSpent').val(),
+      teaching_method: $('#teachingMethod').val(),
+      notes: $('#completionNotes').val()
+    };
+
+    fetch(`/subjects/syllabi/{{ syllabus.id }}/topics/${topicIndex}/complete/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData)
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          location.reload();
+        } else {
+          showToast('Error marking topic complete: ' + data.error, 'danger');
+        }
+      })
+      .catch(error => {
+        showToast('Network error occurred', 'danger');
+        console.error('Error:', error);
+      });
+  });
+});
+
+  function markTopicComplete(topicIndex) {
+    $('#topicIndex').val(topicIndex);
+    $('#markCompleteModal').modal('show');
+  }
+
+  function editTopic(topicIndex) {
+    // Implement topic editing functionality
+    showToast('Topic editing will be implemented', 'info');
+  }
+
+  function exportSyllabus() {
+    window.open(`/subjects/syllabi/{{ syllabus.id }}/export/pdf/`, '_blank');
+  }
+
+  function duplicateSyllabus() {
+    confirmAction('Create a copy of this syllabus?', function () {
+      fetch(`/subjects/syllabi/{{ syllabus.id }}/duplicate/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            window.location.href = `/subjects/syllabi/${data.new_syllabus_id}/`;
+          } else {
+            showToast('Error duplicating syllabus', 'danger');
+          }
+        });
+    });
+  }
+
+  function deleteSyllabus() {
+    confirmAction('Are you sure you want to delete this syllabus? This action cannot be undone.', function () {
+      fetch(`/subjects/syllabi/{{ syllabus.id }}/delete/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+        }
+      })
+        .then(response => {
+          if (response.ok) {
+            window.location.href = '{% url "subjects:syllabus-list" %}';
+          } else {
+            showToast('Error deleting syllabus', 'danger');
+          }
+        });
+    });
+  }
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+</script>
+{% endblock %}

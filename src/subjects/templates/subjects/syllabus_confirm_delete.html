@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Delete Syllabus" %} - {{ syllabus.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row justify-content-center">
+    <div class="col-md-10 col-lg-8">
+      <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+          <h4 class="card-title mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            {% trans "Confirm Syllabus Deletion" %}
+          </h4>
+        </div>
+
+        <div class="card-body">
+          <div class="alert alert-warning mb-4">
+            <i class="fas fa-warning me-2"></i>
+            {% trans "This action will mark the syllabus as inactive. All progress data and topic completion records will be preserved but the syllabus will no longer be available for teaching." %}
+          </div>
+
+          <div class="syllabus-info mb-4">
+            <h5>{% trans "Syllabus Details" %}</h5>
+            <dl class="row">
+              <dt class="col-sm-3">{% trans "Title" %}:</dt>
+              <dd class="col-sm-9">{{ syllabus.title }}</dd>
+
+              <dt class="col-sm-3">{% trans "Subject" %}:</dt>
+              <dd class="col-sm-9">
+                <span class="badge bg-primary">{{ syllabus.subject.code }}</span>
+                {{ syllabus.subject.name }}
+              </dd>
+
+              <dt class="col-sm-3">{% trans "Grade" %}:</dt>
+              <dd class="col-sm-9">{{ syllabus.grade.name }}</dd>
+
+              <dt class="col-sm-3">{% trans "Academic Year" %}:</dt>
+              <dd class="col-sm-9">{{ syllabus.academic_year.name }}</dd>
+
+              <dt class="col-sm-3">{% trans "Term" %}:</dt>
+              <dd class="col-sm-9">{{ syllabus.term.name }}</dd>
+
+              <dt class="col-sm-3">{% trans "Difficulty" %}:</dt>
+              <dd class="col-sm-9">
+                {% if syllabus.difficulty_level == 'beginner' %}
+                <span class="badge bg-success">{% trans "Beginner" %}</span>
+                {% elif syllabus.difficulty_level == 'intermediate' %}
+                <span class="badge bg-warning">{% trans "Intermediate" %}</span>
+                {% elif syllabus.difficulty_level == 'advanced' %}
+                <span class="badge bg-danger">{% trans "Advanced" %}</span>
+                {% else %}
+                <span class="badge bg-dark">{% trans "Expert" %}</span>
+                {% endif %}
+              </dd>
+            </dl>
+          </div>
+
+          <!-- Progress Overview -->
+          <div class="progress-overview mb-4">
+            <h6>{% trans "Current Progress" %}</h6>
+            <div class="row">
+              <div class="col-md-3">
+                <div class="card bg-light">
+                  <div class="card-body text-center">
+                    <i class="fas fa-percentage text-primary fs-2"></i>
+                    <h6 class="mt-2">{% trans "Completion" %}</h6>
+                    <span class="badge bg-primary fs-6">
+                      {{ syllabus.completion_percentage|floatformat:1 }}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card bg-light">
+                  <div class="card-body text-center">
+                    <i class="fas fa-list text-info fs-2"></i>
+                    <h6 class="mt-2">{% trans "Total Topics" %}</h6>
+                    <span class="badge bg-info fs-6">
+                      {{ syllabus.get_total_topics }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card bg-light">
+                  <div class="card-body text-center">
+                    <i class="fas fa-check-circle text-success fs-2"></i>
+                    <h6 class="mt-2">{% trans "Completed" %}</h6>
+                    <span class="badge bg-success fs-6">
+                      {{ syllabus.get_completed_topics }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card bg-light">
+                  <div class="card-body text-center">
+                    <i class="fas fa-clock text-warning fs-2"></i>
+                    <h6 class="mt-2">{% trans "Estimated Hours" %}</h6>
+                    <span class="badge bg-warning fs-6">
+                      {{ syllabus.estimated_duration_hours }}h
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Learning Objectives -->
+          {% if syllabus.learning_objectives %}
+          <div class="learning-objectives mb-4">
+            <h6>{% trans "Learning Objectives" %}</h6>
+            <div class="card bg-light">
+              <div class="card-body">
+                <ul class="mb-0">
+                  {% for objective in syllabus.learning_objectives %}
+                  <li>{{ objective }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Topic Progress Summary -->
+          {% if syllabus.topic_progress.exists %}
+          <div class="topic-summary mb-4">
+            <h6>{% trans "Topic Progress Summary" %}</h6>
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead class="table-light">
+                  <tr>
+                    <th>{% trans "Topic" %}</th>
+                    <th>{% trans "Status" %}</th>
+                    <th>{% trans "Hours Taught" %}</th>
+                    <th>{% trans "Teaching Method" %}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for progress in syllabus.topic_progress.all %}
+                  <tr>
+                    <td>{{ progress.topic_name }}</td>
+                    <td>
+                      {% if progress.is_completed %}
+                      <span class="badge bg-success">{% trans "Completed" %}</span>
+                      {% else %}
+                      <span class="badge bg-secondary">{% trans "Pending" %}</span>
+                      {% endif %}
+                    </td>
+                    <td>{{ progress.hours_taught|default:"-" }}</td>
+                    <td>{{ progress.teaching_method|default:"-" }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Progress Visualization -->
+          <div class="progress-chart mb-4">
+            <h6>{% trans "Completion Status" %}</h6>
+            <div class="progress" style="height: 25px;">
+              <div class="progress-bar bg-success" role="progressbar"
+                style="width: {{ syllabus.completion_percentage }}%"
+                aria-valuenow="{{ syllabus.completion_percentage }}" aria-valuemin="0" aria-valuemax="100">
+                {{ syllabus.completion_percentage|floatformat:1 }}%
+              </div>
+            </div>
+            <div class="mt-2">
+              <small class="text-muted">
+                {% blocktrans with completed=syllabus.get_completed_topics total=syllabus.get_total_topics %}
+                {{ completed }} of {{ total }} topics completed
+                {% endblocktrans %}
+              </small>
+            </div>
+          </div>
+
+          <!-- Impact Warning -->
+          {% if syllabus.completion_percentage > 0 %}
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <strong>{% trans "Warning:" %}</strong>
+            {% trans "This syllabus has active progress data. Deleting it may affect teacher and student records." %}
+          </div>
+          {% endif %}
+
+          <!-- Confirmation Question -->
+          <div class="confirmation-question text-center mb-4">
+            <h5 class="text-danger">
+              {% blocktrans with syllabus_title=syllabus.title %}
+              Are you sure you want to delete "{{ syllabus_title }}"?
+              {% endblocktrans %}
+            </h5>
+            <p class="text-muted">
+              {% trans "This action cannot be undone, but all data will be preserved for record keeping." %}
+            </p>
+          </div>
+        </div>
+
+        <div class="card-footer d-flex justify-content-between">
+          <a href="{% url 'subjects:syllabus-detail' syllabus.pk %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>
+            {% trans "Cancel" %}
+          </a>
+
+          <form method="post" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger" id="confirmDeleteBtn">
+              <i class="fas fa-trash me-2"></i>
+              {% trans "Yes, Delete Syllabus" %}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmationModal" tabindex="-1" aria-labelledby="confirmationModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="confirmationModalLabel">
+          {% trans "Final Confirmation Required" %}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>{% trans "Please confirm the following before proceeding:" %}</p>
+
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="confirmProgress">
+          <label class="form-check-label" for="confirmProgress">
+            {% trans "I understand that progress data will be preserved" %}
+          </label>
+        </div>
+
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="confirmImpact">
+          <label class="form-check-label" for="confirmImpact">
+            {% trans "I acknowledge the impact on teaching records" %}
+          </label>
+        </div>
+
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="confirmFinal">
+          <label class="form-check-label" for="confirmFinal">
+            {% trans "I confirm this action is intentional and necessary" %}
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          {% trans "Cancel" %}
+        </button>
+        <button type="button" class="btn btn-danger" id="finalConfirmBtn" disabled>
+          {% trans "Delete Syllabus" %}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    const confirmationModal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+    const checkboxes = document.querySelectorAll('#confirmationModal input[type="checkbox"]');
+    const finalConfirmBtn = document.getElementById('finalConfirmBtn');
+
+    // Show confirmation modal instead of direct form submission
+    confirmDeleteBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      confirmationModal.show();
+    });
+
+    // Check if all checkboxes are checked
+    function updateConfirmButton() {
+      const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+      finalConfirmBtn.disabled = !allChecked;
+    }
+
+    // Add event listeners to all checkboxes
+    checkboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', updateConfirmButton);
+    });
+
+    // Handle final confirmation
+    finalConfirmBtn.addEventListener('click', function () {
+      // Submit the original form
+      confirmDeleteBtn.closest('form').submit();
+    });
+
+    // Reset checkboxes when modal is hidden
+    document.getElementById('confirmationModal').addEventListener('hidden.bs.modal', function () {
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+      });
+      updateConfirmButton();
+    });
+  });
+</script>
+{% endblock %}

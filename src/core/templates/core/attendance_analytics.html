@@ -1,0 +1,814 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Attendance Analytics - School Management System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/css/dataTables.bootstrap4.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Heading -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Attendance Analytics</h1>
+    <div class="d-none d-lg-inline-block">
+      <a href="{% url 'core:analytics' %}" class="btn btn-sm btn-secondary shadow-sm">
+        <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Analytics
+      </a>
+      <button class="btn btn-sm btn-primary shadow-sm ml-2" data-toggle="modal" data-target="#alertModal">
+        <i class="fas fa-bell fa-sm text-white-50"></i> Set Alerts
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary Statistics -->
+  {% if summary_stats %}
+  <div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-primary shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                Total Entities
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ summary_stats.total_entities }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-users fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-success shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                Average Attendance
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {{ summary_stats.avg_attendance|floatformat:1 }}%
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-percentage fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-warning shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                Below 80%
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ summary_stats.below_80_percent }}</div>
+              <div class="small text-muted">Need attention</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-danger shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                Chronic Absentees
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ summary_stats.chronic_absentees }}</div>
+              <div class="small text-muted">5+ consecutive absences</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-user-times fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Filters Card -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">
+        <i class="fas fa-filter"></i> Filter Attendance Data
+      </h6>
+    </div>
+    <div class="card-body">
+      <form method="get" id="filterForm">
+        <div class="row">
+          <div class="col-md-3 mb-3">
+            <label for="academic_year" class="form-label">Academic Year</label>
+            <select name="academic_year" id="academic_year" class="form-control">
+              <option value="">Current Year</option>
+              {% for year in academic_years %}
+              <option value="{{ year.id }}"
+                {% if year.id|stringformat:"s" == current_filters.academic_year %}selected{% endif %}>
+                {{ year.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label for="term" class="form-label">Term</label>
+            <select name="term" id="term" class="form-control">
+              <option value="">Current Term</option>
+              {% for term in terms %}
+              <option value="{{ term.id }}"
+                {% if term.id|stringformat:"s" == current_filters.term %}selected{% endif %}>
+                {{ term.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label for="entity_type" class="form-label">Entity Type</label>
+            <select name="entity_type" id="entity_type" class="form-control">
+              {% for type_code, type_name in entity_types %}
+              <option value="{{ type_code }}" {% if type_code == current_filters.entity_type %}selected{% endif %}>
+                {{ type_name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="form-label">&nbsp;</label>
+            <div>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i> Apply Filters
+              </button>
+              <a href="{% url 'core:attendance_analytics' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-times"></i> Clear
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-3 mb-3">
+            <label for="threshold" class="form-label">Attendance Threshold</label>
+            <select name="threshold" id="threshold" class="form-control">
+              <option value="">All Attendance Levels</option>
+              <option value="95" {% if current_filters.threshold == "95" %}selected{% endif %}>Below 95% (Excellent)
+              </option>
+              <option value="90" {% if current_filters.threshold == "90" %}selected{% endif %}>Below 90% (Good)</option>
+              <option value="85" {% if current_filters.threshold == "85" %}selected{% endif %}>Below 85% (Average)
+              </option>
+              <option value="75" {% if current_filters.threshold == "75" %}selected{% endif %}>Below 75% (Poor)</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label for="search" class="form-label">Search</label>
+            <input type="text" name="search" id="search" class="form-control" value="{{ current_filters.search }}"
+              placeholder="Search by name...">
+          </div>
+          <div class="col-md-3 mb-3">
+            <label for="sort_by" class="form-label">Sort By</label>
+            <select name="sort_by" id="sort_by" class="form-control">
+              <option value="attendance_percentage">Attendance %</option>
+              <option value="entity_name">Name</option>
+              <option value="total_days">Total Days</option>
+              <option value="consecutive_absences">Consecutive Absences</option>
+            </select>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Attendance Charts -->
+  <div class="row mb-4">
+    <!-- Attendance Distribution Chart -->
+    <div class="col-xl-6 col-lg-6">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Attendance Distribution</h6>
+        </div>
+        <div class="card-body">
+          <div id="attendanceDistributionChart"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Trends Chart -->
+    <div class="col-xl-6 col-lg-6">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Monthly Attendance Trends</h6>
+        </div>
+        <div class="card-body">
+          <div id="monthlyTrendsChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Analytics Table -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+      <h6 class="m-0 font-weight-bold text-primary">
+        <i class="fas fa-table"></i> Attendance Details
+      </h6>
+      <div class="d-flex align-items-center">
+        <div class="text-muted small mr-3">
+          {% if analytics %}
+          Showing {{ analytics|length }} records
+          {% else %}
+          No records found
+          {% endif %}
+        </div>
+        <button class="btn btn-sm btn-outline-primary" data-toggle="modal" data-target="#exportModal">
+          <i class="fas fa-download"></i> Export
+        </button>
+      </div>
+    </div>
+    <div class="card-body">
+      {% if analytics %}
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover" id="attendanceAnalyticsTable" width="100%" cellspacing="0">
+          <thead>
+            <tr>
+              <th>Entity</th>
+              <th>Type</th>
+              <th>Total Days</th>
+              <th>Present</th>
+              <th>Absent</th>
+              <th>Late</th>
+              <th>Attendance %</th>
+              <th>Consecutive Absences</th>
+              <th>Trend</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for analytic in analytics %}
+            <tr>
+              <td>
+                <div class="font-weight-bold">{{ analytic.entity_name }}</div>
+                <div class="small text-muted">
+                  {% if analytic.entity_type == 'student' %}
+                  Student ID: {{ analytic.entity_id }}
+                  {% elif analytic.entity_type == 'class' %}
+                  Class ID: {{ analytic.entity_id }}
+                  {% else %}
+                  {{ analytic.entity_type|title }} ID: {{ analytic.entity_id }}
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                <span class="badge 
+                                        {% if analytic.entity_type == 'student' %}badge-primary
+                                        {% elif analytic.entity_type == 'class' %}badge-success
+                                        {% elif analytic.entity_type == 'teacher' %}badge-info
+                                        {% else %}badge-secondary{% endif %}">
+                  {{ analytic.get_entity_type_display }}
+                </span>
+              </td>
+              <td class="text-center">{{ analytic.total_days }}</td>
+              <td class="text-center text-success">{{ analytic.present_days }}</td>
+              <td class="text-center text-danger">{{ analytic.absent_days }}</td>
+              <td class="text-center text-warning">{{ analytic.late_days }}</td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <span class="mr-2">{{ analytic.attendance_percentage|floatformat:1 }}%</span>
+                  <div class="progress flex-grow-1" style="height: 5px;">
+                    <div class="progress-bar 
+                                                {% if analytic.attendance_percentage >= 95 %}bg-success
+                                                {% elif analytic.attendance_percentage >= 85 %}bg-primary
+                                                {% elif analytic.attendance_percentage >= 75 %}bg-warning
+                                                {% else %}bg-danger{% endif %}" role="progressbar"
+                      style="width: {{ analytic.attendance_percentage|floatformat:0 }}%">
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="text-center">
+                {% if analytic.consecutive_absences > 0 %}
+                <span class="badge 
+                                            {% if analytic.consecutive_absences >= 5 %}badge-danger
+                                            {% elif analytic.consecutive_absences >= 3 %}badge-warning
+                                            {% else %}badge-info{% endif %}">
+                  {{ analytic.consecutive_absences }}
+                </span>
+                {% else %}
+                <span class="text-muted">0</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if analytic.attendance_trend %}
+                <span class="badge 
+                                            {% if analytic.attendance_trend == 'improving' %}badge-success
+                                            {% elif analytic.attendance_trend == 'declining' %}badge-danger
+                                            {% else %}badge-secondary{% endif %}">
+                  <i class="fas 
+                                                {% if analytic.attendance_trend == 'improving' %}fa-arrow-up
+                                                {% elif analytic.attendance_trend == 'declining' %}fa-arrow-down
+                                                {% else %}fa-minus{% endif %}"></i>
+                  {{ analytic.attendance_trend|title }}
+                </span>
+                {% else %}
+                <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm" role="group">
+                  <button type="button" class="btn btn-outline-primary"
+                    onclick="viewDetails('{{ analytic.entity_type }}', {{ analytic.entity_id }})" title="View Details">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  {% if analytic.attendance_percentage < 85 %}
+                  <button type="button" class="btn btn-outline-warning"
+                    onclick="sendAlert('{{ analytic.entity_type }}', {{ analytic.entity_id }})" title="Send Alert">
+                    <i class="fas fa-bell"></i>
+                  </button>
+                  {% endif %}
+                  <button type="button" class="btn btn-outline-success"
+                    onclick="generateReport('{{ analytic.entity_type }}', {{ analytic.entity_id }})"
+                    title="Generate Report">
+                    <i class="fas fa-file-alt"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-5">
+        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">No Attendance Analytics Found</h5>
+        <p class="text-muted">
+          No attendance data is available for the selected filters.
+          Try adjusting your search criteria or check if attendance has been recorded.
+        </p>
+        <a href="/attendance/" class="btn btn-primary">
+          <i class="fas fa-user-check"></i> Record Attendance
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Insights and Recommendations -->
+  {% if analytics %}
+  <div class="row">
+    <!-- Attendance Insights -->
+    <div class="col-xl-8 col-lg-7">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-lightbulb"></i> Attendance Insights
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3 text-center mb-3">
+              <div class="h4 mb-0 font-weight-bold text-success">
+                {{ summary_stats.above_90_percent|default:0 }}
+              </div>
+              <div class="small text-muted">Excellent Attendance</div>
+              <div class="small text-success">(>90%)</div>
+            </div>
+            <div class="col-md-3 text-center mb-3">
+              <div class="h4 mb-0 font-weight-bold text-warning">
+                {{ summary_stats.below_75_percent|default:0 }}
+              </div>
+              <div class="small text-muted">Poor Attendance</div>
+              <div class="small text-warning">(<75%)< /div>
+              </div>
+              <div class="col-md-3 text-center mb-3">
+                <div class="h4 mb-0 font-weight-bold text-danger">
+                  {{ summary_stats.chronic_absentees|default:0 }}
+                </div>
+                <div class="small text-muted">Chronic Absentees</div>
+                <div class="small text-danger">(5+ consecutive)</div>
+              </div>
+              <div class="col-md-3 text-center mb-3">
+                <div class="h4 mb-0 font-weight-bold text-info">
+                  15
+                </div>
+                <div class="small text-muted">Improving Trend</div>
+                <div class="small text-info">(This month)</div>
+              </div>
+            </div>
+            <hr>
+            <div class="alert alert-info">
+              <h6><i class="fas fa-info-circle"></i> Recommendations:</h6>
+              <ul class="mb-0">
+                <li>Focus intervention on {{ summary_stats.below_75_percent|default:0 }} entities with poor attendance
+                </li>
+                <li>Implement early warning system for students approaching chronic absenteeism</li>
+                <li>Recognize and reward classes/students with excellent attendance</li>
+                <li>Review attendance policies and communication with parents</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Weekly Attendance Heatmap -->
+      <div class="col-xl-4 col-lg-5">
+        <div class="card shadow mb-4">
+          <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Weekly Pattern</h6>
+          </div>
+          <div class="card-body">
+            <div id="weeklyHeatmapChart"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Set Alerts Modal -->
+  <div class="modal fade" id="alertModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Set Attendance Alerts</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="alertForm">
+            <div class="form-group">
+              <label for="alert_threshold">Attendance Threshold (%)</label>
+              <input type="number" class="form-control" id="alert_threshold" name="threshold" value="85" min="1"
+                max="100">
+              <small class="form-text text-muted">Send alert when attendance falls below this percentage</small>
+            </div>
+            <div class="form-group">
+              <label for="consecutive_absences">Consecutive Absences Alert</label>
+              <input type="number" class="form-control" id="consecutive_absences" name="consecutive_absences" value="3"
+                min="1" max="10">
+              <small class="form-text text-muted">Send alert after this many consecutive absences</small>
+            </div>
+            <div class="form-group">
+              <label>Alert Recipients</label>
+              <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="alert_parents" name="recipients" value="parents"
+                  checked>
+                <label class="form-check-label" for="alert_parents">Parents/Guardians</label>
+              </div>
+              <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="alert_teachers" name="recipients" value="teachers"
+                  checked>
+                <label class="form-check-label" for="alert_teachers">Class Teachers</label>
+              </div>
+              <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="alert_admin" name="recipients" value="admin"
+                  checked>
+                <label class="form-check-label" for="alert_admin">School Administration</label>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="saveAlertSettings()">
+            <i class="fas fa-save"></i> Save Alert Settings
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Modal -->
+  <div class="modal fade" id="exportModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Export Attendance Analytics</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="exportForm">
+            <div class="form-group">
+              <label for="export_format">Export Format</label>
+              <select class="form-control" id="export_format" name="format">
+                <option value="excel">Excel (.xlsx)</option>
+                <option value="csv">CSV</option>
+                <option value="pdf">PDF Report</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Include Data</label>
+              <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="include_summary" name="data" value="summary"
+                  checked>
+                <label class="form-check-label" for="include_summary">Summary Statistics</label>
+              </div>
+              <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="include_detailed" name="data" value="detailed"
+                  checked>
+                <label class="form-check-label" for="include_detailed">Detailed Attendance Data</label>
+              </div>
+              <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="include_trends" name="data" value="trends">
+                <label class="form-check-label" for="include_trends">Trend Analysis</label>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="exportAnalytics()">
+            <i class="fas fa-download"></i> Export
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endblock %}
+
+  {% block extra_js %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.js"></script>
+
+  <script>
+    $(document).ready(function () {
+      // Initialize DataTable
+      {% if analytics %}
+      $('#attendanceAnalyticsTable').DataTable({
+        "pageLength": 25,
+        "lengthChange": true,
+        "lengthMenu": [[10, 25, 50, 100], [10, 25, 50, 100]],
+        "searching": true,
+        "ordering": true,
+        "order": [[6, "asc"]], // Sort by attendance percentage ascending (lowest first)
+        "responsive": true,
+        "columnDefs": [
+          { "orderable": false, "targets": [9] }, // Actions column
+          { "type": "num", "targets": [2, 3, 4, 5, 6, 7] } // Numeric columns
+        ]
+      });
+      {% endif %}
+
+      // Initialize charts
+      initializeCharts();
+
+      // Auto-submit form on filter changes
+      $('#academic_year, #term, #entity_type, #threshold, #sort_by').change(function () {
+        $('#filterForm').submit();
+      });
+
+      // Search on Enter key
+      $('#search').keypress(function (e) {
+        if (e.which == 13) {
+          $('#filterForm').submit();
+        }
+      });
+    });
+
+    function initializeCharts() {
+      // Attendance Distribution Chart
+      var distributionOptions = {
+        series: [{{ summary_stats.above_90_percent |default: 25 }},
+        {{ summary_stats.below_80_percent|default: 30
+    }},
+    { { summary_stats.below_75_percent |default: 35 } },
+    10], // Sample data
+    chart: {
+      type: 'donut',
+        height: 300
+    },
+    labels: ['Excellent (90%+)', 'Good (80-89%)', 'Average (75-79%)', 'Poor (<75%)'],
+      colors: ['#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'],
+        legend: {
+      position: 'bottom'
+    },
+    responsive: [{
+      breakpoint: 480,
+      options: {
+        chart: {
+          width: 200
+        },
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }]
+    };
+
+    var distributionChart = new ApexCharts(document.querySelector("#attendanceDistributionChart"), distributionOptions);
+    distributionChart.render();
+
+    // Monthly Trends Chart
+    var trendsOptions = {
+      series: [{
+        name: 'Average Attendance',
+        data: [92, 89, 91, 94, 88, 90] // Sample data for 6 months
+      }],
+      chart: {
+        type: 'line',
+        height: 300
+      },
+      stroke: {
+        curve: 'smooth',
+        width: 3
+      },
+      xaxis: {
+        categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+      },
+      yaxis: {
+        title: {
+          text: 'Attendance Percentage'
+        },
+        min: 70,
+        max: 100
+      },
+      colors: ['#4e73df'],
+      markers: {
+        size: 6
+      }
+    };
+
+    var trendsChart = new ApexCharts(document.querySelector("#monthlyTrendsChart"), trendsOptions);
+    trendsChart.render();
+
+    // Weekly Heatmap Chart
+    var heatmapOptions = {
+      series: [{
+        name: 'Mon',
+        data: [90, 85, 88, 92]
+      }, {
+        name: 'Tue',
+        data: [88, 90, 85, 89]
+      }, {
+        name: 'Wed',
+        data: [85, 88, 90, 86]
+      }, {
+        name: 'Thu',
+        data: [90, 85, 88, 91]
+      }, {
+        name: 'Fri',
+        data: [80, 78, 82, 85]
+      }],
+      chart: {
+        height: 300,
+        type: 'heatmap',
+      },
+      plotOptions: {
+        heatmap: {
+          shadeIntensity: 0.5,
+          colorScale: {
+            ranges: [{
+              from: 0,
+              to: 75,
+              name: 'Low',
+              color: '#e74a3b'
+            }, {
+              from: 76,
+              to: 85,
+              name: 'Medium',
+              color: '#f6c23e'
+            }, {
+              from: 86,
+              to: 95,
+              name: 'High',
+              color: '#36b9cc'
+            }, {
+              from: 96,
+              to: 100,
+              name: 'Excellent',
+              color: '#1cc88a'
+            }]
+          }
+        }
+      },
+      dataLabels: {
+        enabled: false
+      },
+      xaxis: {
+        categories: ['Week 1', 'Week 2', 'Week 3', 'Week 4']
+      },
+      title: {
+        text: 'Attendance by Day of Week'
+      }
+    };
+
+    var heatmapChart = new ApexCharts(document.querySelector("#weeklyHeatmapChart"), heatmapOptions);
+    heatmapChart.render();
+}
+
+    function viewDetails(entityType, entityId) {
+      // Navigate to detailed view based on entity type
+      var url = '';
+      switch (entityType) {
+        case 'student':
+          url = '/students/' + entityId + '/attendance/';
+          break;
+        case 'class':
+          url = '/classes/' + entityId + '/attendance/';
+          break;
+        case 'teacher':
+          url = '/teachers/' + entityId + '/attendance/';
+          break;
+        default:
+          url = '/attendance/' + entityType + '/' + entityId + '/';
+      }
+      window.open(url, '_blank');
+    }
+
+    function sendAlert(entityType, entityId) {
+      if (confirm('Send attendance alert for this ' + entityType + '?')) {
+        $.ajax({
+          url: '{% url "core:attendance_analytics" %}send-alert/',
+          method: 'POST',
+          data: {
+            'entity_type': entityType,
+            'entity_id': entityId,
+            'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+          },
+          success: function (response) {
+            alert('Alert sent successfully!');
+          },
+          error: function () {
+            alert('Error sending alert. Please try again.');
+          }
+        });
+      }
+    }
+
+    function generateReport(entityType, entityId) {
+      window.open('{% url "core:generate_report" %}?type=attendance_summary&entity_type=' + entityType + '&entity_id=' + entityId, '_blank');
+    }
+
+    function saveAlertSettings() {
+      var formData = $('#alertForm').serialize();
+
+      $.ajax({
+        url: '{% url "core:attendance_analytics" %}set-alerts/',
+        method: 'POST',
+        data: formData + '&csrfmiddlewaretoken=' + $('[name=csrfmiddlewaretoken]').val(),
+        success: function (response) {
+          alert('Alert settings saved successfully!');
+          $('#alertModal').modal('hide');
+        },
+        error: function () {
+          alert('Error saving alert settings. Please try again.');
+        }
+      });
+    }
+
+    function exportAnalytics() {
+      var formData = $('#exportForm').serialize();
+      var currentFilters = $('#filterForm').serialize();
+
+      // Create form for download
+      var tempForm = $('<form>', {
+        'method': 'POST',
+        'action': '{% url "core:attendance_analytics" %}export/',
+        'target': '_blank'
+      });
+
+      // Add CSRF token
+      tempForm.append($('<input>', {
+        'type': 'hidden',
+        'name': 'csrfmiddlewaretoken',
+        'value': $('[name=csrfmiddlewaretoken]').val()
+      }));
+
+      // Add form data
+      (formData + '&' + currentFilters).split('&').forEach(function (pair) {
+        var keyValue = pair.split('=');
+        if (keyValue.length === 2) {
+          tempForm.append($('<input>', {
+            'type': 'hidden',
+            'name': decodeURIComponent(keyValue[0]),
+            'value': decodeURIComponent(keyValue[1])
+          }));
+        }
+      });
+
+      $('body').append(tempForm);
+      tempForm.submit();
+      tempForm.remove();
+
+      $('#exportModal').modal('hide');
+    }
+  </script>
+  {% endblock %}

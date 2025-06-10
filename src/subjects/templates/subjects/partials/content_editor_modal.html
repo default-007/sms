@@ -1,0 +1,375 @@
+{% load i18n %}
+
+<!-- Syllabus Content Editor Modal -->
+<div class="modal fade" id="contentEditorModal" tabindex="-1" aria-labelledby="contentEditorModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="contentEditorModalLabel">
+          <i class="fas fa-edit me-2"></i>
+          {% trans "Edit Syllabus Content" %}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-tabs" id="contentTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="topics-tab" data-bs-toggle="tab" data-bs-target="#topics-pane"
+              type="button" role="tab">
+              <i class="fas fa-list me-1"></i>
+              {% trans "Topics" %}
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="units-tab" data-bs-toggle="tab" data-bs-target="#units-pane" type="button"
+              role="tab">
+              <i class="fas fa-layer-group me-1"></i>
+              {% trans "Units" %}
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="schedule-tab" data-bs-toggle="tab" data-bs-target="#schedule-pane"
+              type="button" role="tab">
+              <i class="fas fa-calendar me-1"></i>
+              {% trans "Schedule" %}
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="assessment-tab" data-bs-toggle="tab" data-bs-target="#assessment-pane"
+              type="button" role="tab">
+              <i class="fas fa-clipboard-check me-1"></i>
+              {% trans "Assessment" %}
+            </button>
+          </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="contentTabsContent">
+          <!-- Topics Tab -->
+          <div class="tab-pane fade show active" id="topics-pane" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3 mt-3">
+              <h6>{% trans "Topic Management" %}</h6>
+              <button type="button" class="btn btn-primary btn-sm" id="addTopicBtn">
+                <i class="fas fa-plus me-1"></i>
+                {% trans "Add Topic" %}
+              </button>
+            </div>
+
+            <div id="topicsContainer">
+              <!-- Topics will be loaded here -->
+            </div>
+
+            <!-- Add Topic Form -->
+            <div id="addTopicForm" class="card border-dashed d-none">
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <label for="newTopicName" class="form-label">{% trans "Topic Name" %}</label>
+                    <input type="text" class="form-control" id="newTopicName"
+                      placeholder="{% trans 'Enter topic name' %}">
+                  </div>
+                  <div class="col-md-3">
+                    <label for="newTopicDuration" class="form-label">{% trans "Duration (hours)" %}</label>
+                    <input type="number" class="form-control" id="newTopicDuration" min="0" step="0.5">
+                  </div>
+                  <div class="col-md-3">
+                    <label for="newTopicDifficulty" class="form-label">{% trans "Difficulty" %}</label>
+                    <select class="form-select" id="newTopicDifficulty">
+                      <option value="easy">{% trans "Easy" %}</option>
+                      <option value="medium" selected>{% trans "Medium" %}</option>
+                      <option value="hard">{% trans "Hard" %}</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="row mt-2">
+                  <div class="col-12">
+                    <label for="newTopicDescription" class="form-label">{% trans "Description" %}</label>
+                    <textarea class="form-control" id="newTopicDescription" rows="2"
+                      placeholder="{% trans 'Enter topic description' %}"></textarea>
+                  </div>
+                </div>
+                <div class="text-end mt-3">
+                  <button type="button" class="btn btn-secondary btn-sm me-2" id="cancelAddTopic">
+                    {% trans "Cancel" %}
+                  </button>
+                  <button type="button" class="btn btn-primary btn-sm" id="saveNewTopic">
+                    {% trans "Add Topic" %}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Units Tab -->
+          <div class="tab-pane fade" id="units-pane" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3 mt-3">
+              <h6>{% trans "Unit Organization" %}</h6>
+              <button type="button" class="btn btn-primary btn-sm" id="addUnitBtn">
+                <i class="fas fa-plus me-1"></i>
+                {% trans "Add Unit" %}
+              </button>
+            </div>
+
+            <div id="unitsContainer">
+              <!-- Units will be loaded here -->
+            </div>
+          </div>
+
+          <!-- Schedule Tab -->
+          <div class="tab-pane fade" id="schedule-pane" role="tabpanel">
+            <div class="mt-3">
+              <h6>{% trans "Teaching Schedule" %}</h6>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="card">
+                    <div class="card-header">
+                      <h6 class="mb-0">{% trans "Weekly Distribution" %}</h6>
+                    </div>
+                    <div class="card-body">
+                      <div id="weeklyScheduleChart" style="height: 200px;"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="card">
+                    <div class="card-header">
+                      <h6 class="mb-0">{% trans "Monthly Progress Plan" %}</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="table-responsive">
+                        <table class="table table-sm">
+                          <thead>
+                            <tr>
+                              <th>{% trans "Month" %}</th>
+                              <th>{% trans "Topics" %}</th>
+                              <th>{% trans "Hours" %}</th>
+                            </tr>
+                          </thead>
+                          <tbody id="monthlyPlanBody">
+                            <!-- Monthly plan data -->
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Assessment Tab -->
+          <div class="tab-pane fade" id="assessment-pane" role="tabpanel">
+            <div class="mt-3">
+              <h6>{% trans "Assessment Planning" %}</h6>
+              <div class="row">
+                <div class="col-md-12">
+                  <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                      <h6 class="mb-0">{% trans "Assessment Methods" %}</h6>
+                      <button type="button" class="btn btn-sm btn-outline-primary" id="addAssessmentBtn">
+                        <i class="fas fa-plus me-1"></i>
+                        {% trans "Add Method" %}
+                      </button>
+                    </div>
+                    <div class="card-body">
+                      <div id="assessmentMethodsContainer">
+                        <!-- Assessment methods will be listed here -->
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Auto-save indicator -->
+        <div class="position-fixed bottom-0 end-0 m-3">
+          <div id="autoSaveIndicator" class="alert alert-success d-none" role="alert">
+            <i class="fas fa-check me-2"></i>
+            {% trans "Auto-saved" %}
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          {% trans "Close" %}
+        </button>
+        <button type="button" class="btn btn-success" id="saveContentBtn">
+          <i class="fas fa-save me-2"></i>
+          {% trans "Save Changes" %}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Topic Item Template -->
+<template id="topicItemTemplate">
+  <div class="card mb-2 topic-item" data-topic-index="">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start">
+        <div class="flex-grow-1">
+          <div class="d-flex align-items-center mb-2">
+            <div class="drag-handle me-2" style="cursor: move;">
+              <i class="fas fa-grip-vertical text-muted"></i>
+            </div>
+            <input type="text" class="form-control form-control-sm topic-name" placeholder="{% trans 'Topic name' %}">
+            <div class="ms-2">
+              <span class="badge topic-status"></span>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <textarea class="form-control form-control-sm topic-description" rows="2"
+                placeholder="{% trans 'Topic description' %}"></textarea>
+            </div>
+            <div class="col-md-3">
+              <input type="number" class="form-control form-control-sm topic-duration" placeholder="{% trans 'Hours' %}"
+                min="0" step="0.5">
+            </div>
+            <div class="col-md-3">
+              <select class="form-select form-select-sm topic-difficulty">
+                <option value="easy">{% trans "Easy" %}</option>
+                <option value="medium">{% trans "Medium" %}</option>
+                <option value="hard">{% trans "Hard" %}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="ms-3">
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-success btn-sm complete-topic"
+              title="{% trans 'Mark Complete' %}">
+              <i class="fas fa-check"></i>
+            </button>
+            <button type="button" class="btn btn-outline-danger btn-sm delete-topic" title="{% trans 'Delete Topic' %}">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- Unit Item Template -->
+<template id="unitItemTemplate">
+  <div class="card mb-3 unit-item" data-unit-index="">
+    <div class="card-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <input type="text" class="form-control unit-title" placeholder="{% trans 'Unit title' %}">
+        <button type="button" class="btn btn-outline-danger btn-sm ms-2 delete-unit">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    </div>
+    <div class="card-body">
+      <textarea class="form-control unit-description mb-3" rows="2"
+        placeholder="{% trans 'Unit description' %}"></textarea>
+      <div class="unit-topics-container">
+        <h6>{% trans "Topics in this Unit" %}</h6>
+        <div class="unit-topics-list">
+          <!-- Topics assigned to this unit -->
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-primary assign-topics-btn">
+          <i class="fas fa-plus me-1"></i>
+          {% trans "Assign Topics" %}
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style>
+  .border-dashed {
+    border: 2px dashed #dee2e6 !important;
+  }
+
+  .topic-item {
+    transition: all 0.2s ease;
+  }
+
+  .topic-item:hover {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  }
+
+  .topic-item.completed {
+    background-color: #f8f9fa;
+    border-left: 4px solid #28a745;
+  }
+
+  .topic-item.in-progress {
+    border-left: 4px solid #ffc107;
+  }
+
+  .drag-handle:hover {
+    color: #007bff !important;
+  }
+
+  .sortable-ghost {
+    opacity: 0.5;
+  }
+
+  .sortable-chosen {
+    transform: scale(1.02);
+  }
+
+  .unit-item {
+    border-left: 4px solid #007bff;
+  }
+
+  .nav-tabs .nav-link {
+    border: none;
+    border-bottom: 2px solid transparent;
+  }
+
+  .nav-tabs .nav-link.active {
+    border-bottom-color: #007bff;
+    background-color: transparent;
+  }
+
+  #autoSaveIndicator {
+    border: none;
+    border-radius: 50px;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  .modal-xl {
+    max-width: 1200px;
+  }
+
+  @media (max-width: 768px) {
+    .modal-xl {
+      max-width: 95%;
+      margin: 1rem auto;
+    }
+
+    .btn-group-sm .btn {
+      padding: 0.2rem 0.4rem;
+      font-size: 0.75rem;
+    }
+  }
+</style>
+
+<script>
+  // Content Editor functionality will be loaded separately
+  // This template provides the structure for the modal
+</script>

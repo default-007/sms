@@ -1,90 +1,550 @@
-<!-- templates/teachers/teacher_timetable.html -->
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% load teacher_tags %}
 {% load static %}
-{% load teacher_filters %}
 
-{% block title %}{{ teacher.get_full_name }}'s Timetable{% endblock %}
+{% block title %}Timetable - {{ teacher.get_full_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .timetable-cell {
+    min-height: 80px;
+    vertical-align: middle;
+    border: 1px solid #dee2e6;
+    padding: 8px;
+  }
+
+  .timetable-cell.occupied {
+    background-color: #e3f2fd;
+    border-left: 4px solid #2196f3;
+  }
+
+  .timetable-cell.break {
+    background-color: #f5f5f5;
+    color: #666;
+    text-align: center;
+    font-style: italic;
+  }
+
+  .timetable-cell.free {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    text-align: center;
+  }
+
+  .subject-info {
+    font-weight: bold;
+    color: #1976d2;
+  }
+
+  .class-info {
+    font-size: 0.9em;
+    color: #666;
+  }
+
+  .room-info {
+    font-size: 0.8em;
+    color: #999;
+  }
+
+  .time-slot {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  .day-header {
+    background-color: #007bff;
+    color: white;
+    text-align: center;
+    font-weight: bold;
+  }
+
+  .timetable-legend {
+    font-size: 0.9em;
+  }
+
+  .period-count {
+    background-color: #dc3545;
+    color: white;
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8em;
+    font-weight: bold;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Teacher Timetable</h2>
-    <a href="{% url 'teachers:teacher-detail' teacher.id %}" class="btn btn-outline-secondary">
-      <i class="fas fa-arrow-left"></i> Back to Teacher
-    </a>
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">
+            <i class="fas fa-calendar me-2"></i>Teacher Timetable
+          </h1>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'teachers:teacher-list' %}">Teachers</a></li>
+              <li class="breadcrumb-item"><a
+                  href="{% url 'teachers:teacher-detail' teacher.pk %}">{{ teacher.get_full_name }}</a></li>
+              <li class="breadcrumb-item active">Timetable</li>
+            </ol>
+          </nav>
+        </div>
+        <div class="btn-group" role="group">
+          <a href="{% url 'teachers:teacher-detail' teacher.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Teacher
+          </a>
+          <a href="{% url 'teachers:teacher-timetable-pdf' teacher.pk %}" class="btn btn-primary">
+            <i class="fas fa-file-pdf me-2"></i>Download PDF
+          </a>
+          <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+            <i class="fas fa-print me-2"></i>Print
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="card-header bg-light d-flex justify-content-between align-items-center">
-      <div>
-        <h5 class="mb-0">{{ teacher.get_full_name }}'s Timetable</h5>
-        <p class="text-muted mb-0">{{ current_academic_year.name }}</p>
-      </div>
-      <div class="btn-group">
-        <button type="button" class="btn btn-outline-primary" onclick="window.print()">
-          <i class="fas fa-print"></i> Print
-        </button>
-        <a href="{% url 'teachers:teacher-timetable-pdf' teacher.id %}" class="btn btn-outline-primary">
-          <i class="fas fa-file-pdf"></i> PDF
-        </a>
-      </div>
-    </div>
-    <div class="card-body">
-      {% if timetable %}
-      <div class="table-responsive">
-        <table class="table table-bordered">
-          <thead class="table-light">
-            <tr>
-              <th>Time / Day</th>
-              <th>Monday</th>
-              <th>Tuesday</th>
-              <th>Wednesday</th>
-              <th>Thursday</th>
-              <th>Friday</th>
-              <th>Saturday</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for time_slot, days in timetable.items %}
-            <tr>
-              <td class="bg-light">
-                <strong>{{ time_slot.start_time|time:"g:i A" }} - {{ time_slot.end_time|time:"g:i A" }}</strong>
-                <div class="small text-muted">{{ time_slot.duration_minutes }} mins</div>
-              </td>
-              {% for day_name in "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday"|split:"," %}
-              <td>
-                {% with day_periods=days|get_item:day_name %}
-                {% if day_periods %}
-                {% for period in day_periods %}
-                <div class="card mb-2 border-{{ period.subject.color|default:'primary' }}">
-                  <div class="card-body p-2">
-                    <h6 class="card-title mb-1">{{ period.subject.name }}</h6>
-                    <p class="card-text mb-1 small">{{ period.class_instance }}</p>
-                    <p class="card-text mb-0 small text-muted">{{ period.room }}</p>
-                  </div>
-                </div>
-                {% endfor %}
-                {% else %}
-                <div class="text-center text-muted py-2">
-                  <small>No Class</small>
-                </div>
+  <!-- Teacher Information Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-md-2 text-center">
+              {% teacher_avatar teacher 80 %}
+            </div>
+            <div class="col-md-6">
+              <h5 class="mb-1">{{ teacher.get_full_name }}</h5>
+              <p class="text-muted mb-1">{{ teacher.employee_id }} | {{ teacher.position }}</p>
+              <p class="text-muted mb-0">
+                {% if teacher.department %}
+                {{ teacher.department.name }}
+                {% if teacher|is_department_head %}
+                <span class="badge bg-warning text-dark ms-1">Department Head</span>
                 {% endif %}
-                {% endwith %}
-              </td>
-              {% endfor %}
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+                {% else %}
+                No Department Assigned
+                {% endif %}
+              </p>
+            </div>
+            <div class="col-md-4">
+              <div class="row text-center">
+                <div class="col-4">
+                  <div class="period-count">{{ timetable|length }}</div>
+                  <small class="text-muted d-block">Periods/Week</small>
+                </div>
+                <div class="col-4">
+                  <div style="color: #28a745; font-size: 1.5em; font-weight: bold;">
+                    {% with subjects=teacher|teacher_subjects:current_academic_year %}
+                    {{ subjects|length }}
+                    {% endwith %}
+                  </div>
+                  <small class="text-muted d-block">Subjects</small>
+                </div>
+                <div class="col-4">
+                  <div style="color: #ffc107; font-size: 1.5em; font-weight: bold;">
+                    {% with classes=teacher|teacher_classes:current_academic_year %}
+                    {{ classes|length }}
+                    {% endwith %}
+                  </div>
+                  <small class="text-muted d-block">Classes</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      {% else %}
-      <div class="text-center py-5">
-        <i class="fas fa-calendar-alt fa-3x mb-3 text-muted"></i>
-        <h5>No Timetable Available</h5>
-        <p class="text-muted">No classes have been assigned to this teacher for the current academic year.</p>
-      </div>
-      {% endif %}
     </div>
   </div>
+
+  <!-- Academic Year Info -->
+  {% if current_academic_year %}
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="alert alert-info d-flex align-items-center">
+        <i class="fas fa-info-circle me-2"></i>
+        <div>
+          <strong>Academic Year:</strong> {{ current_academic_year.name }}
+          <span class="ms-3"><strong>Period:</strong> {{ current_academic_year.start_date|date:"M d, Y" }} -
+            {{ current_academic_year.end_date|date:"M d, Y" }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Timetable -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <h6 class="card-title mb-0">
+              <i class="fas fa-table me-2"></i>Weekly Timetable
+            </h6>
+            <div class="timetable-legend">
+              <span class="badge bg-primary me-2">
+                <i class="fas fa-square me-1"></i>Scheduled Class
+              </span>
+              <span class="badge bg-secondary me-2">
+                <i class="fas fa-square me-1"></i>Free Period
+              </span>
+              <span class="badge bg-light text-dark">
+                <i class="fas fa-square me-1"></i>Break Time
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          {% if timetable %}
+          <div class="table-responsive">
+            <table class="table table-bordered mb-0">
+              <thead>
+                <tr>
+                  <th class="time-slot" style="width: 120px;">Time</th>
+                  <th class="day-header">Monday</th>
+                  <th class="day-header">Tuesday</th>
+                  <th class="day-header">Wednesday</th>
+                  <th class="day-header">Thursday</th>
+                  <th class="day-header">Friday</th>
+                  <th class="day-header">Saturday</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for period in timetable %}
+                <tr>
+                  <td class="time-slot">
+                    <div class="fw-bold">{{ period.start_time|time:"g:i A" }}</div>
+                    <div class="small text-muted">{{ period.end_time|time:"g:i A" }}</div>
+                    <div class="small">
+                      <span class="badge bg-secondary">P{{ period.period_number }}</span>
+                    </div>
+                  </td>
+                  {% for day in period.schedule %}
+                  <td
+                    class="timetable-cell {% if day.is_break %}break{% elif day.subject %}occupied{% else %}free{% endif %}">
+                    {% if day.is_break %}
+                    <i class="fas fa-coffee me-1"></i>{{ day.break_name|default:"Break" }}
+                    {% elif day.subject %}
+                    <div class="subject-info">{{ day.subject.name }}</div>
+                    <div class="class-info">
+                      <i class="fas fa-users me-1"></i>{{ day.class_name }}
+                    </div>
+                    {% if day.room %}
+                    <div class="room-info">
+                      <i class="fas fa-door-open me-1"></i>Room {{ day.room }}
+                    </div>
+                    {% endif %}
+                    {% if day.is_class_teacher %}
+                    <div class="mt-1">
+                      <span class="badge bg-warning text-dark">Class Teacher</span>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <i class="fas fa-clock me-1"></i>Free Period
+                    {% endif %}
+                  </td>
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-5">
+            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No Timetable Available</h5>
+            <p class="text-muted">
+              No timetable has been created for this teacher in the current academic year.
+            </p>
+            {% if perms.scheduling.add_timetable %}
+            <a href="#" class="btn btn-primary">
+              <i class="fas fa-plus me-2"></i>Create Timetable
+            </a>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subject and Class Summary -->
+  {% if timetable %}
+  <div class="row mt-4">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-book me-2"></i>Subjects Taught
+          </h6>
+        </div>
+        <div class="card-body">
+          {% with subjects=teacher|teacher_subjects:current_academic_year %}
+          {% if subjects %}
+          <div class="row">
+            {% for subject in subjects %}
+            <div class="col-md-6 mb-2">
+              <div class="d-flex align-items-center">
+                <i class="fas fa-circle text-primary me-2" style="font-size: 0.5em;"></i>
+                <span>{{ subject.name }}</span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted mb-0">No subjects assigned</p>
+          {% endif %}
+          {% endwith %}
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-users me-2"></i>Classes Taught
+          </h6>
+        </div>
+        <div class="card-body">
+          {% with classes=teacher|teacher_classes:current_academic_year %}
+          {% if classes %}
+          <div class="row">
+            {% for class in classes %}
+            <div class="col-md-6 mb-2">
+              <div class="d-flex align-items-center">
+                <i class="fas fa-circle text-success me-2" style="font-size: 0.5em;"></i>
+                <span>{{ class.display_name }}</span>
+                {% if teacher|is_class_teacher and class in teacher|class_teacher_for:current_academic_year %}
+                <span class="badge bg-warning text-dark ms-2">CT</span>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted mb-0">No classes assigned</p>
+          {% endif %}
+          {% endwith %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Weekly Statistics -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-chart-bar me-2"></i>Weekly Statistics
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-md-2">
+              <div class="h4 text-primary mb-0">{{ timetable|length }}</div>
+              <small class="text-muted">Total Periods</small>
+            </div>
+            <div class="col-md-2">
+              <div class="h4 text-success mb-0">
+                {% with scheduled_periods=timetable|length %}
+                {{ scheduled_periods }}
+                {% endwith %}
+              </div>
+              <small class="text-muted">Scheduled</small>
+            </div>
+            <div class="col-md-2">
+              <div class="h4 text-warning mb-0">
+                {% comment %}Calculate free periods{% endcomment %}
+                0
+              </div>
+              <small class="text-muted">Free Periods</small>
+            </div>
+            <div class="col-md-2">
+              <div class="h4 text-info mb-0">
+                {% with class_teacher_periods=teacher|class_teacher_for:current_academic_year %}
+                {{ class_teacher_periods|length }}
+                {% endwith %}
+              </div>
+              <small class="text-muted">As Class Teacher</small>
+            </div>
+            <div class="col-md-2">
+              <div class="h4 text-secondary mb-0">
+                {% comment %}Calculate total hours{% endcomment %}
+                {{ timetable|length }}h
+              </div>
+              <small class="text-muted">Teaching Hours</small>
+            </div>
+            <div class="col-md-2">
+              <div class="h4 mb-0" style="color: #e91e63;">
+                {{ teacher|workload_indicator:current_academic_year }}
+              </div>
+              <small class="text-muted">Workload Level</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 </div>
+
+<!-- Print Styles -->
+<style media="print">
+  .btn,
+  .breadcrumb,
+  .card-header .timetable-legend {
+    display: none !important;
+  }
+
+  .card {
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .card-body {
+    padding: 0 !important;
+  }
+
+  .timetable-cell {
+    font-size: 0.8em;
+    padding: 4px;
+  }
+
+  .table {
+    font-size: 0.9em;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Add hover effects to timetable cells
+    $('.timetable-cell.occupied').hover(
+      function () {
+        $(this).css('transform', 'scale(1.02)');
+        $(this).css('transition', 'transform 0.2s ease');
+      },
+      function () {
+        $(this).css('transform', 'scale(1)');
+      }
+    );
+
+    // Add click handler for period details
+    $('.timetable-cell.occupied').click(function () {
+      const subject = $(this).find('.subject-info').text();
+      const classInfo = $(this).find('.class-info').text();
+      const room = $(this).find('.room-info').text();
+
+      if (subject) {
+        // Show modal or tooltip with detailed information
+        // This could be expanded to show more details about the class
+        console.log('Period Details:', { subject, classInfo, room });
+      }
+    });
+
+    // Responsive table handling
+    function handleResponsiveTable() {
+      const table = $('.table-responsive table');
+      const container = $('.table-responsive');
+
+      if ($(window).width() < 768) {
+        // Add horizontal scroll indicator for mobile
+        if (table.width() > container.width()) {
+          container.addClass('table-scroll-indicator');
+        }
+      }
+    }
+
+    handleResponsiveTable();
+    $(window).resize(handleResponsiveTable);
+
+    // Auto-highlight current day
+    const today = new Date();
+    const dayIndex = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+    if (dayIndex >= 1 && dayIndex <= 6) { // Monday to Saturday
+      const columnIndex = dayIndex; // Adjust for table structure
+      $(`.table tbody tr td:nth-child(${columnIndex + 1})`).addClass('current-day');
+    }
+
+    // Add current time indicator
+    addCurrentTimeIndicator();
+  });
+
+  function addCurrentTimeIndicator() {
+    const now = new Date();
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+
+    $('.time-slot').each(function () {
+      const timeText = $(this).find('.fw-bold').text();
+      if (timeText) {
+        // Parse start time
+        const timeParts = timeText.match(/(\d+):(\d+)\s*(AM|PM)/i);
+        if (timeParts) {
+          let hours = parseInt(timeParts[1]);
+          const minutes = parseInt(timeParts[2]);
+          const ampm = timeParts[3].toUpperCase();
+
+          if (ampm === 'PM' && hours !== 12) hours += 12;
+          if (ampm === 'AM' && hours === 12) hours = 0;
+
+          const slotTime = hours * 60 + minutes;
+
+          // Highlight current period
+          if (Math.abs(currentTime - slotTime) < 60) { // Within 1 hour
+            $(this).closest('tr').addClass('current-period');
+          }
+        }
+      }
+    });
+  }
+
+  // CSS for current day and period highlighting
+  $('<style>')
+    .prop('type', 'text/css')
+    .html(`
+        .current-day {
+            background-color: #fff3cd !important;
+            border-left: 4px solid #ffc107 !important;
+        }
+        .current-period {
+            background-color: #d1ecf1 !important;
+        }
+        .current-period .time-slot {
+            background-color: #bee5eb !important;
+            color: #0c5460 !important;
+        }
+        .table-scroll-indicator::after {
+            content: "Swipe to see more →";
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            pointer-events: none;
+        }
+    `)
+    .appendTo('head');
+</script>
 {% endblock %}

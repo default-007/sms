@@ -1,0 +1,618 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Bulk Create Syllabi{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="fw-bold text-primary">
+            <i class="fas fa-magic me-2"></i>Bulk Create Syllabi
+          </h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'subjects:dashboard' %}">Dashboard</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'subjects:syllabus-list' %}">Syllabi</a></li>
+              <li class="breadcrumb-item active">Bulk Create</li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <a href="{% url 'subjects:syllabus-list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Syllabi
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <!-- Process Steps -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card border-0 bg-light">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                  <div class="step-indicator active me-3">
+                    <span class="step-number">1</span>
+                  </div>
+                  <span class="fw-medium">Select Term</span>
+                </div>
+                <i class="fas fa-arrow-right text-muted"></i>
+                <div class="d-flex align-items-center">
+                  <div class="step-indicator me-3" id="step2">
+                    <span class="step-number">2</span>
+                  </div>
+                  <span class="fw-medium">Configure Template</span>
+                </div>
+                <i class="fas fa-arrow-right text-muted"></i>
+                <div class="d-flex align-items-center">
+                  <div class="step-indicator me-3" id="step3">
+                    <span class="step-number">3</span>
+                  </div>
+                  <span class="fw-medium">Review & Create</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Term Selection Card -->
+      <div class="card border-0 shadow-sm mb-4" id="termSelectionCard">
+        <div class="card-header bg-primary text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-calendar-alt me-2"></i>Select Academic Term
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-medium">
+                <i class="fas fa-graduation-cap me-1"></i>Academic Year *
+              </label>
+              <select class="form-select" id="academicYearSelect">
+                <option value="">Select Academic Year</option>
+                <option value="2024-2025" selected>2024-2025</option>
+                <option value="2023-2024">2023-2024</option>
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-medium">
+                <i class="fas fa-clock me-1"></i>Term *
+              </label>
+              <select class="form-select" id="termSelect">
+                <option value="">Select Term</option>
+                <option value="1">Term 1 (Apr - Jul 2024)</option>
+                <option value="2">Term 2 (Aug - Nov 2024)</option>
+                <option value="3">Term 3 (Dec - Mar 2025)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Term Information Display -->
+          <div class="alert alert-info d-none" id="termInfo">
+            <div class="row">
+              <div class="col-md-8">
+                <h6 class="fw-bold mb-2">Term Information</h6>
+                <div class="row">
+                  <div class="col-sm-6">
+                    <p class="mb-1"><strong>Duration:</strong> <span id="termDuration">-</span></p>
+                    <p class="mb-1"><strong>Status:</strong> <span id="termStatus">-</span></p>
+                  </div>
+                  <div class="col-sm-6">
+                    <p class="mb-1"><strong>Subjects Available:</strong> <span id="availableSubjects">-</span></p>
+                    <p class="mb-1"><strong>Existing Syllabi:</strong> <span id="existingSyllabi">-</span></p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4 text-center">
+                <button class="btn btn-outline-info" id="loadAssignmentsBtn" disabled>
+                  <i class="fas fa-search me-1"></i>Load Subject Assignments
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end">
+            <button class="btn btn-primary" id="proceedToTemplateBtn" disabled>
+              <i class="fas fa-arrow-right me-1"></i>Proceed to Template
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Template Configuration Card -->
+      <div class="card border-0 shadow-sm mb-4 d-none" id="templateCard">
+        <div class="card-header bg-success text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-cogs me-2"></i>Configure Syllabus Template
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <form id="templateForm">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-medium">
+                  <i class="fas fa-signal me-1"></i>Default Difficulty Level
+                </label>
+                <select class="form-select" name="difficulty_level">
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate" selected>Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                  <option value="expert">Expert</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-medium">
+                  <i class="fas fa-clock me-1"></i>Estimated Duration (Hours)
+                </label>
+                <input type="number" class="form-control" name="estimated_duration_hours" min="0" max="200" value="20"
+                  placeholder="20">
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12 mb-3">
+                <label class="form-label fw-medium">
+                  <i class="fas fa-align-left me-1"></i>Default Description Template
+                </label>
+                <textarea class="form-control" name="description" rows="3"
+                  placeholder="Enter a template description that will be used for all syllabi...">This syllabus covers
+                  the fundamental concepts and learning objectives for {subject_name} in {grade_name} during
+                  {term_name}. Students will engage with core topics designed to build understanding and practical
+                  skills.</textarea>
+                <div class="form-text">Use placeholders: {subject_name}, {grade_name}, {term_name}</div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-medium">
+                  <i class="fas fa-list-ul me-1"></i>Default Learning Objectives
+                </label>
+                <textarea class="form-control" name="learning_objectives" rows="4"
+                  placeholder="Enter default learning objectives (one per line)">Understand core concepts of the subject
+                  Apply knowledge to practical situations
+                  Develop critical thinking skills
+                  Demonstrate mastery through assessments</textarea>
+                <div class="form-text">Enter one objective per line</div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-medium">
+                  <i class="fas fa-clipboard-check me-1"></i>Default Assessment Methods
+                </label>
+                <textarea class="form-control" name="assessment_methods" rows="4"
+                  placeholder="Enter default assessment methods (one per line)">Written assignments
+                  Practical demonstrations
+                  Group projects
+                  Final examination</textarea>
+                <div class="form-text">Enter one method per line</div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12 mb-3">
+                <label class="form-label fw-medium">
+                  <i class="fas fa-book me-1"></i>Default Resources
+                </label>
+                <textarea class="form-control" name="resources" rows="3"
+                  placeholder="Enter default resources (textbooks, materials, etc.)">Textbook: Subject-specific
+                  curriculum guide
+                  Online resources: Educational websites and videos
+                  Materials: Classroom supplies and equipment</textarea>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+              <button type="button" class="btn btn-outline-secondary" id="backToTermBtn">
+                <i class="fas fa-arrow-left me-1"></i>Back to Term Selection
+              </button>
+              <button type="button" class="btn btn-success" id="proceedToReviewBtn">
+                <i class="fas fa-arrow-right me-1"></i>Proceed to Review
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Review and Create Card -->
+      <div class="card border-0 shadow-sm mb-4 d-none" id="reviewCard">
+        <div class="card-header bg-warning text-dark">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-eye me-2"></i>Review & Create Syllabi
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <!-- Summary Information -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="card bg-light border-0">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-2">Selected Term</h6>
+                  <p class="mb-1"><strong>Academic Year:</strong> <span id="reviewAcademicYear">-</span></p>
+                  <p class="mb-0"><strong>Term:</strong> <span id="reviewTerm">-</span></p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card bg-light border-0">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-2">Creation Summary</h6>
+                  <p class="mb-1"><strong>Syllabi to Create:</strong> <span id="syllabiCount">0</span></p>
+                  <p class="mb-0"><strong>Subjects Covered:</strong> <span id="subjectsCount">0</span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subject Assignments Preview -->
+          <div class="card border-0 bg-light mb-4">
+            <div class="card-header bg-transparent">
+              <h6 class="fw-bold mb-0">
+                <i class="fas fa-list me-2"></i>Syllabi to be Created
+              </h6>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0" id="assignmentsPreviewTable">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Subject</th>
+                      <th>Grade</th>
+                      <th>Teacher</th>
+                      <th>Current Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- Data will be populated by JavaScript -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Warning Messages -->
+          <div class="alert alert-warning" id="warningAlert">
+            <h6 class="fw-bold mb-2">
+              <i class="fas fa-exclamation-triangle me-2"></i>Important Notes
+            </h6>
+            <ul class="mb-0">
+              <li>This action will create <strong id="createCount">0</strong> new syllabi</li>
+              <li>Existing syllabi for the same subject-grade-term combination will be skipped</li>
+              <li>Created syllabi will use the template configuration you specified</li>
+              <li>You can modify individual syllabi after creation</li>
+            </ul>
+          </div>
+
+          <div class="d-flex justify-content-between">
+            <button type="button" class="btn btn-outline-secondary" id="backToTemplateBtn">
+              <i class="fas fa-arrow-left me-1"></i>Back to Template
+            </button>
+            <button type="button" class="btn btn-warning btn-lg" id="createSyllabiBtn">
+              <i class="fas fa-magic me-2"></i>Create Syllabi
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results Card -->
+      <div class="card border-0 shadow-sm d-none" id="resultsCard">
+        <div class="card-header bg-success text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-check-circle me-2"></i>Creation Results
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="creationResults"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/select2.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize Select2
+    $('#academicYearSelect, #termSelect').select2({
+      theme: 'bootstrap-5',
+      width: '100%'
+    });
+
+    let selectedTerm = null;
+    let assignments = [];
+    let templateData = {};
+
+    // Term selection handlers
+    $('#academicYearSelect, #termSelect').on('change', function () {
+      const academicYear = $('#academicYearSelect').val();
+      const term = $('#termSelect').val();
+
+      if (academicYear && term) {
+        loadTermInfo(academicYear, term);
+      } else {
+        $('#termInfo').addClass('d-none');
+        $('#proceedToTemplateBtn').prop('disabled', true);
+      }
+    });
+
+    function loadTermInfo(academicYear, term) {
+      // Simulate loading term information
+      const termData = {
+        duration: 'April 1, 2024 - July 31, 2024',
+        status: 'Active',
+        availableSubjects: 24,
+        existingSyllabi: 8
+      };
+
+      $('#termDuration').text(termData.duration);
+      $('#termStatus').text(termData.status);
+      $('#availableSubjects').text(termData.availableSubjects);
+      $('#existingSyllabi').text(termData.existingSyllabi);
+
+      $('#termInfo').removeClass('d-none');
+      $('#loadAssignmentsBtn').prop('disabled', false);
+      $('#proceedToTemplateBtn').prop('disabled', false);
+
+      selectedTerm = { academicYear, term, ...termData };
+    }
+
+    // Load assignments
+    $('#loadAssignmentsBtn').on('click', function () {
+      const button = $(this);
+      const originalText = button.html();
+
+      button.html('<i class="fas fa-spinner fa-spin me-1"></i>Loading...').prop('disabled', true);
+
+      // Simulate loading assignments
+      setTimeout(() => {
+        loadSubjectAssignments();
+        button.html(originalText).prop('disabled', false);
+      }, 1500);
+    });
+
+    function loadSubjectAssignments() {
+      // Simulate assignment data
+      assignments = [
+        { subject: 'Mathematics', subjectCode: 'MATH101', grade: 'Grade 1', teacher: 'John Smith', hasExisting: false },
+        { subject: 'Science', subjectCode: 'SCI101', grade: 'Grade 1', teacher: 'Sarah Johnson', hasExisting: true },
+        { subject: 'English', subjectCode: 'ENG101', grade: 'Grade 1', teacher: 'Mike Davis', hasExisting: false },
+        { subject: 'Mathematics', subjectCode: 'MATH101', grade: 'Grade 2', teacher: 'John Smith', hasExisting: false },
+        { subject: 'Science', subjectCode: 'SCI101', grade: 'Grade 2', teacher: 'Sarah Johnson', hasExisting: false },
+        { subject: 'English', subjectCode: 'ENG101', grade: 'Grade 2', teacher: 'Mike Davis', hasExisting: true }
+      ];
+
+      showAlert(`Loaded ${assignments.length} subject assignments for the selected term.`, 'success');
+    }
+
+    // Navigation between steps
+    $('#proceedToTemplateBtn').on('click', function () {
+      if (!selectedTerm) {
+        showAlert('Please select an academic year and term first.', 'warning');
+        return;
+      }
+
+      $('#termSelectionCard').addClass('d-none');
+      $('#templateCard').removeClass('d-none');
+      updateStepIndicator(2);
+    });
+
+    $('#backToTermBtn').on('click', function () {
+      $('#templateCard').addClass('d-none');
+      $('#termSelectionCard').removeClass('d-none');
+      updateStepIndicator(1);
+    });
+
+    $('#proceedToReviewBtn').on('click', function () {
+      // Collect template data
+      templateData = {
+        difficulty_level: $('select[name="difficulty_level"]').val(),
+        estimated_duration_hours: $('input[name="estimated_duration_hours"]').val(),
+        description: $('textarea[name="description"]').val(),
+        learning_objectives: $('textarea[name="learning_objectives"]').val().split('\n').filter(x => x.trim()),
+        assessment_methods: $('textarea[name="assessment_methods"]').val().split('\n').filter(x => x.trim()),
+        resources: $('textarea[name="resources"]').val()
+      };
+
+      // Show review
+      showReview();
+      $('#templateCard').addClass('d-none');
+      $('#reviewCard').removeClass('d-none');
+      updateStepIndicator(3);
+    });
+
+    $('#backToTemplateBtn').on('click', function () {
+      $('#reviewCard').addClass('d-none');
+      $('#templateCard').removeClass('d-none');
+      updateStepIndicator(2);
+    });
+
+    function showReview() {
+      // Update review information
+      $('#reviewAcademicYear').text(selectedTerm.academicYear);
+      $('#reviewTerm').text(`Term ${selectedTerm.term}`);
+
+      const newSyllabi = assignments.filter(a => !a.hasExisting);
+      $('#syllabiCount').text(newSyllabi.length);
+      $('#subjectsCount').text([...new Set(newSyllabi.map(a => a.subject))].length);
+      $('#createCount').text(newSyllabi.length);
+
+      // Populate assignments table
+      const tbody = $('#assignmentsPreviewTable tbody');
+      tbody.empty();
+
+      assignments.forEach(assignment => {
+        const statusBadge = assignment.hasExisting ?
+          '<span class="badge bg-secondary">Exists</span>' :
+          '<span class="badge bg-success">Will Create</span>';
+
+        tbody.append(`
+                <tr>
+                    <td>
+                        <div>
+                            <div class="fw-medium">${assignment.subject}</div>
+                            <small class="text-muted">${assignment.subjectCode}</small>
+                        </div>
+                    </td>
+                    <td>${assignment.grade}</td>
+                    <td>${assignment.teacher}</td>
+                    <td>${statusBadge}</td>
+                </tr>
+            `);
+      });
+    }
+
+    // Create syllabi
+    $('#createSyllabiBtn').on('click', function () {
+      const button = $(this);
+      const originalText = button.html();
+
+      button.html('<i class="fas fa-spinner fa-spin me-2"></i>Creating Syllabi...').prop('disabled', true);
+
+      // Simulate creation process
+      setTimeout(() => {
+        showCreationResults();
+        button.html(originalText).prop('disabled', false);
+      }, 3000);
+    });
+
+    function showCreationResults() {
+      const newSyllabi = assignments.filter(a => !a.hasExisting);
+      const results = {
+        created: newSyllabi.length,
+        skipped: assignments.length - newSyllabi.length,
+        total: assignments.length
+      };
+
+      let html = `
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <h3 class="text-success fw-bold">${results.created}</h3>
+                        <p class="text-muted mb-0">Syllabi Created</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <h3 class="text-warning fw-bold">${results.skipped}</h3>
+                        <p class="text-muted mb-0">Skipped (Already Exist)</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <h3 class="text-info fw-bold">${results.total}</h3>
+                        <p class="text-muted mb-0">Total Processed</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+      if (results.created > 0) {
+        html += `
+                <div class="alert alert-success">
+                    <h6 class="fw-bold mb-2">Successfully Created Syllabi:</h6>
+                    <ul class="mb-0">
+                        ${newSyllabi.map(s => `<li>${s.subject} - ${s.grade}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+      }
+
+      html += `
+            <div class="d-flex justify-content-between align-items-center">
+                <a href="{% url 'subjects:syllabus-list' %}" class="btn btn-primary">
+                    <i class="fas fa-list me-1"></i>View All Syllabi
+                </a>
+                <div>
+                    <button class="btn btn-outline-info me-2" onclick="window.print()">
+                        <i class="fas fa-print me-1"></i>Print Summary
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="location.reload()">
+                        <i class="fas fa-redo me-1"></i>Create More
+                    </button>
+                </div>
+            </div>
+        `;
+
+      $('#creationResults').html(html);
+      $('#reviewCard').addClass('d-none');
+      $('#resultsCard').removeClass('d-none');
+
+      // Show success message
+      showAlert(`Successfully created ${results.created} syllabi!`, 'success');
+    }
+
+    function updateStepIndicator(step) {
+      $('.step-indicator').removeClass('active');
+      for (let i = 1; i <= step; i++) {
+        if (i === 1) {
+          $('.step-indicator').first().addClass('active');
+        } else {
+          $(`#step${i}`).addClass('active');
+        }
+      }
+    }
+
+    function showAlert(message, type = 'info') {
+      const alertClass = type === 'error' ? 'alert-danger' :
+        type === 'warning' ? 'alert-warning' :
+          type === 'success' ? 'alert-success' : 'alert-info';
+
+      const alert = $(`
+            <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `);
+
+      $('.container-fluid').prepend(alert);
+
+      // Auto dismiss after 5 seconds
+      setTimeout(() => {
+        alert.fadeOut();
+      }, 5000);
+    }
+
+    // Auto-load assignments when term is selected
+    $('#termSelect').on('change', function () {
+      if ($(this).val()) {
+        $('#loadAssignmentsBtn').click();
+      }
+    });
+  });
+</script>
+
+<style>
+  .step-indicator {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #e9ecef;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+  }
+
+  .step-indicator.active {
+    background-color: #007bff;
+    color: white;
+  }
+</style>
+{% endblock %}

@@ -383,7 +383,6 @@ class AttendanceAnalytics(models.Model):
         return f"{self.entity_name} ({self.entity_type}) - {period}: {self.attendance_percentage}%"
 
 
-""" 
 class FinancialAnalytics(models.Model):
 
     academic_year = models.ForeignKey(
@@ -494,7 +493,7 @@ class FinancialAnalytics(models.Model):
             filters.append(str(self.fee_category))
         filter_str = " - " + " | ".join(filters) if filters else ""
 
-        return f"Financial Analytics {self.academic_year} {self.term}{filter_str}" """
+        return f"Financial Analytics {self.academic_year} {self.term}{filter_str}"
 
 
 class TeacherPerformanceAnalytics(models.Model):

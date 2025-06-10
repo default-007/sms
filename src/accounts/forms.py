@@ -26,17 +26,17 @@ class CustomAuthenticationForm(AuthenticationForm):
     """Enhanced login form supporting email, phone, or username."""
 
     identifier = forms.CharField(
-        label=_("Email, Phone, or Username"),
+        label=_("Email, Phone, Username, or Admission Number"),
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
-                "placeholder": "Email, phone number, or username",
+                "placeholder": "Email, phone, username, or admission number",
                 "autofocus": True,
                 "autocomplete": "username",
             }
         ),
         help_text=_(
-            "You can log in using your email address, phone number, or username"
+            "You can log in using your email address, phone number, username, or admission number (for students)"
         ),
     )
     password = forms.CharField(
@@ -98,6 +98,11 @@ class CustomAuthenticationForm(AuthenticationForm):
             clean_phone = re.sub(r"[^\d+]", "", identifier)
             if len(clean_phone) < 10:
                 raise forms.ValidationError(_("Please enter a valid phone number."))
+
+        # Basic format validation for admission number
+        elif re.match(r"^[A-Z0-9]{6,20}$", identifier, re.IGNORECASE):
+            # Admission numbers are typically alphanumeric
+            pass
 
         return identifier
 
@@ -733,16 +738,18 @@ class CustomPasswordResetForm(PasswordResetForm):
     """Enhanced password reset form with identifier support."""
 
     identifier = forms.CharField(
-        label=_("Email or Username"),
+        label=_("Email, Username, or Admission Number"),
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
-                "placeholder": "Email or Username",
+                "placeholder": "Email, username, or admission number",
                 "autocomplete": "email",
             }
         ),
         max_length=254,
-        help_text=_("Enter your email address or username to reset your password."),
+        help_text=_(
+            "Enter your email address, username, or admission number (for students) to reset your password."
+        ),
     )
 
     def __init__(self, *args, **kwargs):
@@ -755,7 +762,7 @@ class CustomPasswordResetForm(PasswordResetForm):
         """Find user by identifier and return email."""
         identifier = self.cleaned_data.get("identifier", "").strip()
 
-        # Try to find user by email or username
+        # Try to find user by email, username, or admission number
         user = None
         if "@" in identifier:
             try:
@@ -766,6 +773,12 @@ class CustomPasswordResetForm(PasswordResetForm):
 
         if not user:
             user = User.objects.filter(username=identifier, is_active=True).first()
+
+        # Try admission number if still not found
+        if not user and re.match(r"^[A-Z0-9]{6,20}$", identifier, re.IGNORECASE):
+            from .validators import find_user_by_admission_number
+
+            user = find_user_by_admission_number(identifier)
 
         if not user:
             raise forms.ValidationError(

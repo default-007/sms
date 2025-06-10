@@ -1,0 +1,530 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Audit Logs - School Management System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/css/dataTables.bootstrap4.min.css">
+<link rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.10.0/css/bootstrap-datepicker.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Heading -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Audit Logs</h1>
+    <div class="d-none d-lg-inline-block">
+      <button class="btn btn-sm btn-primary shadow-sm" data-toggle="modal" data-target="#exportModal">
+        <i class="fas fa-download fa-sm text-white-50"></i> Export Logs
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters Card -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">
+        <i class="fas fa-filter"></i> Filter Logs
+      </h6>
+    </div>
+    <div class="card-body">
+      <form method="get" id="filterForm">
+        <div class="row">
+          <div class="col-md-3 mb-3">
+            <label for="user" class="form-label">User</label>
+            <select name="user" id="user" class="form-control">
+              <option value="">All Users</option>
+              <!-- This would be populated with users -->
+            </select>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label for="action" class="form-label">Action</label>
+            <select name="action" id="action" class="form-control">
+              <option value="">All Actions</option>
+              {% for action in actions %}
+              <option value="{{ action }}" {% if action == current_filters.action %}selected{% endif %}>
+                {{ action|title }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label for="module" class="form-label">Module</label>
+            <select name="module" id="module" class="form-control">
+              <option value="">All Modules</option>
+              {% for module in modules %}
+              <option value="{{ module }}" {% if module == current_filters.module %}selected{% endif %}>
+                {{ module|title }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="form-label">&nbsp;</label>
+            <div>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i> Apply Filters
+              </button>
+              <a href="{% url 'core:audit_logs' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-times"></i> Clear
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-3 mb-3">
+            <label for="start_date" class="form-label">Start Date</label>
+            <input type="date" name="start_date" id="start_date" class="form-control"
+              value="{{ current_filters.start_date }}">
+          </div>
+          <div class="col-md-3 mb-3">
+            <label for="end_date" class="form-label">End Date</label>
+            <input type="date" name="end_date" id="end_date" class="form-control"
+              value="{{ current_filters.end_date }}">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Quick Date Ranges</label>
+            <div class="btn-group btn-group-sm d-block" role="group">
+              <button type="button" class="btn btn-outline-secondary" onclick="setDateRange('today')">Today</button>
+              <button type="button" class="btn btn-outline-secondary" onclick="setDateRange('week')">This Week</button>
+              <button type="button" class="btn btn-outline-secondary" onclick="setDateRange('month')">This
+                Month</button>
+              <button type="button" class="btn btn-outline-secondary" onclick="setDateRange('year')">This Year</button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Audit Logs Table -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+      <h6 class="m-0 font-weight-bold text-primary">
+        <i class="fas fa-history"></i> Audit Trail
+      </h6>
+      <div class="text-muted small">
+        {% if logs %}
+        Showing {{ logs|length }} of {{ logs.paginator.count }} records
+        {% else %}
+        No records found
+        {% endif %}
+      </div>
+    </div>
+    <div class="card-body">
+      {% if logs %}
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover" id="auditLogsTable" width="100%" cellspacing="0">
+          <thead>
+            <tr>
+              <th width="15%">Timestamp</th>
+              <th width="12%">User</th>
+              <th width="10%">Action</th>
+              <th width="30%">Description</th>
+              <th width="10%">Module</th>
+              <th width="12%">IP Address</th>
+              <th width="11%">Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in logs %}
+            <tr>
+              <td class="small">
+                <div>{{ log.timestamp|date:"M d, Y" }}</div>
+                <div class="text-muted">{{ log.timestamp|time:"H:i:s" }}</div>
+              </td>
+              <td class="small">
+                {% if log.user %}
+                <div class="font-weight-bold">{{ log.user.get_full_name|default:log.user.username }}</div>
+                <div class="text-muted">{{ log.user.username }}</div>
+                {% else %}
+                <span class="text-muted font-italic">System</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge
+                                        {% if log.action == 'create' %}badge-success
+                                        {% elif log.action == 'update' %}badge-primary
+                                        {% elif log.action == 'delete' %}badge-danger
+                                        {% elif log.action == 'login' %}badge-info
+                                        {% elif log.action == 'logout' %}badge-secondary
+                                        {% elif log.action == 'system_action' %}badge-warning
+                                        {% else %}badge-dark{% endif %}">
+                  {{ log.get_action_display }}
+                </span>
+              </td>
+              <td class="small">
+                <div>{{ log.description|truncatechars:80 }}</div>
+                {% if log.content_object %}
+                <div class="text-muted">
+                  Object: {{ log.content_type.model|title }} #{{ log.object_id }}
+                </div>
+                {% endif %}
+              </td>
+              <td>
+                {% if log.module_name %}
+                <span class="badge badge-light">{{ log.module_name|title }}</span>
+                {% else %}
+                <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td class="small">
+                {% if log.ip_address %}
+                <code>{{ log.ip_address }}</code>
+                {% else %}
+                <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>
+                <button class="btn btn-sm btn-outline-info" data-toggle="modal" data-target="#detailModal{{ log.pk }}"
+                  title="View Details">
+                  <i class="fas fa-eye"></i>
+                </button>
+              </td>
+            </tr>
+
+            <!-- Detail Modal for each log entry -->
+            <div class="modal fade" id="detailModal{{ log.pk }}" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-xl" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title">
+                      <i class="fas fa-info-circle"></i> Audit Log Details
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    <div class="row">
+                      <div class="col-md-6">
+                        <table class="table table-sm">
+                          <tr>
+                            <th width="30%">Timestamp:</th>
+                            <td>{{ log.timestamp|date:"F d, Y H:i:s" }}</td>
+                          </tr>
+                          <tr>
+                            <th>User:</th>
+                            <td>
+                              {% if log.user %}
+                              {{ log.user.get_full_name|default:log.user.username }}
+                              <small class="text-muted">({{ log.user.username }})</small>
+                              {% else %}
+                              System
+                              {% endif %}
+                            </td>
+                          </tr>
+                          <tr>
+                            <th>Action:</th>
+                            <td>{{ log.get_action_display }}</td>
+                          </tr>
+                          <tr>
+                            <th>Module:</th>
+                            <td>{{ log.module_name|default:"-" }}</td>
+                          </tr>
+                          <tr>
+                            <th>View:</th>
+                            <td>{{ log.view_name|default:"-" }}</td>
+                          </tr>
+                          <tr>
+                            <th>IP Address:</th>
+                            <td>{{ log.ip_address|default:"-" }}</td>
+                          </tr>
+                          <tr>
+                            <th>Duration:</th>
+                            <td>
+                              {% if log.duration_ms %}
+                              {{ log.duration_ms }}ms
+                              {% else %}
+                              -
+                              {% endif %}
+                            </td>
+                          </tr>
+                        </table>
+                      </div>
+                      <div class="col-md-6">
+                        <table class="table table-sm">
+                          <tr>
+                            <th width="30%">Content Type:</th>
+                            <td>{{ log.content_type|default:"-" }}</td>
+                          </tr>
+                          <tr>
+                            <th>Object ID:</th>
+                            <td>{{ log.object_id|default:"-" }}</td>
+                          </tr>
+                          <tr>
+                            <th>Session Key:</th>
+                            <td>
+                              {% if log.session_key %}
+                              <code class="small">{{ log.session_key|truncatechars:20 }}</code>
+                              {% else %}
+                              -
+                              {% endif %}
+                            </td>
+                          </tr>
+                          <tr>
+                            <th>User Agent:</th>
+                            <td class="small">{{ log.user_agent|truncatechars:40|default:"-" }}</td>
+                          </tr>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                      <div class="col-12">
+                        <h6>Description:</h6>
+                        <div class="alert alert-light">{{ log.description|default:"No description available" }}</div>
+                      </div>
+                    </div>
+
+                    {% if log.data_before or log.data_after %}
+                    <div class="row">
+                      {% if log.data_before %}
+                      <div class="col-md-6">
+                        <h6>Data Before:</h6>
+                        <pre class="bg-light p-3 small"><code>{{ log.data_before|pprint }}</code></pre>
+                      </div>
+                      {% endif %}
+                      {% if log.data_after %}
+                      <div class="col-md-6">
+                        <h6>Data After:</h6>
+                        <pre class="bg-light p-3 small"><code>{{ log.data_after|pprint }}</code></pre>
+                      </div>
+                      {% endif %}
+                    </div>
+                    {% endif %}
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-5">
+        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">No Audit Logs Found</h5>
+        <p class="text-muted">
+          {% if current_filters.user or current_filters.action or current_filters.module or current_filters.start_date or current_filters.end_date %}
+          No logs match your current filters. Try adjusting your search criteria.
+          {% else %}
+          No audit logs are available yet.
+          {% endif %}
+        </p>
+        {% if current_filters.user or current_filters.action or current_filters.module or current_filters.start_date or current_filters.end_date %}
+        <a href="{% url 'core:audit_logs' %}" class="btn btn-primary">
+          <i class="fas fa-times"></i> Clear Filters
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  {% if logs.has_other_pages %}
+  <nav aria-label="Audit logs pagination">
+    <ul class="pagination justify-content-center">
+      {% if logs.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?page=1{{ request.GET.urlencode|add:'&' }}">
+          &laquo; First
+        </a>
+      </li>
+      <li class="page-item">
+        <a class="page-link" href="?page={{ logs.previous_page_number }}{{ request.GET.urlencode|add:'&' }}">
+          Previous
+        </a>
+      </li>
+      {% endif %}
+
+      <li class="page-item active">
+        <span class="page-link">
+          Page {{ logs.number }} of {{ logs.paginator.num_pages }}
+        </span>
+      </li>
+
+      {% if logs.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ logs.next_page_number }}{{ request.GET.urlencode|add:'&' }}">
+          Next
+        </a>
+      </li>
+      <li class="page-item">
+        <a class="page-link" href="?page={{ logs.paginator.num_pages }}{{ request.GET.urlencode|add:'&' }}">
+          Last &raquo;
+        </a>
+      </li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+</div>
+
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Export Audit Logs</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="exportForm">
+          <div class="form-group">
+            <label for="export_format">Export Format</label>
+            <select class="form-control" id="export_format" name="format">
+              <option value="csv">CSV</option>
+              <option value="excel">Excel</option>
+              <option value="pdf">PDF</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="export_start_date">Start Date</label>
+            <input type="date" class="form-control" id="export_start_date" name="start_date">
+          </div>
+          <div class="form-group">
+            <label for="export_end_date">End Date</label>
+            <input type="date" class="form-control" id="export_end_date" name="end_date">
+          </div>
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="include_details" name="include_details" checked>
+            <label class="form-check-label" for="include_details">
+              Include detailed data (before/after values)
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="exportLogs()">
+          <i class="fas fa-download"></i> Export
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable if logs exist
+    {% if logs %}
+    $('#auditLogsTable').DataTable({
+      "pageLength": 25,
+      "lengthChange": true,
+      "lengthMenu": [[10, 25, 50, 100], [10, 25, 50, 100]],
+      "searching": false,
+      "ordering": false,
+      "info": false,
+      "paging": false, // We use Django pagination
+      "responsive": true,
+      "columnDefs": [
+        { "orderable": false, "targets": [6] }
+      ]
+    });
+    {% endif %}
+
+    // Auto-submit form on filter changes
+    $('#action, #module').change(function () {
+      $('#filterForm').submit();
+    });
+
+    // Date validation
+    $('#start_date, #end_date').change(function () {
+      var startDate = $('#start_date').val();
+      var endDate = $('#end_date').val();
+
+      if (startDate && endDate && startDate > endDate) {
+        alert('Start date cannot be after end date');
+        $(this).val('');
+      }
+    });
+  });
+
+  // Quick date range functions
+  function setDateRange(range) {
+    var today = new Date();
+    var startDate, endDate;
+
+    switch (range) {
+      case 'today':
+        startDate = endDate = today.toISOString().split('T')[0];
+        break;
+      case 'week':
+        var weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
+        startDate = weekStart.toISOString().split('T')[0];
+        endDate = new Date().toISOString().split('T')[0];
+        break;
+      case 'month':
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+        endDate = new Date().toISOString().split('T')[0];
+        break;
+      case 'year':
+        startDate = new Date(today.getFullYear(), 0, 1).toISOString().split('T')[0];
+        endDate = new Date().toISOString().split('T')[0];
+        break;
+    }
+
+    $('#start_date').val(startDate);
+    $('#end_date').val(endDate);
+    $('#filterForm').submit();
+  }
+
+  // Export functionality
+  function exportLogs() {
+    var form = $('#exportForm');
+    var formData = form.serialize();
+
+    // Add current filters to export
+    var currentFilters = $('#filterForm').serialize();
+    if (currentFilters) {
+      formData += '&' + currentFilters;
+    }
+
+    // Create a temporary form to submit for download
+    var tempForm = $('<form>', {
+      'method': 'POST',
+      'action': '{% url "core:audit_logs" %}export/',
+      'target': '_blank'
+    });
+
+    // Add CSRF token
+    tempForm.append($('<input>', {
+      'type': 'hidden',
+      'name': 'csrfmiddlewaretoken',
+      'value': $('[name=csrfmiddlewaretoken]').val()
+    }));
+
+    // Add form data as hidden inputs
+    formData.split('&').forEach(function (pair) {
+      var keyValue = pair.split('=');
+      if (keyValue.length === 2) {
+        tempForm.append($('<input>', {
+          'type': 'hidden',
+          'name': decodeURIComponent(keyValue[0]),
+          'value': decodeURIComponent(keyValue[1])
+        }));
+      }
+    });
+
+    $('body').append(tempForm);
+    tempForm.submit();
+    tempForm.remove();
+
+    $('#exportModal').modal('hide');
+  }
+</script>
+{% endblock %}

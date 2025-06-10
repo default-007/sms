@@ -1,0 +1,678 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}User Management - School Management System{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<link href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.bootstrap5.min.css" rel="stylesheet">
+<link href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap5.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">User Management</h1>
+          <p class="text-muted mb-0">Manage system users, roles, and permissions</p>
+        </div>
+        <div>
+          <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addUserModal">
+            <i class="fas fa-plus"></i> Add User
+          </button>
+          <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+            <i class="fas fa-filter"></i> Filters
+          </button>
+          <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="fas fa-cogs"></i> Actions
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#" onclick="bulkActivate()"><i class="fas fa-user-check"></i> Bulk
+                  Activate</a></li>
+              <li><a class="dropdown-item" href="#" onclick="bulkDeactivate()"><i class="fas fa-user-times"></i> Bulk
+                  Deactivate</a></li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li><a class="dropdown-item" href="#" onclick="exportUsers()"><i class="fas fa-download"></i> Export
+                  Users</a></li>
+              <li><a class="dropdown-item" href="#" onclick="importUsers()"><i class="fas fa-upload"></i> Import
+                  Users</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-primary shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Users</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ page_obj.paginator.count|default:0 }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-users fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-success shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Active Users</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800" id="activeUsersCount">-</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-user-check fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-warning shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Teachers</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800" id="teachersCount">-</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-chalkboard-teacher fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-info shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Students</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800" id="studentsCount">-</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-user-graduate fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Users Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">System Users</h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover" id="usersTable">
+              <thead>
+                <tr>
+                  <th>
+                    <input type="checkbox" id="selectAll" class="form-check-input">
+                  </th>
+                  <th>User</th>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Roles</th>
+                  <th>Status</th>
+                  <th>Last Login</th>
+                  <th>Joined</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for user in users %}
+                <tr data-user-id="{{ user.id }}">
+                  <td>
+                    <input type="checkbox" class="form-check-input user-checkbox" value="{{ user.id }}">
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div
+                        class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3"
+                        style="width: 40px; height: 40px;">
+                        {{ user.first_name|first|default:user.username|first|upper }}{{ user.last_name|first|upper }}
+                      </div>
+                      <div>
+                        <div class="font-weight-bold">
+                          {{ user.get_full_name|default:user.username }}
+                          {% if user.is_superuser %}
+                          <span class="badge bg-danger ms-1">Superuser</span>
+                          {% endif %}
+                        </div>
+                        <div class="small text-muted">ID: {{ user.id }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>{{ user.username }}</td>
+                  <td>{{ user.email|default:"-" }}</td>
+                  <td>
+                    <div class="d-flex flex-wrap gap-1">
+                      {% for group in user.groups.all %}
+                      <span class="badge bg-secondary">{{ group.name }}</span>
+                      {% endfor %}
+
+                      {% if user.teacher %}
+                      <span class="badge bg-primary">Teacher</span>
+                      {% endif %}
+                      {% if user.parent %}
+                      <span class="badge bg-info">Parent</span>
+                      {% endif %}
+                      {% if user.student %}
+                      <span class="badge bg-success">Student</span>
+                      {% endif %}
+
+                      {% if not user.groups.all and not user.teacher and not user.parent and not user.student %}
+                      <span class="text-muted small">No roles</span>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-{% if user.is_active %}success{% else %}secondary{% endif %}">
+                      {% if user.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                  </td>
+                  <td>
+                    {% if user.last_login %}
+                    <span data-bs-toggle="tooltip" title="{{ user.last_login }}">
+                      {{ user.last_login|timesince }} ago
+                    </span>
+                    {% else %}
+                    <span class="text-muted">Never</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ user.date_joined|date:"M d, Y" }}</td>
+                  <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                      <a href="{% url 'core:user_detail' user.pk %}" class="btn btn-outline-primary"
+                        data-bs-toggle="tooltip" title="View Details">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      <button type="button" class="btn btn-outline-success" onclick="editUser({{ user.id }})"
+                        data-bs-toggle="tooltip" title="Edit User">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-warning" onclick="resetPassword({{ user.id }})"
+                        data-bs-toggle="tooltip" title="Reset Password">
+                        <i class="fas fa-key"></i>
+                      </button>
+                      {% if user.is_active %}
+                      <button type="button" class="btn btn-outline-danger"
+                        onclick="toggleUserStatus({{ user.id }}, false)" data-bs-toggle="tooltip" title="Deactivate">
+                        <i class="fas fa-user-times"></i>
+                      </button>
+                      {% else %}
+                      <button type="button" class="btn btn-outline-success"
+                        onclick="toggleUserStatus({{ user.id }}, true)" data-bs-toggle="tooltip" title="Activate">
+                        <i class="fas fa-user-check"></i>
+                      </button>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="9" class="text-center text-muted">No users found</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          {% if is_paginated %}
+          <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+              {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link"
+                  href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">First</a>
+              </li>
+              <li class="page-item">
+                <a class="page-link"
+                  href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Previous</a>
+              </li>
+              {% endif %}
+
+              <li class="page-item active">
+                <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+              </li>
+
+              {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link"
+                  href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Next</a>
+              </li>
+              <li class="page-item">
+                <a class="page-link"
+                  href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Last</a>
+              </li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter Modal -->
+<div class="modal fade" id="filterModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Filter Users</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="get" id="filterForm">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Search</label>
+            <input type="text" name="search" class="form-control" placeholder="Name, username, or email"
+              value="{{ request.GET.search }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Role</label>
+            <select name="role" class="form-select">
+              <option value="">All Roles</option>
+              <option value="admin" {% if request.GET.role == 'admin' %}selected{% endif %}>Administrators</option>
+              <option value="teacher" {% if request.GET.role == 'teacher' %}selected{% endif %}>Teachers</option>
+              <option value="parent" {% if request.GET.role == 'parent' %}selected{% endif %}>Parents</option>
+              <option value="student" {% if request.GET.role == 'student' %}selected{% endif %}>Students</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Status</label>
+            <select name="status" class="form-select">
+              <option value="">All Status</option>
+              <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+              <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-outline-warning" onclick="clearFilters()">Clear Filters</button>
+          <button type="submit" class="btn btn-primary">Apply Filters</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add New User</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="addUserForm">
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">First Name <span class="text-danger">*</span></label>
+              <input type="text" name="first_name" class="form-control" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Last Name <span class="text-danger">*</span></label>
+              <input type="text" name="last_name" class="form-control" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Username <span class="text-danger">*</span></label>
+              <input type="text" name="username" class="form-control" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Email <span class="text-danger">*</span></label>
+              <input type="email" name="email" class="form-control" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Password <span class="text-danger">*</span></label>
+              <input type="password" name="password" class="form-control" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
+              <input type="password" name="confirm_password" class="form-control" required>
+            </div>
+            <div class="col-12 mb-3">
+              <label class="form-label">User Groups</label>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="groups" value="System Administrators"
+                      id="sysAdmin">
+                    <label class="form-check-label" for="sysAdmin">System Administrator</label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="groups" value="School Administrators"
+                      id="schoolAdmin">
+                    <label class="form-check-label" for="schoolAdmin">School Administrator</label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="groups" value="Teachers" id="teacher">
+                    <label class="form-check-label" for="teacher">Teacher</label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="groups" value="Staff" id="staff">
+                    <label class="form-check-label" for="staff">Staff</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="is_active" id="isActive" checked>
+                <label class="form-check-label" for="isActive">Active user</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm Action</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="confirmMessage">
+        Are you sure you want to perform this action?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmAction">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.4.1/js/responsive.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap5.min.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Initialize DataTable
+    $('#usersTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[7, 'desc']], // Order by date joined
+      columnDefs: [
+        { targets: [0, 8], orderable: false }, // Disable sorting for checkbox and actions
+        { targets: [6, 7], type: 'date' } // Date columns
+      ],
+      language: {
+        search: "Search users:",
+        lengthMenu: "Show _MENU_ users per page",
+        info: "Showing _START_ to _END_ of _TOTAL_ users"
+      }
+    });
+
+    // Select all checkbox functionality
+    document.getElementById('selectAll').addEventListener('change', function () {
+      const checkboxes = document.querySelectorAll('.user-checkbox');
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+      });
+      updateBulkActionButtons();
+    });
+
+    // Individual checkbox change
+    document.querySelectorAll('.user-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', updateBulkActionButtons);
+    });
+
+    // Update statistics
+    updateUserStatistics();
+
+    // Add user form submission
+    document.getElementById('addUserForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      createUser();
+    });
+  });
+
+  function updateUserStatistics() {
+    // Count active users
+    const activeUsers = document.querySelectorAll('tr[data-user-id] .badge:contains("Active")').length;
+    document.getElementById('activeUsersCount').textContent = activeUsers;
+
+    // Count teachers
+    const teachers = document.querySelectorAll('tr[data-user-id] .badge:contains("Teacher")').length;
+    document.getElementById('teachersCount').textContent = teachers;
+
+    // Count students
+    const students = document.querySelectorAll('tr[data-user-id] .badge:contains("Student")').length;
+    document.getElementById('studentsCount').textContent = students;
+  }
+
+  function updateBulkActionButtons() {
+    const selectedCheckboxes = document.querySelectorAll('.user-checkbox:checked').length;
+    // Enable/disable bulk action buttons based on selection
+    console.log(`${selectedCheckboxes} users selected`);
+  }
+
+  function editUser(userId) {
+    // Implementation for editing user
+    console.log('Edit user:', userId);
+    // You would typically load user data and show edit modal
+  }
+
+  function toggleUserStatus(userId, activate) {
+    const action = activate ? 'activate' : 'deactivate';
+    const message = `Are you sure you want to ${action} this user?`;
+
+    showConfirmModal(message, function () {
+      // Implementation for toggling user status
+      fetch(`/api/core/users/${userId}/toggle-status/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ activate: activate })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            location.reload();
+          } else {
+            alert('Error: ' + data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred. Please try again.');
+        });
+    });
+  }
+
+  function resetPassword(userId) {
+    const message = 'Are you sure you want to reset this user\'s password? A new password will be generated and sent to their email.';
+
+    showConfirmModal(message, function () {
+      // Implementation for password reset
+      fetch(`/api/core/users/${userId}/reset-password/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'Content-Type': 'application/json',
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Password reset successful. New password sent to user email.');
+          } else {
+            alert('Error: ' + data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred. Please try again.');
+        });
+    });
+  }
+
+  function createUser() {
+    const form = document.getElementById('addUserForm');
+    const formData = new FormData(form);
+
+    // Validate passwords match
+    if (formData.get('password') !== formData.get('confirm_password')) {
+      alert('Passwords do not match.');
+      return;
+    }
+
+    // Convert to JSON
+    const data = {
+      first_name: formData.get('first_name'),
+      last_name: formData.get('last_name'),
+      username: formData.get('username'),
+      email: formData.get('email'),
+      password: formData.get('password'),
+      is_active: formData.get('is_active') === 'on',
+      groups: formData.getAll('groups')
+    };
+
+    fetch('/api/core/users/', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data)
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
+          location.reload();
+        } else {
+          alert('Error: ' + data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+      });
+  }
+
+  function bulkActivate() {
+    const selected = getSelectedUsers();
+    if (selected.length === 0) {
+      alert('Please select users to activate.');
+      return;
+    }
+
+    const message = `Are you sure you want to activate ${selected.length} user(s)?`;
+    showConfirmModal(message, function () {
+      // Implementation for bulk activation
+      console.log('Bulk activate:', selected);
+    });
+  }
+
+  function bulkDeactivate() {
+    const selected = getSelectedUsers();
+    if (selected.length === 0) {
+      alert('Please select users to deactivate.');
+      return;
+    }
+
+    const message = `Are you sure you want to deactivate ${selected.length} user(s)?`;
+    showConfirmModal(message, function () {
+      // Implementation for bulk deactivation
+      console.log('Bulk deactivate:', selected);
+    });
+  }
+
+  function exportUsers() {
+    // Implementation for exporting users
+    window.location.href = '/api/core/users/export/';
+  }
+
+  function importUsers() {
+    // Implementation for importing users
+    console.log('Import users');
+  }
+
+  function getSelectedUsers() {
+    const checkboxes = document.querySelectorAll('.user-checkbox:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+  }
+
+  function showConfirmModal(message, callback) {
+    document.getElementById('confirmMessage').textContent = message;
+    document.getElementById('confirmAction').onclick = function () {
+      bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
+      callback();
+    };
+    new bootstrap.Modal(document.getElementById('confirmModal')).show();
+  }
+
+  function clearFilters() {
+    document.getElementById('filterForm').reset();
+    window.location.href = window.location.pathname;
+  }
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+</script>
+{% endblock %}

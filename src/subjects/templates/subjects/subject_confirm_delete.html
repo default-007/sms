@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Delete Subject" %} - {{ subject.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+          <h4 class="card-title mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            {% trans "Confirm Subject Deletion" %}
+          </h4>
+        </div>
+
+        <div class="card-body">
+          <div class="alert alert-warning mb-4">
+            <i class="fas fa-warning me-2"></i>
+            {% trans "This action will mark the subject as inactive. All related data will be preserved but the subject will no longer be available for new assignments." %}
+          </div>
+
+          <div class="subject-info mb-4">
+            <h5>{% trans "Subject Details" %}</h5>
+            <dl class="row">
+              <dt class="col-sm-3">{% trans "Name" %}:</dt>
+              <dd class="col-sm-9">{{ subject.name }}</dd>
+
+              <dt class="col-sm-3">{% trans "Code" %}:</dt>
+              <dd class="col-sm-9">
+                <span class="badge bg-primary">{{ subject.code }}</span>
+              </dd>
+
+              <dt class="col-sm-3">{% trans "Department" %}:</dt>
+              <dd class="col-sm-9">{{ subject.department.name }}</dd>
+
+              <dt class="col-sm-3">{% trans "Credit Hours" %}:</dt>
+              <dd class="col-sm-9">{{ subject.credit_hours }}</dd>
+
+              <dt class="col-sm-3">{% trans "Type" %}:</dt>
+              <dd class="col-sm-9">
+                {% if subject.is_elective %}
+                <span class="badge bg-info">{% trans "Elective" %}</span>
+                {% else %}
+                <span class="badge bg-success">{% trans "Mandatory" %}</span>
+                {% endif %}
+              </dd>
+            </dl>
+          </div>
+
+          <!-- Impact Analysis -->
+          <div class="impact-analysis mb-4">
+            <h6>{% trans "Impact Analysis" %}</h6>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="card bg-light">
+                  <div class="card-body text-center">
+                    <i class="fas fa-book-open text-primary fs-2"></i>
+                    <h6 class="mt-2">{% trans "Active Syllabi" %}</h6>
+                    <span class="badge bg-primary fs-6" id="syllabi-count">
+                      {{ subject.syllabi.count }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card bg-light">
+                  <div class="card-body text-center">
+                    <i class="fas fa-chalkboard-teacher text-success fs-2"></i>
+                    <h6 class="mt-2">{% trans "Current Assignments" %}</h6>
+                    <span class="badge bg-success fs-6" id="assignments-count">
+                      {{ subject.subject_assignments.count }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Confirmation Question -->
+          <div class="confirmation-question text-center mb-4">
+            <h5 class="text-danger">
+              {% blocktrans with subject_name=subject.name %}
+              Are you sure you want to delete "{{ subject_name }}"?
+              {% endblocktrans %}
+            </h5>
+            <p class="text-muted">
+              {% trans "This action cannot be undone, but the subject data will be preserved." %}
+            </p>
+          </div>
+        </div>
+
+        <div class="card-footer d-flex justify-content-between">
+          <a href="{% url 'subjects:subject-detail' subject.pk %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>
+            {% trans "Cancel" %}
+          </a>
+
+          <form method="post" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger" id="confirmDeleteBtn">
+              <i class="fas fa-trash me-2"></i>
+              {% trans "Yes, Delete Subject" %}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmationModal" tabindex="-1" aria-labelledby="confirmationModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="confirmationModalLabel">
+          {% trans "Final Confirmation" %}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>{% trans "Please type the subject name to confirm deletion:" %}</p>
+        <div class="mb-3">
+          <label for="confirmationInput" class="form-label">
+            {% trans "Subject Name" %}
+          </label>
+          <input type="text" class="form-control" id="confirmationInput" placeholder="{{ subject.name }}"
+            autocomplete="off">
+          <div class="form-text text-danger d-none" id="confirmationError">
+            {% trans "Subject name does not match." %}
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          {% trans "Cancel" %}
+        </button>
+        <button type="button" class="btn btn-danger" id="finalConfirmBtn" disabled>
+          {% trans "Delete Subject" %}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const subjectName = "{{ subject.name|escapejs }}";
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    const confirmationModal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+    const confirmationInput = document.getElementById('confirmationInput');
+    const confirmationError = document.getElementById('confirmationError');
+    const finalConfirmBtn = document.getElementById('finalConfirmBtn');
+
+    // Show confirmation modal instead of direct form submission
+    confirmDeleteBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      confirmationModal.show();
+    });
+
+    // Validate input in real-time
+    confirmationInput.addEventListener('input', function () {
+      const inputValue = this.value.trim();
+      const isValid = inputValue === subjectName;
+
+      finalConfirmBtn.disabled = !isValid;
+
+      if (inputValue && !isValid) {
+        confirmationError.classList.remove('d-none');
+      } else {
+        confirmationError.classList.add('d-none');
+      }
+    });
+
+    // Handle final confirmation
+    finalConfirmBtn.addEventListener('click', function () {
+      // Submit the original form
+      confirmDeleteBtn.closest('form').submit();
+    });
+
+    // Focus input when modal is shown
+    document.getElementById('confirmationModal').addEventListener('shown.bs.modal', function () {
+      confirmationInput.focus();
+    });
+
+    // Clear input when modal is hidden
+    document.getElementById('confirmationModal').addEventListener('hidden.bs.modal', function () {
+      confirmationInput.value = '';
+      confirmationError.classList.add('d-none');
+      finalConfirmBtn.disabled = true;
+    });
+
+    // Allow Enter key to trigger confirmation
+    confirmationInput.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter' && !finalConfirmBtn.disabled) {
+        finalConfirmBtn.click();
+      }
+    });
+  });
+</script>
+{% endblock %}

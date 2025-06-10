@@ -1,0 +1,460 @@
+{% load teacher_tags %}
+
+<div class="assignment-list">
+  {% if assignments %}
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+      <h6 class="mb-0 fw-bold text-primary">
+        <i class="fas fa-chalkboard-teacher me-2"></i>
+        Class Assignments
+        {% if academic_year %}
+        <span class="text-muted">- {{ academic_year.name }}</span>
+        {% endif %}
+      </h6>
+      <span class="badge bg-primary rounded-pill">{{ assignments|length }}</span>
+    </div>
+
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Class</th>
+              <th>Subject</th>
+              <th>Role</th>
+              <th>Schedule</th>
+              <th>Status</th>
+              {% if perms.teachers.change_teacherassignment %}
+              <th width="100">Actions</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for assignment in assignments %}
+            <tr class="assignment-row" data-assignment-id="{{ assignment.id }}">
+              <td class="ps-3">
+                <div class="d-flex align-items-center">
+                  <div class="class-icon me-2">
+                    <i class="fas fa-users text-primary"></i>
+                  </div>
+                  <div>
+                    <div class="fw-bold">{{ assignment.class_instance }}</div>
+                    <small class="text-muted">
+                      {% if assignment.class_instance.capacity %}
+                      {{ assignment.class_instance.enrolled_students|default:0 }}/{{ assignment.class_instance.capacity }}
+                      students
+                      {% endif %}
+                    </small>
+                  </div>
+                </div>
+              </td>
+
+              <td>
+                <div class="subject-info">
+                  <div class="fw-semibold text-dark">{{ assignment.subject.name }}</div>
+                  <small class="text-muted">{{ assignment.subject.code|default:"" }}</small>
+                </div>
+              </td>
+
+              <td>
+                <div class="role-badges">
+                  {% if assignment.is_class_teacher %}
+                  <span class="badge bg-warning text-dark me-1">
+                    <i class="fas fa-star me-1"></i>Class Teacher
+                  </span>
+                  {% endif %}
+                  <span class="badge bg-info">
+                    <i class="fas fa-chalkboard me-1"></i>Subject Teacher
+                  </span>
+                </div>
+              </td>
+
+              <td>
+                <div class="schedule-info">
+                  {% get_assignment_schedule assignment as schedule %}
+                  {% if schedule %}
+                  <div class="schedule-item">
+                    <i class="fas fa-clock text-muted me-1"></i>
+                    <small>{{ schedule.periods_per_week|default:0 }} periods/week</small>
+                  </div>
+                  {% if schedule.next_class %}
+                  <div class="next-class">
+                    <i class="fas fa-calendar-day text-success me-1"></i>
+                    <small class="text-success">Next: {{ schedule.next_class.day }}
+                      {{ schedule.next_class.time }}</small>
+                  </div>
+                  {% endif %}
+                  {% else %}
+                  <small class="text-muted">
+                    <i class="fas fa-question-circle me-1"></i>
+                    Schedule TBD
+                  </small>
+                  {% endif %}
+                </div>
+              </td>
+
+              <td>
+                {% if assignment.is_active %}
+                <span class="badge bg-success">
+                  <i class="fas fa-check-circle me-1"></i>Active
+                </span>
+                {% else %}
+                <span class="badge bg-secondary">
+                  <i class="fas fa-pause-circle me-1"></i>Inactive
+                </span>
+                {% endif %}
+
+                {% if assignment.start_date and assignment.end_date %}
+                <div class="mt-1">
+                  <small class="text-muted">
+                    {{ assignment.start_date|date:"M d" }} - {{ assignment.end_date|date:"M d" }}
+                  </small>
+                </div>
+                {% endif %}
+              </td>
+
+              {% if perms.teachers.change_teacherassignment %}
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="tooltip"
+                    title="View Details" onclick="viewAssignmentDetails({{ assignment.id }})">
+                    <i class="fas fa-eye"></i>
+                  </button>
+
+                  <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="tooltip"
+                    title="Edit Assignment" onclick="editAssignment({{ assignment.id }})">
+                    <i class="fas fa-edit"></i>
+                  </button>
+
+                  {% if perms.teachers.delete_teacherassignment %}
+                  <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="tooltip"
+                    title="Remove Assignment" onclick="removeAssignment({{ assignment.id }})">
+                    <i class="fas fa-times"></i>
+                  </button>
+                  {% endif %}
+                </div>
+              </td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Assignment Summary Footer -->
+      <div class="card-footer bg-light border-0">
+        <div class="row text-center">
+          <div class="col-3">
+            <div class="summary-stat">
+              <div class="stat-number text-primary fw-bold">
+                {{ assignments|length }}
+              </div>
+              <div class="stat-label text-muted small">Total</div>
+            </div>
+          </div>
+          <div class="col-3">
+            <div class="summary-stat">
+              <div class="stat-number text-success fw-bold">
+                {% assignments_by_type assignments 'active' as active_count %}
+                {{ active_count }}
+              </div>
+              <div class="stat-label text-muted small">Active</div>
+            </div>
+          </div>
+          <div class="col-3">
+            <div class="summary-stat">
+              <div class="stat-number text-warning fw-bold">
+                {% assignments_by_type assignments 'class_teacher' as ct_count %}
+                {{ ct_count }}
+              </div>
+              <div class="stat-label text-muted small">Class Teacher</div>
+            </div>
+          </div>
+          <div class="col-3">
+            <div class="summary-stat">
+              <div class="stat-number text-info fw-bold">
+                {% unique_subjects assignments as subject_count %}
+                {{ subject_count }}
+              </div>
+              <div class="stat-label text-muted small">Subjects</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="assignment-actions mt-3">
+    <div class="d-flex flex-wrap gap-2">
+      {% if perms.teachers.assign_classes %}
+      <a href="{% url 'teachers:teacher-assignment-create' teacher.id %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus me-1"></i>
+        Add Assignment
+      </a>
+      {% endif %}
+
+      <a href="{% url 'teachers:teacher-timetable' teacher.id %}" class="btn btn-outline-info btn-sm">
+        <i class="fas fa-calendar-alt me-1"></i>
+        View Timetable
+      </a>
+
+      <button type="button" class="btn btn-outline-secondary btn-sm" onclick="exportAssignments({{ teacher.id }})">
+        <i class="fas fa-download me-1"></i>
+        Export
+      </button>
+
+      {% if assignments|length > 5 %}
+      <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
+        data-bs-target="#assignmentFilterModal">
+        <i class="fas fa-filter me-1"></i>
+        Filter
+      </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Filter Modal -->
+  {% if assignments|length > 5 %}
+  <div class="modal fade" id="assignmentFilterModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Filter Assignments</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Subject</label>
+            <select class="form-select" id="subjectFilter">
+              <option value="">All Subjects</option>
+              {% for assignment in assignments %}
+              <option value="{{ assignment.subject.id }}">{{ assignment.subject.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Role</label>
+            <select class="form-select" id="roleFilter">
+              <option value="">All Roles</option>
+              <option value="class_teacher">Class Teacher</option>
+              <option value="subject_teacher">Subject Teacher Only</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Status</label>
+            <select class="form-select" id="statusFilter">
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" onclick="applyAssignmentFilters()">Apply Filters</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <!-- No Assignments -->
+  <div class="text-center py-5">
+    <div class="text-muted">
+      <i class="fas fa-chalkboard-teacher fa-4x mb-3 opacity-25"></i>
+      <h5>No Class Assignments</h5>
+      <p class="mb-3">
+        {% if academic_year %}
+        This teacher has no assignments for {{ academic_year.name }}.
+        {% else %}
+        This teacher has no current assignments.
+        {% endif %}
+      </p>
+      {% if perms.teachers.assign_classes %}
+      <a href="{% url 'teachers:teacher-assignment-create' teacher.id %}" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i>
+        Create First Assignment
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  // Assignment management functions
+  function viewAssignmentDetails(assignmentId) {
+    // Implementation for viewing assignment details
+    console.log('Viewing assignment:', assignmentId);
+    // You can implement a modal or redirect to detail page
+  }
+
+  function editAssignment(assignmentId) {
+    // Implementation for editing assignment
+    window.location.href = `/teachers/assignments/${assignmentId}/edit/`;
+  }
+
+  function removeAssignment(assignmentId) {
+    if (confirm('Are you sure you want to remove this assignment?')) {
+      // Implementation for removing assignment
+      fetch(`/api/teachers/assignments/${assignmentId}/`, {
+        method: 'DELETE',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+          'Content-Type': 'application/json'
+        }
+      })
+        .then(response => {
+          if (response.ok) {
+            location.reload();
+          } else {
+            alert('Error removing assignment');
+          }
+        });
+    }
+  }
+
+  function exportAssignments(teacherId) {
+    window.open(`/teachers/${teacherId}/assignments/export/`, '_blank');
+  }
+
+  function applyAssignmentFilters() {
+    const subjectFilter = document.getElementById('subjectFilter').value;
+    const roleFilter = document.getElementById('roleFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
+
+    const rows = document.querySelectorAll('.assignment-row');
+
+    rows.forEach(row => {
+      let show = true;
+
+      if (subjectFilter) {
+        // Check if row matches subject filter
+        // Implementation depends on how you store subject ID in the row
+      }
+
+      if (roleFilter) {
+        const isClassTeacher = row.querySelector('.badge.bg-warning') !== null;
+        if (roleFilter === 'class_teacher' && !isClassTeacher) show = false;
+        if (roleFilter === 'subject_teacher' && isClassTeacher) show = false;
+      }
+
+      if (statusFilter) {
+        const isActive = row.querySelector('.badge.bg-success') !== null;
+        if (statusFilter === 'active' && !isActive) show = false;
+        if (statusFilter === 'inactive' && isActive) show = false;
+      }
+
+      row.style.display = show ? '' : 'none';
+    });
+
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('assignmentFilterModal'));
+    modal.hide();
+  }
+
+  // Initialize tooltips
+  document.addEventListener('DOMContentLoaded', function () {
+    const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    tooltips.forEach(tooltip => {
+      new bootstrap.Tooltip(tooltip);
+    });
+  });
+</script>
+
+<style>
+  .assignment-list .assignment-row {
+    transition: all 0.2s ease;
+  }
+
+  .assignment-list .assignment-row:hover {
+    background-color: #f8f9fc;
+    transform: translateX(2px);
+  }
+
+  .assignment-list .class-icon {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e7f3ff;
+    border-radius: 6px;
+  }
+
+  .assignment-list .subject-info {
+    min-width: 120px;
+  }
+
+  .assignment-list .role-badges .badge {
+    font-size: 0.7rem;
+    padding: 0.25em 0.5em;
+  }
+
+  .assignment-list .schedule-info {
+    min-width: 100px;
+  }
+
+  .assignment-list .schedule-item,
+  .assignment-list .next-class {
+    margin-bottom: 2px;
+  }
+
+  .assignment-list .summary-stat {
+    padding: 0.5rem;
+  }
+
+  .assignment-list .stat-number {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .assignment-list .stat-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .assignment-list .btn-group-sm .btn {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .assignment-list .table th {
+    border-top: none;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #5a5c69;
+  }
+
+  .assignment-list .table td {
+    vertical-align: middle;
+    border-color: #e3e6f0;
+  }
+
+  .assignment-list .card-footer {
+    background-color: #f8f9fc !important;
+  }
+
+  @media (max-width: 768px) {
+    .assignment-list .table-responsive {
+      font-size: 0.875rem;
+    }
+
+    .assignment-list .btn-group-sm .btn {
+      padding: 0.2rem 0.3rem;
+      font-size: 0.7rem;
+    }
+
+    .assignment-list .role-badges .badge {
+      font-size: 0.65rem;
+      padding: 0.2em 0.4em;
+    }
+
+    .assignment-list .summary-stat .stat-number {
+      font-size: 1rem;
+    }
+  }
+</style>

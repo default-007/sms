@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}System Settings - School Management System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/css/dataTables.bootstrap4.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Heading -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">System Settings</h1>
+    <div class="d-none d-lg-inline-block">
+      <a href="{% url 'core:system_admin' %}" class="btn btn-sm btn-secondary shadow-sm">
+        <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Admin
+      </a>
+    </div>
+  </div>
+
+  <!-- Alert Messages -->
+  {% if messages %}
+  {% for message in messages %}
+  <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <!-- Filters and Search -->
+  <div class="card shadow mb-4">
+    <div class="card-body">
+      <form method="get" class="row">
+        <div class="col-md-4 mb-3">
+          <label for="category" class="form-label">Category</label>
+          <select name="category" id="category" class="form-control">
+            <option value="">All Categories</option>
+            {% for category in categories %}
+            <option value="{{ category }}" {% if category == current_category %}selected{% endif %}>
+              {{ category|title }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label for="search" class="form-label">Search</label>
+          <input type="text" name="search" id="search" class="form-control" value="{{ search_query }}"
+            placeholder="Search by key or description...">
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="form-label">&nbsp;</label>
+          <div>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-search"></i> Filter
+            </button>
+            <a href="{% url 'core:settings' %}" class="btn btn-outline-secondary">
+              <i class="fas fa-times"></i>
+            </a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Settings by Category -->
+  {% regroup settings by category as category_list %}
+  {% for category in category_list %}
+  <div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+      <h6 class="m-0 font-weight-bold text-primary">
+        <i class="fas 
+                        {% if category.grouper == 'academic' %}fa-graduation-cap
+                        {% elif category.grouper == 'financial' %}fa-money-bill-wave
+                        {% elif category.grouper == 'system' %}fa-cog
+                        {% elif category.grouper == 'communication' %}fa-envelope
+                        {% elif category.grouper == 'security' %}fa-shield-alt
+                        {% elif category.grouper == 'analytics' %}fa-chart-bar
+                        {% else %}fa-folder{% endif %}"></i>
+        {{ category.grouper|title }} Settings
+      </h6>
+      <span class="badge badge-primary">{{ category.list|length }} setting{{ category.list|length|pluralize }}</span>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-bordered" width="100%" cellspacing="0">
+          <thead>
+            <tr>
+              <th width="25%">Setting Key</th>
+              <th width="20%">Current Value</th>
+              <th width="15%">Data Type</th>
+              <th width="30%">Description</th>
+              <th width="10%">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for setting in category.list %}
+            <tr>
+              <td>
+                <code class="text-primary">{{ setting.setting_key }}</code>
+              </td>
+              <td>
+                {% if setting.data_type == 'boolean' %}
+                {% if setting.get_typed_value %}
+                <span class="badge badge-success">True</span>
+                {% else %}
+                <span class="badge badge-secondary">False</span>
+                {% endif %}
+                {% elif setting.data_type == 'json' %}
+                <button class="btn btn-sm btn-outline-info" data-toggle="modal"
+                  data-target="#jsonModal{{ setting.pk }}">
+                  <i class="fas fa-eye"></i> View JSON
+                </button>
+                {% else %}
+                <span class="text-monospace">{{ setting.get_typed_value|truncatechars:30 }}</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge badge-info">{{ setting.get_data_type_display }}</span>
+              </td>
+              <td class="small">{{ setting.description|default:"-" }}</td>
+              <td>
+                {% if setting.is_editable %}
+                <a href="{% url 'core:setting_edit' setting.pk %}" class="btn btn-sm btn-primary" title="Edit Setting">
+                  <i class="fas fa-edit"></i>
+                </a>
+                {% else %}
+                <button class="btn btn-sm btn-secondary" disabled title="Not Editable">
+                  <i class="fas fa-lock"></i>
+                </button>
+                {% endif %}
+              </td>
+            </tr>
+
+            <!-- JSON Modal for JSON type settings -->
+            {% if setting.data_type == 'json' %}
+            <div class="modal fade" id="jsonModal{{ setting.pk }}" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title">{{ setting.setting_key }}</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    <pre class="bg-light p-3"><code>{{ setting.get_typed_value|pprint }}</code></pre>
+                  </div>
+                  <div class="modal-footer">
+                    {% if setting.is_editable %}
+                    <a href="{% url 'core:setting_edit' setting.pk %}" class="btn btn-primary">
+                      Edit Setting
+                    </a>
+                    {% endif %}
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="card shadow">
+    <div class="card-body text-center">
+      <i class="fas fa-search fa-3x text-muted mb-3"></i>
+      <h5 class="text-muted">No Settings Found</h5>
+      <p class="text-muted">
+        {% if search_query or current_category %}
+        No settings match your current filters. Try adjusting your search criteria.
+        {% else %}
+        No system settings are configured yet.
+        {% endif %}
+      </p>
+      {% if search_query or current_category %}
+      <a href="{% url 'core:settings' %}" class="btn btn-primary">
+        <i class="fas fa-times"></i> Clear Filters
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+  <!-- Pagination -->
+  {% if is_paginated %}
+  <nav aria-label="Settings pagination">
+    <ul class="pagination justify-content-center">
+      {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link"
+          href="?page=1{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+          &laquo; First
+        </a>
+      </li>
+      <li class="page-item">
+        <a class="page-link"
+          href="?page={{ page_obj.previous_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+          Previous
+        </a>
+      </li>
+      {% endif %}
+
+      <li class="page-item active">
+        <span class="page-link">
+          Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+      </li>
+
+      {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link"
+          href="?page={{ page_obj.next_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+          Next
+        </a>
+      </li>
+      <li class="page-item">
+        <a class="page-link"
+          href="?page={{ page_obj.paginator.num_pages }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+          Last &raquo;
+        </a>
+      </li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+
+  <!-- Settings Summary Card -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Settings Summary</h6>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            {% for category in categories %}
+            {% with count=settings|dictsort:"category"|dictsortreversed:"category" %}
+            <div class="col-md-2 mb-3">
+              <div class="border rounded p-3">
+                <div class="h5 mb-0 font-weight-bold text-primary">
+                  {% for setting in settings %}
+                  {% if setting.category == category %}
+                  {% if forloop.first %}1{% else %}{% if forloop.counter %}{{ forloop.counter }}{% endif %}{% endif %}
+                  {% endif %}
+                  {% endfor %}
+                </div>
+                <div class="small text-muted">{{ category|title }}</div>
+              </div>
+            </div>
+            {% endwith %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Settings Help -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-info-circle"></i> Settings Help
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h6 class="font-weight-bold">Category Descriptions:</h6>
+              <ul class="list-unstyled">
+                <li><strong>Academic:</strong> Settings related to academic year, terms, grading</li>
+                <li><strong>Financial:</strong> Fee structures, payment settings, financial policies</li>
+                <li><strong>System:</strong> Core system configuration and maintenance settings</li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <h6 class="font-weight-bold">Data Types:</h6>
+              <ul class="list-unstyled">
+                <li><strong>String:</strong> Text values</li>
+                <li><strong>Integer:</strong> Whole numbers</li>
+                <li><strong>Boolean:</strong> True/False values</li>
+                <li><strong>JSON:</strong> Complex structured data</li>
+              </ul>
+            </div>
+          </div>
+          <div class="alert alert-warning mt-3">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Warning:</strong> Changing system settings can affect the behavior of the entire application.
+            Make sure you understand the impact of each setting before making changes.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Auto-submit form on category change
+    $('#category').change(function () {
+      $(this).closest('form').submit();
+    });
+
+    // Search on Enter key
+    $('#search').keypress(function (e) {
+      if (e.which == 13) {
+        $(this).closest('form').submit();
+      }
+    });
+
+    // Initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+
+    // Highlight editable vs non-editable settings
+    $('table tbody tr').each(function () {
+      var editButton = $(this).find('.btn-primary');
+      if (editButton.length === 0) {
+        $(this).addClass('table-secondary');
+      }
+    });
+
+    // Add confirmation for critical setting changes
+    $('.btn-primary[href*="edit"]').click(function (e) {
+      var settingKey = $(this).closest('tr').find('code').text();
+      var criticalSettings = [
+        'system.maintenance_mode',
+        'academic.passing_grade_percentage',
+        'finance.late_fee_percentage'
+      ];
+
+      if (criticalSettings.includes(settingKey)) {
+        if (!confirm('You are about to modify a critical system setting: ' + settingKey + '. Are you sure you want to continue?')) {
+          e.preventDefault();
+        }
+      }
+    });
+  });
+</script>
+{% endblock %}

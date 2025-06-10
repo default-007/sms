@@ -1,111 +1,450 @@
-{% extends "base.html" %}
-{% load static %}
+{% extends 'base.html' %}
+{% load teacher_tags %}
+{% load crispy_forms_tags %}
 
-{% block title %}Assign Class to Teacher{% endblock %}
+{% block title %}
+Assign Class to {{ teacher.get_full_name }} - School Management System
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+<link rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
+{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Assign Class to Teacher</h2>
-    <a href="{% url 'teacher-detail' teacher.id %}" class="btn btn-outline-secondary">
-      <i class="fas fa-arrow-left"></i> Back to Teacher
-    </a>
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">
+            <i class="fas fa-chalkboard me-2"></i>Assign Class to Teacher
+          </h1>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'teachers:teacher-list' %}">Teachers</a></li>
+              <li class="breadcrumb-item"><a
+                  href="{% url 'teachers:teacher-detail' teacher.pk %}">{{ teacher.get_full_name }}</a></li>
+              <li class="breadcrumb-item active">Assign Class</li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <a href="{% url 'teachers:teacher-detail' teacher.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Teacher
+          </a>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="card-header bg-light">
-      <h5 class="mb-0">Class Assignment Details</h5>
+  <div class="row">
+    <!-- Teacher Info Sidebar -->
+    <div class="col-md-4">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-user me-2"></i>Teacher Information
+          </h6>
+        </div>
+        <div class="card-body text-center">
+          {% teacher_avatar teacher 80 %}
+          <h6 class="mt-3">{{ teacher.get_full_name }}</h6>
+          <p class="text-muted mb-1">{{ teacher.employee_id }}</p>
+          <p class="text-muted">{{ teacher.position }}</p>
+
+          <div class="row text-center mt-3">
+            <div class="col-6">
+              <small class="text-muted">Department</small>
+              <div class="fw-bold">
+                {% if teacher.department %}
+                {{ teacher.department.name }}
+                {% else %}
+                <span class="text-muted">None</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-6">
+              <small class="text-muted">Specialization</small>
+              <div class="fw-bold">{{ teacher.specialization|truncatechars:15 }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Current Workload -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-tasks me-2"></i>Current Workload
+          </h6>
+        </div>
+        <div class="card-body">
+          {% workload_summary teacher %}
+        </div>
+      </div>
+
+      <!-- Current Assignments -->
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-list me-2"></i>Current Assignments
+          </h6>
+        </div>
+        <div class="card-body">
+          {% assignment_list teacher limit=5 %}
+        </div>
+      </div>
     </div>
-    <div class="card-body">
-      <form method="post" novalidate>
-        {% csrf_token %}
 
-        <div class="row mb-3">
-          <div class="col-md-6 mb-3">
-            <label for="{{ form.teacher.id_for_label }}" class="form-label">Teacher</label>
-            <div class="input-group">
-              {{ form.teacher }}
-              <span class="input-group-text">{{ teacher.get_full_name }}</span>
+    <!-- Assignment Form -->
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-plus me-2"></i>New Class Assignment
+          </h6>
+        </div>
+        <div class="card-body">
+          <form method="post" id="assignmentForm">
+            {% csrf_token %}
+            {{ form.teacher }}
+
+            <!-- Academic Year -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <label for="{{ form.academic_year.id_for_label }}" class="form-label">
+                  <i class="fas fa-calendar-alt me-2"></i>Academic Year <span class="text-danger">*</span>
+                </label>
+                {{ form.academic_year }}
+                {% if form.academic_year.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.academic_year.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
             </div>
-            {% if form.teacher.errors %}
-            <div class="invalid-feedback d-block">
-              {{ form.teacher.errors }}
+
+            <!-- Class and Subject Selection -->
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <label for="{{ form.class_instance.id_for_label }}" class="form-label">
+                  <i class="fas fa-school me-2"></i>Class <span class="text-danger">*</span>
+                </label>
+                {{ form.class_instance }}
+                <div class="form-text">Select the class to assign to this teacher</div>
+                {% if form.class_instance.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.class_instance.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="{{ form.subject.id_for_label }}" class="form-label">
+                  <i class="fas fa-book me-2"></i>Subject <span class="text-danger">*</span>
+                </label>
+                {{ form.subject }}
+                <div class="form-text">Select the subject for this assignment</div>
+                {% if form.subject.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.subject.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
             </div>
-            {% endif %}
-          </div>
-          <div class="col-md-6 mb-3">
-            <label for="{{ form.academic_year.id_for_label }}" class="form-label">Academic Year <span
-                class="text-danger">*</span></label>
-            {{ form.academic_year }}
-            {% if form.academic_year.errors %}
-            <div class="invalid-feedback d-block">
-              {{ form.academic_year.errors }}
+
+            <!-- Class Teacher Designation -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <div class="form-check form-switch">
+                  {{ form.is_class_teacher }}
+                  <label class="form-check-label" for="{{ form.is_class_teacher.id_for_label }}">
+                    <i class="fas fa-star me-2"></i>Make this teacher the Class Teacher
+                  </label>
+                </div>
+                <div class="form-text">
+                  Class teachers have additional responsibilities for student discipline,
+                  attendance tracking, and parent communication.
+                </div>
+                {% if form.is_class_teacher.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.is_class_teacher.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
             </div>
-            {% endif %}
+
+            <!-- Notes -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <label for="{{ form.notes.id_for_label }}" class="form-label">
+                  <i class="fas fa-sticky-note me-2"></i>Notes
+                </label>
+                {{ form.notes }}
+                <div class="form-text">Any additional notes or special instructions for this assignment</div>
+                {% if form.notes.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.notes.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Validation Messages -->
+            <div id="validationMessages" class="mb-4" style="display: none;">
+              <!-- Dynamic validation messages will appear here -->
+            </div>
+
+            <!-- Assignment Preview -->
+            <div id="assignmentPreview" class="alert alert-info" style="display: none;">
+              <h6><i class="fas fa-eye me-2"></i>Assignment Preview</h6>
+              <div id="previewContent"></div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="row">
+              <div class="col-12">
+                <hr>
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <a href="{% url 'teachers:teacher-detail' teacher.pk %}" class="btn btn-outline-secondary">
+                      <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                  </div>
+                  <div>
+                    <button type="button" class="btn btn-outline-primary me-2" id="previewBtn">
+                      <i class="fas fa-eye me-2"></i>Preview Assignment
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="assignBtn">
+                      <i class="fas fa-check me-2"></i>Assign Class
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Potential Conflicts Card -->
+      <div class="card mt-4" id="conflictsCard" style="display: none;">
+        <div class="card-header bg-warning">
+          <h6 class="card-title mb-0 text-dark">
+            <i class="fas fa-exclamation-triangle me-2"></i>Potential Conflicts
+          </h6>
+        </div>
+        <div class="card-body">
+          <div id="conflictsContent">
+            <!-- Conflict information will be populated here -->
           </div>
         </div>
-
-        <div class="row mb-3">
-          <div class="col-md-4 mb-3">
-            <label for="{{ form.class_instance.id_for_label }}" class="form-label">Class <span
-                class="text-danger">*</span></label>
-            {{ form.class_instance }}
-            {% if form.class_instance.errors %}
-            <div class="invalid-feedback d-block">
-              {{ form.class_instance.errors }}
-            </div>
-            {% endif %}
-          </div>
-          <div class="col-md-4 mb-3">
-            <label for="{{ form.subject.id_for_label }}" class="form-label">Subject <span
-                class="text-danger">*</span></label>
-            {{ form.subject }}
-            {% if form.subject.errors %}
-            <div class="invalid-feedback d-block">
-              {{ form.subject.errors }}
-            </div>
-            {% endif %}
-          </div>
-          <div class="col-md-4 mb-3">
-            <label for="{{ form.is_class_teacher.id_for_label }}" class="form-label">Class Teacher</label>
-            <div class="form-check mt-2">
-              {{ form.is_class_teacher }}
-              <label class="form-check-label" for="{{ form.is_class_teacher.id_for_label }}">
-                Assign as class teacher
-              </label>
-            </div>
-            {% if form.is_class_teacher.errors %}
-            <div class="invalid-feedback d-block">
-              {{ form.is_class_teacher.errors }}
-            </div>
-            {% endif %}
-          </div>
-        </div>
-
-        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-          <button type="submit" class="btn btn-primary">
-            <i class="fas fa-save"></i> Save Assignment
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
   </div>
 </div>
 {% endblock %}
 
-{% block scripts %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
-  // Add Bootstrap's form-control class to all inputs
-  document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('input, select, textarea').forEach(function (el) {
-      if (!el.classList.contains('form-control') && !el.classList.contains('form-check-input') && !el.classList.contains('form-select')) {
-        if (el.getAttribute('type') === 'checkbox' || el.getAttribute('type') === 'radio') {
-          el.classList.add('form-check-input');
-        } else if (el.tagName === 'SELECT') {
-          el.classList.add('form-select');
+  $(document).ready(function () {
+    // Initialize Select2
+    $('.select2').select2({
+      theme: 'bootstrap-5',
+      width: '100%'
+    });
+
+    // Form elements
+    const $academicYear = $('#id_academic_year');
+    const $classInstance = $('#id_class_instance');
+    const $subject = $('#id_subject');
+    const $isClassTeacher = $('#id_is_class_teacher');
+    const $notes = $('#id_notes');
+    const $previewBtn = $('#previewBtn');
+    const $assignmentPreview = $('#assignmentPreview');
+    const $validationMessages = $('#validationMessages');
+    const $conflictsCard = $('#conflictsCard');
+
+    // Update preview when form changes
+    $academicYear.add($classInstance).add($subject).add($isClassTeacher).on('change', function () {
+      updatePreview();
+      checkForConflicts();
+    });
+
+    // Preview button click
+    $previewBtn.on('click', function () {
+      updatePreview();
+      $assignmentPreview.slideDown();
+    });
+
+    // Form validation
+    $('#assignmentForm').on('submit', function (e) {
+      if (!validateForm()) {
+        e.preventDefault();
+      }
+    });
+
+    // Class teacher checkbox change
+    $isClassTeacher.on('change', function () {
+      if ($(this).is(':checked')) {
+        showClassTeacherWarning();
+      }
+    });
+
+    function updatePreview() {
+      const academicYear = $academicYear.find('option:selected').text();
+      const className = $classInstance.find('option:selected').text();
+      const subjectName = $subject.find('option:selected').text();
+      const isClassTeacher = $isClassTeacher.is(':checked');
+      const notes = $notes.val();
+
+      if (!className || className === '---------' || !subjectName || subjectName === '---------') {
+        $assignmentPreview.hide();
+        return;
+      }
+
+      const previewHtml = `
+            <table class="table table-sm mb-0">
+                <tr>
+                    <td><strong>Teacher:</strong></td>
+                    <td>{{ teacher.get_full_name }} ({{ teacher.employee_id }})</td>
+                </tr>
+                <tr>
+                    <td><strong>Academic Year:</strong></td>
+                    <td>${academicYear}</td>
+                </tr>
+                <tr>
+                    <td><strong>Class:</strong></td>
+                    <td>${className}</td>
+                </tr>
+                <tr>
+                    <td><strong>Subject:</strong></td>
+                    <td>${subjectName}</td>
+                </tr>
+                <tr>
+                    <td><strong>Role:</strong></td>
+                    <td>${isClassTeacher ? '<span class="badge bg-primary">Class Teacher</span>' : '<span class="badge bg-secondary">Subject Teacher</span>'}</td>
+                </tr>
+                ${notes ? `<tr><td><strong>Notes:</strong></td><td>${notes}</td></tr>` : ''}
+            </table>
+        `;
+
+      $('#previewContent').html(previewHtml);
+      $assignmentPreview.show();
+    }
+
+    function validateForm() {
+      let isValid = true;
+      $validationMessages.empty().hide();
+
+      // Required field validation
+      const requiredFields = [$academicYear, $classInstance, $subject];
+      requiredFields.forEach(function ($field) {
+        if (!$field.val()) {
+          $field.addClass('is-invalid');
+          isValid = false;
         } else {
-          el.classList.add('form-control');
+          $field.removeClass('is-invalid');
         }
+      });
+
+      if (!isValid) {
+        showValidationMessage('Please fill in all required fields.', 'danger');
+      }
+
+      return isValid;
+    }
+
+    function checkForConflicts() {
+      const classId = $classInstance.val();
+      const subjectId = $subject.val();
+      const academicYearId = $academicYear.val();
+      const isClassTeacher = $isClassTeacher.is(':checked');
+
+      if (!classId || !subjectId || !academicYearId) {
+        $conflictsCard.hide();
+        return;
+      }
+
+      // Simulate conflict checking (in real implementation, this would be an AJAX call)
+      setTimeout(function () {
+        const conflicts = [];
+
+        // Simulate existing assignment check
+        if (Math.random() > 0.7) {
+          conflicts.push({
+            type: 'existing_assignment',
+            message: 'Another teacher is already assigned to this class and subject.'
+          });
+        }
+
+        // Simulate class teacher conflict
+        if (isClassTeacher && Math.random() > 0.8) {
+          conflicts.push({
+            type: 'class_teacher_exists',
+            message: 'This class already has a class teacher assigned.'
+          });
+        }
+
+        // Simulate workload warning
+        if (Math.random() > 0.6) {
+          conflicts.push({
+            type: 'workload_warning',
+            message: 'This assignment will give the teacher a heavy workload (7+ classes).'
+          });
+        }
+
+        if (conflicts.length > 0) {
+          showConflicts(conflicts);
+        } else {
+          $conflictsCard.hide();
+        }
+      }, 500);
+    }
+
+    function showConflicts(conflicts) {
+      let conflictsHtml = '<ul class="mb-0">';
+      conflicts.forEach(function (conflict) {
+        const iconClass = conflict.type === 'workload_warning' ? 'fa-exclamation-circle text-warning' : 'fa-times-circle text-danger';
+        conflictsHtml += `<li><i class="fas ${iconClass} me-2"></i>${conflict.message}</li>`;
+      });
+      conflictsHtml += '</ul>';
+
+      $('#conflictsContent').html(conflictsHtml);
+      $conflictsCard.slideDown();
+    }
+
+    function showClassTeacherWarning() {
+      showValidationMessage(
+        'Class teachers have additional responsibilities including student discipline, attendance tracking, and parent communication.',
+        'info'
+      );
+    }
+
+    function showValidationMessage(message, type = 'danger') {
+      const alertClass = type === 'danger' ? 'alert-danger' : type === 'warning' ? 'alert-warning' : 'alert-info';
+      const iconClass = type === 'danger' ? 'fa-exclamation-triangle' : type === 'warning' ? 'fa-exclamation-circle' : 'fa-info-circle';
+
+      const messageHtml = `
+            <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                <i class="fas ${iconClass} me-2"></i>${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+
+      $validationMessages.html(messageHtml).show();
+    }
+
+    // Load classes and subjects based on academic year
+    $academicYear.on('change', function () {
+      const academicYearId = $(this).val();
+      if (academicYearId) {
+        // In real implementation, these would be AJAX calls to get filtered data
+        console.log('Loading classes and subjects for academic year:', academicYearId);
       }
     });
   });

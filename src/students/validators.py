@@ -436,13 +436,7 @@ address_validator = AddressValidator()
 def validate_student_data(student_data, user_data=None):
     """
     Comprehensive validation for student data
-
-    Args:
-        student_data (dict): Student model data
-        user_data (dict): User model data
-
-    Returns:
-        list: List of validation errors
+    Email is now optional since username is admission_number
     """
     errors = []
 
@@ -450,6 +444,16 @@ def validate_student_data(student_data, user_data=None):
         # Validate admission number
         if "admission_number" in student_data:
             admission_number_validator(student_data["admission_number"])
+
+            # Check if admission number exists as username
+            from django.contrib.auth import get_user_model
+
+            User = get_user_model()
+            if User.objects.filter(username=student_data["admission_number"]).exists():
+                errors.append(
+                    "Admission Number: This admission number is already in use as username"
+                )
+
     except ValidationError as e:
         errors.append(f"Admission Number: {e.message}")
 
@@ -489,7 +493,8 @@ def validate_student_data(student_data, user_data=None):
             errors.append(f"Last Name: {e.message}")
 
         try:
-            if "email" in user_data:
+            # Email validation is now optional
+            if "email" in user_data and user_data["email"]:
                 email_domain_validator(user_data["email"])
         except ValidationError as e:
             errors.append(f"Email: {e.message}")
@@ -505,6 +510,14 @@ def validate_student_data(student_data, user_data=None):
                 phone_validator(user_data["phone_number"])
         except ValidationError as e:
             errors.append(f"Phone Number: {e.message}")
+
+        try:
+            # Validate username is same as admission number
+            if "username" in user_data and "admission_number" in student_data:
+                if user_data["username"] != student_data["admission_number"]:
+                    errors.append("Username must be the same as admission number")
+        except Exception as e:
+            errors.append(f"Username validation: {str(e)}")
 
     return errors
 

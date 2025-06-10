@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}System Administration - School Management System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/css/dataTables.bootstrap4.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Heading -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">System Administration</h1>
+    <div class="d-none d-lg-inline-block">
+      <a href="{% url 'core:settings' %}" class="btn btn-sm btn-primary shadow-sm">
+        <i class="fas fa-cog fa-sm text-white-50"></i> System Settings
+      </a>
+    </div>
+  </div>
+
+  <!-- System Overview Cards -->
+  <div class="row">
+    <!-- Total Users -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-primary shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                Total Users
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_users }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-users fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Users -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-success shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                Active Users
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ active_users }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-user-check fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Settings -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-info shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                System Settings
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_settings }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-cogs fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audit Logs -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-warning shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                Audit Logs
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ audit_logs_count }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-history fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Health and Activity Row -->
+  <div class="row">
+    <!-- System Health -->
+    <div class="col-xl-4 col-lg-5">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+          <h6 class="m-0 font-weight-bold text-primary">System Health</h6>
+          <a href="{% url 'core:system_health' %}" class="btn btn-sm btn-outline-primary">
+            View Details
+          </a>
+        </div>
+        <div class="card-body">
+          {% if system_health %}
+          <div class="mb-3">
+            <div class="small mb-1 d-flex justify-content-between">
+              <span>Response Time</span>
+              <span>{{ system_health.avg_response_time_ms|floatformat:0 }}ms</span>
+            </div>
+            <div class="progress progress-sm">
+              <div class="progress-bar 
+                                    {% if system_health.avg_response_time_ms < 500 %}bg-success
+                                    {% elif system_health.avg_response_time_ms < 1000 %}bg-warning
+                                    {% else %}bg-danger{% endif %}" role="progressbar"
+                style="width: {% if system_health.avg_response_time_ms > 2000 %}100{% else %}{{ system_health.avg_response_time_ms|floatformat:0|div:20 }}{% endif %}%">
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div class="small mb-1 d-flex justify-content-between">
+              <span>Cache Hit Rate</span>
+              <span>{{ system_health.cache_hit_rate|floatformat:1 }}%</span>
+            </div>
+            <div class="progress progress-sm">
+              <div class="progress-bar 
+                                    {% if system_health.cache_hit_rate >= 80 %}bg-success
+                                    {% elif system_health.cache_hit_rate >= 60 %}bg-warning
+                                    {% else %}bg-danger{% endif %}" role="progressbar"
+                style="width: {{ system_health.cache_hit_rate|floatformat:0 }}%">
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div class="small mb-1 d-flex justify-content-between">
+              <span>Active Users</span>
+              <span>{{ system_health.active_users }}</span>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div class="small mb-1 d-flex justify-content-between">
+              <span>Storage Used</span>
+              <span>{{ system_health.storage_used_gb|floatformat:1 }} GB</span>
+            </div>
+            {% with total_storage=system_health.storage_used_gb|add:system_health.storage_available_gb %}
+            {% if total_storage > 0 %}
+            {% with usage_percent=system_health.storage_used_gb|div:total_storage|mul:100 %}
+            <div class="progress progress-sm">
+              <div class="progress-bar 
+                                        {% if usage_percent < 70 %}bg-success
+                                        {% elif usage_percent < 85 %}bg-warning
+                                        {% else %}bg-danger{% endif %}" role="progressbar"
+                style="width: {{ usage_percent|floatformat:0 }}%">
+              </div>
+            </div>
+            {% endwith %}
+            {% endif %}
+            {% endwith %}
+          </div>
+
+          <div class="text-center">
+            <span class="badge badge-success">System Operational</span>
+          </div>
+          {% else %}
+          <div class="text-center">
+            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+            <p class="text-muted">No health data available</p>
+            <small class="text-muted">Health monitoring will begin once metrics are collected.</small>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent System Activity -->
+    <div class="col-xl-8 col-lg-7">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+          <h6 class="m-0 font-weight-bold text-primary">Recent System Activity</h6>
+          <a href="{% url 'core:audit_logs' %}" class="btn btn-sm btn-outline-primary">
+            View All Logs
+          </a>
+        </div>
+        <div class="card-body">
+          {% if recent_system_activity %}
+          <div class="table-responsive">
+            <table class="table table-bordered" id="systemActivityTable" width="100%" cellspacing="0">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>User</th>
+                  <th>Action</th>
+                  <th>Description</th>
+                  <th>Module</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for log in recent_system_activity %}
+                <tr>
+                  <td class="small">{{ log.timestamp|date:"M d, H:i" }}</td>
+                  <td class="small">
+                    {% if log.user %}
+                    {{ log.user.get_full_name|default:log.user.username }}
+                    {% else %}
+                    <span class="text-muted">System</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="badge badge-sm
+                                                {% if log.action == 'create' %}badge-success
+                                                {% elif log.action == 'update' %}badge-primary
+                                                {% elif log.action == 'delete' %}badge-danger
+                                                {% elif log.action == 'system_action' %}badge-info
+                                                {% else %}badge-secondary{% endif %}">
+                      {{ log.get_action_display }}
+                    </span>
+                  </td>
+                  <td class="small">{{ log.description|truncatechars:60 }}</td>
+                  <td class="small">
+                    {% if log.module_name %}
+                    <span class="badge badge-light">{{ log.module_name|title }}</span>
+                    {% else %}
+                    -
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center">
+            <i class="fas fa-history fa-3x text-muted mb-3"></i>
+            <p class="text-muted">No recent system activity</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+              <a href="{% url 'core:user_management' %}" class="btn btn-outline-primary btn-block">
+                <i class="fas fa-users fa-lg mb-2"></i><br>
+                Manage Users
+              </a>
+            </div>
+            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+              <a href="{% url 'core:settings' %}" class="btn btn-outline-success btn-block">
+                <i class="fas fa-cog fa-lg mb-2"></i><br>
+                System Settings
+              </a>
+            </div>
+            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+              <a href="{% url 'core:audit_logs' %}" class="btn btn-outline-info btn-block">
+                <i class="fas fa-history fa-lg mb-2"></i><br>
+                Audit Logs
+              </a>
+            </div>
+            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+              <a href="{% url 'core:analytics' %}" class="btn btn-outline-warning btn-block">
+                <i class="fas fa-chart-bar fa-lg mb-2"></i><br>
+                Analytics
+              </a>
+            </div>
+            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+              <a href="{% url 'core:reports' %}" class="btn btn-outline-secondary btn-block">
+                <i class="fas fa-file-alt fa-lg mb-2"></i><br>
+                Reports
+              </a>
+            </div>
+            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+              <a href="{% url 'core:system_health' %}" class="btn btn-outline-danger btn-block">
+                <i class="fas fa-heartbeat fa-lg mb-2"></i><br>
+                System Health
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Status Summary -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">System Status Summary</h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3 text-center mb-3">
+              <div class="mb-2">
+                <i class="fas fa-database fa-2x text-success"></i>
+              </div>
+              <div class="h6 mb-0">Database</div>
+              <small class="text-success">Operational</small>
+            </div>
+            <div class="col-md-3 text-center mb-3">
+              <div class="mb-2">
+                <i class="fas fa-memory fa-2x text-success"></i>
+              </div>
+              <div class="h6 mb-0">Cache</div>
+              <small class="text-success">Operational</small>
+            </div>
+            <div class="col-md-3 text-center mb-3">
+              <div class="mb-2">
+                <i class="fas fa-server fa-2x text-success"></i>
+              </div>
+              <div class="h6 mb-0">Web Server</div>
+              <small class="text-success">Operational</small>
+            </div>
+            <div class="col-md-3 text-center mb-3">
+              <div class="mb-2">
+                <i class="fas fa-tasks fa-2x text-success"></i>
+              </div>
+              <div class="h6 mb-0">Background Tasks</div>
+              <small class="text-success">Operational</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable for system activity
+    {% if recent_system_activity %}
+    $('#systemActivityTable').DataTable({
+      "pageLength": 10,
+      "lengthChange": false,
+      "searching": false,
+      "ordering": true,
+      "order": [[0, "desc"]],
+      "columnDefs": [
+        { "orderable": false, "targets": [3] }
+      ],
+      "responsive": true
+    });
+    {% endif %}
+
+    // Auto-refresh system health every 30 seconds
+    setInterval(function () {
+      // You can implement AJAX refresh of system health here
+      console.log('System health refresh would happen here');
+    }, 30000);
+  });
+</script>
+{% endblock %}

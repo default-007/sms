@@ -1,0 +1,387 @@
+{% extends 'subjects/base.html' %}
+
+{% block title %}Dashboard - Subjects & Curriculum{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h2">Subjects & Curriculum Dashboard</h1>
+  <div class="btn-toolbar mb-2 mb-md-0">
+    <div class="btn-group me-2">
+      <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="fas fa-calendar-alt"></i> Academic Year
+      </button>
+      <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="#">2024-2025</a></li>
+        <li><a class="dropdown-item" href="#">2023-2024</a></li>
+      </ul>
+    </div>
+    <button type="button" class="btn btn-sm btn-primary">
+      <i class="fas fa-download"></i> Export Report
+    </button>
+  </div>
+</div>
+
+<!-- Key Metrics Row -->
+<div class="row mb-4">
+  <div class="col-xl-3 col-md-6 mb-4">
+    <div class="card border-left-primary shadow h-100 py-2">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Subjects</div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-subjects">
+              {{ analytics_data.overview.total_subjects|default:0 }}
+            </div>
+          </div>
+          <div class="col-auto">
+            <i class="fas fa-book fa-2x text-gray-300"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-4">
+    <div class="card border-left-success shadow h-100 py-2">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Active Syllabi</div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800" id="active-syllabi">
+              {{ analytics_data.overview.total_syllabi|default:0 }}
+            </div>
+          </div>
+          <div class="col-auto">
+            <i class="fas fa-list-alt fa-2x text-gray-300"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-4">
+    <div class="card border-left-info shadow h-100 py-2">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Average Completion</div>
+            <div class="row no-gutters align-items-center">
+              <div class="col-auto">
+                <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800" id="avg-completion">
+                  {{ analytics_data.overview.average_completion|default:0|floatformat:1 }}%
+                </div>
+              </div>
+              <div class="col">
+                <div class="progress progress-sm mr-2">
+                  <div class="progress-bar bg-info" role="progressbar"
+                    style="width: {{ analytics_data.overview.average_completion|default:0 }}%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-auto">
+            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-4">
+    <div class="card border-left-warning shadow h-100 py-2">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Teacher Assignments</div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800" id="teacher-assignments">
+              {{ analytics_data.overview.total_assignments|default:0 }}
+            </div>
+          </div>
+          <div class="col-auto">
+            <i class="fas fa-chalkboard-teacher fa-2x text-gray-300"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row">
+  <!-- Completion Overview Chart -->
+  <div class="col-lg-6 mb-4">
+    <div class="card shadow mb-4">
+      <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary">Completion Overview</h6>
+        <div class="dropdown no-arrow">
+          <a class="dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+          </a>
+          <div class="dropdown-menu dropdown-menu-right shadow">
+            <a class="dropdown-item" href="#">Download Chart</a>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="completionChart" style="height: 300px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Department Performance Chart -->
+  <div class="col-lg-6 mb-4">
+    <div class="card shadow mb-4">
+      <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary">Department Performance</h6>
+        <div class="dropdown no-arrow">
+          <a class="dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+          </a>
+          <div class="dropdown-menu dropdown-menu-right shadow">
+            <a class="dropdown-item" href="#">View Details</a>
+            <a class="dropdown-item" href="#">Download Chart</a>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="departmentChart" style="height: 300px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Activity and Quick Actions Row -->
+<div class="row">
+  <!-- Recent Activity -->
+  <div class="col-lg-8 mb-4">
+    <div class="card shadow mb-4">
+      <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Recent Activity</h6>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-sm" id="recentActivityTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Activity</th>
+                <th>Subject</th>
+                <th>Teacher</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>2024-01-15</td>
+                <td>Syllabus Updated</td>
+                <td>Mathematics - Grade 5</td>
+                <td>John Smith</td>
+                <td><span class="badge bg-success">Completed</span></td>
+              </tr>
+              <tr>
+                <td>2024-01-14</td>
+                <td>Topic Completed</td>
+                <td>Science - Grade 3</td>
+                <td>Jane Doe</td>
+                <td><span class="badge bg-info">In Progress</span></td>
+              </tr>
+              <tr>
+                <td>2024-01-13</td>
+                <td>New Assignment</td>
+                <td>English - Grade 7</td>
+                <td>Mike Johnson</td>
+                <td><span class="badge bg-warning">Pending</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="col-lg-4 mb-4">
+    <div class="card shadow mb-4">
+      <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+      </div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          <a href="{% url 'subjects:subject-create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add New Subject
+          </a>
+          <a href="{% url 'subjects:syllabus-create' %}" class="btn btn-success">
+            <i class="fas fa-list-alt"></i> Create Syllabus
+          </a>
+          <a href="{% url 'subjects:assignment-create' %}" class="btn btn-info">
+            <i class="fas fa-user-plus"></i> Assign Teacher
+          </a>
+          <a href="{% url 'subjects:bulk-import-subjects' %}" class="btn btn-warning">
+            <i class="fas fa-upload"></i> Bulk Import
+          </a>
+          <a href="{% url 'subjects:curriculum-analytics' %}" class="btn btn-secondary">
+            <i class="fas fa-chart-bar"></i> View Analytics
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alerts -->
+    <div class="card shadow mb-4">
+      <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-warning">Alerts</h6>
+      </div>
+      <div class="card-body">
+        <div class="list-group list-group-flush">
+          <div class="list-group-item d-flex justify-content-between align-items-start">
+            <div class="ms-2 me-auto">
+              <div class="fw-bold">Behind Schedule</div>
+              <small>3 syllabi are behind completion schedule</small>
+            </div>
+            <span class="badge bg-danger rounded-pill">3</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between align-items-start">
+            <div class="ms-2 me-auto">
+              <div class="fw-bold">Pending Approvals</div>
+              <small>2 syllabi waiting for approval</small>
+            </div>
+            <span class="badge bg-warning rounded-pill">2</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between align-items-start">
+            <div class="ms-2 me-auto">
+              <div class="fw-bold">Unassigned Subjects</div>
+              <small>1 subject needs teacher assignment</small>
+            </div>
+            <span class="badge bg-info rounded-pill">1</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Initialize Recent Activity Table
+    $('#recentActivityTable').DataTable({
+      pageLength: 5,
+      searching: false,
+      ordering: false,
+      info: false,
+      lengthChange: false
+    });
+
+    // Completion Overview Chart
+    const completionOptions = {
+      series: [
+        {{ analytics_data.completion_distribution.completed |default: 0 }},
+      {{ analytics_data.completion_distribution.in_progress|default: 0
+  }},
+    {{ analytics_data.completion_distribution.not_started |default: 0 }}
+        ],
+    chart: {
+    type: 'donut',
+    height: 300
+  },
+    labels: ['Completed', 'In Progress', 'Not Started'],
+    colors: ['#28a745', '#ffc107', '#dc3545'],
+    legend: {
+    position: 'bottom'
+  },
+    plotOptions: {
+    pie: {
+      donut: {
+        size: '70%'
+      }
+    }
+  },
+    dataLabels: {
+    enabled: true,
+    formatter: function (val) {
+      return Math.round(val) + '%'
+    }
+  },
+    responsive: [{
+      breakpoint: 480,
+      options: {
+        chart: {
+          width: 200
+        },
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }]
+    };
+
+  const completionChart = new ApexCharts(document.querySelector("#completionChart"), completionOptions);
+  completionChart.render();
+
+  // Department Performance Chart
+  const departmentData = [
+    {% for dept_name, dept_data in analytics_data.by_department.items %}
+  {
+    name: '{{ dept_name }}',
+      completion: { { dept_data.avg_completion |default: 0 | floatformat: 1 } },
+    subjects: { { dept_data.total_subjects |default: 0 } }
+  },
+  {% endfor %}
+    ];
+
+  const departmentOptions = {
+    series: [{
+      name: 'Average Completion',
+      data: departmentData.map(d => d.completion)
+    }],
+    chart: {
+      type: 'bar',
+      height: 300
+    },
+    xaxis: {
+      categories: departmentData.map(d => d.name)
+    },
+    yaxis: {
+      max: 100,
+      labels: {
+        formatter: function (val) {
+          return val + '%'
+        }
+      }
+    },
+    colors: ['#007bff'],
+    plotOptions: {
+      bar: {
+        borderRadius: 4,
+        columnWidth: '50%'
+      }
+    },
+    dataLabels: {
+      enabled: true,
+      formatter: function (val) {
+        return val + '%'
+      }
+    },
+    tooltip: {
+      y: {
+        formatter: function (val, opts) {
+          const index = opts.dataPointIndex;
+          const subjects = departmentData[index].subjects;
+          return `${val}% (${subjects} subjects)`;
+        }
+      }
+    }
+  };
+
+  const departmentChart = new ApexCharts(document.querySelector("#departmentChart"), departmentOptions);
+  departmentChart.render();
+
+  // Auto-refresh dashboard data every 5 minutes
+  setInterval(function () {
+    // You can implement AJAX refresh here
+    console.log('Refreshing dashboard data...');
+  }, 300000);
+});
+</script>
+{% endblock %}

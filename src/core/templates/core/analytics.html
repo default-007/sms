@@ -1,0 +1,587 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Analytics Dashboard - School Management System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Heading -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h1 class="h3 mb-0 text-gray-800">Analytics Dashboard</h1>
+      <p class="text-muted mb-0">
+        {% if current_academic_year %}
+        {{ current_academic_year.name }}
+        {% if current_term %} - {{ current_term.name }}{% endif %}
+        {% else %}
+        No active academic year
+        {% endif %}
+      </p>
+    </div>
+    <div class="d-none d-lg-inline-block">
+      <button class="btn btn-sm btn-primary shadow-sm" onclick="refreshAnalytics()">
+        <i class="fas fa-sync fa-sm text-white-50"></i> Refresh Data
+      </button>
+    </div>
+  </div>
+
+  <!-- Analytics Summary Cards -->
+  {% if analytics_summary %}
+  <div class="row mb-4">
+    <!-- Student Performance Card -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-primary shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                Average Performance
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {{ analytics_summary.student_performance.avg_marks|floatformat:1 }}%
+              </div>
+              <div class="small text-muted">
+                {{ analytics_summary.student_performance.total_students }} students
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attendance Card -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-success shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                Average Attendance
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {{ analytics_summary.student_performance.avg_attendance|floatformat:1 }}%
+              </div>
+              <div class="small text-muted">Current term</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-user-check fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Class Performance Card -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-info shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                Pass Rate
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {{ analytics_summary.class_performance.avg_pass_rate|floatformat:1 }}%
+              </div>
+              <div class="small text-muted">
+                {{ analytics_summary.class_performance.total_classes }} classes
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-graduation-cap fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Financial Collection Card -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-warning shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                Collection Rate
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {{ analytics_summary.financial.avg_collection_rate|floatformat:1 }}%
+              </div>
+              <div class="small text-muted">
+                ${{ analytics_summary.financial.total_collected|floatformat:0|default:"0" }}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Charts Row -->
+  <div class="row mb-4">
+    <!-- Performance Trends Chart -->
+    <div class="col-xl-8 col-lg-7">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+          <h6 class="m-0 font-weight-bold text-primary">Performance Trends</h6>
+          <div class="dropdown no-arrow">
+            <a class="dropdown-toggle" href="#" role="button" data-toggle="dropdown">
+              <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+            </a>
+            <div class="dropdown-menu dropdown-menu-right shadow">
+              <div class="dropdown-header">Chart Options:</div>
+              <a class="dropdown-item" href="#" onclick="updateChart('performance', 'monthly')">Monthly View</a>
+              <a class="dropdown-item" href="#" onclick="updateChart('performance', 'termly')">Term View</a>
+              <a class="dropdown-item" href="#" onclick="updateChart('performance', 'yearly')">Yearly View</a>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="performanceTrendsChart"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Distribution -->
+    <div class="col-xl-4 col-lg-5">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Performance Distribution</h6>
+        </div>
+        <div class="card-body">
+          <div id="performanceDistributionChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analytics Navigation -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Detailed Analytics</h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+              <a href="{% url 'core:student_analytics' %}" class="btn btn-outline-primary btn-block h-100">
+                <i class="fas fa-user-graduate fa-lg mb-2"></i><br>
+                <strong>Student Analytics</strong><br>
+                <small class="text-muted">Individual performance tracking</small>
+              </a>
+            </div>
+            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+              <a href="{% url 'core:class_analytics' %}" class="btn btn-outline-success btn-block h-100">
+                <i class="fas fa-door-open fa-lg mb-2"></i><br>
+                <strong>Class Analytics</strong><br>
+                <small class="text-muted">Class-wise performance comparison</small>
+              </a>
+            </div>
+            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+              <a href="{% url 'core:attendance_analytics' %}" class="btn btn-outline-info btn-block h-100">
+                <i class="fas fa-user-check fa-lg mb-2"></i><br>
+                <strong>Attendance Analytics</strong><br>
+                <small class="text-muted">Attendance patterns and trends</small>
+              </a>
+            </div>
+            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+              <a href="{% url 'core:financial_analytics' %}" class="btn btn-outline-warning btn-block h-100">
+                <i class="fas fa-chart-pie fa-lg mb-2"></i><br>
+                <strong>Financial Analytics</strong><br>
+                <small class="text-muted">Revenue and collection analysis</small>
+              </a>
+            </div>
+            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+              <a href="{% url 'core:teacher_analytics' %}" class="btn btn-outline-secondary btn-block h-100">
+                <i class="fas fa-chalkboard-teacher fa-lg mb-2"></i><br>
+                <strong>Teacher Analytics</strong><br>
+                <small class="text-muted">Teacher performance metrics</small>
+              </a>
+            </div>
+            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+              <a href="{% url 'core:reports' %}" class="btn btn-outline-dark btn-block h-100">
+                <i class="fas fa-file-alt fa-lg mb-2"></i><br>
+                <strong>Reports</strong><br>
+                <small class="text-muted">Generate detailed reports</small>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Insights Row -->
+  <div class="row">
+    <!-- Top Performing Classes -->
+    <div class="col-xl-4 col-lg-6">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Top Performing Classes</h6>
+        </div>
+        <div class="card-body">
+          <div id="topClassesChart"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attendance Insights -->
+    <div class="col-xl-4 col-lg-6">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Attendance Insights</h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <div class="small mb-1">Excellent Attendance (>95%)</div>
+            <div class="progress mb-1">
+              <div class="progress-bar bg-success" role="progressbar" style="width: 65%"></div>
+            </div>
+            <div class="small text-muted">65% of students</div>
+          </div>
+          <div class="mb-3">
+            <div class="small mb-1">Good Attendance (85-95%)</div>
+            <div class="progress mb-1">
+              <div class="progress-bar bg-primary" role="progressbar" style="width: 25%"></div>
+            </div>
+            <div class="small text-muted">25% of students</div>
+          </div>
+          <div class="mb-3">
+            <div class="small mb-1">Poor Attendance (<85%)< /div>
+                <div class="progress mb-1">
+                  <div class="progress-bar bg-warning" role="progressbar" style="width: 10%"></div>
+                </div>
+                <div class="small text-muted">10% of students</div>
+            </div>
+            <div class="text-center mt-3">
+              <a href="{% url 'core:attendance_analytics' %}" class="btn btn-sm btn-primary">
+                View Details
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Financial Summary -->
+      <div class="col-xl-4 col-lg-6">
+        <div class="card shadow mb-4">
+          <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Financial Summary</h6>
+          </div>
+          <div class="card-body">
+            {% if analytics_summary.financial %}
+            <div class="mb-3">
+              <div class="small mb-1">Expected Revenue</div>
+              <div class="h6 mb-0 font-weight-bold text-primary">
+                ${{ analytics_summary.financial.total_expected|floatformat:0|default:"0" }}
+              </div>
+            </div>
+            <div class="mb-3">
+              <div class="small mb-1">Collected Revenue</div>
+              <div class="h6 mb-0 font-weight-bold text-success">
+                ${{ analytics_summary.financial.total_collected|floatformat:0|default:"0" }}
+              </div>
+            </div>
+            <div class="mb-3">
+              <div class="small mb-1">Outstanding Amount</div>
+              <div class="h6 mb-0 font-weight-bold text-warning">
+                ${{ analytics_summary.financial.total_expected|sub:analytics_summary.financial.total_collected|floatformat:0|default:"0" }}
+              </div>
+            </div>
+            <div class="progress mb-2">
+              <div class="progress-bar bg-success" role="progressbar"
+                style="width: {{ analytics_summary.financial.avg_collection_rate|floatformat:0 }}%">
+              </div>
+            </div>
+            <div class="small text-center text-muted">
+              {{ analytics_summary.financial.avg_collection_rate|floatformat:1 }}% collection rate
+            </div>
+            {% else %}
+            <div class="text-center text-muted">
+              <i class="fas fa-chart-pie fa-2x mb-2"></i>
+              <p>No financial data available</p>
+            </div>
+            {% endif %}
+            <div class="text-center mt-3">
+              <a href="{% url 'core:financial_analytics' %}" class="btn btn-sm btn-primary">
+                View Details
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card shadow mb-4">
+          <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-3 mb-2">
+                <button class="btn btn-outline-primary btn-block" onclick="calculateAnalytics()">
+                  <i class="fas fa-calculator"></i> Recalculate Analytics
+                </button>
+              </div>
+              <div class="col-md-3 mb-2">
+                <a href="{% url 'core:reports' %}?type=performance_summary" class="btn btn-outline-success btn-block">
+                  <i class="fas fa-file-download"></i> Export Report
+                </a>
+              </div>
+              <div class="col-md-3 mb-2">
+                <button class="btn btn-outline-info btn-block" data-toggle="modal" data-target="#compareModal">
+                  <i class="fas fa-balance-scale"></i> Compare Periods
+                </button>
+              </div>
+              <div class="col-md-3 mb-2">
+                <a href="{% url 'core:system_health' %}" class="btn btn-outline-warning btn-block">
+                  <i class="fas fa-heartbeat"></i> System Health
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compare Periods Modal -->
+  <div class="modal fade" id="compareModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Compare Performance Across Periods</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="compareForm">
+            <div class="row">
+              <div class="col-md-6">
+                <h6>Period 1</h6>
+                <div class="form-group">
+                  <label>Academic Year</label>
+                  <select class="form-control" name="year1">
+                    <option value="">Select Year</option>
+                    <!-- Years would be populated here -->
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Term</label>
+                  <select class="form-control" name="term1">
+                    <option value="">Select Term</option>
+                    <!-- Terms would be populated here -->
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <h6>Period 2</h6>
+                <div class="form-group">
+                  <label>Academic Year</label>
+                  <select class="form-control" name="year2">
+                    <option value="">Select Year</option>
+                    <!-- Years would be populated here -->
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Term</label>
+                  <select class="form-control" name="term2">
+                    <option value="">Select Term</option>
+                    <!-- Terms would be populated here -->
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Comparison Type</label>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="comparison_type" value="performance" checked>
+                <label class="form-check-label">Academic Performance</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="comparison_type" value="attendance">
+                <label class="form-check-label">Attendance</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="comparison_type" value="financial">
+                <label class="form-check-label">Financial</label>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="generateComparison()">
+            Generate Comparison
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endblock %}
+
+  {% block extra_js %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.js"></script>
+
+  <script>
+    $(document).ready(function () {
+      // Initialize charts
+      initializeCharts();
+    });
+
+    function initializeCharts() {
+      // Performance Trends Chart
+      var performanceOptions = {
+        series: [{
+          name: 'Average Marks',
+          data: [75, 78, 82, 79, 85, 88] // Sample data - would come from backend
+        }, {
+          name: 'Attendance',
+          data: [92, 89, 94, 91, 95, 93] // Sample data
+        }],
+        chart: {
+          type: 'line',
+          height: 350
+        },
+        colors: ['#4e73df', '#1cc88a'],
+        stroke: {
+          curve: 'smooth',
+          width: 3
+        },
+        xaxis: {
+          categories: ['Term 1', 'Term 2', 'Term 3', 'Term 1', 'Term 2', 'Term 3']
+        },
+        yaxis: {
+          title: {
+            text: 'Percentage'
+          }
+        },
+        legend: {
+          position: 'top'
+        },
+        markers: {
+          size: 6
+        }
+      };
+
+      var performanceChart = new ApexCharts(document.querySelector("#performanceTrendsChart"), performanceOptions);
+      performanceChart.render();
+
+      // Performance Distribution Chart (Donut)
+      var distributionOptions = {
+        series: [40, 35, 20, 5], // Sample data
+        chart: {
+          type: 'donut',
+          height: 300
+        },
+        labels: ['Excellent (90-100%)', 'Good (75-89%)', 'Average (60-74%)', 'Below Average (<60%)'],
+        colors: ['#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'],
+        legend: {
+          position: 'bottom'
+        },
+        responsive: [{
+          breakpoint: 480,
+          options: {
+            chart: {
+              width: 200
+            },
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }]
+      };
+
+      var distributionChart = new ApexCharts(document.querySelector("#performanceDistributionChart"), distributionOptions);
+      distributionChart.render();
+
+      // Top Classes Chart (Horizontal Bar)
+      var topClassesOptions = {
+        series: [{
+          data: [95, 92, 89, 87, 85] // Sample data
+        }],
+        chart: {
+          type: 'bar',
+          height: 300
+        },
+        plotOptions: {
+          bar: {
+            borderRadius: 4,
+            horizontal: true,
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        xaxis: {
+          categories: ['Grade 10A', 'Grade 9B', 'Grade 11A', 'Grade 8A', 'Grade 12B'],
+        },
+        colors: ['#4e73df']
+      };
+
+      var topClassesChart = new ApexCharts(document.querySelector("#topClassesChart"), topClassesOptions);
+      topClassesChart.render();
+    }
+
+    // Analytics functions
+    function refreshAnalytics() {
+      // Show loading indicator
+      $('body').append('<div id="loadingOverlay" class="position-fixed w-100 h-100" style="top:0;left:0;background:rgba(0,0,0,0.5);z-index:9999;"><div class="d-flex align-items-center justify-content-center h-100"><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div></div></div>');
+
+      // Simulate AJAX call
+      setTimeout(function () {
+        $('#loadingOverlay').remove();
+        // Refresh page or update data
+        location.reload();
+      }, 2000);
+    }
+
+    function calculateAnalytics() {
+      if (confirm('This will recalculate all analytics data. This process may take several minutes. Continue?')) {
+        $.ajax({
+          url: '{% url "core:analytics" %}calculate/',
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+          },
+          success: function (response) {
+            alert('Analytics calculation has been queued. You will be notified when it\'s complete.');
+          },
+          error: function () {
+            alert('Error starting analytics calculation. Please try again.');
+          }
+        });
+      }
+    }
+
+    function updateChart(chartType, period) {
+      // Update chart based on period selection
+      console.log('Updating', chartType, 'chart for', period, 'period');
+      // Implementation would update chart data based on selected period
+    }
+
+    function generateComparison() {
+      var formData = $('#compareForm').serialize();
+      // Process comparison request
+      console.log('Generating comparison with data:', formData);
+      $('#compareModal').modal('hide');
+      // Implementation would generate comparison report
+    }
+  </script>
+  {% endblock %}

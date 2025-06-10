@@ -1,232 +1,205 @@
-<!DOCTYPE html>
-{% extends "base.html" %}
-{% load static %}
+{% extends 'base.html' %}
 {% load teacher_tags %}
-{% load teacher_filters %}
+{% load static %}
 
-{% block title %}Teacher Dashboard - {{ block.super }}{% endblock %}
+{% block title %}Teachers Dashboard - School Management System{% endblock %}
 
 {% block extra_css %}
-<link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-<link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" rel="stylesheet">
 <style>
-  .stat-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 15px;
-    padding: 1.5rem;
-    color: white;
-    position: relative;
-    overflow: hidden;
+  .metric-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
 
-  .stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 100px;
-    height: 100px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    transform: translate(30px, -30px);
-  }
-
-  .stat-card.success {
-    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-  }
-
-  .stat-card.warning {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  }
-
-  .stat-card.info {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  }
-
-  .stat-card.danger {
-    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-  }
-
-  .dashboard-card {
-    border: none;
-    border-radius: 15px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-
-  .dashboard-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-  }
-
-  .quick-action-btn {
-    background: linear-gradient(45deg, #667eea, #764ba2);
-    border: none;
-    border-radius: 25px;
-    padding: 0.75rem 1.5rem;
-    color: white;
-    transition: all 0.3s ease;
-    text-decoration: none;
-    display: inline-block;
-  }
-
-  .quick-action-btn:hover {
+  .metric-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-    color: white;
-  }
-
-  .metric-icon {
-    font-size: 2.5rem;
-    opacity: 0.8;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   }
 
   .chart-container {
-    background: white;
-    border-radius: 15px;
-    padding: 1.5rem;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    position: relative;
+    height: 300px;
   }
 
-  .table-card {
-    background: white;
-    border-radius: 15px;
-    overflow: hidden;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  .performance-gauge {
+    text-align: center;
   }
 
-  .performance-badge {
-    font-size: 0.875rem;
-    padding: 0.375rem 0.75rem;
-    border-radius: 20px;
+  .gauge-value {
+    font-size: 2.5em;
+    font-weight: bold;
   }
 
-  .workload-indicator {
-    width: 100%;
-    height: 8px;
-    background: #e9ecef;
-    border-radius: 4px;
-    overflow: hidden;
+  .trend-indicator {
+    font-size: 0.9em;
   }
 
-  .workload-fill {
-    height: 100%;
-    transition: width 0.5s ease;
-    border-radius: 4px;
+  .trend-up {
+    color: #28a745;
+  }
+
+  .trend-down {
+    color: #dc3545;
+  }
+
+  .trend-stable {
+    color: #6c757d;
   }
 
   .alert-card {
     border-left: 4px solid;
-    border-radius: 8px;
-    background: white;
-    margin-bottom: 1rem;
+    border-radius: 0.25rem;
   }
 
-  .alert-card.urgent {
+  .alert-danger {
     border-left-color: #dc3545;
   }
 
-  .alert-card.warning {
+  .alert-warning {
     border-left-color: #ffc107;
   }
 
-  .alert-card.info {
-    border-left-color: #0dcaf0;
+  .alert-info {
+    border-left-color: #17a2b8;
+  }
+
+  .recent-activity {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .activity-item {
+    border-left: 3px solid #e9ecef;
+    padding-left: 15px;
+    margin-bottom: 15px;
+    position: relative;
+  }
+
+  .activity-item::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #6c757d;
+  }
+
+  .activity-item.success::before {
+    background-color: #28a745;
+  }
+
+  .activity-item.warning::before {
+    background-color: #ffc107;
+  }
+
+  .activity-item.danger::before {
+    background-color: #dc3545;
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="container-fluid">
   <!-- Page Header -->
   <div class="row mb-4">
     <div class="col-12">
       <div class="d-flex justify-content-between align-items-center">
         <div>
-          <h1 class="h3 mb-1">Teacher Dashboard</h1>
-          <p class="text-muted mb-0">Overview of teacher performance and management</p>
+          <h1 class="h3 mb-0">
+            <i class="fas fa-tachometer-alt me-2"></i>Teachers Dashboard
+          </h1>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+              <li class="breadcrumb-item active">Teachers</li>
+            </ol>
+          </nav>
         </div>
-        <div class="d-flex gap-2">
-          <a href="{% url 'teachers:teacher-create' %}" class="quick-action-btn">
-            <i class="fas fa-plus me-2"></i>Add Teacher
+        <div class="btn-group" role="group">
+          <a href="{% url 'teachers:teacher-list' %}" class="btn btn-outline-primary">
+            <i class="fas fa-users me-2"></i>View All Teachers
           </a>
-          <a href="{% url 'teachers:teacher-export' 'csv' %}" class="quick-action-btn">
-            <i class="fas fa-download me-2"></i>Export Data
+          <a href="{% url 'teachers:teacher-statistics' %}" class="btn btn-outline-info">
+            <i class="fas fa-chart-bar me-2"></i>Detailed Analytics
           </a>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Key Statistics -->
+  <!-- Key Metrics Row -->
   <div class="row mb-4">
-    <div class="col-lg-3 col-md-6 mb-3">
-      <div class="stat-card">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <h3 class="mb-1">{{ total_teachers|default:0 }}</h3>
-            <p class="mb-0 opacity-75">Total Teachers</p>
+    <div class="col-md-3">
+      <div class="card metric-card bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="card-title">Total Teachers</h6>
+              <h2 class="mb-0">{{ total_teachers }}</h2>
+              <small class="trend-indicator">
+                <i class="fas fa-arrow-up"></i> {{ recent_hires }} new this year
+              </small>
+            </div>
+            <div class="text-end">
+              <i class="fas fa-users fa-2x opacity-75"></i>
+            </div>
           </div>
-          <i class="fas fa-users metric-icon"></i>
-        </div>
-        <div class="mt-2">
-          <small>
-            <i class="fas fa-arrow-up me-1"></i>
-            +{{ recent_hires|default:0 }} this month
-          </small>
         </div>
       </div>
     </div>
-
-    <div class="col-lg-3 col-md-6 mb-3">
-      <div class="stat-card success">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <h3 class="mb-1">{{ active_teachers|default:0 }}</h3>
-            <p class="mb-0 opacity-75">Active Teachers</p>
+    <div class="col-md-3">
+      <div class="card metric-card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="card-title">Active Teachers</h6>
+              <h2 class="mb-0">{{ active_teachers }}</h2>
+              <small class="trend-indicator">
+                {{ active_teachers|percentage_of:total_teachers|floatformat:1 }}% of total
+              </small>
+            </div>
+            <div class="text-end">
+              <i class="fas fa-user-check fa-2x opacity-75"></i>
+            </div>
           </div>
-          <i class="fas fa-user-check metric-icon"></i>
-        </div>
-        <div class="mt-2">
-          <small>
-            {{ active_teachers|percentage_of:total_teachers|floatformat:1 }}% of total
-          </small>
         </div>
       </div>
     </div>
-
-    <div class="col-lg-3 col-md-6 mb-3">
-      <div class="stat-card info">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <h3 class="mb-1">{{ avg_evaluation_score|floatformat:1|default:"N/A" }}</h3>
-            <p class="mb-0 opacity-75">Avg Performance</p>
+    <div class="col-md-3">
+      <div class="card metric-card bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="card-title">Avg. Experience</h6>
+              <h2 class="mb-0">{{ avg_experience|floatformat:1 }}<small class="fs-6">yrs</small></h2>
+              <small class="trend-indicator">
+                <i class="fas fa-graduation-cap"></i> Professional staff
+              </small>
+            </div>
+            <div class="text-end">
+              <i class="fas fa-award fa-2x opacity-75"></i>
+            </div>
           </div>
-          <i class="fas fa-chart-line metric-icon"></i>
-        </div>
-        <div class="mt-2">
-          <small>
-            <i class="fas fa-star me-1"></i>
-            Out of 100 points
-          </small>
         </div>
       </div>
     </div>
-
-    <div class="col-lg-3 col-md-6 mb-3">
-      <div class="stat-card warning">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <h3 class="mb-1">{{ on_leave_teachers|default:0 }}</h3>
-            <p class="mb-0 opacity-75">On Leave</p>
+    <div class="col-md-3">
+      <div class="card metric-card bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="card-title">Avg. Performance</h6>
+              <h2 class="mb-0">{{ avg_performance|floatformat:1 }}<small class="fs-6">%</small></h2>
+              <small class="trend-indicator">
+                {% evaluation_trend_icon 6 %}
+                Based on evaluations
+              </small>
+            </div>
+            <div class="text-end">
+              <i class="fas fa-star fa-2x opacity-75"></i>
+            </div>
           </div>
-          <i class="fas fa-user-clock metric-icon"></i>
-        </div>
-        <div class="mt-2">
-          <small>
-            <i class="fas fa-exclamation-triangle me-1"></i>
-            Requires coverage
-          </small>
         </div>
       </div>
     </div>
@@ -234,277 +207,267 @@
 
   <!-- Charts Row -->
   <div class="row mb-4">
-    <!-- Performance Distribution Chart -->
-    <div class="col-lg-6 mb-3">
-      <div class="dashboard-card">
-        <div class="card-header bg-transparent border-0 pb-0">
-          <h5 class="card-title mb-0">Performance Distribution</h5>
-          <p class="text-muted small">Teacher evaluation scores by category</p>
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <h6 class="card-title mb-0">
+              <i class="fas fa-chart-line me-2"></i>Performance Trends
+            </h6>
+            <div class="btn-group btn-group-sm" role="group">
+              <input type="radio" class="btn-check" name="trendPeriod" id="trend6months" checked>
+              <label class="btn btn-outline-primary" for="trend6months">6M</label>
+
+              <input type="radio" class="btn-check" name="trendPeriod" id="trend1year">
+              <label class="btn btn-outline-primary" for="trend1year">1Y</label>
+
+              <input type="radio" class="btn-check" name="trendPeriod" id="trend2years">
+              <label class="btn btn-outline-primary" for="trend2years">2Y</label>
+            </div>
+          </div>
         </div>
         <div class="card-body">
-          <div id="performanceChart" style="height: 300px;"></div>
+          <div class="chart-container">
+            <canvas id="performanceTrendChart"></canvas>
+          </div>
         </div>
       </div>
     </div>
-
-    <!-- Department Comparison -->
-    <div class="col-lg-6 mb-3">
-      <div class="dashboard-card">
-        <div class="card-header bg-transparent border-0 pb-0">
-          <h5 class="card-title mb-0">Department Overview</h5>
-          <p class="text-muted small">Teacher count and average performance by department</p>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-chart-pie me-2"></i>Department Distribution
+          </h6>
         </div>
         <div class="card-body">
-          <div id="departmentChart" style="height: 300px;"></div>
+          <div class="chart-container">
+            <canvas id="departmentChart"></canvas>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Performance Trends and Workload -->
+  <!-- Workload and Performance Row -->
   <div class="row mb-4">
-    <!-- Performance Trends -->
-    <div class="col-lg-8 mb-3">
-      <div class="dashboard-card">
-        <div class="card-header bg-transparent border-0 pb-0 d-flex justify-content-between align-items-center">
-          <div>
-            <h5 class="card-title mb-0">Performance Trends</h5>
-            <p class="text-muted small">Monthly evaluation scores and trends</p>
-          </div>
-          <div class="btn-group btn-group-sm" role="group">
-            <input type="radio" class="btn-check" name="trendPeriod" id="trend6" value="6">
-            <label class="btn btn-outline-primary" for="trend6">6M</label>
-
-            <input type="radio" class="btn-check" name="trendPeriod" id="trend12" value="12" checked>
-            <label class="btn btn-outline-primary" for="trend12">1Y</label>
-          </div>
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-tasks me-2"></i>Workload Distribution
+          </h6>
         </div>
         <div class="card-body">
-          <div id="trendsChart" style="height: 350px;"></div>
+          {% workload_distribution_stats current_academic_year as workload_stats %}
+          <div class="row text-center mb-3">
+            <div class="col-3">
+              <div class="h4 text-danger mb-0">{{ workload_stats.overloaded }}</div>
+              <small class="text-muted">Overloaded</small>
+            </div>
+            <div class="col-3">
+              <div class="h4 text-warning mb-0">{{ workload_stats.heavy }}</div>
+              <small class="text-muted">Heavy</small>
+            </div>
+            <div class="col-3">
+              <div class="h4 text-success mb-0">{{ workload_stats.balanced }}</div>
+              <small class="text-muted">Balanced</small>
+            </div>
+            <div class="col-3">
+              <div class="h4 text-info mb-0">{{ workload_stats.light }}</div>
+              <small class="text-muted">Light</small>
+            </div>
+          </div>
+          <div class="chart-container" style="height: 200px;">
+            <canvas id="workloadChart"></canvas>
+          </div>
         </div>
       </div>
     </div>
-
-    <!-- Quick Stats -->
-    <div class="col-lg-4 mb-3">
-      <div class="dashboard-card h-100">
-        <div class="card-header bg-transparent border-0 pb-0">
-          <h5 class="card-title mb-0">Quick Insights</h5>
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-trophy me-2"></i>Top Performers
+          </h6>
         </div>
         <div class="card-body">
-          <!-- Top Performer -->
-          <div class="d-flex align-items-center mb-3 p-3 bg-light rounded">
-            <div class="flex-shrink-0 me-3">
-              <div class="bg-success rounded-circle d-flex align-items-center justify-content-center"
-                style="width: 40px; height: 40px;">
-                <i class="fas fa-crown text-white"></i>
+          {% if top_teachers %}
+          <div class="list-group list-group-flush">
+            {% for teacher in top_teachers %}
+            <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <div class="d-flex align-items-center">
+                {% teacher_avatar teacher 32 %}
+                <div class="ms-3">
+                  <h6 class="mb-0">{{ teacher.get_full_name }}</h6>
+                  <small class="text-muted">{{ teacher.department.name|default:"No Department" }}</small>
+                </div>
+              </div>
+              <div class="text-end">
+                <span class="badge bg-success fs-6">{{ teacher.avg_evaluation_score|floatformat:1 }}%</span>
+                <br>
+                <small class="text-muted">{{ teacher.evaluation_count }}
+                  eval{{ teacher.evaluation_count|pluralize }}</small>
               </div>
             </div>
-            <div class="flex-grow-1">
-              <h6 class="mb-1">Top Performer</h6>
-              {% if top_teachers.0 %}
-              <p class="mb-0 text-muted small">{{ top_teachers.0.get_full_name }}</p>
-              <span class="badge bg-success">{{ top_teachers.0.avg_evaluation_score|floatformat:1 }}%</span>
-              {% else %}
-              <p class="mb-0 text-muted small">No evaluations yet</p>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-center py-3">
+            <i class="fas fa-trophy fa-2x text-muted mb-2"></i>
+            <p class="text-muted">No performance data available</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerts and Recent Activity Row -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-clock me-2"></i>Recent Activity
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="recent-activity">
+            {% if recent_evaluations %}
+            {% for evaluation in recent_evaluations %}
+            <div
+              class="activity-item {% if evaluation.score >= 80 %}success{% elif evaluation.score >= 60 %}warning{% else %}danger{% endif %}">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h6 class="mb-1">{{ evaluation.teacher.get_full_name }} Evaluated</h6>
+                  <p class="mb-1 text-muted">
+                    Performance score: {{ evaluation.score|performance_badge }}
+                  </p>
+                  <small class="text-muted">
+                    <i class="fas fa-user me-1"></i>by {{ evaluation.evaluator.get_full_name }}
+                  </small>
+                </div>
+                <small class="text-muted">{{ evaluation.evaluation_date|timesince }} ago</small>
+              </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="text-center py-3">
+              <i class="fas fa-history fa-2x text-muted mb-2"></i>
+              <p class="text-muted">No recent activity</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i>Attention Required
+          </h6>
+        </div>
+        <div class="card-body">
+          <!-- Evaluation Reminders -->
+          {% evaluation_reminder_count as pending_evaluations %}
+          {% if pending_evaluations > 0 %}
+          <div class="alert alert-card alert-warning">
+            <div class="d-flex align-items-center">
+              <i class="fas fa-calendar-check me-2"></i>
+              <div>
+                <strong>{{ pending_evaluations }}</strong> teacher{{ pending_evaluations|pluralize }}
+                need{{ pending_evaluations|pluralize:"s," }} evaluation
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Overdue Followups -->
+          {% overdue_followups_count as overdue_followups %}
+          {% if overdue_followups > 0 %}
+          <div class="alert alert-card alert-danger">
+            <div class="d-flex align-items-center">
+              <i class="fas fa-clock me-2"></i>
+              <div>
+                <strong>{{ overdue_followups }}</strong> overdue followup{{ overdue_followups|pluralize }}
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Teachers on Leave -->
+          {% if on_leave_teachers > 0 %}
+          <div class="alert alert-card alert-info">
+            <div class="d-flex align-items-center">
+              <i class="fas fa-user-clock me-2"></i>
+              <div>
+                <strong>{{ on_leave_teachers }}</strong> teacher{{ on_leave_teachers|pluralize }} on leave
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Quick Actions -->
+          <div class="mt-3">
+            <h6 class="mb-2">Quick Actions</h6>
+            <div class="d-grid gap-2">
+              {% if perms.teachers.add_teacher %}
+              <a href="{% url 'teachers:teacher-create' %}" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-plus me-2"></i>Add New Teacher
+              </a>
+              {% endif %}
+              <a href="{% url 'teachers:teacher-performance' %}" class="btn btn-outline-info btn-sm">
+                <i class="fas fa-chart-line me-2"></i>View Performance Report
+              </a>
+              {% if perms.teachers.export_teacher_data %}
+              <a href="{% url 'teachers:teacher-export' 'csv' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-download me-2"></i>Export Data
+              </a>
               {% endif %}
             </div>
           </div>
-
-          <!-- Workload Alert -->
-          <div class="d-flex align-items-center mb-3 p-3 bg-light rounded">
-            <div class="flex-shrink-0 me-3">
-              <div class="bg-warning rounded-circle d-flex align-items-center justify-content-center"
-                style="width: 40px; height: 40px;">
-                <i class="fas fa-tasks text-white"></i>
-              </div>
-            </div>
-            <div class="flex-grow-1">
-              <h6 class="mb-1">Overloaded Teachers</h6>
-              <p class="mb-0 text-muted small">{{ teacher_workload.overloaded|default:0 }} teachers need attention</p>
-            </div>
-          </div>
-
-          <!-- Evaluation Pending -->
-          <div class="d-flex align-items-center mb-3 p-3 bg-light rounded">
-            <div class="flex-shrink-0 me-3">
-              <div class="bg-info rounded-circle d-flex align-items-center justify-content-center"
-                style="width: 40px; height: 40px;">
-                <i class="fas fa-clipboard-check text-white"></i>
-              </div>
-            </div>
-            <div class="flex-grow-1">
-              <h6 class="mb-1">Pending Evaluations</h6>
-              <p class="mb-0 text-muted small">{{ followup_evaluations|length }} require follow-up</p>
-            </div>
-          </div>
-
-          <!-- Recent Hires -->
-          <div class="d-flex align-items-center p-3 bg-light rounded">
-            <div class="flex-shrink-0 me-3">
-              <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center"
-                style="width: 40px; height: 40px;">
-                <i class="fas fa-user-plus text-white"></i>
-              </div>
-            </div>
-            <div class="flex-grow-1">
-              <h6 class="mb-1">New Hires</h6>
-              <p class="mb-0 text-muted small">{{ recent_hires|default:0 }} joined this month</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Recent Evaluations and Alerts -->
+  <!-- Contract Types and Tenure -->
   <div class="row">
-    <!-- Recent Evaluations Table -->
-    <div class="col-lg-8 mb-3">
-      <div class="table-card">
-        <div class="card-header bg-transparent border-0 pb-0">
-          <h5 class="card-title mb-0">Recent Evaluations</h5>
-          <p class="text-muted small">Latest teacher performance evaluations</p>
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-file-contract me-2"></i>Contract Distribution
+          </h6>
         </div>
         <div class="card-body">
-          <div class="table-responsive">
-            <table id="recentEvaluationsTable" class="table table-hover align-middle">
-              <thead>
-                <tr>
-                  <th>Teacher</th>
-                  <th>Date</th>
-                  <th>Score</th>
-                  <th>Performance</th>
-                  <th>Evaluator</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for evaluation in recent_evaluations %}
-                <tr>
-                  <td>
-                    <div class="d-flex align-items-center">
-                      <div class="me-3">
-                        {{ evaluation.teacher|teacher_avatar:32 }}
-                      </div>
-                      <div>
-                        <h6 class="mb-0">{{ evaluation.teacher.get_full_name }}</h6>
-                        <small class="text-muted">{{ evaluation.teacher.employee_id }}</small>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <span class="fw-medium">{{ evaluation.evaluation_date|date:"M d, Y" }}</span>
-                  </td>
-                  <td>
-                    <span class="fw-bold">{{ evaluation.score|floatformat:1 }}%</span>
-                  </td>
-                  <td>
-                    {{ evaluation.score|performance_badge }}
-                  </td>
-                  <td>
-                    <span class="text-muted">{{ evaluation.evaluator.get_full_name }}</span>
-                  </td>
-                  <td>
-                    {{ evaluation.status|evaluation_status_badge }}
-                  </td>
-                  <td>
-                    <div class="btn-group btn-group-sm">
-                      <a href="{% url 'teachers:teacher-detail' evaluation.teacher.id %}"
-                        class="btn btn-outline-primary btn-sm" title="View Teacher">
-                        <i class="fas fa-eye"></i>
-                      </a>
-                      {% if perms.teachers.view_teacherevaluation %}
-                      <a href="#" class="btn btn-outline-info btn-sm" title="View Evaluation">
-                        <i class="fas fa-chart-bar"></i>
-                      </a>
-                      {% endif %}
-                    </div>
-                  </td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="7" class="text-center py-4">
-                    <div class="text-muted">
-                      <i class="fas fa-clipboard-list fa-2x mb-2"></i>
-                      <p class="mb-0">No recent evaluations found</p>
-                    </div>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+          <div class="chart-container" style="height: 250px;">
+            <canvas id="contractChart"></canvas>
           </div>
         </div>
       </div>
     </div>
-
-    <!-- Alerts and Notifications -->
-    <div class="col-lg-4 mb-3">
-      <div class="dashboard-card h-100">
-        <div class="card-header bg-transparent border-0 pb-0">
-          <h5 class="card-title mb-0">
-            <i class="fas fa-bell me-2 text-warning"></i>Alerts & Notifications
-          </h5>
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-clock me-2"></i>Tenure Distribution
+          </h6>
         </div>
         <div class="card-body">
-          <!-- Followup Required -->
-          {% if followup_evaluations %}
-          <div class="alert-card urgent p-3 mb-3">
-            <div class="d-flex align-items-start">
-              <i class="fas fa-exclamation-circle text-danger me-2 mt-1"></i>
-              <div>
-                <h6 class="mb-1">Evaluation Follow-ups Required</h6>
-                <p class="mb-2 small text-muted">{{ followup_evaluations|length }} evaluations need follow-up action</p>
-                <a href="#" class="btn btn-sm btn-outline-danger">Review Now</a>
-              </div>
+          <div class="row text-center">
+            {% for tenure in tenure_distribution %}
+            <div class="col-3">
+              <div class="h5 text-primary mb-0">{{ tenure.count }}</div>
+              <small class="text-muted">{{ tenure.range }}</small>
             </div>
+            {% endfor %}
           </div>
-          {% endif %}
-
-          <!-- Overloaded Teachers -->
-          {% if teacher_workload.overloaded > 0 %}
-          <div class="alert-card warning p-3 mb-3">
-            <div class="d-flex align-items-start">
-              <i class="fas fa-weight-hanging text-warning me-2 mt-1"></i>
-              <div>
-                <h6 class="mb-1">Workload Alert</h6>
-                <p class="mb-2 small text-muted">{{ teacher_workload.overloaded }} teachers are overloaded</p>
-                <a href="{% url 'teachers:teacher-statistics' %}" class="btn btn-sm btn-outline-warning">View
-                  Details</a>
-              </div>
-            </div>
-          </div>
-          {% endif %}
-
-          <!-- Evaluation Due -->
-          <div class="alert-card info p-3 mb-3">
-            <div class="d-flex align-items-start">
-              <i class="fas fa-calendar-check text-info me-2 mt-1"></i>
-              <div>
-                <h6 class="mb-1">Evaluations Due</h6>
-                <p class="mb-2 small text-muted">{{ teachers_needing_evaluation|default:0 }} teachers need evaluation
-                </p>
-                <a href="#" class="btn btn-sm btn-outline-info">Schedule Evaluations</a>
-              </div>
-            </div>
-          </div>
-
-          <!-- System Status -->
-          <div class="mt-4 p-3 bg-light rounded">
-            <h6 class="mb-2">System Status</h6>
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <span class="small">Database</span>
-              <span class="badge bg-success">Online</span>
-            </div>
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <span class="small">Analytics</span>
-              <span class="badge bg-success">Updated</span>
-            </div>
-            <div class="d-flex justify-content-between align-items-center">
-              <span class="small">Last Backup</span>
-              <span class="small text-muted">2 hours ago</span>
+          <div class="mt-3">
+            <div class="chart-container" style="height: 150px;">
+              <canvas id="tenureChart"></canvas>
             </div>
           </div>
         </div>
@@ -515,229 +478,242 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
   $(document).ready(function () {
-    // Initialize DataTable
-    $('#recentEvaluationsTable').DataTable({
-      responsive: true,
-      pageLength: 5,
-      lengthChange: false,
-      searching: false,
-      info: false,
-      order: [[1, 'desc']], // Sort by date
-      columnDefs: [
-        { orderable: false, targets: [6] } // Actions column
-      ]
-    });
+    // Chart data from template
+    const chartData = {
+      departments: {{ chart_data.departments| safe
+  }},
+    deptCounts: {{ chart_data.dept_counts | safe }},
+    deptScores: {{ chart_data.dept_scores | safe }},
+    trendMonths: {{ chart_data.trend_months | safe }},
+    trendScores: {{ chart_data.trend_scores | safe }},
+    trendCounts: {{ chart_data.trend_counts | safe }},
+    contractTypes: {{ chart_data.contract_types | safe }},
+    contractCounts: {{ chart_data.contract_counts | safe }},
+    tenureRanges: {{ chart_data.tenure_ranges | safe }},
+    tenureCounts: {{ chart_data.tenure_counts | safe }}
+    };
 
-    // Performance Distribution Donut Chart
-    const performanceChart = new ApexCharts(document.querySelector("#performanceChart"), {
-      series: [
-        {{ performance_distribution.excellent |default: 0 }},
-      {{ performance_distribution.good |default: 0 }},
-    {{ performance_distribution.satisfactory |default: 0 }},
-    {{ performance_distribution.needs_improvement |default: 0 }},
-    {{ performance_distribution.poor |default: 0 }}
-        ],
-    chart: {
-    type: 'donut',
-    height: 300
-  },
-    labels: ['Excellent (90%+)', 'Good (80-89%)', 'Satisfactory (70-79%)', 'Needs Improvement (60-69%)', 'Poor (<60%)'],
-    colors: ['#28a745', '#17a2b8', '#007bff', '#ffc107', '#dc3545'],
-    legend: {
-    position: 'bottom'
-  },
-    plotOptions: {
-    pie: {
-      donut: {
-        size: '70%',
-        labels: {
-          show: true,
-          total: {
-            show: true,
-            label: 'Total',
-            formatter: function () {
-              return '{{ total_teachers|default:0 }}'
+  // Initialize charts
+  initPerformanceTrendChart();
+  initDepartmentChart();
+  initWorkloadChart();
+  initContractChart();
+  initTenureChart();
+
+  // Performance trend chart
+  function initPerformanceTrendChart() {
+    const ctx = document.getElementById('performanceTrendChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: chartData.trendMonths,
+        datasets: [{
+          label: 'Average Score',
+          data: chartData.trendScores,
+          borderColor: '#007bff',
+          backgroundColor: 'rgba(0, 123, 255, 0.1)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4
+        }, {
+          label: 'Evaluations Count',
+          data: chartData.trendCounts,
+          borderColor: '#28a745',
+          backgroundColor: 'rgba(40, 167, 69, 0.1)',
+          borderWidth: 2,
+          fill: false,
+          yAxisID: 'y1'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top'
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            title: {
+              display: true,
+              text: 'Performance Score (%)'
             }
+          },
+          y1: {
+            type: 'linear',
+            display: true,
+            position: 'right',
+            title: {
+              display: true,
+              text: 'Number of Evaluations'
+            },
+            grid: {
+              drawOnChartArea: false,
+            },
+          }
+        }
+      }
+    });
+  }
+
+  // Department distribution chart
+  function initDepartmentChart() {
+    const ctx = document.getElementById('departmentChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: chartData.departments,
+        datasets: [{
+          data: chartData.deptCounts,
+          backgroundColor: [
+            '#007bff', '#28a745', '#ffc107', '#dc3545',
+            '#6f42c1', '#fd7e14', '#20c997', '#6c757d'
+          ],
+          borderWidth: 2,
+          borderColor: '#fff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          }
+        }
+      }
+    });
+  }
+
+  // Workload distribution chart
+  function initWorkloadChart() {
+    const ctx = document.getElementById('workloadChart').getContext('2d');
+    const workloadData = [
+      {{ workload_stats.overloaded |default: 0 }},
+  { { workload_stats.heavy |default: 0 } },
+  { { workload_stats.balanced |default: 0 } },
+  { { workload_stats.light |default: 0 } }
+        ];
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Overloaded', 'Heavy', 'Balanced', 'Light'],
+      datasets: [{
+        data: workloadData,
+        backgroundColor: ['#dc3545', '#ffc107', '#28a745', '#17a2b8'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            stepSize: 1
           }
         }
       }
     }
-  },
-    responsive: [{
-      breakpoint: 480,
+  });
+    }
+
+  // Contract types chart
+  function initContractChart() {
+    const ctx = document.getElementById('contractChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: chartData.contractTypes,
+        datasets: [{
+          data: chartData.contractCounts,
+          backgroundColor: ['#007bff', '#28a745', '#ffc107'],
+          borderWidth: 2,
+          borderColor: '#fff'
+        }]
+      },
       options: {
-        chart: {
-          height: 250
-        },
-        legend: {
-          position: 'bottom'
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          }
         }
       }
-    }]
     });
-  performanceChart.render();
-
-  // Department Comparison Chart
-  const departmentChart = new ApexCharts(document.querySelector("#departmentChart"), {
-    series: [{
-      name: 'Teacher Count',
-      type: 'column',
-      data: {{ chart_data.dept_counts | safe }}
-        }, {
-    name: 'Average Score',
-      type: 'line',
-        data: { { chart_data.dept_scores | safe } }
-  }],
-  chart: {
-    height: 300,
-      type: 'line',
-        toolbar: {
-      show: false
-    }
-  },
-  stroke: {
-    width: [0, 4]
-  },
-  labels: { { chart_data.departments | safe } },
-  xaxis: {
-    type: 'category'
-  },
-  yaxis: [{
-    title: {
-      text: 'Teacher Count',
-    }
-  }, {
-    opposite: true,
-    title: {
-      text: 'Average Score (%)'
-    }
-  }],
-    colors: ['#667eea', '#f093fb'],
-      legend: {
-    position: 'top'
   }
-    });
-  departmentChart.render();
 
-  // Performance Trends Chart
-  let trendsChart;
-
-  function initTrendsChart(months = 12) {
-    if (trendsChart) {
-      trendsChart.destroy();
-    }
-
-    trendsChart = new ApexCharts(document.querySelector("#trendsChart"), {
-      series: [{
-        name: 'Average Score',
-        data: {{ chart_data.trend_scores | safe }}
-            }, {
-    name: 'Evaluation Count',
-      data: { { chart_data.trend_counts | safe } }
-  }],
-  chart: {
-    height: 350,
-      type: 'area',
-        toolbar: {
-      show: true,
-        tools: {
-        download: true,
-          selection: true,
-            zoom: true,
-              zoomin: true,
-                zoomout: true,
-                  pan: true,
-                    reset: true
+  // Tenure distribution chart
+  function initTenureChart() {
+    const ctx = document.getElementById('tenureChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: chartData.tenureRanges,
+        datasets: [{
+          data: chartData.tenureCounts,
+          backgroundColor: '#6f42c1',
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          },
+          x: {
+            ticks: {
+              maxRotation: 45
+            }
+          }
+        }
       }
-    }
-  },
-  dataLabels: {
-    enabled: false
-  },
-  stroke: {
-    curve: 'smooth',
-      width: 3
-  },
-  xaxis: {
-    categories: { { chart_data.trend_months | safe } },
-    type: 'category'
-  },
-  yaxis: [{
-    title: {
-      text: 'Average Score (%)'
-    },
-    min: 0,
-    max: 100
-  }, {
-    opposite: true,
-    title: {
-      text: 'Evaluation Count'
-    }
-  }],
-    colors: ['#667eea', '#764ba2'],
-      fill: {
-    type: 'gradient',
-      gradient: {
-      shadeIntensity: 1,
-        type: 'vertical',
-          colorStops: [
-            { offset: 0, color: '#667eea', opacity: 0.8 },
-            { offset: 100, color: '#667eea', opacity: 0.1 }
-          ]
-    }
-  },
-  legend: {
-    position: 'top'
-  },
-  grid: {
-    borderColor: '#f1f3fa'
+    });
   }
-        });
-  trendsChart.render();
-    }
 
-  initTrendsChart();
+  // Real-time updates every 5 minutes
+  setInterval(function () {
+    // Refresh key metrics
+    updateDashboardMetrics();
+  }, 300000); // 5 minutes
+
+  function updateDashboardMetrics() {
+    // In a real implementation, this would make an AJAX call
+    // to get updated metrics without refreshing the page
+    console.log('Updating dashboard metrics...');
+  }
 
   // Trend period selector
   $('input[name="trendPeriod"]').change(function () {
-    const months = $(this).val();
-    // In a real implementation, you would fetch new data here
-    // For now, we'll just re-render with the same data
-    initTrendsChart(months);
+    const period = $(this).attr('id');
+    console.log('Changing trend period to:', period);
+    // In real implementation, this would update the chart with new data
   });
-
-  // Animate statistics on page load
-  $('.stat-card h3').each(function () {
-    const $this = $(this);
-    const countTo = parseInt($this.text());
-
-    $({ countNum: 0 }).animate({
-      countNum: countTo
-    }, {
-      duration: 2000,
-      easing: 'swing',
-      step: function () {
-        $this.text(Math.floor(this.countNum));
-      },
-      complete: function () {
-        $this.text(this.countNum);
-      }
-    });
-  });
-
-  // Refresh data periodically (every 5 minutes)
-  setInterval(function () {
-    // In a real implementation, you would fetch updated data via AJAX
-    console.log('Refreshing dashboard data...');
-  }, 300000);
 });
 </script>
 {% endblock %}

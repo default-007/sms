@@ -1,0 +1,29 @@
+Dear {{ student.get_full_name }},
+
+Congratulations! Your admission to {{ school_name }} has been confirmed.
+
+Admission Details:
+- Admission Number: {{ student.admission_number }}
+- Admission Date: {{ student.admission_date }}
+- Class Assigned: {% if student.current_class %}{{ student.current_class }}{% else %}Will be assigned soon{% endif %}
+
+Login Information:
+- Username: {{ student.admission_number }}
+- Login Method: Use your admission number to access student portal
+{% if student.user.email %}
+- Email: {{ student.user.email }}
+{% endif %}
+
+Next Steps:
+1. Login to the student portal using your admission number
+2. Complete your profile information
+3. Upload a recent photograph
+4. Review and update emergency contact details
+
+We look forward to welcoming you to {{ school_name }}!
+
+Best regards,
+Admissions Office
+{{ school_name }}
+
+---

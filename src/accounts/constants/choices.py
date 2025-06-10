@@ -45,6 +45,20 @@ TIMEZONE_CHOICES = (
     ("Australia/Sydney", _("Sydney")),
 )
 
+ADMISSION_NUMBER_PATTERNS = {
+    "default": r"^[A-Z0-9]{6,20}$",
+    "year_based": r"^STU\d{4}\d{3,6}$",  # e.g., STU2024001
+    "simple": r"^\d{6,10}$",  # Simple numeric
+}
+
+# Login identifier types
+LOGIN_IDENTIFIER_TYPES = [
+    "email",
+    "username",
+    "phone_number",
+    "admission_number",
+]
+
 # Language choices
 LANGUAGE_CHOICES = (
     ("en", _("English")),

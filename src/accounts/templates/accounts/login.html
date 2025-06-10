@@ -400,6 +400,10 @@
                           {{ form.identifier }}
                           {% if form.identifier.help_text %}
                           <div class="form-text">{{ form.identifier.help_text }}</div>
+                          <small class="text-info">
+                            <i class="fas fa-info-circle"></i>
+                            Students can use their admission number (e.g., STU2024001) to log in
+                          </small>
                           {% endif %}
                           {% if form.identifier.errors %}
                           <div class="invalid-feedback d-block">

@@ -1,0 +1,914 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Generate Report - {{ report_config.name }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+<style>
+  .step-indicator {
+    counter-reset: step;
+  }
+
+  .step-indicator .step {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: #f8f9fc;
+    border-left: 4px solid #e3e6f0;
+    border-radius: 0.35rem;
+    counter-increment: step;
+  }
+
+  .step-indicator .step.active {
+    background: #eef2ff;
+    border-left-color: #4e73df;
+  }
+
+  .step-indicator .step.completed {
+    background: #d1f2eb;
+    border-left-color: #1cc88a;
+  }
+
+  .step-indicator .step::before {
+    content: counter(step);
+    position: absolute;
+    left: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    background: #e3e6f0;
+    color: #5a5c69;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.875rem;
+  }
+
+  .step-indicator .step.active::before {
+    background: #4e73df;
+    color: white;
+  }
+
+  .step-indicator .step.completed::before {
+    background: #1cc88a;
+    color: white;
+    content: "✓";
+  }
+
+  .report-preview {
+    background: #f8f9fc;
+    border: 2px dashed #e3e6f0;
+    border-radius: 0.35rem;
+    padding: 2rem;
+    text-align: center;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .filter-group {
+    background: white;
+    border: 1px solid #e3e6f0;
+    border-radius: 0.35rem;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .format-option {
+    border: 2px solid #e3e6f0;
+    border-radius: 0.35rem;
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .format-option:hover {
+    border-color: #4e73df;
+    background: #eef2ff;
+  }
+
+  .format-option.selected {
+    border-color: #4e73df;
+    background: #4e73df;
+    color: white;
+  }
+
+  .format-option i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+
+  .parameter-card {
+    border: 1px solid #e3e6f0;
+    border-radius: 0.35rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: white;
+  }
+
+  .parameter-card.disabled {
+    background: #f8f9fc;
+    opacity: 0.6;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">Generate Report</h1>
+          <p class="text-muted mb-0">{{ report_config.description }}</p>
+        </div>
+        <div>
+          <a href="{% url 'core:reports' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Reports
+          </a>
+          <button class="btn btn-outline-info" onclick="previewReport()">
+            <i class="fas fa-eye"></i> Preview
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Steps Sidebar -->
+    <div class="col-lg-3">
+      <div class="card shadow mb-4 sticky-top" style="top: 1rem;">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Report Generation Steps</h6>
+        </div>
+        <div class="card-body">
+          <div class="step-indicator">
+            <div class="step active" id="step1">
+              <div>
+                <strong>1. Report Type</strong>
+                <div class="small text-muted">Select report configuration</div>
+              </div>
+            </div>
+            <div class="step" id="step2">
+              <div>
+                <strong>2. Filters</strong>
+                <div class="small text-muted">Configure data filters</div>
+              </div>
+            </div>
+            <div class="step" id="step3">
+              <div>
+                <strong>3. Format</strong>
+                <div class="small text-muted">Choose output format</div>
+              </div>
+            </div>
+            <div class="step" id="step4">
+              <div>
+                <strong>4. Options</strong>
+                <div class="small text-muted">Additional settings</div>
+              </div>
+            </div>
+            <div class="step" id="step5">
+              <div>
+                <strong>5. Generate</strong>
+                <div class="small text-muted">Create and download</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-lg-9">
+      <form id="reportGenerationForm" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="report_type" value="{{ report_type }}">
+
+        <!-- Step 1: Report Type -->
+        <div class="card shadow mb-4" id="stepContent1">
+          <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Step 1: Report Type</h6>
+          </div>
+          <div class="card-body">
+            <div class="row align-items-center">
+              <div class="col-md-3 text-center">
+                <i class="{{ report_config.icon|default:'fas fa-file-alt' }} fa-4x text-primary mb-3"></i>
+              </div>
+              <div class="col-md-9">
+                <h4>{{ report_config.name }}</h4>
+                <p class="text-muted">{{ report_config.description }}</p>
+
+                <div class="row mt-3">
+                  <div class="col-sm-6">
+                    <strong>Available Formats:</strong>
+                    <div class="mt-1">
+                      {% for format in report_config.formats %}
+                      <span class="badge bg-secondary me-1">{{ format|upper }}</span>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  <div class="col-sm-6">
+                    <strong>Template:</strong>
+                    <div class="mt-1">
+                      <span class="badge bg-info">{{ report_config.template }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="text-end mt-3">
+              <button type="button" class="btn btn-primary" onclick="nextStep(2)">
+                Next: Configure Filters <i class="fas fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Filters -->
+        <div class="card shadow mb-4 d-none" id="stepContent2">
+          <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Step 2: Data Filters</h6>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <!-- Academic Year Filter -->
+              {% if 'academic_year' in report_config.filters %}
+              <div class="col-md-6 mb-3">
+                <div class="filter-group">
+                  <label class="form-label">Academic Year</label>
+                  <select name="academic_year" class="form-select">
+                    <option value="">All Academic Years</option>
+                    {% for year in academic_years %}
+                    <option value="{{ year.id }}" {% if year.is_current %}selected{% endif %}>
+                      {{ year.name }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              {% endif %}
+
+              <!-- Term Filter -->
+              {% if 'term' in report_config.filters %}
+              <div class="col-md-6 mb-3">
+                <div class="filter-group">
+                  <label class="form-label">Term</label>
+                  <select name="term" class="form-select">
+                    <option value="">All Terms</option>
+                    {% for term in terms %}
+                    <option value="{{ term.id }}" {% if term.is_current %}selected{% endif %}>
+                      {{ term.name }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              {% endif %}
+
+              <!-- Section Filter -->
+              {% if 'section' in report_config.filters %}
+              <div class="col-md-6 mb-3">
+                <div class="filter-group">
+                  <label class="form-label">Section</label>
+                  <select name="section" class="form-select">
+                    <option value="">All Sections</option>
+                    {% for section in sections %}
+                    <option value="{{ section.id }}">{{ section.name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              {% endif %}
+
+              <!-- Grade Filter -->
+              {% if 'grade' in report_config.filters %}
+              <div class="col-md-6 mb-3">
+                <div class="filter-group">
+                  <label class="form-label">Grade</label>
+                  <select name="grade" class="form-select">
+                    <option value="">All Grades</option>
+                    {% for grade in grades %}
+                    <option value="{{ grade.id }}">{{ grade.name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              {% endif %}
+
+              <!-- Date Range Filter -->
+              {% if 'date_range' in report_config.filters %}
+              <div class="col-12 mb-3">
+                <div class="filter-group">
+                  <label class="form-label">Date Range</label>
+                  <div class="row">
+                    <div class="col-md-6">
+                      <label class="form-label small">Start Date</label>
+                      <input type="date" name="start_date" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small">End Date</label>
+                      <input type="date" name="end_date" class="form-control">
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+
+              <!-- Fee Category Filter -->
+              {% if 'fee_category' in report_config.filters %}
+              <div class="col-md-6 mb-3">
+                <div class="filter-group">
+                  <label class="form-label">Fee Category</label>
+                  <select name="fee_category" class="form-select">
+                    <option value="">All Categories</option>
+                    <!-- Fee categories would be populated here -->
+                  </select>
+                </div>
+              </div>
+              {% endif %}
+
+              <!-- Department Filter -->
+              {% if 'department' in report_config.filters %}
+              <div class="col-md-6 mb-3">
+                <div class="filter-group">
+                  <label class="form-label">Department</label>
+                  <select name="department" class="form-select">
+                    <option value="">All Departments</option>
+                    <!-- Departments would be populated here -->
+                  </select>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="d-flex justify-content-between mt-3">
+              <button type="button" class="btn btn-outline-secondary" onclick="previousStep(1)">
+                <i class="fas fa-arrow-left"></i> Previous
+              </button>
+              <button type="button" class="btn btn-primary" onclick="nextStep(3)">
+                Next: Choose Format <i class="fas fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Format -->
+        <div class="card shadow mb-4 d-none" id="stepContent3">
+          <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Step 3: Output Format</h6>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              {% for format in report_config.formats %}
+              <div class="col-md-4 mb-3">
+                <div class="format-option" onclick="selectFormat('{{ format }}')">
+                  <input type="radio" name="format" value="{{ format }}" class="d-none"
+                    {% if format == 'pdf' %}checked{% endif %}>
+                  <i
+                    class="fas fa-file-{% if format == 'pdf' %}pdf{% elif format == 'excel' %}excel{% else %}csv{% endif %}"></i>
+                  <div class="h6">{{ format|upper }}</div>
+                  <div class="small text-muted">
+                    {% if format == 'pdf' %}
+                    Professional formatted document
+                    {% elif format == 'excel' %}
+                    Spreadsheet with charts and data
+                    {% elif format == 'csv' %}
+                    Raw data for analysis
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+
+            <div class="d-flex justify-content-between mt-3">
+              <button type="button" class="btn btn-outline-secondary" onclick="previousStep(2)">
+                <i class="fas fa-arrow-left"></i> Previous
+              </button>
+              <button type="button" class="btn btn-primary" onclick="nextStep(4)">
+                Next: Additional Options <i class="fas fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: Options -->
+        <div class="card shadow mb-4 d-none" id="stepContent4">
+          <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Step 4: Additional Options</h6>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="parameter-card">
+                  <h6>Delivery Options</h6>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="email_copy" id="emailCopy">
+                    <label class="form-check-label" for="emailCopy">
+                      Email a copy to me
+                    </label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="save_to_library" id="saveLibrary">
+                    <label class="form-check-label" for="saveLibrary">
+                      Save to report library
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="schedule_recurring" id="scheduleRecurring">
+                    <label class="form-check-label" for="scheduleRecurring">
+                      Schedule as recurring report
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="parameter-card">
+                  <h6>Report Settings</h6>
+                  <div class="mb-3">
+                    <label class="form-label">Report Title (Optional)</label>
+                    <input type="text" name="custom_title" class="form-control" placeholder="Custom report title">
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Include Charts</label>
+                    <select name="include_charts" class="form-select">
+                      <option value="yes">Yes, include charts</option>
+                      <option value="no">No, data only</option>
+                      <option value="summary">Summary charts only</option>
+                    </select>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Detail Level</label>
+                    <select name="detail_level" class="form-select">
+                      <option value="summary">Summary</option>
+                      <option value="detailed" selected>Detailed</option>
+                      <option value="raw">Raw Data</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Scheduled Report Settings -->
+            <div class="row mt-3 d-none" id="scheduleSettings">
+              <div class="col-12">
+                <div class="parameter-card">
+                  <h6>Schedule Settings</h6>
+                  <div class="row">
+                    <div class="col-md-4">
+                      <label class="form-label">Frequency</label>
+                      <select name="schedule_frequency" class="form-select">
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="quarterly">Quarterly</option>
+                      </select>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Start Date</label>
+                      <input type="date" name="schedule_start" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Recipients</label>
+                      <input type="email" name="schedule_recipients" class="form-control"
+                        placeholder="email@example.com">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-3">
+              <button type="button" class="btn btn-outline-secondary" onclick="previousStep(3)">
+                <i class="fas fa-arrow-left"></i> Previous
+              </button>
+              <button type="button" class="btn btn-primary" onclick="nextStep(5)">
+                Next: Review & Generate <i class="fas fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 5: Generate -->
+        <div class="card shadow mb-4 d-none" id="stepContent5">
+          <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Step 5: Review & Generate</h6>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-8">
+                <h5>Report Summary</h5>
+                <dl class="row">
+                  <dt class="col-sm-3">Report Type:</dt>
+                  <dd class="col-sm-9">{{ report_config.name }}</dd>
+
+                  <dt class="col-sm-3">Format:</dt>
+                  <dd class="col-sm-9"><span id="selectedFormat">PDF</span></dd>
+
+                  <dt class="col-sm-3">Filters:</dt>
+                  <dd class="col-sm-9"><span id="selectedFilters">Current academic year and term</span></dd>
+
+                  <dt class="col-sm-3">Options:</dt>
+                  <dd class="col-sm-9"><span id="selectedOptions">Standard options</span></dd>
+                </dl>
+
+                <div class="alert alert-info">
+                  <i class="fas fa-info-circle"></i>
+                  <strong>Note:</strong> Large reports may take several minutes to generate. You will receive a
+                  notification when the report is ready.
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="report-preview">
+                  <div>
+                    <i class="fas fa-file-alt fa-4x text-muted mb-3"></i>
+                    <h6>Report Preview</h6>
+                    <p class="text-muted small">A preview will be available after generation</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+              <button type="button" class="btn btn-outline-secondary" onclick="previousStep(4)">
+                <i class="fas fa-arrow-left"></i> Previous
+              </button>
+              <div>
+                <button type="button" class="btn btn-outline-info me-2" onclick="previewReport()">
+                  <i class="fas fa-eye"></i> Preview
+                </button>
+                <button type="submit" class="btn btn-success">
+                  <i class="fas fa-rocket"></i> Generate Report
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-body text-center">
+        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <h5>Generating Report...</h5>
+        <p class="text-muted">This may take a few moments depending on the amount of data.</p>
+        <div class="progress mt-3">
+          <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"
+            id="progressBar"></div>
+        </div>
+        <div class="small text-muted mt-2" id="progressText">Initializing...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Report Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="previewContent">
+        <!-- Preview content will be loaded here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="proceedWithGeneration()">
+          <i class="fas fa-rocket"></i> Generate This Report
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script>
+  let currentStep = 1;
+
+  document.addEventListener('DOMContentLoaded', function () {
+    // Initialize date pickers
+    flatpickr('input[type="date"]', {
+      dateFormat: "Y-m-d",
+      allowInput: true
+    });
+
+    // Form submission
+    document.getElementById('reportGenerationForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      generateReport();
+    });
+
+    // Schedule settings toggle
+    document.getElementById('scheduleRecurring').addEventListener('change', function () {
+      const scheduleSettings = document.getElementById('scheduleSettings');
+      if (this.checked) {
+        scheduleSettings.classList.remove('d-none');
+      } else {
+        scheduleSettings.classList.add('d-none');
+      }
+    });
+
+    // Set initial format selection
+    selectFormat('pdf');
+  });
+
+  function nextStep(step) {
+    if (validateCurrentStep()) {
+      // Hide current step
+      document.getElementById(`stepContent${currentStep}`).classList.add('d-none');
+      document.getElementById(`step${currentStep}`).classList.remove('active');
+      document.getElementById(`step${currentStep}`).classList.add('completed');
+
+      // Show next step
+      currentStep = step;
+      document.getElementById(`stepContent${currentStep}`).classList.remove('d-none');
+      document.getElementById(`step${currentStep}`).classList.add('active');
+
+      // Update summary if on final step
+      if (step === 5) {
+        updateSummary();
+      }
+
+      // Scroll to top
+      window.scrollTo(0, 0);
+    }
+  }
+
+  function previousStep(step) {
+    // Hide current step
+    document.getElementById(`stepContent${currentStep}`).classList.add('d-none');
+    document.getElementById(`step${currentStep}`).classList.remove('active');
+
+    // Show previous step
+    currentStep = step;
+    document.getElementById(`stepContent${currentStep}`).classList.remove('d-none');
+    document.getElementById(`step${currentStep}`).classList.add('active');
+    document.getElementById(`step${currentStep}`).classList.remove('completed');
+
+    // Scroll to top
+    window.scrollTo(0, 0);
+  }
+
+  function validateCurrentStep() {
+    // Add validation logic for each step
+    switch (currentStep) {
+      case 1:
+        return true; // Report type is pre-selected
+      case 2:
+        return true; // Filters are optional
+      case 3:
+        return document.querySelector('input[name="format"]:checked') !== null;
+      case 4:
+        return true; // Options are optional
+      default:
+        return true;
+    }
+  }
+
+  function selectFormat(format) {
+    // Remove selection from all formats
+    document.querySelectorAll('.format-option').forEach(option => {
+      option.classList.remove('selected');
+    });
+
+    // Select the clicked format
+    event.target.closest('.format-option').classList.add('selected');
+    document.querySelector(`input[value="${format}"]`).checked = true;
+  }
+
+  function updateSummary() {
+    // Update format
+    const selectedFormat = document.querySelector('input[name="format"]:checked');
+    if (selectedFormat) {
+      document.getElementById('selectedFormat').textContent = selectedFormat.value.toUpperCase();
+    }
+
+    // Update filters
+    const filters = [];
+    const formData = new FormData(document.getElementById('reportGenerationForm'));
+
+    if (formData.get('academic_year')) filters.push('Academic Year');
+    if (formData.get('term')) filters.push('Term');
+    if (formData.get('section')) filters.push('Section');
+    if (formData.get('grade')) filters.push('Grade');
+    if (formData.get('start_date') || formData.get('end_date')) filters.push('Date Range');
+
+    document.getElementById('selectedFilters').textContent = filters.length > 0 ? filters.join(', ') : 'No filters applied';
+
+    // Update options
+    const options = [];
+    if (formData.get('email_copy')) options.push('Email Copy');
+    if (formData.get('save_to_library')) options.push('Save to Library');
+    if (formData.get('schedule_recurring')) options.push('Recurring Schedule');
+    if (formData.get('include_charts') === 'yes') options.push('Include Charts');
+
+    document.getElementById('selectedOptions').textContent = options.length > 0 ? options.join(', ') : 'Standard options';
+  }
+
+  function generateReport() {
+    // Show loading modal
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    loadingModal.show();
+
+    // Simulate progress
+    let progress = 0;
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+
+    const progressSteps = [
+      'Validating parameters...',
+      'Fetching data...',
+      'Processing analytics...',
+      'Generating charts...',
+      'Formatting report...',
+      'Finalizing document...'
+    ];
+
+    const progressInterval = setInterval(() => {
+      progress += Math.random() * 20;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(progressInterval);
+
+        // Complete generation
+        setTimeout(() => {
+          loadingModal.hide();
+          showSuccessMessage();
+        }, 1000);
+      }
+
+      progressBar.style.width = progress + '%';
+      progressText.textContent = progressSteps[Math.floor(progress / 100 * progressSteps.length)] || 'Almost done...';
+    }, 800);
+
+    // Submit form data
+    const formData = new FormData(document.getElementById('reportGenerationForm'));
+
+    fetch('{% url "core:generate_report" %}', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        clearInterval(progressInterval);
+        loadingModal.hide();
+
+        if (data.status === 'success') {
+          showSuccessMessage(data.task_id);
+        } else {
+          showErrorMessage(data.message);
+        }
+      })
+      .catch(error => {
+        clearInterval(progressInterval);
+        loadingModal.hide();
+        console.error('Error:', error);
+        showErrorMessage('An error occurred while generating the report.');
+      });
+  }
+
+  function previewReport() {
+    // Generate a sample preview
+    const previewContent = document.getElementById('previewContent');
+    previewContent.innerHTML = `
+        <div class="text-center mb-4">
+            <h4>{{ report_config.name }}</h4>
+            <p class="text-muted">Sample preview based on current configuration</p>
+        </div>
+        <div class="row">
+            <div class="col-md-8">
+                <div class="bg-light p-4 rounded">
+                    <h6>Sample Data Table</h6>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Value</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Sample Data 1</td>
+                                <td>123</td>
+                                <td>45%</td>
+                            </tr>
+                            <tr>
+                                <td>Sample Data 2</td>
+                                <td>456</td>
+                                <td>67%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="bg-light p-4 rounded text-center">
+                    <h6>Sample Chart</h6>
+                    <div style="height: 150px; background: #f8f9fc; border: 2px dashed #e3e6f0; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-chart-pie fa-3x text-muted"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    new bootstrap.Modal(document.getElementById('previewModal')).show();
+  }
+
+  function proceedWithGeneration() {
+    bootstrap.Modal.getInstance(document.getElementById('previewModal')).hide();
+    generateReport();
+  }
+
+  function showSuccessMessage(taskId = null) {
+    const message = taskId
+      ? `Report generation started successfully! Task ID: ${taskId}. You will be notified when it's ready.`
+      : 'Report generated successfully!';
+
+    showToast(message, 'success');
+
+    // Redirect to reports page after a delay
+    setTimeout(() => {
+      window.location.href = '{% url "core:reports" %}';
+    }, 3000);
+  }
+
+  function showErrorMessage(message) {
+    showToast('Error: ' + message, 'error');
+  }
+
+  function showToast(message, type = 'info') {
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : 'success'} border-0`;
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+
+    // Add to page
+    let toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) {
+      toastContainer = document.createElement('div');
+      toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+      document.body.appendChild(toastContainer);
+    }
+
+    toastContainer.appendChild(toast);
+
+    // Show toast
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+
+    // Remove element after hiding
+    toast.addEventListener('hidden.bs.toast', function () {
+      toast.remove();
+    });
+  }
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+</script>
+{% endblock %}

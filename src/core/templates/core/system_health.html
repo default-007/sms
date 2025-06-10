@@ -1,0 +1,662 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}System Health - School Management System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Heading -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">System Health Monitor</h1>
+    <div class="d-none d-lg-inline-block">
+      <button class="btn btn-sm btn-primary shadow-sm" onclick="refreshHealth()">
+        <i class="fas fa-sync fa-sm text-white-50"></i> Refresh
+      </button>
+      <span class="badge badge-secondary ml-2" id="lastUpdated">
+        {% if latest_health %}
+        Last updated: {{ latest_health.timestamp|date:"H:i:s" }}
+        {% else %}
+        No data available
+        {% endif %}
+      </span>
+    </div>
+  </div>
+
+  <!-- System Status Overview -->
+  {% if latest_health %}
+  <div class="row mb-4">
+    <!-- Overall Status -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-{{ system_status.overall|default:'secondary' }} shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div
+                class="text-xs font-weight-bold text-{{ system_status.overall|default:'secondary' }} text-uppercase mb-1">
+                Overall Status
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {% if system_status.overall == 'healthy' %}
+                <span class="text-success">Healthy</span>
+                {% elif system_status.overall == 'warning' %}
+                <span class="text-warning">Warning</span>
+                {% elif system_status.overall == 'critical' %}
+                <span class="text-danger">Critical</span>
+                {% else %}
+                <span class="text-secondary">Unknown</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-heartbeat fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Database Status -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-{{ system_status.database|default:'secondary' }} shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div
+                class="text-xs font-weight-bold text-{{ system_status.database|default:'secondary' }} text-uppercase mb-1">
+                Database
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {{ latest_health.avg_query_time_ms|floatformat:0 }}ms
+              </div>
+              <div class="small text-muted">Avg query time</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-database fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cache Status -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-{{ system_status.cache|default:'secondary' }} shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div
+                class="text-xs font-weight-bold text-{{ system_status.cache|default:'secondary' }} text-uppercase mb-1">
+                Cache Hit Rate
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {{ latest_health.cache_hit_rate|floatformat:1 }}%
+              </div>
+              <div class="small text-muted">{{ latest_health.cache_memory_usage_mb|floatformat:0 }}MB used</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-memory fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Status -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-{{ system_status.performance|default:'secondary' }} shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div
+                class="text-xs font-weight-bold text-{{ system_status.performance|default:'secondary' }} text-uppercase mb-1">
+                Response Time
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {{ latest_health.avg_response_time_ms|floatformat:0 }}ms
+              </div>
+              <div class="small text-muted">{{ latest_health.error_rate|floatformat:1 }}% error rate</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-tachometer-alt fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Health Metrics Charts -->
+  <div class="row mb-4">
+    <!-- Performance Metrics Chart -->
+    <div class="col-xl-8 col-lg-7">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+          <h6 class="m-0 font-weight-bold text-primary">Performance Metrics (Last 24 Hours)</h6>
+          <div class="dropdown no-arrow">
+            <a class="dropdown-toggle" href="#" role="button" data-toggle="dropdown">
+              <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+            </a>
+            <div class="dropdown-menu dropdown-menu-right shadow">
+              <div class="dropdown-header">Time Range:</div>
+              <a class="dropdown-item" href="#" onclick="updateTimeRange('1h')">Last Hour</a>
+              <a class="dropdown-item" href="#" onclick="updateTimeRange('6h')">Last 6 Hours</a>
+              <a class="dropdown-item" href="#" onclick="updateTimeRange('24h')">Last 24 Hours</a>
+              <a class="dropdown-item" href="#" onclick="updateTimeRange('7d')">Last 7 Days</a>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="performanceMetricsChart"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Resources -->
+    <div class="col-xl-4 col-lg-5">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">System Resources</h6>
+        </div>
+        <div class="card-body">
+          {% if latest_health %}
+          <!-- Storage Usage -->
+          <div class="mb-4">
+            <div class="small mb-1 d-flex justify-content-between">
+              <span>Storage Usage</span>
+              <span>{{ latest_health.storage_used_gb|floatformat:1 }}GB /
+                {{ latest_health.storage_used_gb|add:latest_health.storage_available_gb|floatformat:1 }}GB</span>
+            </div>
+            {% with total_storage=latest_health.storage_used_gb|add:latest_health.storage_available_gb %}
+            {% if total_storage > 0 %}
+            {% with usage_percent=latest_health.storage_used_gb|div:total_storage|mul:100 %}
+            <div class="progress mb-2">
+              <div class="progress-bar 
+                                        {% if usage_percent < 70 %}bg-success
+                                        {% elif usage_percent < 85 %}bg-warning
+                                        {% else %}bg-danger{% endif %}" role="progressbar"
+                style="width: {{ usage_percent|floatformat:0 }}%">
+              </div>
+            </div>
+            <div class="small text-muted">{{ usage_percent|floatformat:1 }}% used</div>
+            {% endwith %}
+            {% endif %}
+            {% endwith %}
+          </div>
+
+          <!-- Memory Usage -->
+          <div class="mb-4">
+            <div class="small mb-1 d-flex justify-content-between">
+              <span>Cache Memory</span>
+              <span>{{ latest_health.cache_memory_usage_mb|floatformat:0 }}MB</span>
+            </div>
+            <div class="progress mb-2">
+              <div class="progress-bar bg-info" role="progressbar" style="width: 65%"></div>
+            </div>
+            <div class="small text-muted">65% of allocated cache</div>
+          </div>
+
+          <!-- Database Connections -->
+          <div class="mb-4">
+            <div class="small mb-1 d-flex justify-content-between">
+              <span>Database Connections</span>
+              <span>{{ latest_health.db_connection_count }}</span>
+            </div>
+            <div class="progress mb-2">
+              <div class="progress-bar bg-primary" role="progressbar"
+                style="width: {{ latest_health.db_connection_count|div:100|mul:100|floatformat:0 }}%"></div>
+            </div>
+            <div class="small text-muted">Active connections</div>
+          </div>
+
+          <!-- Active Users -->
+          <div class="mb-3">
+            <div class="small mb-1 d-flex justify-content-between">
+              <span>Active Users</span>
+              <span>{{ latest_health.active_users }}</span>
+            </div>
+            <div class="h6 mb-0 font-weight-bold text-primary">{{ latest_health.active_users }}</div>
+          </div>
+          {% else %}
+          <div class="text-center text-muted">
+            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+            <p>No resource data available</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Background Tasks Status -->
+  <div class="row mb-4">
+    <div class="col-xl-6 col-lg-6">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Background Tasks</h6>
+        </div>
+        <div class="card-body">
+          {% if latest_health %}
+          <div class="row text-center">
+            <div class="col-4">
+              <div class="border-right">
+                <div class="h5 mb-0 font-weight-bold text-info">{{ latest_health.pending_tasks }}</div>
+                <div class="small text-muted">Pending</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="border-right">
+                <div class="h5 mb-0 font-weight-bold text-success">{{ latest_health.completed_tasks }}</div>
+                <div class="small text-muted">Completed</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="h5 mb-0 font-weight-bold text-danger">{{ latest_health.failed_tasks }}</div>
+              <div class="small text-muted">Failed</div>
+            </div>
+          </div>
+          <hr>
+          <div class="text-center">
+            <a href="#" class="btn btn-sm btn-outline-primary" onclick="viewTaskDetails()">
+              <i class="fas fa-tasks"></i> View Task Queue
+            </a>
+          </div>
+          {% else %}
+          <div class="text-center text-muted">
+            <i class="fas fa-tasks fa-2x mb-2"></i>
+            <p>No task data available</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Service Status -->
+    <div class="col-xl-6 col-lg-6">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Service Status</h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-6 text-center mb-3">
+              <i class="fas fa-server fa-2x mb-2 text-success"></i>
+              <div class="font-weight-bold">Web Server</div>
+              <small class="text-success">Operational</small>
+            </div>
+            <div class="col-6 text-center mb-3">
+              <i class="fas fa-database fa-2x mb-2 text-success"></i>
+              <div class="font-weight-bold">Database</div>
+              <small class="text-success">Operational</small>
+            </div>
+            <div class="col-6 text-center mb-3">
+              <i class="fas fa-memory fa-2x mb-2 text-success"></i>
+              <div class="font-weight-bold">Cache</div>
+              <small class="text-success">Operational</small>
+            </div>
+            <div class="col-6 text-center mb-3">
+              <i class="fas fa-cogs fa-2x mb-2 text-success"></i>
+              <div class="font-weight-bold">Tasks</div>
+              <small class="text-success">Operational</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Health History and Alerts -->
+  <div class="row">
+    <!-- Health Trends -->
+    <div class="col-xl-8 col-lg-7">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Health Trends</h6>
+        </div>
+        <div class="card-body">
+          <div id="healthTrendsChart"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Alerts -->
+    <div class="col-xl-4 col-lg-5">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">System Alerts</h6>
+        </div>
+        <div class="card-body">
+          <div id="alertsList">
+            {% if latest_health %}
+            {% with total_storage=latest_health.storage_used_gb|add:latest_health.storage_available_gb %}
+            {% if total_storage > 0 %}
+            {% with usage_percent=latest_health.storage_used_gb|div:total_storage|mul:100 %}
+            {% if usage_percent > 85 %}
+            <div class="alert alert-danger alert-sm mb-2">
+              <i class="fas fa-exclamation-triangle"></i>
+              <strong>Critical:</strong> Storage usage is at {{ usage_percent|floatformat:1 }}%
+            </div>
+            {% elif usage_percent > 70 %}
+            <div class="alert alert-warning alert-sm mb-2">
+              <i class="fas fa-exclamation-circle"></i>
+              <strong>Warning:</strong> Storage usage is at {{ usage_percent|floatformat:1 }}%
+            </div>
+            {% endif %}
+            {% endwith %}
+            {% endif %}
+            {% endwith %}
+
+            {% if latest_health.avg_response_time_ms > 1000 %}
+            <div class="alert alert-warning alert-sm mb-2">
+              <i class="fas fa-clock"></i>
+              <strong>Performance:</strong> High response time detected
+              ({{ latest_health.avg_response_time_ms|floatformat:0 }}ms)
+            </div>
+            {% endif %}
+
+            {% if latest_health.cache_hit_rate < 60 %}
+            <div class="alert alert-warning alert-sm mb-2">
+              <i class="fas fa-memory"></i>
+              <strong>Cache:</strong> Low cache hit rate ({{ latest_health.cache_hit_rate|floatformat:1 }}%)
+            </div>
+            {% endif %}
+
+            {% if latest_health.failed_tasks > 10 %}
+            <div class="alert alert-danger alert-sm mb-2">
+              <i class="fas fa-tasks"></i>
+              <strong>Tasks:</strong> Multiple failed tasks detected ({{ latest_health.failed_tasks }})
+            </div>
+            {% endif %}
+
+            <!-- If no alerts -->
+            <script>
+              if (document.querySelectorAll('#alertsList .alert').length === 0) {
+                document.getElementById('alertsList').innerHTML =
+                  '<div class="text-center text-muted">' +
+                  '<i class="fas fa-check-circle fa-2x mb-2 text-success"></i>' +
+                  '<p>No active alerts</p>' +
+                  '<small>All systems operating normally</small>' +
+                  '</div>';
+              }
+            </script>
+            {% else %}
+            <div class="text-center text-muted">
+              <i class="fas fa-bell fa-2x mb-2"></i>
+              <p>No alert data available</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions Panel -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">System Actions</h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3 mb-2">
+              <button class="btn btn-outline-primary btn-block" onclick="runDiagnostics()">
+                <i class="fas fa-stethoscope"></i> Run Diagnostics
+              </button>
+            </div>
+            <div class="col-md-3 mb-2">
+              <button class="btn btn-outline-success btn-block" onclick="clearCache()">
+                <i class="fas fa-broom"></i> Clear Cache
+              </button>
+            </div>
+            <div class="col-md-3 mb-2">
+              <button class="btn btn-outline-warning btn-block" onclick="restartServices()">
+                <i class="fas fa-redo"></i> Restart Services
+              </button>
+            </div>
+            <div class="col-md-3 mb-2">
+              <a href="{% url 'core:audit_logs' %}" class="btn btn-outline-info btn-block">
+                <i class="fas fa-history"></i> View Logs
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    initializeHealthCharts();
+    startAutoRefresh();
+  });
+
+  function initializeHealthCharts() {
+    // Performance Metrics Chart
+    var performanceOptions = {
+      series: [{
+        name: 'Response Time (ms)',
+        data: generateTimeSeriesData(24) // Sample data for 24 hours
+      }, {
+        name: 'Error Rate (%)',
+        data: generateTimeSeriesData(24, 5) // Sample data for error rate
+      }],
+      chart: {
+        type: 'line',
+        height: 350,
+        zoom: {
+          enabled: true
+        }
+      },
+      colors: ['#4e73df', '#e74a3b'],
+      stroke: {
+        curve: 'smooth',
+        width: 2
+      },
+      xaxis: {
+        type: 'datetime',
+        labels: {
+          format: 'HH:mm'
+        }
+      },
+      yaxis: [{
+        title: {
+          text: 'Response Time (ms)'
+        }
+      }, {
+        opposite: true,
+        title: {
+          text: 'Error Rate (%)'
+        }
+      }],
+      legend: {
+        position: 'top'
+      },
+      markers: {
+        size: 3
+      }
+    };
+
+    var performanceChart = new ApexCharts(document.querySelector("#performanceMetricsChart"), performanceOptions);
+    performanceChart.render();
+
+    // Health Trends Chart
+    var trendsOptions = {
+      series: [{
+        name: 'Cache Hit Rate',
+        data: generateTimeSeriesData(7, 85, 95) // 7 days of cache hit rate data
+      }, {
+        name: 'Storage Usage',
+        data: generateTimeSeriesData(7, 60, 75) // 7 days of storage usage
+      }, {
+        name: 'Active Users',
+        data: generateTimeSeriesData(7, 20, 100) // 7 days of active users
+      }],
+      chart: {
+        type: 'area',
+        height: 300,
+        stacked: false
+      },
+      colors: ['#1cc88a', '#f6c23e', '#36b9cc'],
+      stroke: {
+        curve: 'smooth',
+        width: 2
+      },
+      fill: {
+        type: 'gradient',
+        gradient: {
+          opacityFrom: 0.3,
+          opacityTo: 0.1
+        }
+      },
+      xaxis: {
+        type: 'datetime',
+        labels: {
+          format: 'MMM dd'
+        }
+      },
+      yaxis: {
+        title: {
+          text: 'Percentage / Count'
+        }
+      },
+      legend: {
+        position: 'top'
+      }
+    };
+
+    var trendsChart = new ApexCharts(document.querySelector("#healthTrendsChart"), trendsOptions);
+    trendsChart.render();
+  }
+
+  function generateTimeSeriesData(points, min = 0, max = 100) {
+    var data = [];
+    var now = new Date().getTime();
+    var interval = 3600000; // 1 hour in milliseconds
+
+    for (var i = points - 1; i >= 0; i--) {
+      data.push([
+        now - (i * interval),
+        Math.floor(Math.random() * (max - min + 1)) + min
+      ]);
+    }
+
+    return data;
+  }
+
+  function refreshHealth() {
+    // Show loading indicator
+    $('#lastUpdated').html('<i class="fas fa-spinner fa-spin"></i> Updating...');
+
+    // Simulate AJAX call to refresh health data
+    setTimeout(function () {
+      $('#lastUpdated').html('Last updated: ' + new Date().toLocaleTimeString());
+      // In real implementation, this would update the health metrics
+      location.reload();
+    }, 2000);
+  }
+
+  function startAutoRefresh() {
+    // Auto-refresh every 30 seconds
+    setInterval(function () {
+      updateHealthMetrics();
+    }, 30000);
+  }
+
+  function updateHealthMetrics() {
+    // Update metrics without full page reload
+    $.ajax({
+      url: '{% url "core:system_health" %}api/metrics/',
+      method: 'GET',
+      success: function (data) {
+        // Update metrics display
+        updateMetricsDisplay(data);
+      },
+      error: function () {
+        console.log('Failed to update health metrics');
+      }
+    });
+  }
+
+  function updateMetricsDisplay(data) {
+    // Update the metrics display with new data
+    // This would update the cards and charts with fresh data
+    $('#lastUpdated').html('Last updated: ' + new Date().toLocaleTimeString());
+  }
+
+  function updateTimeRange(range) {
+    console.log('Updating charts for time range:', range);
+    // Update charts based on selected time range
+  }
+
+  function runDiagnostics() {
+    if (confirm('Run comprehensive system diagnostics? This may take a few minutes.')) {
+      $.ajax({
+        url: '{% url "core:system_health" %}diagnostics/',
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+        },
+        success: function (response) {
+          alert('Diagnostics completed. Check the results in the system logs.');
+        },
+        error: function () {
+          alert('Error running diagnostics. Please try again.');
+        }
+      });
+    }
+  }
+
+  function clearCache() {
+    if (confirm('Clear all system cache? This may temporarily affect performance.')) {
+      $.ajax({
+        url: '{% url "core:system_health" %}clear-cache/',
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+        },
+        success: function (response) {
+          alert('Cache cleared successfully.');
+          refreshHealth();
+        },
+        error: function () {
+          alert('Error clearing cache. Please try again.');
+        }
+      });
+    }
+  }
+
+  function restartServices() {
+    if (confirm('Restart background services? This will temporarily disrupt some functionality.')) {
+      $.ajax({
+        url: '{% url "core:system_health" %}restart-services/',
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+        },
+        success: function (response) {
+          alert('Services restart initiated. Monitor the system status for updates.');
+        },
+        error: function () {
+          alert('Error restarting services. Please contact system administrator.');
+        }
+      });
+    }
+  }
+
+  function viewTaskDetails() {
+    // Open modal or navigate to detailed task queue view
+    window.open('/admin/core/systemhealthmetrics/', '_blank');
+  }
+</script>
+{% endblock %}

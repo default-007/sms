@@ -1,0 +1,657 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Student Analytics - School Management System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/css/dataTables.bootstrap4.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Heading -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Student Performance Analytics</h1>
+    <div class="d-none d-lg-inline-block">
+      <a href="{% url 'core:analytics' %}" class="btn btn-sm btn-secondary shadow-sm">
+        <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Analytics
+      </a>
+      <button class="btn btn-sm btn-primary shadow-sm ml-2" data-toggle="modal" data-target="#exportModal">
+        <i class="fas fa-download fa-sm text-white-50"></i> Export Data
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters Card -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">
+        <i class="fas fa-filter"></i> Filter Analytics
+      </h6>
+    </div>
+    <div class="card-body">
+      <form method="get" id="filterForm">
+        <div class="row">
+          <div class="col-md-3 mb-3">
+            <label for="academic_year" class="form-label">Academic Year</label>
+            <select name="academic_year" id="academic_year" class="form-control">
+              <option value="">Current Year</option>
+              <!-- Academic years would be populated here -->
+            </select>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label for="term" class="form-label">Term</label>
+            <select name="term" id="term" class="form-control">
+              <option value="">Current Term</option>
+              <!-- Terms would be populated here -->
+            </select>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label for="subject" class="form-label">Subject</label>
+            <select name="subject" id="subject" class="form-control">
+              <option value="overall">Overall Performance</option>
+              <!-- Subjects would be populated here -->
+            </select>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="form-label">&nbsp;</label>
+            <div>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i> Apply Filters
+              </button>
+              <a href="{% url 'core:student_analytics' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-times"></i> Clear
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-3 mb-3">
+            <label for="section" class="form-label">Section</label>
+            <select name="section" id="section" class="form-control">
+              <option value="">All Sections</option>
+              <!-- Sections would be populated here -->
+            </select>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label for="grade" class="form-label">Grade</label>
+            <select name="grade" id="grade" class="form-control">
+              <option value="">All Grades</option>
+              <!-- Grades would be populated here -->
+            </select>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label for="class" class="form-label">Class</label>
+            <select name="class" id="class" class="form-control">
+              <option value="">All Classes</option>
+              <!-- Classes would be populated here -->
+            </select>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label for="performance_filter" class="form-label">Performance Level</label>
+            <select name="performance_filter" id="performance_filter" class="form-control">
+              <option value="">All Levels</option>
+              <option value="excellent">Excellent (90-100%)</option>
+              <option value="good">Good (75-89%)</option>
+              <option value="average">Average (60-74%)</option>
+              <option value="below_average">Below Average (<60%)< /option>
+            </select>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Performance Overview Cards -->
+  {% if analytics %}
+  <div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-primary shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                Total Students
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ analytics|length }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-users fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-success shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                Average Performance
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {% if analytics %}
+                {{ analytics|first.average_marks|default:0|floatformat:1 }}%
+                {% else %}
+                0.0%
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-info shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                Average Attendance
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {% if analytics %}
+                {{ analytics|first.attendance_percentage|default:0|floatformat:1 }}%
+                {% else %}
+                0.0%
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-user-check fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-warning shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                Assignment Rate
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {% if analytics %}
+                {{ analytics|first.assignment_completion_rate|default:0|floatformat:1 }}%
+                {% else %}
+                0.0%
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-tasks fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Performance Charts -->
+  <div class="row mb-4">
+    <!-- Performance Distribution Chart -->
+    <div class="col-xl-6 col-lg-6">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Performance Distribution</h6>
+        </div>
+        <div class="card-body">
+          <div id="performanceDistributionChart"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Performers Chart -->
+    <div class="col-xl-6 col-lg-6">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Top 10 Performers</h6>
+        </div>
+        <div class="card-body">
+          <div id="topPerformersChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Analytics Table -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+      <h6 class="m-0 font-weight-bold text-primary">
+        <i class="fas fa-table"></i> Student Performance Details
+      </h6>
+      <div class="text-muted small">
+        {% if analytics %}
+        Showing {{ analytics|length }} records
+        {% else %}
+        No records found
+        {% endif %}
+      </div>
+    </div>
+    <div class="card-body">
+      {% if analytics %}
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover" id="studentAnalyticsTable" width="100%" cellspacing="0">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Class</th>
+              <th>Avg Marks</th>
+              <th>Attendance</th>
+              <th>Assignment Rate</th>
+              <th>Class Rank</th>
+              <th>Grade Rank</th>
+              <th>Trend</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for analytic in analytics %}
+            <tr>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="mr-3">
+                    <img class="rounded-circle" width="40" height="40"
+                      src="{% if analytic.student.user.profile_picture %}{{ analytic.student.user.profile_picture.url }}{% else %}{% static 'img/default-avatar.png' %}{% endif %}"
+                      alt="Student Avatar">
+                  </div>
+                  <div>
+                    <div class="font-weight-bold">{{ analytic.student.user.get_full_name }}</div>
+                    <div class="small text-muted">{{ analytic.student.admission_number }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div>{{ analytic.student.current_class }}</div>
+                <div class="small text-muted">{{ analytic.student.current_class.grade.section.name }}</div>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <span class="mr-2">{{ analytic.average_marks|floatformat:1 }}%</span>
+                  <div class="progress flex-grow-1" style="height: 5px;">
+                    <div class="progress-bar 
+                                                {% if analytic.average_marks >= 90 %}bg-success
+                                                {% elif analytic.average_marks >= 75 %}bg-primary
+                                                {% elif analytic.average_marks >= 60 %}bg-warning
+                                                {% else %}bg-danger{% endif %}" role="progressbar"
+                      style="width: {{ analytic.average_marks|floatformat:0 }}%">
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <span class="mr-2">{{ analytic.attendance_percentage|floatformat:1 }}%</span>
+                  <div class="progress flex-grow-1" style="height: 5px;">
+                    <div class="progress-bar 
+                                                {% if analytic.attendance_percentage >= 95 %}bg-success
+                                                {% elif analytic.attendance_percentage >= 85 %}bg-primary
+                                                {% elif analytic.attendance_percentage >= 75 %}bg-warning
+                                                {% else %}bg-danger{% endif %}" role="progressbar"
+                      style="width: {{ analytic.attendance_percentage|floatformat:0 }}%">
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span>{{ analytic.assignment_completion_rate|floatformat:1 }}%</span>
+                <div class="small text-muted">
+                  {{ analytic.assignments_on_time }}/{{ analytic.assignments_submitted }} on time
+                </div>
+              </td>
+              <td class="text-center">
+                {% if analytic.ranking_in_class %}
+                <span class="badge 
+                                            {% if analytic.ranking_in_class <= 3 %}badge-success
+                                            {% elif analytic.ranking_in_class <= 10 %}badge-primary
+                                            {% else %}badge-secondary{% endif %}">
+                  #{{ analytic.ranking_in_class }}
+                </span>
+                {% else %}
+                <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if analytic.ranking_in_grade %}
+                <span class="badge 
+                                            {% if analytic.ranking_in_grade <= 5 %}badge-success
+                                            {% elif analytic.ranking_in_grade <= 20 %}badge-primary
+                                            {% else %}badge-secondary{% endif %}">
+                  #{{ analytic.ranking_in_grade }}
+                </span>
+                {% else %}
+                <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if analytic.improvement_trend %}
+                <span class="badge 
+                                            {% if analytic.improvement_trend == 'improving' %}badge-success
+                                            {% elif analytic.improvement_trend == 'declining' %}badge-danger
+                                            {% elif analytic.improvement_trend == 'stable' %}badge-primary
+                                            {% else %}badge-warning{% endif %}">
+                  <i class="fas 
+                                                {% if analytic.improvement_trend == 'improving' %}fa-arrow-up
+                                                {% elif analytic.improvement_trend == 'declining' %}fa-arrow-down
+                                                {% elif analytic.improvement_trend == 'stable' %}fa-minus
+                                                {% else %}fa-exchange-alt{% endif %}"></i>
+                  {{ analytic.improvement_trend|title }}
+                </span>
+                {% else %}
+                <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm" role="group">
+                  <button type="button" class="btn btn-outline-primary"
+                    onclick="viewStudentDetails({{ analytic.student.id }})" title="View Details">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button type="button" class="btn btn-outline-success"
+                    onclick="generateStudentReport({{ analytic.student.id }})" title="Generate Report">
+                    <i class="fas fa-file-alt"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-5">
+        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">No Student Analytics Found</h5>
+        <p class="text-muted">
+          No analytics data is available for the selected filters.
+          Try adjusting your search criteria or check if analytics have been calculated.
+        </p>
+        <button class="btn btn-primary" onclick="calculateAnalytics()">
+          <i class="fas fa-calculator"></i> Calculate Analytics
+        </button>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Insights Panel -->
+  {% if analytics %}
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-lightbulb"></i> Performance Insights
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3 text-center mb-3">
+              <div class="h4 mb-0 font-weight-bold text-success">
+                {{ analytics|length|mul:0.3|floatformat:0 }}
+              </div>
+              <div class="small text-muted">High Performers</div>
+              <div class="small text-success">(>85% average)</div>
+            </div>
+            <div class="col-md-3 text-center mb-3">
+              <div class="h4 mb-0 font-weight-bold text-warning">
+                {{ analytics|length|mul:0.1|floatformat:0 }}
+              </div>
+              <div class="small text-muted">At Risk Students</div>
+              <div class="small text-warning">(<60% average)</div>
+              </div>
+              <div class="col-md-3 text-center mb-3">
+                <div class="h4 mb-0 font-weight-bold text-info">
+                  {{ analytics|length|mul:0.15|floatformat:0 }}
+                </div>
+                <div class="small text-muted">Attendance Issues</div>
+                <div class="small text-info">(<85% attendance)</div>
+                </div>
+                <div class="col-md-3 text-center mb-3">
+                  <div class="h4 mb-0 font-weight-bold text-primary">
+                    {{ analytics|length|mul:0.25|floatformat:0 }}
+                  </div>
+                  <div class="small text-muted">Improving Trend</div>
+                  <div class="small text-primary">(Positive growth)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Export Modal -->
+    <div class="modal fade" id="exportModal" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Export Student Analytics</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form id="exportForm">
+              <div class="form-group">
+                <label for="export_format">Export Format</label>
+                <select class="form-control" id="export_format" name="format">
+                  <option value="excel">Excel (.xlsx)</option>
+                  <option value="csv">CSV</option>
+                  <option value="pdf">PDF Report</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="export_fields">Include Fields</label>
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" id="include_personal" name="fields" value="personal"
+                    checked>
+                  <label class="form-check-label" for="include_personal">Personal Information</label>
+                </div>
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" id="include_performance" name="fields"
+                    value="performance" checked>
+                  <label class="form-check-label" for="include_performance">Performance Metrics</label>
+                </div>
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" id="include_attendance" name="fields"
+                    value="attendance" checked>
+                  <label class="form-check-label" for="include_attendance">Attendance Data</label>
+                </div>
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" id="include_rankings" name="fields" value="rankings"
+                    checked>
+                  <label class="form-check-label" for="include_rankings">Rankings</label>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="exportAnalytics()">
+              <i class="fas fa-download"></i> Export
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endblock %}
+
+    {% block extra_js %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.js"></script>
+
+    <script>
+      $(document).ready(function () {
+        // Initialize DataTable
+        {% if analytics %}
+        $('#studentAnalyticsTable').DataTable({
+          "pageLength": 25,
+          "lengthChange": true,
+          "lengthMenu": [[10, 25, 50, 100], [10, 25, 50, 100]],
+          "searching": true,
+          "ordering": true,
+          "order": [[2, "desc"]], // Sort by average marks descending
+          "responsive": true,
+          "columnDefs": [
+            { "orderable": false, "targets": [8] }, // Actions column
+            { "type": "num", "targets": [2, 3, 4] } // Numeric columns
+          ]
+        });
+        {% endif %}
+
+        // Initialize charts
+        initializeCharts();
+
+        // Auto-submit form on filter changes
+        $('#academic_year, #term, #subject, #section, #grade, #class, #performance_filter').change(function () {
+          $('#filterForm').submit();
+        });
+      });
+
+      function initializeCharts() {
+        // Performance Distribution Chart
+        var distributionOptions = {
+          series: [35, 40, 20, 5], // Sample data - would come from backend
+          chart: {
+            type: 'donut',
+            height: 300
+          },
+          labels: ['Excellent (90-100%)', 'Good (75-89%)', 'Average (60-74%)', 'Below Average (<60%)'],
+          colors: ['#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'],
+          legend: {
+            position: 'bottom'
+          },
+          responsive: [{
+            breakpoint: 480,
+            options: {
+              chart: {
+                width: 200
+              },
+              legend: {
+                position: 'bottom'
+              }
+            }
+          }]
+        };
+
+        var distributionChart = new ApexCharts(document.querySelector("#performanceDistributionChart"), distributionOptions);
+        distributionChart.render();
+
+        // Top Performers Chart
+        var topPerformersOptions = {
+          series: [{
+            data: [98, 96, 94, 92, 90, 89, 87, 85, 84, 82] // Sample data
+          }],
+          chart: {
+            type: 'bar',
+            height: 300
+          },
+          plotOptions: {
+            bar: {
+              borderRadius: 4,
+              horizontal: true,
+            }
+          },
+          dataLabels: {
+            enabled: false
+          },
+          xaxis: {
+            categories: ['John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Wilson', 'Tom Brown',
+              'Lisa Davis', 'Chris Lee', 'Emma White', 'Alex Taylor', 'Maya Patel'],
+          },
+          colors: ['#4e73df'],
+          title: {
+            text: 'Top 10 Students by Average Marks'
+          }
+        };
+
+        var topPerformersChart = new ApexCharts(document.querySelector("#topPerformersChart"), topPerformersOptions);
+        topPerformersChart.render();
+      }
+
+      function viewStudentDetails(studentId) {
+        // Open student details modal or navigate to student detail page
+        window.open('/students/' + studentId + '/', '_blank');
+      }
+
+      function generateStudentReport(studentId) {
+        // Generate individual student report
+        if (confirm('Generate detailed performance report for this student?')) {
+          window.open('{% url "core:generate_report" %}?type=student_performance&student_id=' + studentId, '_blank');
+        }
+      }
+
+      function calculateAnalytics() {
+        if (confirm('Recalculate student performance analytics? This may take several minutes.')) {
+          $.ajax({
+            url: '{% url "core:student_analytics" %}calculate/',
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+            },
+            success: function (response) {
+              alert('Analytics calculation has been queued. The page will refresh when complete.');
+              setTimeout(function () {
+                location.reload();
+              }, 3000);
+            },
+            error: function () {
+              alert('Error starting analytics calculation. Please try again.');
+            }
+          });
+        }
+      }
+
+      function exportAnalytics() {
+        var formData = $('#exportForm').serialize();
+        var currentFilters = $('#filterForm').serialize();
+
+        // Create form for download
+        var tempForm = $('<form>', {
+          'method': 'POST',
+          'action': '{% url "core:student_analytics" %}export/',
+          'target': '_blank'
+        });
+
+        // Add CSRF token
+        tempForm.append($('<input>', {
+          'type': 'hidden',
+          'name': 'csrfmiddlewaretoken',
+          'value': $('[name=csrfmiddlewaretoken]').val()
+        }));
+
+        // Add form data
+        (formData + '&' + currentFilters).split('&').forEach(function (pair) {
+          var keyValue = pair.split('=');
+          if (keyValue.length === 2) {
+            tempForm.append($('<input>', {
+              'type': 'hidden',
+              'name': decodeURIComponent(keyValue[0]),
+              'value': decodeURIComponent(keyValue[1])
+            }));
+          }
+        });
+
+        $('body').append(tempForm);
+        tempForm.submit();
+        tempForm.remove();
+
+        $('#exportModal').modal('hide');
+      }
+    </script>
+    {% endblock %}

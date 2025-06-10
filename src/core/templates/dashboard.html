@@ -1,1924 +1,562 @@
-{% extends 'base.html' %}
-
+{% extends "base.html" %}
 {% load static %}
-{% block content %}
 
+{% block title %}Dashboard - School Management System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.css">
+{% endblock %}
+
+{% block content %}
 <div class="container-fluid">
+  <!-- Welcome Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">Welcome back, {{ user.first_name|default:user.username }}!</h1>
+          <p class="text-muted mb-0">
+            {% if current_academic_year %}
+            {{ current_academic_year.name }}
+            {% if current_term %} - {{ current_term.name }}{% endif %}
+            {% else %}
+            No active academic year
+            {% endif %}
+          </p>
+        </div>
+        <div class="text-end">
+          <small class="text-muted">Last login: {{ user.last_login|date:"M d, Y H:i" }}</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Stats Cards -->
+  <div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-primary shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                Total Students
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_students }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-users fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-success shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                Total Teachers
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_teachers }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-chalkboard-teacher fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-info shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                Total Classes
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_classes }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-door-open fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-warning shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                System Health
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {% if system_health %}
+                <span class="badge badge-success">Healthy</span>
+                {% else %}
+                <span class="badge badge-warning">Unknown</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-heartbeat fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Role-specific Dashboard Content -->
+  {% if user_role == "system_admin" or user_role == "school_admin" or user_role == "superuser" %}
+  <!-- Admin Dashboard -->
+  <div class="row">
+    <!-- Financial Summary Chart -->
+    <div class="col-xl-8 col-lg-7">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+          <h6 class="m-0 font-weight-bold text-primary">Financial Overview</h6>
+          <div class="dropdown no-arrow">
+            <a class="dropdown-toggle" href="#" role="button" data-toggle="dropdown">
+              <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+            </a>
+            <div class="dropdown-menu dropdown-menu-right shadow">
+              <a class="dropdown-item" href="{% url 'core:financial_analytics' %}">View Details</a>
+              <a class="dropdown-item" href="{% url 'core:generate_report' %}?type=financial_summary">Generate
+                Report</a>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="financialChart"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Summary -->
+    <div class="col-xl-4 col-lg-5">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Performance Summary</h6>
+        </div>
+        <div class="card-body">
+          {% if performance_summary %}
+          <div class="mb-3">
+            <div class="small mb-1">Average Performance</div>
+            <div class="progress">
+              <div class="progress-bar" role="progressbar"
+                style="width: {{ performance_summary.avg_performance|floatformat:0 }}%">
+                {{ performance_summary.avg_performance|floatformat:1 }}%
+              </div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <div class="small mb-1">Average Attendance</div>
+            <div class="progress">
+              <div class="progress-bar bg-success" role="progressbar"
+                style="width: {{ performance_summary.avg_attendance|floatformat:0 }}%">
+                {{ performance_summary.avg_attendance|floatformat:1 }}%
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <p class="text-muted">No performance data available for current term.</p>
+          {% endif %}
+          <a href="{% url 'core:analytics' %}" class="btn btn-primary btn-sm">View Analytics</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Activity -->
   <div class="row">
     <div class="col-12">
-      <h1 class="my-4">Dashboard</h1>
-
-      {% if current_academic_year %}
-      <div class="alert alert-info">
-        <strong>Current Academic Year:</strong> {{ current_academic_year.name }}
-        ({{ current_academic_year.start_date|date:"M d, Y" }} - {{ current_academic_year.end_date|date:"M d, Y" }})
-      </div>
-      {% endif %}
-    </div>
-  </div>
-
-  <!-- Admin Dashboard -->
-  {% if user.is_staff %}
-  <div class="row">
-    <!-- Statistics Cards -->
-    <div class="col-md-3">
-      <div class="card mb-4">
-        <div class="card-body">
-          <h5 class="card-title">Students</h5>
-          <h2 class="text-primary">{{ total_students }}</h2>
-          <div class="progress mt-2">
-            <div class="progress-bar bg-primary" role="progressbar" style="width: 100%"></div>
-          </div>
-          <a href="{% url 'students:student-list' %}" class="btn btn-sm btn-outline-primary mt-3">View All</a>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-3">
-      <div class="card mb-4">
-        <div class="card-body">
-          <h5 class="card-title">Teachers</h5>
-          <h2 class="text-success">{{ total_teachers }}</h2>
-          <div class="progress mt-2">
-            <div class="progress-bar bg-success" role="progressbar" style="width: 100%"></div>
-          </div>
-          <a href="{% url 'teachers:teacher-list' %}" class="btn btn-sm btn-outline-success mt-3">View All</a>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-3">
-      <div class="card mb-4">
-        <div class="card-body">
-          <h5 class="card-title">Classes</h5>
-          <h2 class="text-info">{{ total_classes }}</h2>
-          <div class="progress mt-2">
-            <div class="progress-bar bg-info" role="progressbar" style="width: 100%"></div>
-          </div>
-          <a href="#" class="btn btn-sm btn-outline-info mt-3">View All</a>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-3">
-      <div class="card mb-4">
-        <div class="card-body">
-          <h5 class="card-title">Attendance Rate</h5>
-          <h2 class="text-warning">{{ attendance_rate }}%</h2>
-          <div class="progress mt-2">
-            <div class="progress-bar bg-warning" role="progressbar" style="width: {{ attendance_rate }}%"></div>
-          </div>
-          <a href="#" class="btn btn-sm btn-outline-warning mt-3">View Report</a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Student Demographics -->
-  <div class="row">
-    <div class="col-md-6">
-      <div class="card mb-4">
-        <div class="card-header bg-light">
-          <h5 class="card-title mb-0">Student Status Distribution</h5>
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Recent System Activity</h6>
         </div>
         <div class="card-body">
-          <canvas id="studentStatusChart" height="250"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-6">
-      <div class="card mb-4">
-        <div class="card-header bg-light">
-          <h5 class="card-title mb-0">Gender Distribution</h5>
-        </div>
-        <div class="card-body">
-          <canvas id="genderChart" height="250"></canvas>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Academic and Financial Metrics -->
-  <div class="row">
-    <div class="col-md-6">
-      <div class="card mb-4">
-        <div class="card-header bg-light">
-          <h5 class="card-title mb-0">Monthly Admissions</h5>
-        </div>
-        <div class="card-body">
-          <canvas id="admissionsChart" height="250"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-6">
-      <div class="card mb-4">
-        <div class="card-header bg-light">
-          <h5 class="card-title mb-0">Fee Collection Statistics</h5>
-        </div>
-        <div class="card-body">
-          <div class="row">
-            <div class="col-md-6">
-              <div class="text-center mb-4">
-                <h6>Collection Rate</h6>
-                <div class="position-relative d-inline-block">
-                  <canvas id="collectionRateChart" height="150"></canvas>
-                  <div class="position-absolute top-50 start-50 translate-middle">
-                    <h3>{{ collection_rate }}%</h3>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="stats-details">
-                <div class="mb-3">
-                  <h6>Total Invoiced</h6>
-                  <h4>${{ total_invoiced|floatformat:2 }}</h4>
-                </div>
-                <div>
-                  <h6>Total Collected</h6>
-                  <h4>${{ total_collected|floatformat:2 }}</h4>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Attendance and Teacher Stats -->
-  <div class="row">
-    <div class="col-md-8">
-      <div class="card mb-4">
-        <div class="card-header bg-light">
-          <h5 class="card-title mb-0">Attendance Trend (Last 30 Days)</h5>
-        </div>
-        <div class="card-body">
-          <canvas id="attendanceChart" height="250"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="card mb-4">
-        <div class="card-header bg-light">
-          <h5 class="card-title mb-0">Teacher Experience</h5>
-        </div>
-        <div class="card-body">
-          <canvas id="experienceChart" height="250"></canvas>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Chart Initialization JavaScript -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      // Student Status Chart
-      var statusCtx = document.getElementById('studentStatusChart').getContext('2d');
-      var statusChart = new Chart(statusCtx, {
-        type: 'pie',
-        data: {
-          labels: [{% for item in student_status %}'{{ item.status }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
-      datasets: [{
-        data: [{% for item in student_status %}{{ item.count }}{% if not forloop.last %}, {% endif %} {% endfor %}],
-    backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b']
-              }]
-          },
-    options: {
-      responsive: true,
-        maintainAspectRatio: false,
-          legend: {
-        position: 'right'
-      }
-    }
-      });
-
-    // Gender Distribution Chart
-    var genderCtx = document.getElementById('genderChart').getContext('2d');
-    var genderLabels = [];
-    var genderData = [];
-
-    {% for item in gender_distribution %}
-    {% if item.user__gender == 'M' %}
-    genderLabels.push('Male');
-    {% elif item.user__gender == 'F' %}
-    genderLabels.push('Female');
-    {% else %}
-    genderLabels.push('Other');
-    {% endif %}
-    genderData.push({{ item.count }});
-    {% endfor %}
-
-    var genderChart = new Chart(genderCtx, {
-      type: 'doughnut',
-      data: {
-        labels: genderLabels,
-        datasets: [{
-          data: genderData,
-          backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc']
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        legend: {
-          position: 'right'
-        }
-      }
-    });
-
-    // Monthly Admissions Chart
-    var admissionsCtx = document.getElementById('admissionsChart').getContext('2d');
-    var admissionsLabels = [];
-    var admissionsData = [];
-
-    {% for item in monthly_admissions %}
-    admissionsLabels.push('{{ item.month|date:"M Y" }}');
-    admissionsData.push({{ item.count }});
-    {% endfor %}
-
-    var admissionsChart = new Chart(admissionsCtx, {
-      type: 'bar',
-      data: {
-        labels: admissionsLabels,
-        datasets: [{
-          label: 'New Students',
-          data: admissionsData,
-          backgroundColor: '#4e73df'
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          yAxes: [{
-            ticks: {
-              beginAtZero: true,
-              precision: 0
-            }
-          }]
-        }
-      }
-    });
-
-    // Collection Rate Chart
-    var collectionCtx = document.getElementById('collectionRateChart').getContext('2d');
-    var collectionRate = {{ collection_rate }};
-
-    var collectionChart = new Chart(collectionCtx, {
-      type: 'doughnut',
-      data: {
-        datasets: [{
-          data: [collectionRate, 100 - collectionRate],
-          backgroundColor: ['#1cc88a', '#e9ecef'],
-          borderWidth: 0
-        }]
-      },
-      options: {
-        cutoutPercentage: 85,
-        responsive: true,
-        maintainAspectRatio: false,
-        tooltips: {
-          enabled: false
-        },
-        legend: {
-          display: false
-        }
-      }
-    });
-
-    // Attendance Trend Chart
-    var attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
-    var attendanceDates = [];
-    var presentData = [];
-    var absentData = [];
-    var lateData = [];
-
-    {% for item in attendance_trend %}
-    attendanceDates.push('{{ item.date|date:"M d" }}');
-    presentData.push({{ item.present }});
-    absentData.push({{ item.absent }});
-    lateData.push({{ item.late }});
-    {% endfor %}
-
-    var attendanceChart = new Chart(attendanceCtx, {
-      type: 'line',
-      data: {
-        labels: attendanceDates,
-        datasets: [
-          {
-            label: 'Present',
-            data: presentData,
-            borderColor: '#1cc88a',
-            backgroundColor: 'rgba(28, 200, 138, 0.1)',
-            pointBackgroundColor: '#1cc88a',
-            lineTension: 0.3,
-            pointRadius: 3
-          },
-          {
-            label: 'Absent',
-            data: absentData,
-            borderColor: '#e74a3b',
-            backgroundColor: 'rgba(231, 74, 59, 0.1)',
-            pointBackgroundColor: '#e74a3b',
-            lineTension: 0.3,
-            pointRadius: 3
-          },
-          {
-            label: 'Late',
-            data: lateData,
-            borderColor: '#f6c23e',
-            backgroundColor: 'rgba(246, 194, 62, 0.1)',
-            pointBackgroundColor: '#f6c23e',
-            lineTension: 0.3,
-            pointRadius: 3
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          xAxes: [{
-            gridLines: {
-              display: false
-            }
-          }],
-          yAxes: [{
-            ticks: {
-              beginAtZero: true,
-              precision: 0
-            }
-          }]
-        }
-      }
-    });
-
-    // Teacher Experience Chart
-    var experienceCtx = document.getElementById('experienceChart').getContext('2d');
-    var experienceLabels = [];
-    var experienceData = [];
-
-    {% for range, count in experience_levels.items %}
-    experienceLabels.push('{{ range }}');
-    experienceData.push({{ count }});
-    {% endfor %}
-
-    var experienceChart = new Chart(experienceCtx, {
-      type: 'pie',
-      data: {
-        labels: experienceLabels,
-        datasets: [{
-          data: experienceData,
-          backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e']
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        legend: {
-          position: 'bottom'
-        }
-      }
-    });
-  });
-  </script>
-  {% endif %}
-
-  <!-- Teacher Dashboard -->
-  {% if teacher %}
-  <div class="row">
-    <div class="col-md-6">
-      <div class="card mb-4">
-        <div class="card-header bg-light">
-          <h5 class="card-title mb-0">Your Classes</h5>
-        </div>
-        <div class="card-body">
-          <div class="list-group list-group-flush">
-            {% for class in assigned_classes %}
-            <div class="list-group-item px-0">
-              <h6 class="mb-1">{{ class.grade.name }} - {{ class.section.name }}</h6>
-              <p class="mb-1 small">Academic Year: {{ class.academic_year.name }}</p>
-              {% if class.class_teacher == teacher %}
-              <span class="badge bg-success">Class Teacher</span>
-              {% endif %}
-            </div>
-            {% empty %}
-            <p class="text-muted">No classes assigned</p>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-6">
-      <div class="card mb-4">
-        <div class="card-header bg-light">
-          <h5 class="card-title mb-0">Pending Assignments</h5>
-        </div>
-        <div class="card-body">
-          <h2 class="text-primary">{{ pending_assignments }}</h2>
-          <a href="{% url 'courses:assignment-list' %}" class="btn btn-sm btn-outline-primary">View Assignments</a>
-        </div>
-      </div>
-
-      {% if upcoming_evaluations %}
-      <div class="card mb-4">
-        <div class="card-header bg-light">
-          <h5 class="card-title mb-0">Upcoming Evaluations</h5>
-        </div>
-        <div class="card-body">
-          <div class="list-group list-group-flush">
-            {% for evaluation in upcoming_evaluations %}
-            <div class="list-group-item px-0">
-              <div class="d-flex w-100 justify-content-between">
-                <h6 class="mb-1">Evaluation</h6>
-                <small class="text-muted">{{ evaluation.evaluation_date|date:"M d, Y" }}</small>
-              </div>
-              <p class="mb-1 small">
-                Evaluator: {{ evaluation.evaluator.get_full_name }}
-              </p>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-      {% endif %}
-    </div>
-  </div>
-  {% endif %}
-
-  <!-- Parent Dashboard -->
-  {% if parent %}
-  <div class="row">
-    <div class="col-md-12">
-      <div class="card mb-4">
-        <div class="card-header bg-light">
-          <h5 class="card-title mb-0">Your Children</h5>
-        </div>
-        <div class="card-body">
-          <div class="row">
-            {% for child in children %}
-            <div class="col-md-4">
-              <div class="card mb-3">
-                <div class="card-body">
-                  <h5 class="card-title">{{ child.get_full_name }}</h5>
-                  <h6 class="card-subtitle mb-2 text-muted">{{ child.admission_number }}</h6>
-                  <p class="mb-1">
-                    <strong>Class:</strong>
-                    {% if child.current_class %}
-                    {{ child.current_class.grade.name }} - {{ child.current_class.section.name }}
-                    {% else %}
-                    Not assigned
-                    {% endif %}
-                  </p>
-                  <p class="mb-1">
-                    <strong>Status:</strong>
-                    <span class="badge {% if child.status == 'Active' %}bg-success{% else %}bg-secondary{% endif %}">
-                      {{ child.status }}
-                    </span>
-                  </p>
-                  <a href="{% url 'students:student-detail' child.id %}"
-                    class="btn btn-sm btn-outline-primary mt-2">View Details</a>
-                </div>
-              </div>
-            </div>
-            {% empty %}
-            <div class="col-12">
-              <p class="text-muted">No children registered</p>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {% if pending_invoices %}
-    <div class="col-md-6">
-      <div class="card mb-4">
-        <div class="card-header bg-light">
-          <h5 class="card-title mb-0">Fee Information</h5>
-        </div>
-        <div class="card-body">
-          <div class="alert alert-warning">
-            <strong>Pending Payments:</strong> {{ pending_invoices }} invoice(s) require attention
-          </div>
-          <a href="{% url 'finance:invoice-list' %}" class="btn btn-sm btn-outline-primary">View Invoices</a>
-        </div>
-      </div>
-    </div>
-    {% endif %}
-  </div>
-  {% endif %}
-
-  <!-- Student Dashboard -->
-  {% if student %}
-  <div class="row">
-    <div class="col-md-6">
-      <div class="card mb-4">
-        <div class="card-header bg-light">
-          <h5 class="card-title mb-0">Pending Assignments</h5>
-        </div>
-        <div class="card-body">
-          <div class="list-group list-group-flush">
-            {% for assignment in pending_assignments %}
-            <div class="list-group-item px-0">
-              <div class="d-flex w-100 justify-content-between">
-                <h6 class="mb-1">{{ assignment.title }}</h6>
-                <small
-                  class="text-{% if assignment.due_date|date:'Y-m-d' < now|date:'Y-m-d' %}danger{% else %}muted{% endif %}">
-                  Due: {{ assignment.due_date|date:"M d, Y" }}
-                </small>
-              </div>
-              <p class="mb-1 small">
-                {{ assignment.subject.name }} | {{ assignment.total_marks }} marks
-              </p>
-              <div>
-                {% if assignment.is_submitted %}
-                <span class="badge bg-success">Submitted</span>
-                {% else %}
-                <span class="badge bg-warning">Not Submitted</span>
-                {% endif %}
-                <a href="{% url 'courses:assignment-detail' assignment.id %}" class="btn btn-sm btn-link">View</a>
-              </div>
-            </div>
-            {% empty %}
-            <p class="text-muted">No pending assignments</p>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-6">
-      <div class="card mb-4">
-        <div class="card-header bg-light">
-          <h5 class="card-title mb-0">Upcoming Exams</h5>
-        </div>
-        <div class="card-body">
-          <div class="list-group list-group-flush">
-            {% for exam in upcoming_exams %}
-            <div class="list-group-item px-0">
-              <div class="d-flex w-100 justify-content-between">
-                <h6 class="mb-1">{{ exam.subject.name }}</h6>
-                <small class="text-muted">{{ exam.date|date:"M d, Y" }}</small>
-              </div>
-              <p class="mb-1 small">
-                {{ exam.start_time }} - {{ exam.end_time }} | Room: {{ exam.room }}
-              </p>
-              <p class="mb-1 small">
-                Total Marks: {{ exam.total_marks }} | Passing Marks: {{ exam.passing_marks }}
-              </p>
-            </div>
-            {% empty %}
-            <p class="text-muted">No upcoming exams</p>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  {% endif %}
-</div>
-
-<div class="body-wrapper">
-  <div class="container-fluid">
-    <!--  Row -->
-    <div class="row">
-      <div class="col-12">
-        <div class="card">
-          <div class="card-body position-relative pb-1">
-            <div class="row justify-content-between">
-              <div class="col-lg-6 mb-5 mb-lg-0">
-                <div>
-                  <h4 class="card-title mb-1">
-                    Congratulations Jonathan
-                  </h4>
-                  <p class="mb-0 card-subtitle">
-                    You have done 38% more sales
-                  </p>
-                </div>
-                <div class="mt-6">
-                  <div class="row align-items-center">
-                    <div class="col-md-5">
-                      <ul class="list-unstyled mb-4 mb-md-0">
-                        <li class="d-flex align-items-center mb-9">
-                          <div
-                            class="bg-primary-subtle rounded-circle-shape px-3 py-2 me-3 rounded-5 d-flex align-items-center justify-content-center">
-                            <iconify-icon icon="solar:cart-4-line-duotone" class="fs-7 text-primary"></iconify-icon>
-                          </div>
-                          <div>
-                            <h6 class="mb-1 fs-4">64 new orders</h6>
-                            <p class="mb-0 lh-1">Processing</p>
-                          </div>
-                        </li>
-                        <li class="d-flex align-items-center mb-9">
-                          <div
-                            class="bg-danger-subtle rounded-circle-shape px-3 py-2 me-3 rounded-5 d-flex align-items-center justify-content-center">
-                            <iconify-icon icon="solar:checklist-minimalistic-line-duotone"
-                              class="fs-7 text-danger"></iconify-icon>
-                          </div>
-                          <div>
-                            <h6 class="mb-1 fs-4">4 orders</h6>
-                            <p class="mb-0 lh-1">On hold</p>
-                          </div>
-                        </li>
-                        <li class="d-flex align-items-center">
-                          <div
-                            class="bg-success-subtle rounded-circle-shape px-3 py-2 me-3 rounded-5 d-flex align-items-center justify-content-center">
-                            <iconify-icon icon="solar:banknote-line-duotone" class="fs-7 text-success"></iconify-icon>
-                          </div>
-                          <div>
-                            <h6 class="mb-1 fs-4">12 orders</h6>
-                            <p class="mb-0 lh-1">Delivered</p>
-                          </div>
-                        </li>
-                      </ul>
-                    </div>
-                    <div class="col-md-7">
-                      <div class="text-end">
-                        <img src="../assets/images/backgrounds/teamwork.png" alt="" class="img-fluid" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-lg-6">
-                <div class="d-flex align-items-baseline justify-content-between mb-2">
-                  <div>
-                    <h5 class="mb-1 card-title">Total Orders</h5>
-                    <p class="mb-0 card-subtitle">Weekly order updates</p>
-                  </div>
-                  <select class="form-select w-auto bg-light border-0 rounded-pill">
-                    <option value="1">This Week</option>
-                    <option value="2">April 2023</option>
-                    <option value="3">May 2023</option>
-                    <option value="4">June 2023</option>
-                  </select>
-                </div>
-                <div class="me-n3">
-                  <div id="netsells"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6 col-xl-3">
-        <div class="card">
-          <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <div>
-                <h4 class="fs-4 mb-1 card-title">Latest Deal</h4>
-                <p class="mb-0 card-subtitle">Last 7 days</p>
-              </div>
-              <div>
-                <span
-                  class="badge rounded-pill fs-2 fw-medium bg-primary-subtle fs-2 fw-medium text-primary">86.5%</span>
-              </div>
-            </div>
-            <div class="my-5">
-              <div class="d-flex align-items-center justify-content-between">
-                <h5 class="mb-0 fs-4">$98,500</h5>
-                <h6 class="mb-0 fs-4">$1,22,900</h6>
-              </div>
-              <div class="progress bg-light w-100 my-2" style="height: 4px">
-                <div class="progress-bar bg-success" role="progressbar" aria-label="Example 8px high" style="width: 80%"
-                  aria-valuenow="80" aria-valuemin="0" aria-valuemax="100"></div>
-              </div>
-              <p class="mb-0">Coupons used: 18/22</p>
-            </div>
-            <h6 class="mb-3 pt-2">Recent Purchasers</h6>
-            <ul class="hstack mb-0">
-              <li class="ms-n2">
-                <a href="javascript:void(0)" class="">
-                  <img src="../assets/images/profile/user-5.jpg"
-                    class="rounded-circle border border-2 border-transparent" width="40" height="40" alt="" />
-                </a>
-              </li>
-              <li class="ms-n2">
-                <a href="javascript:void(0)" class="">
-                  <img src="../assets/images/profile/user-2.jpg"
-                    class="rounded-circle border border-2 border-transparent" width="40" height="40" alt="" />
-                </a>
-              </li>
-              <li class="ms-n2">
-                <a href="javascript:void(0)" class="">
-                  <img src="../assets/images/profile/user-3.jpg"
-                    class="rounded-circle border border-2 border-transparent" width="40" height="40" alt="" />
-                </a>
-              </li>
-              <li class="ms-n2">
-                <a href="javascript:void(0)">
-                  <img src="../assets/images/profile/user-4.jpg"
-                    class="rounded-circle border border-2 border-transparent" width="40" height="40" alt="" />
-                </a>
-              </li>
-              <li class="ms-n2">
-                <a href="javascript:void(0)"
-                  class="bg-secondary-subtle text-secondary rounded-circle border border-2 border-transparent d-flex align-items-center justify-content-center round-40">
-                  +8
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6 col-xl-3">
-        <div class="card">
-          <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <div>
-                <h4 class="fs-4 mb-1 card-title">Customers</h4>
-                <p class="mb-0 card-subtitle">Last 7 days</p>
-              </div>
-              <div>
-                <h5 class="fs-4 mb-1 text-end">6,380</h5>
-                <span
-                  class="badge rounded-pill fs-2 fw-medium bg-success-subtle text-success fs-2 fw-medium">+26.5%</span>
-              </div>
-            </div>
-            <div id="customers" class="my-4 py-3"></div>
-            <div class="d-flex align-items-center justify-content-between mb-2">
-              <div class="d-flex align-items-center">
-                <span class="circle-shape bg-primary rounded-pill me-2"></span>
-                <p class="mb-0">Apr 07 - Apr 14</p>
-              </div>
-              <p class="mb-0">6,380</p>
-            </div>
-            <div class="d-flex align-items-center justify-content-between">
-              <div class="d-flex align-items-center">
-                <span class="circle-shape bg-light rounded-pill me-2"></span>
-                <p class="mb-0">Last Week</p>
-              </div>
-              <p class="mb-0">4,298</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6 col-xl-3">
-        <div class="card">
-          <div class="card-body">
-            <div class="d-flex justify-content-between pb-1">
-              <div>
-                <h4 class="mb-1 card-title fs-4">Payments</h4>
-                <p class="mb-0 card-subtitle">Last 7 days</p>
-              </div>
-              <div class="text-end">
-                <h5 class="mb-1 fs-4 text-end fw-bold">12,389</h5>
-                <span class="badge rounded-pill fs-2 fw-medium bg-danger-subtle fs-2 fw-medium text-danger">-3.8%</span>
-              </div>
-            </div>
-            <div class="me-n4 mb-6">
-              <div id="total-orders" class="rounded-bars "></div>
-            </div>
-            <div class="d-flex align-items-center justify-content-between mb-2">
-              <div class="d-flex align-items-center">
-                <span class="circle-shape bg-primary rounded-pill me-2"></span>
-                <p class="mb-0">Paypal</p>
-              </div>
-              <p class="mb-0">52%</p>
-            </div>
-            <div class="d-flex align-items-center justify-content-between">
-              <div class="d-flex align-items-center">
-                <span class="circle-shape bg-light rounded-pill me-2"></span>
-                <p class="mb-0">Credit Card</p>
-              </div>
-              <p class="mb-0">48%</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6 col-xl-3">
-        <div class="card">
-          <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <div>
-                <h4 class="mb-1 fs-4 card-title">Products</h4>
-                <p class="mb-0 card-subtitle">Last 7 days</p>
-              </div>
-              <div>
-                <h5 class="mb-1 fs-4 text-end fw-bold">432</h5>
-                <span
-                  class="badge rounded-pill fs-2 fw-medium bg-success-subtle fs-2 fw-medium text-success text-end">+26.5%</span>
-              </div>
-            </div>
-            <div class="my-7">
-              <div id="products" class="my-8"></div>
-            </div>
-            <p class="mb-0 text-center fs-2">
-              Profit more than last month
-            </p>
-          </div>
-        </div>
-      </div>
-      <div class="col-xxl-8">
-        <div class="card overflow-hidden">
-          <div class="card-body pb-0">
-            <h4 class="fs-4 mb-1 card-title">Popular Products</h4>
-            <p class="mb-0 card-subtitle">Total 9k Visitors</p>
-          </div>
-          <div data-simplebar class="position-relative" style="height: 465px">
-            <div class="table-responsive overflow-x-auto products-tabel" data-simplebar>
-              <table class="table text-nowrap  mb-0 align-middle table-hover">
-                <thead class="fs-4">
-                  <tr>
-                    <th class="fs-3 px-4">Products</th>
-                    <th class="fs-3">Payment</th>
-                    <th class="fs-3">Status</th>
-                    <th class="fs-3"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>
-                      <div class="d-flex align-items-center product">
-                        <img src="../assets/images/products/s1.jpg" class="img-fluid flex-shrink-0 rounded" width="60"
-                          height="60" />
-                        <div class="ms-3 product-title">
-                          <h6 class="fs-3 mb-0 text-truncate-2">
-                            iPhone 13 pro max-Pacific Blue-128GB storage
-                          </h6>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <h5 class="mb-0 fs-4">
-                        $180 <span class="text-muted">/499</span>
-                      </h5>
-                      <p class="text-muted mb-2">Partially paid</p>
-                      <div class="progress bg-light w-100" style="height: 4px">
-                        <div class="progress-bar bg-warning" role="progressbar" aria-label="Example 4px high"
-                          style="width: 40%" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100"></div>
-                      </div>
-                    </td>
-                    <td>
-                      <span
-                        class="badge rounded-pill fs-2 fw-medium bg-secondary-subtle text-secondary">Confirmed</span>
-                    </td>
-                    <td>
-                      <div class="dropdown dropstart">
-                        <a href="javascript:void(0)" class="text-muted" id="dropdownMenuButton"
-                          data-bs-toggle="dropdown" aria-expanded="false">
-                          <i class="material-symbols-outlined fs-7 d-block">more_vert</i>
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                          <li>
-                            <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                              <i class="fs-4 ti ti-plus"></i>Add
-                            </a>
-                          </li>
-                          <li>
-                            <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                              <i class="fs-4 ti ti-edit"></i>Edit
-                            </a>
-                          </li>
-                          <li>
-                            <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                              <i class="fs-4 ti ti-trash"></i>Delete
-                            </a>
-                          </li>
-                        </ul>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <div class="d-flex align-items-center product">
-                        <img src="../assets/images/products/s2.jpg" class="img-fluid flex-shrink-0 rounded" width="60"
-                          height="60" />
-                        <div class="ms-3 product-title">
-                          <h6 class="fs-3 mb-0 text-truncate-2">
-                            Apple MacBook Pro 13 inch-M1-8/256GB-space
-                          </h6>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <h5 class="mb-0 fs-4">
-                        $120 <span class="text-muted">/499</span>
-                      </h5>
-                      <p class="text-muted mb-2">Full paid</p>
-                      <div class="progress bg-light w-100" style="height: 4px">
-                        <div class="progress-bar bg-success" role="progressbar" aria-label="Example 4px high"
-                          style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-                      </div>
-                    </td>
-                    <td>
-                      <span class="badge rounded-pill fs-2 fw-medium bg-success-subtle text-success">Confirmed</span>
-                    </td>
-                    <td>
-                      <div class="dropdown dropstart">
-                        <a href="javascript:void(0)" class="text-muted" id="dropdownMenuButton"
-                          data-bs-toggle="dropdown" aria-expanded="false">
-                          <i class="material-symbols-outlined fs-7 d-block">more_vert</i>
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                          <li>
-                            <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                              <i class="fs-4 ti ti-plus"></i>Add
-                            </a>
-                          </li>
-                          <li>
-                            <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                              <i class="fs-4 ti ti-edit"></i>Edit
-                            </a>
-                          </li>
-                          <li>
-                            <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                              <i class="fs-4 ti ti-trash"></i>Delete
-                            </a>
-                          </li>
-                        </ul>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <div class="d-flex align-items-center product">
-                        <img src="../assets/images/products/s3.jpg" class="img-fluid flex-shrink-0 rounded" width="60"
-                          height="60" />
-                        <div class="ms-3 product-title">
-                          <h6 class="fs-3 mb-0 text-truncate-2">
-                            PlayStation 5 DualSense Wireless Controller
-                          </h6>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <h5 class="mb-0 fs-4">
-                        $120 <span class="text-muted">/499</span>
-                      </h5>
-                      <p class="text-muted mb-2">Cancelled</p>
-                      <div class="progress bg-light w-100" style="height: 4px">
-                        <div class="progress-bar bg-danger" role="progressbar" aria-label="Example 4px high"
-                          style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-                      </div>
-                    </td>
-                    <td>
-                      <span class="badge rounded-pill fs-2 fw-medium bg-danger-subtle text-danger">Cancelled</span>
-                    </td>
-                    <td>
-                      <div class="dropdown dropstart">
-                        <a href="javascript:void(0)" class="text-muted" id="dropdownMenuButton"
-                          data-bs-toggle="dropdown" aria-expanded="false">
-                          <i class="material-symbols-outlined fs-7 d-block">more_vert</i>
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                          <li>
-                            <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                              <i class="fs-4 ti ti-plus"></i>Add
-                            </a>
-                          </li>
-                          <li>
-                            <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                              <i class="fs-4 ti ti-edit"></i>Edit
-                            </a>
-                          </li>
-                          <li>
-                            <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                              <i class="fs-4 ti ti-trash"></i>Delete
-                            </a>
-                          </li>
-                        </ul>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <div class="d-flex align-items-center product">
-                        <img src="../assets/images/products/s5.jpg" class="img-fluid flex-shrink-0 rounded" width="60"
-                          height="60" />
-                        <div class="ms-3 product-title">
-                          <h6 class="fs-3 mb-0 text-truncate-2">
-                            Amazon Basics Mesh, Mid-Back, Swivel Office
-                            De...
-                          </h6>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <h5 class="mb-0 fs-4">
-                        $120 <span class="text-muted">/499</span>
-                      </h5>
-                      <p class="text-muted mb-2">Partially paid</p>
-                      <div class="progress bg-light w-100" style="height: 4px">
-                        <div class="progress-bar bg-warning" role="progressbar" aria-label="Example 4px high"
-                          style="width: 40%" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100"></div>
-                      </div>
-                    </td>
-                    <td>
-                      <span
-                        class="badge rounded-pill fs-2 fw-medium bg-secondary-subtle text-secondary">Confirmed</span>
-                    </td>
-                    <td>
-                      <div class="dropdown dropstart">
-                        <a href="javascript:void(0)" class="text-muted" id="dropdownMenuButton"
-                          data-bs-toggle="dropdown" aria-expanded="false">
-                          <i class="material-symbols-outlined fs-7 d-block">more_vert</i>
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                          <li>
-                            <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                              <i class="fs-4 ti ti-plus"></i>Add
-                            </a>
-                          </li>
-                          <li>
-                            <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                              <i class="fs-4 ti ti-edit"></i>Edit
-                            </a>
-                          </li>
-                          <li>
-                            <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                              <i class="fs-4 ti ti-trash"></i>Delete
-                            </a>
-                          </li>
-                        </ul>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td class="border-bottom-0">
-                      <div class="d-flex align-items-center product">
-                        <img src="../assets/images/products/s8.jpg" class="img-fluid flex-shrink-0 rounded" width="60"
-                          height="60" />
-                        <div class="ms-3 product-title">
-                          <h6 class="fs-3 mb-0 text-truncate-2">
-                            Sony X85J 75 Inch Sony 4K Ultra HD LED Smart
-                            G...
-                          </h6>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="border-bottom-0">
-                      <h5 class="mb-0 fs-4">
-                        $120 <span class="text-muted">/499</span>
-                      </h5>
-                      <p class="text-muted mb-2">Full paid</p>
-                      <div class="progress bg-light w-100" style="height: 4px">
-                        <div class="progress-bar bg-success" role="progressbar" aria-label="Example 4px high"
-                          style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-                      </div>
-                    </td>
-                    <td class="border-bottom-0">
-                      <span class="badge rounded-pill fs-2 fw-medium bg-success-subtle text-success">Confirmed</span>
-                    </td>
-                    <td class="border-bottom-0">
-                      <div class="dropdown dropstart">
-                        <a href="javascript:void(0)" class="text-muted" id="dropdownMenuButton"
-                          data-bs-toggle="dropdown" aria-expanded="false">
-                          <i class="material-symbols-outlined fs-7 d-block">more_vert</i>
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                          <li>
-                            <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                              <i class="fs-4 ti ti-plus"></i>Add
-                            </a>
-                          </li>
-                          <li>
-                            <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                              <i class="fs-4 ti ti-edit"></i>Edit
-                            </a>
-                          </li>
-                          <li>
-                            <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                              <i class="fs-4 ti ti-trash"></i>Delete
-                            </a>
-                          </li>
-                        </ul>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-xxl-4">
-        <div class="card acedamic w-100">
-          <div class="card-body p-4">
-            <div class="d-flex mb-4 justify-content-between align-items-center">
-              <div>
-                <h4 class="card-title">Upcoming Schedules</h4>
-                <p class="mb-0 card-subtitle">Our corporate events</p>
-              </div>
-              <div class="dropdown">
-                <button id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false"
-                  class="rounded-circle btn-transparent rounded-circle btn-sm px-1 btn shadow-none">
-                  <i class="material-symbols-outlined fs-7 d-block">more_vert</i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton1">
-                  <li>
-                    <a class="dropdown-item" href="javascript:void(0)">Action</a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item" href="javascript:void(0)">Another action</a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item" href="javascript:void(0)">Something else here</a>
-                  </li>
-                </ul>
-              </div>
-            </div>
-            <!-- Nav tabs -->
-            <ul class="nav nav-tabs nav-justified theme-tab table-responsive flex-nowrap" role="tablist">
-              <li class="nav-item">
-                <a class="nav-link py-1 fs-3 me-1 active w-100" data-bs-toggle="tab" href="#one1" role="tab">
-                  <span>All</span>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link py-1 fs-3 me-1 w-100" data-bs-toggle="tab" href="#two2" role="tab">
-                  <span>Delivered</span>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link py-1 fs-3" data-bs-toggle="tab" href="#three3" role="tab">
-                  <span>Shipping</span>
-                </a>
-              </li>
-            </ul>
-            <!-- Tab panes -->
-            <div class="tab-content mt-2">
-              <div class="tab-pane active" id="one1" role="tabpanel">
-                <div class="tab-content">
-                  <div class="upcoming-schedules position-relative" data-simplebar>
-                    <!-- ------------- -->
-                    <!-- 3 -->
-                    <!-- ------------- -->
-                    <div class="d-flex align-items-center gap-3 mt-3">
-                      <span class="round-40 rounded text-bg-warning d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:scooter-line-duotone" class="fs-7"></iconify-icon>
-                      </span>
-                      <div>
-                        <span class="text-body-color fw-medium">Scooter Freight</span>
-                        <h6 class="mt-1 mb-0">#1245-456201</h6>
-                      </div>
-                      <span class="ms-auto badge bg-success-subtle text-success rounded-pill fs-2 fw-medium">All</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mt-3 after-line">
-                      <div class="round-40 border rounded-circle d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:soundwave-circle-bold-duotone"
-                          class="text-warning fs-7"></iconify-icon>
-                      </div>
-                      <div>
-                        <span class="text-body-color fw-medium">Drainage</span>
-                        <h6 class="mt-1 mb-0">United Kingdom</h6>
-                      </div>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mt-3 border-bottom pb-4">
-                      <div class="round-40 border rounded-circle d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:map-point-bold-duotone" class="text-warning fs-7"></iconify-icon>
-                      </div>
-                      <div>
-                        <span class="text-body-color fw-medium">The lowland zone</span>
-                        <h6 class="mt-1 mb-0">United Kingdom</h6>
-                      </div>
-                    </div>
-                    <!-- ------------- -->
-                    <!-- 1 -->
-                    <!-- ------------- -->
-                    <div class="d-flex align-items-center gap-3 mt-3">
-                      <span class="round-40 rounded text-bg-primary d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:bus-line-duotone" class="fs-7"></iconify-icon>
-                      </span>
-                      <div>
-                        <span class="text-body-color fw-medium">Bus Freight</span>
-                        <h6 class="mt-1 mb-0">#9002-125423</h6>
-                      </div>
-                      <span class="ms-auto badge bg-success-subtle text-success rounded-pill fs-2 fw-medium">All</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mt-3 after-line">
-                      <div class="round-40 border rounded-circle d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:soundwave-circle-bold-duotone"
-                          class="text-primary fs-7"></iconify-icon>
-                      </div>
-                      <div>
-                        <span class="text-body-color fw-medium">Messina Harbor</span>
-                        <h6 class="mt-1 mb-0">Sicily, Italy</h6>
-                      </div>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mt-3 border-bottom pb-4">
-                      <div class="round-40 border rounded-circle d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:map-point-bold-duotone" class="text-primary fs-7"></iconify-icon>
-                      </div>
-                      <div>
-                        <span class="text-body-color fw-medium">Hektor Container Hotel</span>
-                        <h6 class="mt-1 mb-0">Tallin, EST</h6>
-                      </div>
-                    </div>
-                    <!-- ------------- -->
-                    <!-- 2 -->
-                    <!-- ------------- -->
-                    <div class="d-flex align-items-center gap-3 mt-3">
-                      <span class="round-40 rounded text-bg-secondary d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:tram-line-duotone" class="fs-7"></iconify-icon>
-                      </span>
-                      <div>
-                        <span class="text-body-color fw-medium">Tram Freight</span>
-                        <h6 class="mt-1 mb-0">#1245-780652</h6>
-                      </div>
-                      <span
-                        class="ms-auto badge bg-success-subtle text-success rounded-pill fs-2 fw-medium">Delivered</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mt-3 after-line">
-                      <div class="round-40 border rounded-circle d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:soundwave-circle-bold-duotone"
-                          class="text-secondary fs-7"></iconify-icon>
-                      </div>
-                      <div>
-                        <span class="text-body-color fw-medium">Messina Harbor</span>
-                        <h6 class="mt-1 mb-0">
-                          Lester, United Kingdom
-                        </h6>
-                      </div>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mt-3 border-bottom pb-4">
-                      <div class="round-40 border rounded-circle d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:map-point-bold-duotone" class="text-secondary fs-7"></iconify-icon>
-                      </div>
-                      <div>
-                        <span class="text-body-color fw-medium">Laxmi Empire Hotel</span>
-                        <h6 class="mt-1 mb-0">Mumbai, India</h6>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="tab-pane" id="two2" role="tabpanel">
-                <div class="tab-content">
-                  <div class="upcoming-schedules position-relative" data-simplebar>
-                    <!-- ------------- -->
-                    <!-- 3 -->
-                    <!-- ------------- -->
-                    <div class="d-flex align-items-center gap-3 mt-3">
-                      <span class="round-40 rounded text-bg-warning d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:scooter-line-duotone" class="fs-7"></iconify-icon>
-                      </span>
-                      <div>
-                        <span class="text-body-color fw-medium">Scooter Freight</span>
-                        <h6 class="mt-1 mb-0">#1245-456201</h6>
-                      </div>
-                      <span
-                        class="ms-auto badge bg-success-subtle text-success rounded-pill fs-2 fw-medium">Delivered</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mt-3 after-line">
-                      <div class="round-40 border rounded-circle d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:soundwave-circle-bold-duotone"
-                          class="text-warning fs-7"></iconify-icon>
-                      </div>
-                      <div>
-                        <span class="text-body-color fw-medium">Drainage</span>
-                        <h6 class="mt-1 mb-0">United Kingdom</h6>
-                      </div>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mt-3 border-bottom pb-4">
-                      <div class="round-40 border rounded-circle d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:map-point-bold-duotone" class="text-warning fs-7"></iconify-icon>
-                      </div>
-                      <div>
-                        <span class="text-body-color fw-medium">The lowland zone</span>
-                        <h6 class="mt-1 mb-0">United Kingdom</h6>
-                      </div>
-                    </div>
-                    <!-- ------------- -->
-                    <!-- 1 -->
-                    <!-- ------------- -->
-                    <div class="d-flex align-items-center gap-3 mt-3">
-                      <span class="round-40 rounded text-bg-primary d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:bus-line-duotone" class="fs-7"></iconify-icon>
-                      </span>
-                      <div>
-                        <span class="text-body-color fw-medium">Bus Freight</span>
-                        <h6 class="mt-1 mb-0">#9002-125423</h6>
-                      </div>
-                      <span
-                        class="ms-auto badge bg-success-subtle text-success rounded-pill fs-2 fw-medium">Delivered</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mt-3 after-line">
-                      <div class="round-40 border rounded-circle d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:soundwave-circle-bold-duotone"
-                          class="text-primary fs-7"></iconify-icon>
-                      </div>
-                      <div>
-                        <span class="text-body-color fw-medium">Messina Harbor</span>
-                        <h6 class="mt-1 mb-0">Sicily, Italy</h6>
-                      </div>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mt-3 border-bottom pb-4">
-                      <div class="round-40 border rounded-circle d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:map-point-bold-duotone" class="text-primary fs-7"></iconify-icon>
-                      </div>
-                      <div>
-                        <span class="text-body-color fw-medium">Hektor Container Hotel</span>
-                        <h6 class="mt-1 mb-0">Tallin, EST</h6>
-                      </div>
-                    </div>
-                    <!-- ------------- -->
-                    <!-- 2 -->
-                    <!-- ------------- -->
-                    <div class="d-flex align-items-center gap-3 mt-3">
-                      <span class="round-40 rounded text-bg-secondary d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:tram-line-duotone" class="fs-7"></iconify-icon>
-                      </span>
-                      <div>
-                        <span class="text-body-color fw-medium">Tram Freight</span>
-                        <h6 class="mt-1 mb-0">#1245-780652</h6>
-                      </div>
-                      <span
-                        class="ms-auto badge bg-success-subtle text-success rounded-pill fs-2 fw-medium">Delivered</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mt-3 after-line">
-                      <div class="round-40 border rounded-circle d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:soundwave-circle-bold-duotone"
-                          class="text-secondary fs-7"></iconify-icon>
-                      </div>
-                      <div>
-                        <span class="text-body-color fw-medium">Messina Harbor</span>
-                        <h6 class="mt-1 mb-0">
-                          Lester, United Kingdom
-                        </h6>
-                      </div>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mt-3 border-bottom pb-4">
-                      <div class="round-40 border rounded-circle d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:map-point-bold-duotone" class="text-secondary fs-7"></iconify-icon>
-                      </div>
-                      <div>
-                        <span class="text-body-color fw-medium">Laxmi Empire Hotel</span>
-                        <h6 class="mt-1 mb-0">Mumbai, India</h6>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="tab-pane" id="three3" role="tabpanel">
-                <div class="tab-content">
-                  <div class="position-relative upcoming-schedules" data-simplebar>
-                    <!-- ------------- -->
-                    <!-- 2 -->
-                    <!-- ------------- -->
-                    <div class="d-flex align-items-center gap-3 mt-3">
-                      <span class="round-40 rounded text-bg-secondary d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:tram-line-duotone" class="fs-7"></iconify-icon>
-                      </span>
-                      <div>
-                        <span class="text-body-color fw-medium">Tram Freight</span>
-                        <h6 class="mt-1 mb-0">#1245-780652</h6>
-                      </div>
-                      <span
-                        class="ms-auto badge bg-primary-subtle text-primary rounded-pill fs-2 fw-medium">Shipping</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mt-3 after-line">
-                      <div class="round-40 border rounded-circle d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:soundwave-circle-bold-duotone"
-                          class="text-secondary fs-7"></iconify-icon>
-                      </div>
-                      <div>
-                        <span class="text-body-color fw-medium">Messina Harbor</span>
-                        <h6 class="mt-1 mb-0">
-                          Lester, United Kingdom
-                        </h6>
-                      </div>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mt-3 border-bottom pb-4">
-                      <div class="round-40 border rounded-circle d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:map-point-bold-duotone" class="text-secondary fs-7"></iconify-icon>
-                      </div>
-                      <div>
-                        <span class="text-body-color fw-medium">Laxmi Empire Hotel</span>
-                        <h6 class="mt-1 mb-0">Mumbai, India</h6>
-                      </div>
-                    </div>
-                    <!-- ------------- -->
-                    <!-- 3 -->
-                    <!-- ------------- -->
-                    <div class="d-flex align-items-center gap-3 mt-3">
-                      <span class="round-40 rounded text-bg-warning d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:scooter-line-duotone" class="fs-7"></iconify-icon>
-                      </span>
-                      <div>
-                        <span class="text-body-color fw-medium">Scooter Freight</span>
-                        <h6 class="mt-1 mb-0">#1245-456201</h6>
-                      </div>
-                      <span
-                        class="ms-auto badge bg-primary-subtle text-primary rounded-pill fs-2 fw-medium">Shipping</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mt-3 after-line">
-                      <div class="round-40 border rounded-circle d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:soundwave-circle-bold-duotone"
-                          class="text-warning fs-7"></iconify-icon>
-                      </div>
-                      <div>
-                        <span class="text-body-color fw-medium">Drainage</span>
-                        <h6 class="mt-1 mb-0">United Kingdom</h6>
-                      </div>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mt-3 border-bottom pb-4">
-                      <div class="round-40 border rounded-circle d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:map-point-bold-duotone" class="text-warning fs-7"></iconify-icon>
-                      </div>
-                      <div>
-                        <span class="text-body-color fw-medium">The lowland zone</span>
-                        <h6 class="mt-1 mb-0">United Kingdom</h6>
-                      </div>
-                    </div>
-                    <!-- ------------- -->
-                    <!-- 1 -->
-                    <!-- ------------- -->
-                    <div class="d-flex align-items-center gap-3 mt-3">
-                      <span class="round-40 rounded text-bg-primary d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:bus-line-duotone" class="fs-7"></iconify-icon>
-                      </span>
-                      <div>
-                        <span class="text-body-color fw-medium">Bus Freight</span>
-                        <h6 class="mt-1 mb-0">#9002-125423</h6>
-                      </div>
-                      <span
-                        class="ms-auto badge bg-primary-subtle text-primary rounded-pill fs-2 fw-medium">Shipping</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mt-3 after-line">
-                      <div class="round-40 border rounded-circle d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:soundwave-circle-bold-duotone"
-                          class="text-primary fs-7"></iconify-icon>
-                      </div>
-                      <div>
-                        <span class="text-body-color fw-medium">Messina Harbor</span>
-                        <h6 class="mt-1 mb-0">Sicily, Italy</h6>
-                      </div>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mt-3 border-bottom pb-4">
-                      <div class="round-40 border rounded-circle d-flex align-items-center justify-content-center">
-                        <iconify-icon icon="solar:map-point-bold-duotone" class="text-primary fs-7"></iconify-icon>
-                      </div>
-                      <div>
-                        <span class="text-body-color fw-medium">Hektor Container Hotel</span>
-                        <h6 class="mt-1 mb-0">Tallin, EST</h6>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-lg-8 d-flex align-items-stretch">
-        <div class="card mb-7 mb-lg-0 w-100">
-          <div class="card-body pb-0">
-            <div class="d-md-flex justify-content-between mb-10">
-              <div class="mb-10 mb-md-0">
-                <h4 class="card-title">Latest reviews</h4>
-                <p class="mb-0 card-subtitle">
-                  Reviewed received across all channels
-                </p>
-              </div>
-              <div class="d-flex align-items-center">
-                <form class="position-relative me-3 w-100">
-                  <input type="text" class="form-control search-chat py-2 ps-5 rounded-pill" id="text-srh"
-                    placeholder="Search" />
-                  <iconify-icon icon="solar:magnifer-line-duotone"
-                    class="fs-6 position-absolute top-50 start-0 translate-middle-y ms-3"></iconify-icon>
-                </form>
-                <div class="dropdown">
-                  <a href="javascript:void(0)" class="btn border shadow-none py-2 px-3" id="dropdownMenuButton"
-                    data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="material-symbols-outlined fs-7 d-block">more_vert</i>
-                  </a>
-                  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
-                    <li>
-                      <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                        <i class="fs-4 ti ti-plus"></i>Add
-                      </a>
-                    </li>
-                    <li>
-                      <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                        <i class="fs-4 ti ti-edit"></i>Edit
-                      </a>
-                    </li>
-                    <li>
-                      <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                        <i class="fs-4 ti ti-trash"></i>Delete
-                      </a>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="table-responsive overflow-x-auto latest-reviews-table" data-simplebar>
-            <table class="table mb-0 align-middle text-nowrap table-hover">
-              <thead class="fs-4">
+          {% if recent_activity %}
+          <div class="table-responsive">
+            <table class="table table-bordered" id="recentActivityTable">
+              <thead>
                 <tr>
-                  <th class="ps-4">#</th>
-                  <th>Customer</th>
-                  <th>Reviews</th>
                   <th>Time</th>
-                  <th></th>
+                  <th>User</th>
+                  <th>Action</th>
+                  <th>Description</th>
+                  <th>IP Address</th>
                 </tr>
               </thead>
               <tbody>
+                {% for log in recent_activity %}
                 <tr>
-                  <td class="ps-4">
-                    <div class="form-check mb-0 flex-shrink-0">
-                      <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault1" />
-                    </div>
-                  </td>
+                  <td>{{ log.timestamp|date:"M d, H:i" }}</td>
+                  <td>{{ log.user.get_full_name|default:log.user.username|default:"System" }}</td>
                   <td>
-                    <div class="d-flex align-items-center text-truncate">
-                      <img src="../assets/images/profile/user-6.jpg" alt=""
-                        class="img-fluid rounded-circle flex-shrink-0" width="32" height="32" />
-                      <div class="ms-6">
-                        <h5 class="mb-0 fs-4">Arlene McCoy</h5>
-                        <p class="mb-0 fw-normal text-dark">macoy@arlene.com</p>
-                        <ul class="list-unstyled d-flex align-items-center mb-0">
-                          <li>
-                            <a class="me-1" href="javascript:void(0)">
-                              <i class="ti ti-star-filled text-warning"></i>
-                            </a>
-                          </li>
-                          <li>
-                            <a class="me-1" href="javascript:void(0)">
-                              <i class="ti ti-star-filled text-warning"></i>
-                            </a>
-                          </li>
-                          <li>
-                            <a class="me-1" href="javascript:void(0)">
-                              <i class="ti ti-star-filled text-warning"></i>
-                            </a>
-                          </li>
-                          <li>
-                            <a class="me-1" href="javascript:void(0)">
-                              <i class="ti ti-star-half-filled text-warning"></i>
-                            </a>
-                          </li>
-                          <li>
-                            <a class="" href="javascript:void(0)">
-                              <i class="ti ti-star text-warning"></i>
-                            </a>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
+                    <span class="badge badge-{{ log.action|yesno:"primary,warning,secondary" }}">
+                      {{ log.get_action_display }}
+                    </span>
                   </td>
-                  <td>
-                    <div class="product-reviews">
-                      <p class="text-dark mb-0 fw-normal text-truncate-2">
-                        This theme is great. Clean and easy to
-                        understand. Perfect for those who don't have
-                        <br />
-                        time to... <a href="javascript:void(0)">See more</a>
-                      </p>
-                    </div>
-                  </td>
-                  <td>
-                    <p class="mb-0">Nov 8</p>
-                  </td>
-                  <td>
-                    <div class="dropdown dropstart">
-                      <a href="javascript:void(0)" class="text-muted" id="dropdownMenuButton" data-bs-toggle="dropdown"
-                        aria-expanded="false">
-                        <i class="material-symbols-outlined fs-7 d-block">more_vert</i>
-                      </a>
-                      <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                        <li>
-                          <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                            <i class="fs-4 ti ti-plus"></i>Add
-                          </a>
-                        </li>
-                        <li>
-                          <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                            <i class="fs-4 ti ti-edit"></i>Edit
-                          </a>
-                        </li>
-                        <li>
-                          <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                            <i class="fs-4 ti ti-trash"></i>Delete
-                          </a>
-                        </li>
-                      </ul>
-                    </div>
-                  </td>
+                  <td>{{ log.description|truncatechars:50 }}</td>
+                  <td>{{ log.ip_address|default:"-" }}</td>
                 </tr>
-                <tr>
-                  <td class="ps-4">
-                    <div class="form-check mb-0 flex-shrink-0">
-                      <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault1" />
-                    </div>
-                  </td>
-                  <td>
-                    <div class="d-flex align-items-center text-truncate">
-                      <img src="../assets/images/profile/user-3.jpg" alt=""
-                        class="img-fluid rounded-circle flex-shrink-0" width="32" height="32" />
-                      <div class="ms-6">
-                        <h5 class="mb-0 fs-4">Jerome Bell</h5>
-                        <p class="mb-0 fw-normal text-dark">belljerome@yahoo.com</p>
-                        <ul class="list-unstyled d-flex align-items-center mb-0">
-                          <li>
-                            <a class="me-1" href="javascript:void(0)">
-                              <i class="ti ti-star-filled text-warning"></i>
-                            </a>
-                          </li>
-                          <li>
-                            <a class="me-1" href="javascript:void(0)">
-                              <i class="ti ti-star-filled text-warning"></i>
-                            </a>
-                          </li>
-                          <li>
-                            <a class="me-1" href="javascript:void(0)">
-                              <i class="ti ti-star-filled text-warning"></i>
-                            </a>
-                          </li>
-                          <li>
-                            <a class="me-1" href="javascript:void(0)">
-                              <i class="ti ti-star-filled text-warning"></i>
-                            </a>
-                          </li>
-                          <li>
-                            <a class="" href="javascript:void(0)">
-                              <i class="ti ti-star text-warning"></i>
-                            </a>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <div class="product-reviews">
-                      <p class="text-dark mb-0 fw-normal text-truncate-2">
-                        It's a Mac, after all. Once you've gone Mac, there's no going back. My first Mac lasted
-                        over nine years.
-                      </p>
-                    </div>
-                  </td>
-                  <td>
-                    <p class="mb-0">Nov 8</p>
-                  </td>
-                  <td>
-                    <div class="dropdown dropstart">
-                      <a href="javascript:void(0)" class="text-muted" id="dropdownMenuButton" data-bs-toggle="dropdown"
-                        aria-expanded="false">
-                        <i class="material-symbols-outlined fs-7 d-block">more_vert</i>
-                      </a>
-                      <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                        <li>
-                          <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                            <i class="fs-4 ti ti-plus"></i>Add
-                          </a>
-                        </li>
-                        <li>
-                          <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                            <i class="fs-4 ti ti-edit"></i>Edit
-                          </a>
-                        </li>
-                        <li>
-                          <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                            <i class="fs-4 ti ti-trash"></i>Delete
-                          </a>
-                        </li>
-                      </ul>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td class="ps-4">
-                    <div class="form-check mb-0 flex-shrink-0">
-                      <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault1" />
-                    </div>
-                  </td>
-                  <td>
-                    <div class="d-flex align-items-center text-truncate">
-                      <img src="../assets/images/profile/user-4.jpg" alt=""
-                        class="img-fluid rounded-circle flex-shrink-0" width="32" height="32" />
-                      <div class="ms-6">
-                        <h5 class="mb-0 fs-4">Annette Black</h5>
-                        <p class="mb-0 fw-normal text-dark">blackanne@yahoo.com</p>
-                        <ul class="list-unstyled d-flex align-items-center mb-0">
-                          <li>
-                            <a class="me-1" href="javascript:void(0)">
-                              <i class="ti ti-star-filled text-warning"></i>
-                            </a>
-                          </li>
-                          <li>
-                            <a class="me-1" href="javascript:void(0)">
-                              <i class="ti ti-star-filled text-warning"></i>
-                            </a>
-                          </li>
-                          <li>
-                            <a class="me-1" href="javascript:void(0)">
-                              <i class="ti ti-star-filled text-warning"></i>
-                            </a>
-                          </li>
-                          <li>
-                            <a class="me-1" href="javascript:void(0)">
-                              <i class="ti ti-star-filled text-warning"></i>
-                            </a>
-                          </li>
-                          <li>
-                            <a class="" href="javascript:void(0)">
-                              <i class="ti ti-star text-warning"></i>
-                            </a>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <div class="product-reviews">
-                      <p class="text-dark mb-0 fw-normal text-truncate-2">
-                        The controller is quite comfy for me. Despite its increased size, the controller still
-                        fits well in my hands.
-                      </p>
-                    </div>
-                  </td>
-                  <td>
-                    <p class="mb-0">Nov 8</p>
-                  </td>
-                  <td>
-                    <div class="dropdown dropstart">
-                      <a href="javascript:void(0)" class="text-muted" id="dropdownMenuButton" data-bs-toggle="dropdown"
-                        aria-expanded="false">
-                        <i class="material-symbols-outlined fs-7 d-block">more_vert</i>
-                      </a>
-                      <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                        <li>
-                          <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                            <i class="fs-4 ti ti-plus"></i>Add
-                          </a>
-                        </li>
-                        <li>
-                          <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                            <i class="fs-4 ti ti-edit"></i>Edit
-                          </a>
-                        </li>
-                        <li>
-                          <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                            <i class="fs-4 ti ti-trash"></i>Delete
-                          </a>
-                        </li>
-                      </ul>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td class="ps-4">
-                    <div class="form-check mb-0 flex-shrink-0">
-                      <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault1" />
-                    </div>
-                  </td>
-                  <td>
-                    <div class="d-flex align-items-center text-truncate">
-                      <img src="../assets/images/profile/user-5.jpg" alt=""
-                        class="img-fluid rounded-circle flex-shrink-0" width="32" height="32" />
-                      <div class="ms-6">
-                        <h5 class="mb-0 fs-4">Albert Flores</h5>
-                        <p class="mb-0 fw-normal text-dark">albertflo9@gmail.com</p>
-                        <ul class="list-unstyled d-flex align-items-center mb-0">
-                          <li>
-                            <a class="me-1" href="javascript:void(0)">
-                              <i class="ti ti-star-filled text-warning"></i>
-                            </a>
-                          </li>
-                          <li>
-                            <a class="me-1" href="javascript:void(0)">
-                              <i class="ti ti-star-filled text-warning"></i>
-                            </a>
-                          </li>
-                          <li>
-                            <a class="me-1" href="javascript:void(0)">
-                              <i class="ti ti-star-filled text-warning"></i>
-                            </a>
-                          </li>
-                          <li>
-                            <a class="me-1" href="javascript:void(0)">
-                              <i class="ti ti-star-half-filled text-warning"></i>
-                            </a>
-                          </li>
-                          <li>
-                            <a class="" href="javascript:void(0)">
-                              <i class="ti ti-star text-warning"></i>
-                            </a>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <div class="product-reviews">
-                      <p class="text-dark mb-0 fw-normal text-truncate-2">
-                        This theme is great. Perfect for those who don't have time to start everything from
-                        scratch.
-                      </p>
-                    </div>
-                  </td>
-                  <td>
-                    <p class="mb-0">Nov 8</p>
-                  </td>
-                  <td>
-                    <div class="dropdown dropstart">
-                      <a href="javascript:void(0)" class="text-muted" id="dropdownMenuButton" data-bs-toggle="dropdown"
-                        aria-expanded="false">
-                        <i class="material-symbols-outlined fs-7 d-block">more_vert</i>
-                      </a>
-                      <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                        <li>
-                          <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                            <i class="fs-4 ti ti-plus"></i>Add
-                          </a>
-                        </li>
-                        <li>
-                          <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                            <i class="fs-4 ti ti-edit"></i>Edit
-                          </a>
-                        </li>
-                        <li>
-                          <a class="dropdown-item d-flex align-items-center gap-3" href="javascript:void(0)">
-                            <i class="fs-4 ti ti-trash"></i>Delete
-                          </a>
-                        </li>
-                      </ul>
-                    </div>
-                  </td>
-                </tr>
+                {% endfor %}
               </tbody>
             </table>
           </div>
-          <div class="d-flex align-items-center justify-content-between mt-10 px-4 pb-4">
-            <p class="mb-0 fw-normal">1-6 of 32</p>
-            <a href="javascript:void(0)" class="btn btn-primary">View All Reviews</a>
-          </div>
+          {% else %}
+          <p class="text-muted">No recent activity to display.</p>
+          {% endif %}
         </div>
       </div>
-      <div class="col-lg-4 d-flex align-items-stretch">
-        <div class="card w-100 mb-0">
-          <div class="card-body">
-            <h4 class="fs-4 mb-1 card-title">Sales from Locations</h4>
-            <p class="mb-0 card-subtitle">United Stats</p>
-            <div class="mt-3">
-              <div id="usa" style="height: 290px"></div>
-            </div>
-            <div class="border-top pt-7">
-              <div class="hstack gap-10 mb-10">
-                <h6 class="mb-0 flex-shrink-0" style="width: 25px">
-                  LA
-                </h6>
-                <div class="progress mt-1 w-100" style="height: 5px">
-                  <div class="progress-bar bg-secondary" role="progressbar" style="width: 28%" aria-valuenow="28"
-                    aria-valuemin="0" aria-valuemax="100"></div>
+    </div>
+  </div>
+
+  {% elif user_role == "teacher" %}
+  <!-- Teacher Dashboard -->
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">My Classes</h6>
+        </div>
+        <div class="card-body">
+          {% if teacher_assignments %}
+          <div class="row">
+            {% for assignment in teacher_assignments %}
+            <div class="col-md-6 mb-3">
+              <div class="card">
+                <div class="card-body">
+                  <h6 class="card-title">{{ assignment.class_instance }}</h6>
+                  <p class="card-text">{{ assignment.subject.name }}</p>
+                  <small class="text-muted">
+                    {% if assignment.is_class_teacher %}
+                    <i class="fas fa-star text-warning"></i> Class Teacher
+                    {% endif %}
+                  </small>
                 </div>
-                <h6 class="mb-0 flex-shrink-0" style="width: 35px">
-                  28%
-                </h6>
-              </div>
-              <div class="hstack gap-4 mb-10">
-                <h6 class="mb-0 flex-shrink-0" style="width: 25px">
-                  NY
-                </h6>
-                <div class="progress mt-1 w-100" style="height: 5px">
-                  <div class="progress-bar bg-success" role="progressbar" style="width: 21%" aria-valuenow="21"
-                    aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-                <h6 class="mb-0 flex-shrink-0" style="width: 35px">
-                  21%
-                </h6>
-              </div>
-              <div class="hstack gap-4 mb-10">
-                <h6 class="mb-0 flex-shrink-0" style="width: 25px">
-                  KA
-                </h6>
-                <div class="progress mt-1 w-100" style="height: 5px">
-                  <div class="progress-bar bg-primary" role="progressbar" style="width: 18%" aria-valuenow="18"
-                    aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-                <h6 class="mb-0 flex-shrink-0" style="width: 35px">
-                  18%
-                </h6>
-              </div>
-              <div class="hstack gap-4">
-                <h6 class="mb-0 flex-shrink-0" style="width: 25px">
-                  AZ
-                </h6>
-                <div class="progress mt-1 w-100" style="height: 5px">
-                  <div class="progress-bar bg-danger" role="progressbar" style="width: 12%" aria-valuenow="12"
-                    aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-                <h6 class="mb-0 flex-shrink-0" style="width: 35px">
-                  12%
-                </h6>
               </div>
             </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted">No class assignments found.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Quick Stats</h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <div class="small mb-1">Classes Taught</div>
+            <div class="h5 mb-0 font-weight-bold">{{ classes_count|default:0 }}</div>
+          </div>
+          <div class="mb-3">
+            <div class="small mb-1">Subjects</div>
+            <div class="h5 mb-0 font-weight-bold">{{ subjects_count|default:0 }}</div>
           </div>
         </div>
       </div>
     </div>
-    <!-- end row -->
+  </div>
+
+  {% elif user_role == "parent" %}
+  <!-- Parent Dashboard -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">My Children</h6>
+        </div>
+        <div class="card-body">
+          {% if children %}
+          <div class="row">
+            {% for child_data in children %}
+            <div class="col-lg-6 mb-4">
+              <div class="card">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="card-title mb-0">{{ child_data.student.user.get_full_name }}</h6>
+                    <span class="badge badge-info">{{ child_data.relation_type }}</span>
+                  </div>
+                  <p class="text-muted">{{ child_data.student.current_class }}</p>
+                  {% if child_data.performance %}
+                  <div class="mb-2">
+                    <small class="text-muted">Average Marks:</small>
+                    <strong>{{ child_data.performance.average_marks|floatformat:1 }}%</strong>
+                  </div>
+                  <div class="mb-2">
+                    <small class="text-muted">Attendance:</small>
+                    <strong>{{ child_data.performance.attendance_percentage|floatformat:1 }}%</strong>
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted">No children records found.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% elif user_role == "student" %}
+  <!-- Student Dashboard -->
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">My Performance</h6>
+        </div>
+        <div class="card-body">
+          {% if performance %}
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <div class="text-center">
+                <div class="h4 mb-0 font-weight-bold text-primary">
+                  {{ performance.average_marks|floatformat:1 }}%
+                </div>
+                <div class="small text-muted">Average Marks</div>
+              </div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="text-center">
+                <div class="h4 mb-0 font-weight-bold text-success">
+                  {{ performance.attendance_percentage|floatformat:1 }}%
+                </div>
+                <div class="small text-muted">Attendance</div>
+              </div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="text-center">
+                <div class="h4 mb-0 font-weight-bold text-info">
+                  {{ performance.ranking_in_class|default:"-" }}
+                </div>
+                <div class="small text-muted">Class Rank</div>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <p class="text-muted">No performance data available.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Recent Assignments</h6>
+        </div>
+        <div class="card-body">
+          {% if recent_assignments %}
+          {% for assignment in recent_assignments %}
+          <div class="mb-3">
+            <div class="font-weight-bold">{{ assignment.assignment.title }}</div>
+            <div class="small text-muted">
+              Submitted: {{ assignment.submission_date|date:"M d, Y" }}
+            </div>
+            {% if assignment.marks_obtained %}
+            <div class="small">
+              Marks: {{ assignment.marks_obtained }}/{{ assignment.assignment.total_marks }}
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+          {% else %}
+          <p class="text-muted small">No recent assignments.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Quick Actions -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% if user_role == "system_admin" or user_role == "school_admin" or user_role == "superuser" %}
+            <div class="col-md-2 mb-2">
+              <a href="{% url 'core:user_management' %}" class="btn btn-outline-primary btn-block">
+                <i class="fas fa-users"></i><br>Manage Users
+              </a>
+            </div>
+            <div class="col-md-2 mb-2">
+              <a href="{% url 'core:analytics' %}" class="btn btn-outline-success btn-block">
+                <i class="fas fa-chart-bar"></i><br>Analytics
+              </a>
+            </div>
+            <div class="col-md-2 mb-2">
+              <a href="{% url 'core:reports' %}" class="btn btn-outline-info btn-block">
+                <i class="fas fa-file-alt"></i><br>Reports
+              </a>
+            </div>
+            <div class="col-md-2 mb-2">
+              <a href="{% url 'core:settings' %}" class="btn btn-outline-warning btn-block">
+                <i class="fas fa-cog"></i><br>Settings
+              </a>
+            </div>
+            <div class="col-md-2 mb-2">
+              <a href="{% url 'core:audit_logs' %}" class="btn btn-outline-secondary btn-block">
+                <i class="fas fa-history"></i><br>Audit Logs
+              </a>
+            </div>
+            <div class="col-md-2 mb-2">
+              <a href="{% url 'core:system_health' %}" class="btn btn-outline-danger btn-block">
+                <i class="fas fa-heartbeat"></i><br>System Health
+              </a>
+            </div>
+            {% elif user_role == "teacher" %}
+            <div class="col-md-3 mb-2">
+              <a href="#" class="btn btn-outline-primary btn-block">
+                <i class="fas fa-user-graduate"></i><br>My Students
+              </a>
+            </div>
+            <div class="col-md-3 mb-2">
+              <a href="#" class="btn btn-outline-success btn-block">
+                <i class="fas fa-tasks"></i><br>Assignments
+              </a>
+            </div>
+            <div class="col-md-3 mb-2">
+              <a href="#" class="btn btn-outline-info btn-block">
+                <i class="fas fa-check-square"></i><br>Attendance
+              </a>
+            </div>
+            <div class="col-md-3 mb-2">
+              <a href="#" class="btn btn-outline-warning btn-block">
+                <i class="fas fa-file-alt"></i><br>Grade Book
+              </a>
+            </div>
+            {% elif user_role == "parent" %}
+            <div class="col-md-4 mb-2">
+              <a href="#" class="btn btn-outline-primary btn-block">
+                <i class="fas fa-chart-line"></i><br>Performance
+              </a>
+            </div>
+            <div class="col-md-4 mb-2">
+              <a href="#" class="btn btn-outline-success btn-block">
+                <i class="fas fa-user-check"></i><br>Attendance
+              </a>
+            </div>
+            <div class="col-md-4 mb-2">
+              <a href="#" class="btn btn-outline-info btn-block">
+                <i class="fas fa-money-bill"></i><br>Fees
+              </a>
+            </div>
+            {% elif user_role == "student" %}
+            <div class="col-md-4 mb-2">
+              <a href="#" class="btn btn-outline-primary btn-block">
+                <i class="fas fa-tasks"></i><br>Assignments
+              </a>
+            </div>
+            <div class="col-md-4 mb-2">
+              <a href="#" class="btn btn-outline-success btn-block">
+                <i class="fas fa-calendar-check"></i><br>Attendance
+              </a>
+            </div>
+            <div class="col-md-4 mb-2">
+              <a href="#" class="btn btn-outline-info btn-block">
+                <i class="fas fa-graduation-cap"></i><br>Grades
+              </a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/dataTables.bootstrap4.min.js"></script>
 
+<script>
+  $(document).ready(function () {
+    // Initialize DataTables
+    {% if recent_activity %}
+    $('#recentActivityTable').DataTable({
+      "pageLength": 5,
+      "lengthChange": false,
+      "searching": false,
+      "ordering": false,
+      "info": false
+    });
+    {% endif %}
 
+    // Financial Chart (for admin dashboard)
+    {% if financial_summary and user_role == "system_admin" or user_role == "school_admin" or user_role == "superuser" %}
+    var financialOptions = {
+      series: [{
+        name: 'Expected',
+        data: [{{ financial_summary.total_expected |default: 0 }}]
+    }, {
+      name: 'Collected',
+      data: [{{ financial_summary.total_collected|default: 0
+  }}]
+        }],
+    chart: {
+    type: 'bar',
+    height: 300
+  },
+    plotOptions: {
+    bar: {
+      horizontal: false,
+      columnWidth: '55%',
+      endingShape: 'rounded'
+    },
+  },
+    dataLabels: {
+    enabled: false
+  },
+    stroke: {
+    show: true,
+    width: 2,
+    colors: ['transparent']
+  },
+    xaxis: {
+    categories: ['Revenue'],
+  },
+    yaxis: {
+    title: {
+      text: 'Amount'
+    }
+  },
+    fill: {
+    opacity: 1
+  },
+    tooltip: {
+    y: {
+      formatter: function (val) {
+        return "$ " + val.toLocaleString()
+      }
+    }
+  }
+    };
+
+  var financialChart = new ApexCharts(document.querySelector("#financialChart"), financialOptions);
+  financialChart.render();
+  {% endif %}
+});
+</script>
 {% endblock %}

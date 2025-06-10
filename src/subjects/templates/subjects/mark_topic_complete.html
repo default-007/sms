@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Mark Topic Complete{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <!-- Header -->
+      <div class="d-flex align-items-center mb-4">
+        <a href="{% url 'subjects:syllabus-progress' syllabus_id %}" class="btn btn-outline-secondary me-3">
+          <i class="fas fa-arrow-left"></i>
+        </a>
+        <div>
+          <h3 class="fw-bold text-primary mb-1">Mark Topic Complete</h3>
+          <p class="text-muted mb-0">Record completion details for the topic</p>
+        </div>
+      </div>
+
+      <!-- Completion Form Card -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light border-bottom">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-check-circle text-success me-2"></i>
+            Topic Completion Details
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <form method="post" id="topicCompleteForm">
+            {% csrf_token %}
+
+            <!-- Topic Information -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <div class="bg-light rounded p-3">
+                  <h6 class="fw-bold mb-2">Topic Information</h6>
+                  <p class="mb-1"><strong>Topic:</strong> <span id="topicName">{{ topic_name|default:"Topic" }}</span>
+                  </p>
+                  <p class="mb-0"><strong>Index:</strong> {{ topic_index|add:1 }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Completion Details -->
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="completion_date" class="form-label fw-medium">
+                  <i class="fas fa-calendar-alt me-1"></i>Completion Date *
+                </label>
+                <input type="date" class="form-control" id="completion_date" name="completion_date"
+                  value="{% now 'Y-m-d' %}" required>
+                <div class="form-text">Date when this topic was completed</div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="hours_taught" class="form-label fw-medium">
+                  <i class="fas fa-clock me-1"></i>Hours Taught
+                </label>
+                <div class="input-group">
+                  <input type="number" class="form-control" id="hours_taught" name="hours_taught" step="0.5" min="0"
+                    max="50" placeholder="0.0">
+                  <span class="input-group-text">hours</span>
+                </div>
+                <div class="form-text">Time spent teaching this topic</div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12 mb-3">
+                <label for="teaching_method" class="form-label fw-medium">
+                  <i class="fas fa-chalkboard-teacher me-1"></i>Teaching Method
+                </label>
+                <select class="form-select" id="teaching_method" name="teaching_method">
+                  <option value="">Select teaching method</option>
+                  <option value="Interactive">Interactive</option>
+                  <option value="Lecture">Lecture</option>
+                  <option value="Practical">Practical</option>
+                  <option value="Demonstration">Demonstration</option>
+                  <option value="Group Work">Group Work</option>
+                  <option value="Discussion">Discussion</option>
+                  <option value="Problem Solving">Problem Solving</option>
+                  <option value="Project Based">Project Based</option>
+                  <option value="Mixed Methods">Mixed Methods</option>
+                  <option value="Other">Other</option>
+                </select>
+                <div class="form-text">Primary method used to teach this topic</div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12 mb-4">
+                <label for="notes" class="form-label fw-medium">
+                  <i class="fas fa-sticky-note me-1"></i>Teaching Notes
+                </label>
+                <textarea class="form-control" id="notes" name="notes" rows="4"
+                  placeholder="Add any notes about teaching this topic, student responses, challenges faced, or areas for improvement..."></textarea>
+                <div class="form-text">Optional notes about the teaching experience</div>
+              </div>
+            </div>
+
+            <!-- Assessment Information (Optional) -->
+            <div class="row">
+              <div class="col-12 mb-3">
+                <div class="card bg-light border-0">
+                  <div class="card-body">
+                    <h6 class="fw-bold mb-3">
+                      <i class="fas fa-clipboard-check me-2"></i>
+                      Assessment Details (Optional)
+                    </h6>
+
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <label for="assessment_method" class="form-label">Assessment Method</label>
+                        <select class="form-select" id="assessment_method" name="assessment_method">
+                          <option value="">No formal assessment</option>
+                          <option value="Quiz">Quiz</option>
+                          <option value="Test">Test</option>
+                          <option value="Assignment">Assignment</option>
+                          <option value="Oral Assessment">Oral Assessment</option>
+                          <option value="Practical Assessment">Practical Assessment</option>
+                          <option value="Observation">Observation</option>
+                          <option value="Peer Assessment">Peer Assessment</option>
+                        </select>
+                      </div>
+
+                      <div class="col-md-6 mb-3">
+                        <label for="student_understanding" class="form-label">Student Understanding Level</label>
+                        <select class="form-select" id="student_understanding" name="student_understanding">
+                          <option value="">Not assessed</option>
+                          <option value="Excellent">Excellent (90-100%)</option>
+                          <option value="Good">Good (75-89%)</option>
+                          <option value="Satisfactory">Satisfactory (60-74%)</option>
+                          <option value="Needs Improvement">Needs Improvement (below 60%)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="d-flex justify-content-between align-items-center">
+              <a href="{% url 'subjects:syllabus-progress' syllabus_id %}" class="btn btn-outline-secondary">
+                <i class="fas fa-times me-1"></i>Cancel
+              </a>
+              <button type="submit" class="btn btn-success btn-lg">
+                <i class="fas fa-check me-2"></i>Mark Topic Complete
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Quick Tips Card -->
+      <div class="card border-0 bg-light mt-4">
+        <div class="card-body">
+          <h6 class="fw-bold mb-2">
+            <i class="fas fa-lightbulb text-warning me-2"></i>
+            Quick Tips
+          </h6>
+          <ul class="list-unstyled mb-0 small">
+            <li class="mb-1"><i class="fas fa-check text-success me-2"></i>Be accurate with hours taught for better
+              analytics</li>
+            <li class="mb-1"><i class="fas fa-check text-success me-2"></i>Include notes about student engagement and
+              understanding</li>
+            <li class="mb-1"><i class="fas fa-check text-success me-2"></i>Record any challenges faced for future
+              reference</li>
+            <li class="mb-0"><i class="fas fa-check text-success me-2"></i>Assessment details help track learning
+              effectiveness</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Form validation
+    $('#topicCompleteForm').on('submit', function (e) {
+      let isValid = true;
+      const completionDate = $('#completion_date').val();
+      const hoursText = $('#hours_taught').val();
+
+      // Validate completion date
+      if (!completionDate) {
+        showFieldError('#completion_date', 'Completion date is required');
+        isValid = false;
+      } else {
+        clearFieldError('#completion_date');
+      }
+
+      // Validate hours (if provided)
+      if (hoursText && (parseFloat(hoursText) < 0 || parseFloat(hoursText) > 50)) {
+        showFieldError('#hours_taught', 'Hours must be between 0 and 50');
+        isValid = false;
+      } else {
+        clearFieldError('#hours_taught');
+      }
+
+      if (!isValid) {
+        e.preventDefault();
+        return false;
+      }
+
+      // Show loading state
+      const submitBtn = $(this).find('button[type="submit"]');
+      submitBtn.html('<i class="fas fa-spinner fa-spin me-2"></i>Processing...').prop('disabled', true);
+
+      // Show success message (will be replaced by server response)
+      showAlert('Marking topic as complete...', 'info');
+    });
+
+    // Auto-focus on hours taught field
+    $('#hours_taught').focus();
+
+    // Teaching method change handler
+    $('#teaching_method').on('change', function () {
+      const value = $(this).val();
+      if (value === 'Other') {
+        // Could add a custom input field here if needed
+        console.log('Other teaching method selected');
+      }
+    });
+
+    // Auto-resize textarea
+    $('#notes').on('input', function () {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
+    });
+
+    function showFieldError(fieldSelector, message) {
+      const field = $(fieldSelector);
+      field.addClass('is-invalid');
+
+      // Remove existing error message
+      field.siblings('.invalid-feedback').remove();
+
+      // Add error message
+      field.after(`<div class="invalid-feedback">${message}</div>`);
+    }
+
+    function clearFieldError(fieldSelector) {
+      const field = $(fieldSelector);
+      field.removeClass('is-invalid');
+      field.siblings('.invalid-feedback').remove();
+    }
+
+    function showAlert(message, type = 'info') {
+      const alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                <i class="fas fa-info-circle me-2"></i>${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+
+      // Insert alert at the top of the card body
+      $('.card-body').first().prepend(alertHtml);
+
+      // Auto-dismiss info alerts after 3 seconds
+      if (type === 'info') {
+        setTimeout(function () {
+          $('.alert-info').fadeOut();
+        }, 3000);
+      }
+    }
+
+    // Keyboard shortcuts
+    $(document).on('keydown', function (e) {
+      // Ctrl/Cmd + Enter to submit
+      if ((e.ctrlKey || e.metaKey) && e.keyCode === 13) {
+        $('#topicCompleteForm').submit();
+      }
+
+      // Escape to cancel
+      if (e.keyCode === 27) {
+        window.location.href = "{% url 'subjects:syllabus-progress' syllabus_id %}";
+      }
+    });
+  });
+</script>
+{% endblock %}

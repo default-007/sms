@@ -1,0 +1,414 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Syllabus Progress - {{ syllabus.title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="fw-bold text-primary">
+            <i class="fas fa-chart-line me-2"></i>Syllabus Progress
+          </h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'subjects:dashboard' %}">Dashboard</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'subjects:syllabus-list' %}">Syllabi</a></li>
+              <li class="breadcrumb-item active">Progress Tracking</li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <a href="{% url 'subjects:syllabus-detail' syllabus.id %}" class="btn btn-outline-primary me-2">
+            <i class="fas fa-eye me-1"></i>View Details
+          </a>
+          {% if perms.subjects.change_syllabus %}
+          <a href="{% url 'subjects:syllabus-update' syllabus.id %}" class="btn btn-warning">
+            <i class="fas fa-edit me-1"></i>Edit Syllabus
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Syllabus Info Card -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-8">
+              <h4 class="card-title mb-3">{{ syllabus.title }}</h4>
+              <div class="row">
+                <div class="col-sm-6">
+                  <p class="mb-2"><strong>Subject:</strong> {{ syllabus.subject.name }} ({{ syllabus.subject.code }})
+                  </p>
+                  <p class="mb-2"><strong>Grade:</strong> {{ syllabus.grade.name }}</p>
+                </div>
+                <div class="col-sm-6">
+                  <p class="mb-2"><strong>Academic Year:</strong> {{ syllabus.academic_year.name }}</p>
+                  <p class="mb-2"><strong>Term:</strong> {{ syllabus.term.name }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4 text-center">
+              <div class="progress-circle" data-percentage="{{ syllabus.completion_percentage }}">
+                <div id="progressChart"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress Statistics -->
+  {% if progress_data %}
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="text-primary mb-2">
+            <i class="fas fa-list-ol fa-2x"></i>
+          </div>
+          <h4 class="fw-bold mb-1">{{ progress_data.total_topics }}</h4>
+          <p class="text-muted mb-0">Total Topics</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="text-success mb-2">
+            <i class="fas fa-check-circle fa-2x"></i>
+          </div>
+          <h4 class="fw-bold mb-1">{{ progress_data.completed_topics }}</h4>
+          <p class="text-muted mb-0">Completed</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="text-warning mb-2">
+            <i class="fas fa-clock fa-2x"></i>
+          </div>
+          <h4 class="fw-bold mb-1">{{ progress_data.remaining_topics }}</h4>
+          <p class="text-muted mb-0">Remaining</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="text-info mb-2">
+            <i class="fas fa-hourglass-half fa-2x"></i>
+          </div>
+          <h4 class="fw-bold mb-1">{{ progress_data.total_hours_taught|floatformat:1 }}</h4>
+          <p class="text-muted mb-0">Hours Taught</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Topics Progress Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-bottom">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-tasks me-2"></i>Topics Progress
+            </h5>
+            {% if perms.subjects.change_syllabus %}
+            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#bulkCompleteModal">
+              <i class="fas fa-check-double me-1"></i>Mark Multiple Complete
+            </button>
+            {% endif %}
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="topicsTable" class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  {% if perms.subjects.change_syllabus %}
+                  <th width="50px">
+                    <input type="checkbox" id="selectAll" class="form-check-input">
+                  </th>
+                  {% endif %}
+                  <th>Topic</th>
+                  <th width="120px">Status</th>
+                  <th width="120px">Hours Taught</th>
+                  <th width="130px">Completion Date</th>
+                  <th width="100px">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for topic in progress_data.topics_detail %}
+                <tr>
+                  {% if perms.subjects.change_syllabus %}
+                  <td>
+                    {% if not topic.completed %}
+                    <input type="checkbox" class="form-check-input topic-checkbox" value="{{ topic.index }}"
+                      name="selected_topics">
+                    {% endif %}
+                  </td>
+                  {% endif %}
+                  <td>
+                    <div class="d-flex align-items-center">
+                      {% if topic.completed %}
+                      <i class="fas fa-check-circle text-success me-2"></i>
+                      {% else %}
+                      <i class="far fa-circle text-muted me-2"></i>
+                      {% endif %}
+                      <span class="fw-medium">{{ topic.name }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    {% if topic.completed %}
+                    <span class="badge bg-success">Completed</span>
+                    {% else %}
+                    <span class="badge bg-warning">Pending</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="text-muted">{{ topic.hours_taught|floatformat:1 }}h</span>
+                  </td>
+                  <td>
+                    {% if topic.completion_date %}
+                    <small class="text-muted">{{ topic.completion_date|date:"M d, Y" }}</small>
+                    {% else %}
+                    <small class="text-muted">-</small>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if not topic.completed and perms.subjects.change_syllabus %}
+                    <button class="btn btn-outline-success btn-sm mark-complete-btn"
+                      data-topic-index="{{ topic.index }}" data-topic-name="{{ topic.name }}" data-bs-toggle="modal"
+                      data-bs-target="#markCompleteModal">
+                      <i class="fas fa-check"></i>
+                    </button>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="{% if perms.subjects.change_syllabus %}6{% else %}5{% endif %}"
+                    class="text-center text-muted py-4">
+                    <i class="fas fa-info-circle fa-2x mb-2"></i><br>
+                    No topics defined for this syllabus yet.
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Mark Topic Complete Modal -->
+{% if perms.subjects.change_syllabus %}
+<div class="modal fade" id="markCompleteModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" id="markCompleteForm">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Mark Topic Complete</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-medium">Topic Name</label>
+            <p class="text-muted" id="topicNameDisplay">-</p>
+          </div>
+          <div class="mb-3">
+            <label for="hours_taught" class="form-label">Hours Taught</label>
+            <input type="number" class="form-control" id="hours_taught" name="hours_taught" step="0.5" min="0"
+              placeholder="Enter hours taught">
+          </div>
+          <div class="mb-3">
+            <label for="teaching_method" class="form-label">Teaching Method</label>
+            <input type="text" class="form-control" id="teaching_method" name="teaching_method"
+              placeholder="e.g., Interactive, Lecture, Practical">
+          </div>
+          <div class="mb-3">
+            <label for="notes" class="form-label">Notes</label>
+            <textarea class="form-control" id="notes" name="notes" rows="3"
+              placeholder="Any additional notes about teaching this topic"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success">
+            <i class="fas fa-check me-1"></i>Mark Complete
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Complete Modal -->
+<div class="modal fade" id="bulkCompleteModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{% url 'subjects:bulk-mark-complete' syllabus.id %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Mark Multiple Topics Complete</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            Selected topics will be marked as completed with the same completion date and teaching details.
+          </div>
+          <div class="mb-3">
+            <label for="bulk_hours_taught" class="form-label">Total Hours Taught</label>
+            <input type="number" class="form-control" id="bulk_hours_taught" name="hours_taught" step="0.5" min="0"
+              placeholder="Total hours for all selected topics">
+          </div>
+          <div class="mb-3">
+            <label for="bulk_teaching_method" class="form-label">Teaching Method</label>
+            <input type="text" class="form-control" id="bulk_teaching_method" name="teaching_method"
+              placeholder="e.g., Interactive, Lecture, Practical">
+          </div>
+          <div class="mb-3">
+            <label for="bulk_notes" class="form-label">Notes</label>
+            <textarea class="form-control" id="bulk_notes" name="notes" rows="3"
+              placeholder="Notes applicable to all selected topics"></textarea>
+          </div>
+          <input type="hidden" id="selectedTopics" name="topics">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success" id="bulkCompleteBtn" disabled>
+            <i class="fas fa-check-double me-1"></i>Mark Selected Complete
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    $('#topicsTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[{% if perms.subjects.change_syllabus %}1{% else %}0{% endif %}, 'asc']],
+    columnDefs: [
+    {% if perms.subjects.change_syllabus %}
+  { orderable: false, targets: [0, -1] }
+  {% else %}
+  { orderable: false, targets: [-1] }
+  {% endif %}
+        ],
+  language: {
+    emptyTable: "No topics defined for this syllabus yet."
+  }
+    });
+
+  // Progress Chart
+  const progressPercentage = {{ syllabus.completion_percentage|default: 0 }};
+  const progressOptions = {
+    series: [progressPercentage],
+    chart: {
+      height: 200,
+      type: 'radialBar',
+    },
+    plotOptions: {
+      radialBar: {
+        hollow: {
+          size: '60%',
+        },
+        dataLabels: {
+          name: {
+            show: false,
+          },
+          value: {
+            fontSize: '24px',
+            fontWeight: 'bold',
+            formatter: function (val) {
+              return parseInt(val) + '%'
+            }
+          }
+        }
+      },
+    },
+    colors: progressPercentage >= 75 ? ['#28a745'] : progressPercentage >= 50 ? ['#ffc107'] : ['#dc3545'],
+    labels: ['Completion'],
+  };
+
+  const progressChart = new ApexCharts(document.querySelector("#progressChart"), progressOptions);
+  progressChart.render();
+
+  // Mark complete functionality
+  $('.mark-complete-btn').on('click', function () {
+    const topicIndex = $(this).data('topic-index');
+    const topicName = $(this).data('topic-name');
+
+    $('#topicNameDisplay').text(topicName);
+    $('#markCompleteForm').attr('action',
+      "{% url 'subjects:mark-topic-complete' syllabus.id 0 %}".replace('0', topicIndex)
+    );
+  });
+
+  // Bulk complete functionality
+  $('#selectAll').on('change', function () {
+    $('.topic-checkbox').prop('checked', this.checked);
+    updateBulkCompleteButton();
+  });
+
+  $('.topic-checkbox').on('change', function () {
+    updateBulkCompleteButton();
+
+    // Update select all checkbox
+    const totalCheckboxes = $('.topic-checkbox').length;
+    const checkedCheckboxes = $('.topic-checkbox:checked').length;
+    $('#selectAll').prop('checked', totalCheckboxes === checkedCheckboxes);
+  });
+
+  function updateBulkCompleteButton() {
+    const selectedCount = $('.topic-checkbox:checked').length;
+    $('#bulkCompleteBtn').prop('disabled', selectedCount === 0);
+
+    if (selectedCount > 0) {
+      const selectedTopics = $('.topic-checkbox:checked').map(function () {
+        return this.value;
+      }).get();
+      $('#selectedTopics').val(JSON.stringify(selectedTopics));
+    }
+  }
+
+  // Form submission with loading state
+  $('#markCompleteForm').on('submit', function () {
+    $(this).find('button[type="submit"]').html('<i class="fas fa-spinner fa-spin me-1"></i>Processing...').prop('disabled', true);
+  });
+});
+</script>
+{% endblock %}

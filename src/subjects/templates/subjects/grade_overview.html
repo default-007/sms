@@ -1,0 +1,652 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Grade Overview - {{ grade.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="fw-bold text-primary">
+            <i class="fas fa-graduation-cap me-2"></i>{{ grade.name }} Overview
+          </h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'subjects:dashboard' %}">Dashboard</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'subjects:curriculum-structure' %}">Curriculum</a></li>
+              <li class="breadcrumb-item active">{{ grade.name }}</li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <div class="btn-group me-2">
+            <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-calendar-alt me-1"></i>Academic Year: 2024-2025
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="?academic_year=2024-2025">2024-2025</a></li>
+              <li><a class="dropdown-item" href="?academic_year=2023-2024">2023-2024</a></li>
+            </ul>
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-clock me-1"></i>All Terms
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="?term=all">All Terms</a></li>
+              <li><a class="dropdown-item" href="?term=1">Term 1</a></li>
+              <li><a class="dropdown-item" href="?term=2">Term 2</a></li>
+              <li><a class="dropdown-item" href="?term=3">Term 3</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grade Information Card -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-8">
+              <h4 class="card-title mb-3">{{ grade.name }} Information</h4>
+              <div class="row">
+                <div class="col-sm-6">
+                  <p class="mb-2"><strong>Section:</strong> {{ grade.section.name }}</p>
+                  <p class="mb-2"><strong>Order Sequence:</strong> {{ grade.order_sequence }}</p>
+                </div>
+                <div class="col-sm-6">
+                  <p class="mb-2"><strong>Total Classes:</strong> 4 classes</p>
+                  <p class="mb-2"><strong>Total Students:</strong> 96 students</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4 text-center">
+              <div class="border rounded p-3">
+                <h3 class="text-primary fw-bold mb-1">78.5%</h3>
+                <p class="text-muted mb-0">Overall Progress</p>
+                <div class="progress mt-2" style="height: 8px;">
+                  <div class="progress-bar bg-warning" style="width: 78.5%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Metrics Row -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="text-primary mb-2">
+            <i class="fas fa-book fa-2x"></i>
+          </div>
+          <h3 class="fw-bold mb-1">12</h3>
+          <p class="text-muted mb-0">Total Subjects</p>
+          <small class="text-info">
+            <i class="fas fa-info-circle me-1"></i>3 per term
+          </small>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="text-success mb-2">
+            <i class="fas fa-list-ol fa-2x"></i>
+          </div>
+          <h3 class="fw-bold mb-1">9</h3>
+          <p class="text-muted mb-0">Completed Syllabi</p>
+          <small class="text-success">
+            <i class="fas fa-check me-1"></i>75% completion rate
+          </small>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="text-warning mb-2">
+            <i class="fas fa-clock fa-2x"></i>
+          </div>
+          <h3 class="fw-bold mb-1">240</h3>
+          <p class="text-muted mb-0">Total Hours Taught</p>
+          <small class="text-warning">
+            <i class="fas fa-hourglass-half me-1"></i>20h per subject avg
+          </small>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="text-info mb-2">
+            <i class="fas fa-users fa-2x"></i>
+          </div>
+          <h3 class="fw-bold mb-1">8</h3>
+          <p class="text-muted mb-0">Active Teachers</p>
+          <small class="text-info">
+            <i class="fas fa-user-tie me-1"></i>1.5 subjects per teacher
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="row mb-4">
+    <!-- Subject Progress Chart -->
+    <div class="col-lg-8 mb-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light border-bottom">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-chart-bar me-2"></i>Subject Progress Overview
+            </h5>
+            <div class="btn-group btn-group-sm" role="group">
+              <input type="radio" class="btn-check" name="progressView" id="byCompletion" autocomplete="off" checked>
+              <label class="btn btn-outline-primary" for="byCompletion">Completion</label>
+
+              <input type="radio" class="btn-check" name="progressView" id="byTopics" autocomplete="off">
+              <label class="btn btn-outline-primary" for="byTopics">Topics</label>
+
+              <input type="radio" class="btn-check" name="progressView" id="byHours" autocomplete="off">
+              <label class="btn btn-outline-primary" for="byHours">Hours</label>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="subjectProgressChart" style="height: 350px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Term Distribution -->
+    <div class="col-lg-4 mb-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light border-bottom">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-chart-pie me-2"></i>Progress by Term
+          </h5>
+        </div>
+        <div class="card-body text-center">
+          <div id="termProgressChart" style="height: 250px;"></div>
+          <div class="row mt-3">
+            <div class="col-4">
+              <h6 class="fw-bold text-success mb-1">4</h6>
+              <small class="text-muted">Term 1</small>
+            </div>
+            <div class="col-4">
+              <h6 class="fw-bold text-warning mb-1">3</h6>
+              <small class="text-muted">Term 2</small>
+            </div>
+            <div class="col-4">
+              <h6 class="fw-bold text-info mb-1">2</h6>
+              <small class="text-muted">Term 3</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerts and Notifications -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 border-start border-warning border-4 bg-warning bg-opacity-10">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <i class="fas fa-exclamation-triangle text-warning me-3 fa-2x"></i>
+            <div class="flex-grow-1">
+              <h6 class="fw-bold mb-1">Attention Required</h6>
+              <p class="mb-2">2 subjects are behind schedule and require immediate attention:</p>
+              <div class="d-flex gap-2">
+                <span class="badge bg-warning">Science - Term 2 (45% complete)</span>
+                <span class="badge bg-warning">Mathematics - Term 3 (30% complete)</span>
+              </div>
+            </div>
+            <button class="btn btn-outline-warning">
+              <i class="fas fa-eye me-1"></i>View Details
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subject Details Table -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light border-bottom">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-table me-2"></i>{{ grade.name }} Subject Details
+            </h5>
+            <div>
+              <button class="btn btn-outline-success btn-sm me-2" id="exportGradeReport">
+                <i class="fas fa-file-excel me-1"></i>Export Report
+              </button>
+              <button class="btn btn-outline-primary btn-sm" id="refreshGradeData">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="gradeSubjectsTable" class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Subject</th>
+                  <th>Teacher</th>
+                  <th>Term</th>
+                  <th>Progress</th>
+                  <th>Topics</th>
+                  <th>Hours Taught</th>
+                  <th>Last Updated</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Sample data -->
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <i class="fas fa-calculator text-primary me-2"></i>
+                      <div>
+                        <div class="fw-medium">Mathematics</div>
+                        <small class="text-muted">MATH101 • 3 credit hours</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-2"
+                        style="width: 32px; height: 32px;">
+                        <i class="fas fa-user text-white"></i>
+                      </div>
+                      <div>
+                        <div class="fw-medium">John Smith</div>
+                        <small class="text-muted">Primary</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="badge bg-info">Term 1</span></td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="progress me-2" style="width: 80px; height: 8px;">
+                        <div class="progress-bar bg-success" style="width: 90%"></div>
+                      </div>
+                      <span class="fw-medium">90%</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="text-success fw-medium">18</span>/<span class="text-muted">20</span>
+                  </td>
+                  <td>28.5h</td>
+                  <td><small class="text-muted">2 days ago</small></td>
+                  <td><span class="badge bg-success">On Track</span></td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-primary" data-bs-toggle="tooltip" title="View Progress">
+                        <i class="fas fa-chart-line"></i>
+                      </button>
+                      <button class="btn btn-outline-info" data-bs-toggle="tooltip" title="View Syllabus">
+                        <i class="fas fa-book-open"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <i class="fas fa-flask text-info me-2"></i>
+                      <div>
+                        <div class="fw-medium">Science</div>
+                        <small class="text-muted">SCI101 • 4 credit hours</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="bg-info rounded-circle d-flex align-items-center justify-content-center me-2"
+                        style="width: 32px; height: 32px;">
+                        <i class="fas fa-user text-white"></i>
+                      </div>
+                      <div>
+                        <div class="fw-medium">Sarah Johnson</div>
+                        <small class="text-muted">Primary</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="badge bg-warning">Term 2</span></td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="progress me-2" style="width: 80px; height: 8px;">
+                        <div class="progress-bar bg-warning" style="width: 45%"></div>
+                      </div>
+                      <span class="fw-medium">45%</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="text-warning fw-medium">9</span>/<span class="text-muted">20</span>
+                  </td>
+                  <td>15.0h</td>
+                  <td><small class="text-muted">5 days ago</small></td>
+                  <td><span class="badge bg-warning">Behind</span></td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-primary" data-bs-toggle="tooltip" title="View Progress">
+                        <i class="fas fa-chart-line"></i>
+                      </button>
+                      <button class="btn btn-outline-info" data-bs-toggle="tooltip" title="View Syllabus">
+                        <i class="fas fa-book-open"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <i class="fas fa-book text-success me-2"></i>
+                      <div>
+                        <div class="fw-medium">English</div>
+                        <small class="text-muted">ENG101 • 3 credit hours</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="bg-success rounded-circle d-flex align-items-center justify-content-center me-2"
+                        style="width: 32px; height: 32px;">
+                        <i class="fas fa-user text-white"></i>
+                      </div>
+                      <div>
+                        <div class="fw-medium">Mike Davis</div>
+                        <small class="text-muted">Primary</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="badge bg-info">Term 1</span></td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="progress me-2" style="width: 80px; height: 8px;">
+                        <div class="progress-bar bg-success" style="width: 100%"></div>
+                      </div>
+                      <span class="fw-medium">100%</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="text-success fw-medium">20</span>/<span class="text-muted">20</span>
+                  </td>
+                  <td>32.0h</td>
+                  <td><small class="text-muted">1 week ago</small></td>
+                  <td><span class="badge bg-success">Completed</span></td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-primary" data-bs-toggle="tooltip" title="View Progress">
+                        <i class="fas fa-chart-line"></i>
+                      </button>
+                      <button class="btn btn-outline-info" data-bs-toggle="tooltip" title="View Syllabus">
+                        <i class="fas fa-book-open"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Class Performance Comparison -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light border-bottom">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-chart-area me-2"></i>Class Performance Comparison
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="classComparisonChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    const gradeTable = $('#gradeSubjectsTable').DataTable({
+      responsive: true,
+      pageLength: 15,
+      order: [[3, 'desc']], // Sort by progress
+      columnDefs: [
+        { orderable: false, targets: [-1] },
+        { className: 'text-center', targets: [2, 3, 4, 5, 7] }
+      ]
+    });
+
+    // Initialize tooltips
+    $('[data-bs-toggle="tooltip"]').tooltip();
+
+    // Subject Progress Chart
+    const progressOptions = {
+      series: [{
+        name: 'Completion %',
+        data: [90, 45, 100, 78, 65, 88, 92, 55, 75, 85, 30, 95]
+      }],
+      chart: {
+        type: 'bar',
+        height: 350,
+        toolbar: { show: false }
+      },
+      colors: ['#28a745'],
+      xaxis: {
+        categories: ['Math', 'Science', 'English', 'Social', 'Arts', 'PE', 'Music', 'IT', 'Health', 'Library', 'Drama', 'Ethics'],
+        labels: {
+          rotate: -45
+        }
+      },
+      yaxis: {
+        title: { text: 'Completion Percentage' },
+        max: 100
+      },
+      plotOptions: {
+        bar: {
+          borderRadius: 4,
+          dataLabels: { position: 'top' }
+        }
+      },
+      dataLabels: {
+        enabled: true,
+        formatter: function (val) {
+          return val + "%";
+        },
+        offsetY: -20,
+        style: { fontSize: '12px', colors: ["#304758"] }
+      }
+    };
+
+    const progressChart = new ApexCharts(document.querySelector("#subjectProgressChart"), progressOptions);
+    progressChart.render();
+
+    // Term Progress Pie Chart
+    const termOptions = {
+      series: [80, 65, 45], // Completion percentages for each term
+      chart: {
+        type: 'donut',
+        height: 250
+      },
+      labels: ['Term 1', 'Term 2', 'Term 3'],
+      colors: ['#28a745', '#ffc107', '#17a2b8'],
+      legend: { show: false },
+      dataLabels: {
+        enabled: true,
+        formatter: function (val) {
+          return Math.round(val) + "%";
+        }
+      }
+    };
+
+    const termChart = new ApexCharts(document.querySelector("#termProgressChart"), termOptions);
+    termChart.render();
+
+    // Class Comparison Chart
+    const comparisonOptions = {
+      series: [
+        {
+          name: 'Class A',
+          data: [85, 75, 95, 80, 70, 88]
+        },
+        {
+          name: 'Class B',
+          data: [78, 82, 88, 75, 85, 92]
+        },
+        {
+          name: 'Class C',
+          data: [92, 68, 85, 90, 78, 85]
+        },
+        {
+          name: 'Class D',
+          data: [80, 85, 92, 85, 82, 90]
+        }
+      ],
+      chart: {
+        type: 'line',
+        height: 300,
+        toolbar: { show: false }
+      },
+      colors: ['#007bff', '#28a745', '#ffc107', '#dc3545'],
+      xaxis: {
+        categories: ['Mathematics', 'Science', 'English', 'Social Studies', 'Arts', 'Physical Ed']
+      },
+      yaxis: {
+        title: { text: 'Completion %' },
+        max: 100
+      },
+      stroke: {
+        curve: 'smooth',
+        width: 3
+      },
+      markers: {
+        size: 6
+      },
+      legend: {
+        position: 'top'
+      }
+    };
+
+    const comparisonChart = new ApexCharts(document.querySelector("#classComparisonChart"), comparisonOptions);
+    comparisonChart.render();
+
+    // Chart view toggles
+    $('input[name="progressView"]').on('change', function () {
+      const view = $(this).attr('id');
+      updateProgressChart(view);
+    });
+
+    function updateProgressChart(view) {
+      let series, yAxisTitle;
+
+      switch (view) {
+        case 'byTopics':
+          series = [{ name: 'Completed Topics', data: [18, 9, 20, 15, 13, 17, 18, 11, 15, 17, 6, 19] }];
+          yAxisTitle = 'Topics Completed';
+          break;
+        case 'byHours':
+          series = [{ name: 'Hours Taught', data: [28.5, 15.0, 32.0, 24.0, 19.5, 26.0, 30.0, 16.5, 22.5, 25.5, 9.0, 28.5] }];
+          yAxisTitle = 'Hours Taught';
+          break;
+        default:
+          series = [{ name: 'Completion %', data: [90, 45, 100, 78, 65, 88, 92, 55, 75, 85, 30, 95] }];
+          yAxisTitle = 'Completion Percentage';
+      }
+
+      progressChart.updateOptions({
+        series: series,
+        yaxis: { title: { text: yAxisTitle }, max: view === 'byCompletion' ? 100 : null }
+      });
+    }
+
+    // Export functionality
+    $('#exportGradeReport').on('click', function () {
+      const button = $(this);
+      const originalText = button.html();
+
+      button.html('<i class="fas fa-spinner fa-spin me-1"></i>Generating...').prop('disabled', true);
+
+      setTimeout(() => {
+        button.html(originalText).prop('disabled', false);
+        alert('Grade report would be exported here');
+      }, 2000);
+    });
+
+    // Refresh data
+    $('#refreshGradeData').on('click', function () {
+      gradeTable.ajax.reload();
+      // Refresh charts as well
+      progressChart.updateSeries([{
+        name: 'Completion %',
+        data: [90, 45, 100, 78, 65, 88, 92, 55, 75, 85, 30, 95]
+      }]);
+    });
+
+    // Table row click for subject details
+    $('#gradeSubjectsTable tbody').on('click', 'tr', function () {
+      const subjectName = $(this).find('td:first .fw-medium').text();
+      console.log('View details for subject:', subjectName);
+      // Would navigate to subject/syllabus detail page
+    });
+
+    // Status-based filtering
+    $('.badge').on('click', function () {
+      const status = $(this).text();
+      gradeTable.search(status).draw();
+    });
+
+    // Quick action buttons
+    $('.btn-outline-primary').on('click', function (e) {
+      e.stopPropagation();
+      const row = $(this).closest('tr');
+      const subject = row.find('.fw-medium').first().text();
+      console.log('View progress for:', subject);
+      // Would navigate to progress view
+    });
+
+    $('.btn-outline-info').on('click', function (e) {
+      e.stopPropagation();
+      const row = $(this).closest('tr');
+      const subject = row.find('.fw-medium').first().text();
+      console.log('View syllabus for:', subject);
+      // Would navigate to syllabus view
+    });
+  });
+</script>
+{% endblock %}

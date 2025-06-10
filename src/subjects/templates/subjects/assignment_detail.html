@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Assignment Details - {{ assignment.subject.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="fw-bold text-primary">
+            <i class="fas fa-user-graduate me-2"></i>Assignment Details
+          </h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'subjects:dashboard' %}">Dashboard</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'subjects:assignment-list' %}">Assignments</a></li>
+              <li class="breadcrumb-item active">{{ assignment.subject.code }}</li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <a href="{% url 'subjects:assignment-list' %}" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-arrow-left me-1"></i>Back to List
+          </a>
+          {% if perms.subjects.change_subjectassignment %}
+          <a href="{% url 'subjects:assignment-update' assignment.id %}" class="btn btn-warning">
+            <i class="fas fa-edit me-1"></i>Edit Assignment
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Main Assignment Details -->
+    <div class="col-lg-8">
+      <!-- Assignment Overview Card -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-chalkboard-teacher me-2"></i>
+              {{ assignment.subject.name }} Assignment
+            </h5>
+            <span class="badge {% if assignment.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+              {% if assignment.is_active %}Active{% else %}Inactive{% endif %}
+            </span>
+          </div>
+        </div>
+        <div class="card-body p-4">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <h6 class="fw-bold text-secondary mb-2">Subject Information</h6>
+              <p class="mb-2">
+                <strong>Subject:</strong>
+                {{ assignment.subject.name }} ({{ assignment.subject.code }})
+              </p>
+              <p class="mb-2">
+                <strong>Department:</strong>
+                {{ assignment.subject.department.name }}
+              </p>
+              <p class="mb-2">
+                <strong>Credit Hours:</strong>
+                {{ assignment.subject.credit_hours }}
+              </p>
+              <p class="mb-0">
+                <strong>Subject Type:</strong>
+                {% if assignment.subject.is_elective %}
+                <span class="badge bg-info">Elective</span>
+                {% else %}
+                <span class="badge bg-secondary">Mandatory</span>
+                {% endif %}
+              </p>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <h6 class="fw-bold text-secondary mb-2">Class Information</h6>
+              <p class="mb-2">
+                <strong>Class:</strong>
+                {{ assignment.class_assigned }}
+              </p>
+              <p class="mb-2">
+                <strong>Grade:</strong>
+                {{ assignment.class_assigned.grade.name }}
+              </p>
+              <p class="mb-2">
+                <strong>Section:</strong>
+                {{ assignment.class_assigned.grade.section.name }}
+              </p>
+              <p class="mb-0">
+                <strong>Capacity:</strong>
+                {{ assignment.class_assigned.capacity }} students
+              </p>
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <h6 class="fw-bold text-secondary mb-2">Academic Context</h6>
+              <p class="mb-2">
+                <strong>Academic Year:</strong>
+                {{ assignment.academic_year.name }}
+              </p>
+              <p class="mb-0">
+                <strong>Term:</strong>
+                {{ assignment.term.name }}
+                <small class="text-muted">
+                  ({{ assignment.term.start_date|date:"M d" }} - {{ assignment.term.end_date|date:"M d, Y" }})
+                </small>
+              </p>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <h6 class="fw-bold text-secondary mb-2">Assignment Details</h6>
+              <p class="mb-2">
+                <strong>Assignment Type:</strong>
+                {% if assignment.is_primary_teacher %}
+                <span class="badge bg-success">Primary Teacher</span>
+                {% else %}
+                <span class="badge bg-warning">Secondary Teacher</span>
+                {% endif %}
+              </p>
+              <p class="mb-0">
+                <strong>Assigned Date:</strong>
+                {{ assignment.assigned_date|date:"M d, Y" }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Teacher Information Card -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-light border-bottom">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-user-tie me-2"></i>Teacher Information
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <div class="row">
+            <div class="col-md-3 text-center mb-3">
+              {% if assignment.teacher.user.profile_picture %}
+              <img src="{{ assignment.teacher.user.profile_picture.url }}" class="rounded-circle" width="80" height="80"
+                alt="Teacher Photo">
+              {% else %}
+              <div class="bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center"
+                style="width: 80px; height: 80px;">
+                <i class="fas fa-user text-white fa-2x"></i>
+              </div>
+              {% endif %}
+            </div>
+            <div class="col-md-9">
+              <h5 class="fw-bold mb-2">{{ assignment.teacher.user.get_full_name }}</h5>
+              <div class="row">
+                <div class="col-sm-6">
+                  <p class="mb-2">
+                    <strong>Employee ID:</strong> {{ assignment.teacher.employee_id }}
+                  </p>
+                  <p class="mb-2">
+                    <strong>Department:</strong> {{ assignment.teacher.department.name }}
+                  </p>
+                  <p class="mb-2">
+                    <strong>Position:</strong> {{ assignment.teacher.position|default:"Teacher" }}
+                  </p>
+                </div>
+                <div class="col-sm-6">
+                  <p class="mb-2">
+                    <strong>Email:</strong>
+                    <a href="mailto:{{ assignment.teacher.user.email }}">{{ assignment.teacher.user.email }}</a>
+                  </p>
+                  <p class="mb-2">
+                    <strong>Phone:</strong> {{ assignment.teacher.user.phone_number|default:"-" }}
+                  </p>
+                  <p class="mb-2">
+                    <strong>Experience:</strong> {{ assignment.teacher.experience_years }} years
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Syllabus Information Card -->
+      {% if syllabus %}
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-light border-bottom">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-book-open me-2"></i>Related Syllabus
+            </h5>
+            <a href="{% url 'subjects:syllabus-detail' syllabus.id %}" class="btn btn-outline-primary btn-sm">
+              <i class="fas fa-eye me-1"></i>View Details
+            </a>
+          </div>
+        </div>
+        <div class="card-body p-4">
+          <h6 class="fw-bold mb-3">{{ syllabus.title }}</h6>
+          <div class="row">
+            <div class="col-md-8">
+              <p class="mb-2"><strong>Description:</strong></p>
+              <p class="text-muted mb-3">{{ syllabus.description|truncatewords:30|default:"No description available." }}
+              </p>
+
+              <div class="row">
+                <div class="col-sm-6">
+                  <p class="mb-1"><strong>Difficulty Level:</strong> {{ syllabus.get_difficulty_level_display }}</p>
+                  <p class="mb-1"><strong>Estimated Duration:</strong> {{ syllabus.estimated_duration_hours }} hours</p>
+                </div>
+                <div class="col-sm-6">
+                  <p class="mb-1"><strong>Learning Objectives:</strong>
+                    {{ syllabus.learning_objectives|length|default:0 }}
+                  </p>
+                  <p class="mb-1"><strong>Last Updated:</strong> {{ syllabus.last_updated_at|date:"M d, Y" }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4 text-center">
+              <div class="mb-2">
+                <h4 class="fw-bold text-primary">{{ syllabus.completion_percentage|floatformat:1 }}%</h4>
+                <small class="text-muted">Completion</small>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div
+                  class="progress-bar {% if syllabus.completion_percentage >= 75 %}bg-success{% elif syllabus.completion_percentage >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+                  style="width: {{ syllabus.completion_percentage }}%"></div>
+              </div>
+              <small class="text-muted mt-1 d-block">
+                Status:
+                <span class="fw-medium">{{ syllabus.get_progress_status_display }}</span>
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+      <!-- Quick Actions Card -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-light border-bottom">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-bolt me-2"></i>Quick Actions
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            {% if perms.subjects.change_subjectassignment %}
+            <a href="{% url 'subjects:assignment-update' assignment.id %}" class="btn btn-outline-warning">
+              <i class="fas fa-edit me-2"></i>Edit Assignment
+            </a>
+            {% endif %}
+
+            {% if syllabus %}
+            <a href="{% url 'subjects:syllabus-progress' syllabus.id %}" class="btn btn-outline-success">
+              <i class="fas fa-chart-line me-2"></i>View Progress
+            </a>
+            {% endif %}
+
+            {% if perms.subjects.add_syllabus and not syllabus %}
+            <a href="{% url 'subjects:syllabus-create' %}?subject={{ assignment.subject.id }}&grade={{ assignment.class_assigned.grade.id }}&term={{ assignment.term.id }}"
+              class="btn btn-outline-primary">
+              <i class="fas fa-plus me-2"></i>Create Syllabus
+            </a>
+            {% endif %}
+
+            <a href="{% url 'subjects:teacher-workload-report' %}?teacher={{ assignment.teacher.id }}&year={{ assignment.academic_year.id }}"
+              class="btn btn-outline-info">
+              <i class="fas fa-chart-bar me-2"></i>Teacher Workload
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Assignment Statistics Card -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-light border-bottom">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-chart-pie me-2"></i>Statistics
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-6 mb-3">
+              <div class="border-end">
+                <h4 class="fw-bold text-primary mb-1">{{ assignment.teacher.experience_years }}</h4>
+                <small class="text-muted">Years Experience</small>
+              </div>
+            </div>
+            <div class="col-6 mb-3">
+              <h4 class="fw-bold text-success mb-1">{{ assignment.subject.credit_hours }}</h4>
+              <small class="text-muted">Credit Hours</small>
+            </div>
+          </div>
+
+          {% if syllabus %}
+          <hr class="my-3">
+          <div class="row text-center">
+            <div class="col-6">
+              <h5 class="fw-bold text-info mb-1">{{ syllabus.get_total_topics }}</h5>
+              <small class="text-muted">Total Topics</small>
+            </div>
+            <div class="col-6">
+              <h5 class="fw-bold text-success mb-1">{{ syllabus.get_completed_topics }}</h5>
+              <small class="text-muted">Completed</small>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Assignment History Card -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light border-bottom">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-history me-2"></i>Assignment History
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="timeline">
+            <div class="timeline-item d-flex">
+              <div class="timeline-marker bg-success rounded-circle me-3 mt-1" style="width: 12px; height: 12px;"></div>
+              <div class="timeline-content">
+                <h6 class="fw-bold mb-1">Assignment Created</h6>
+                <p class="text-muted mb-1">{{ assignment.assigned_date|date:"M d, Y" }}</p>
+                {% if assignment.assigned_by %}
+                <small class="text-muted">by {{ assignment.assigned_by.get_full_name }}</small>
+                {% endif %}
+              </div>
+            </div>
+
+            {% if syllabus %}
+            <div class="timeline-item d-flex mt-3">
+              <div class="timeline-marker bg-info rounded-circle me-3 mt-1" style="width: 12px; height: 12px;"></div>
+              <div class="timeline-content">
+                <h6 class="fw-bold mb-1">Syllabus Created</h6>
+                <p class="text-muted mb-1">{{ syllabus.created_at|date:"M d, Y" }}</p>
+                <small class="text-muted">by {{ syllabus.created_by.get_full_name }}</small>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if syllabus and syllabus.completion_percentage > 0 %}
+            <div class="timeline-item d-flex mt-3">
+              <div class="timeline-marker bg-warning rounded-circle me-3 mt-1" style="width: 12px; height: 12px;"></div>
+              <div class="timeline-content">
+                <h6 class="fw-bold mb-1">Progress Started</h6>
+                <p class="text-muted mb-1">{{ syllabus.last_updated_at|date:"M d, Y" }}</p>
+                <small class="text-muted">{{ syllabus.completion_percentage|floatformat:1 }}% complete</small>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Add any interactive functionality here
+    console.log('Assignment detail page loaded');
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,760 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Curriculum Structure{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/themes/default/style.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="fw-bold text-primary">
+            <i class="fas fa-sitemap me-2"></i>Curriculum Structure
+          </h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'subjects:dashboard' %}">Dashboard</a></li>
+              <li class="breadcrumb-item active">Curriculum Structure</li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <div class="btn-group me-2">
+            <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-calendar-alt me-1"></i>Academic Year: 2024-2025
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="?academic_year=2024-2025">2024-2025</a></li>
+              <li><a class="dropdown-item" href="?academic_year=2023-2024">2023-2024</a></li>
+            </ul>
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-eye me-1"></i>View Options
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#" data-view="tree">Tree View</a></li>
+              <li><a class="dropdown-item" href="#" data-view="cards">Card View</a></li>
+              <li><a class="dropdown-item" href="#" data-view="table">Table View</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Structure Overview Cards -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="text-primary mb-2">
+            <i class="fas fa-building fa-2x"></i>
+          </div>
+          <h3 class="fw-bold mb-1">6</h3>
+          <p class="text-muted mb-0">Departments</p>
+          <small class="text-info">
+            <i class="fas fa-users me-1"></i>Active departments
+          </small>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="text-success mb-2">
+            <i class="fas fa-layer-group fa-2x"></i>
+          </div>
+          <h3 class="fw-bold mb-1">3</h3>
+          <p class="text-muted mb-0">Sections</p>
+          <small class="text-success">
+            <i class="fas fa-graduation-cap me-1"></i>Educational levels
+          </small>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="text-warning mb-2">
+            <i class="fas fa-list-ol fa-2x"></i>
+          </div>
+          <h3 class="fw-bold mb-1">12</h3>
+          <p class="text-muted mb-0">Grades</p>
+          <small class="text-warning">
+            <i class="fas fa-chart-line me-1"></i>Grade levels
+          </small>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="text-info mb-2">
+            <i class="fas fa-book fa-2x"></i>
+          </div>
+          <h3 class="fw-bold mb-1">48</h3>
+          <p class="text-muted mb-0">Total Subjects</p>
+          <small class="text-info">
+            <i class="fas fa-check-circle me-1"></i>All active subjects
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter Controls -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 bg-light">
+        <div class="card-body py-3">
+          <div class="row align-items-center">
+            <div class="col-md-6">
+              <div class="d-flex align-items-center">
+                <span class="fw-medium me-3">Filters:</span>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" id="showCompletionFilter" checked>
+                  <label class="form-check-label" for="showCompletionFilter">Show Completion %</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" id="showElectivesFilter" checked>
+                  <label class="form-check-label" for="showElectivesFilter">Include Electives</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" id="showInactiveFilter">
+                  <label class="form-check-label" for="showInactiveFilter">Show Inactive</label>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 text-end">
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-secondary" id="expandAllBtn">
+                  <i class="fas fa-expand-alt me-1"></i>Expand All
+                </button>
+                <button class="btn btn-outline-secondary" id="collapseAllBtn">
+                  <i class="fas fa-compress-alt me-1"></i>Collapse All
+                </button>
+                <button class="btn btn-outline-success" id="exportStructureBtn">
+                  <i class="fas fa-download me-1"></i>Export
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Views -->
+  <div class="row">
+    <div class="col-12">
+      <!-- Tree View -->
+      <div class="card border-0 shadow-sm" id="treeView">
+        <div class="card-header bg-light border-bottom">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-sitemap me-2"></i>Hierarchical Structure
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-lg-4">
+              <div id="curriculumTree"></div>
+            </div>
+            <div class="col-lg-8">
+              <div id="detailsPanel" class="border-start ps-4">
+                <div class="text-center text-muted py-5">
+                  <i class="fas fa-mouse-pointer fa-3x mb-3"></i>
+                  <h5>Select an item from the tree</h5>
+                  <p>Click on any department, section, grade, or subject to view detailed information</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card View -->
+      <div class="card border-0 shadow-sm d-none" id="cardView">
+        <div class="card-header bg-light border-bottom">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-th-large me-2"></i>Card Layout
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="curriculumCards"></div>
+        </div>
+      </div>
+
+      <!-- Table View -->
+      <div class="card border-0 shadow-sm d-none" id="tableView">
+        <div class="card-header bg-light border-bottom">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-table me-2"></i>Detailed Table
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover" id="curriculumTable">
+              <thead class="table-light">
+                <tr>
+                  <th>Department</th>
+                  <th>Section</th>
+                  <th>Grade</th>
+                  <th>Subject</th>
+                  <th>Code</th>
+                  <th>Credit Hours</th>
+                  <th>Type</th>
+                  <th>Completion</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Sample data -->
+                <tr>
+                  <td>Mathematics</td>
+                  <td>Primary</td>
+                  <td>Grade 1</td>
+                  <td>Basic Mathematics</td>
+                  <td>MATH101</td>
+                  <td>3</td>
+                  <td><span class="badge bg-secondary">Mandatory</span></td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="progress me-2" style="width: 60px; height: 6px;">
+                        <div class="progress-bar bg-success" style="width: 85%"></div>
+                      </div>
+                      <small>85%</small>
+                    </div>
+                  </td>
+                  <td><span class="badge bg-success">Active</span></td>
+                </tr>
+                <tr>
+                  <td>Science</td>
+                  <td>Primary</td>
+                  <td>Grade 1</td>
+                  <td>General Science</td>
+                  <td>SCI101</td>
+                  <td>4</td>
+                  <td><span class="badge bg-secondary">Mandatory</span></td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="progress me-2" style="width: 60px; height: 6px;">
+                        <div class="progress-bar bg-warning" style="width: 45%"></div>
+                      </div>
+                      <small>45%</small>
+                    </div>
+                  </td>
+                  <td><span class="badge bg-success">Active</span></td>
+                </tr>
+                <tr>
+                  <td>Arts</td>
+                  <td>Primary</td>
+                  <td>Grade 2</td>
+                  <td>Creative Arts</td>
+                  <td>ART201</td>
+                  <td>2</td>
+                  <td><span class="badge bg-info">Elective</span></td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="progress me-2" style="width: 60px; height: 6px;">
+                        <div class="progress-bar bg-success" style="width: 100%"></div>
+                      </div>
+                      <small>100%</small>
+                    </div>
+                  </td>
+                  <td><span class="badge bg-success">Active</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/jstree.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  $(document).ready(function () {
+    // Sample curriculum data structure
+    const curriculumData = [
+      {
+        id: 'math_dept',
+        text: 'Mathematics Department',
+        icon: 'fas fa-calculator text-primary',
+        state: { opened: true },
+        children: [
+          {
+            id: 'primary_section',
+            text: 'Primary Section',
+            icon: 'fas fa-layer-group text-success',
+            children: [
+              {
+                id: 'grade_1',
+                text: 'Grade 1 (24 students)',
+                icon: 'fas fa-users text-info',
+                children: [
+                  {
+                    id: 'math_g1',
+                    text: 'Basic Mathematics (85% complete)',
+                    icon: 'fas fa-book text-warning',
+                    data: {
+                      type: 'subject',
+                      code: 'MATH101',
+                      completion: 85,
+                      creditHours: 3,
+                      isElective: false
+                    }
+                  }
+                ]
+              },
+              {
+                id: 'grade_2',
+                text: 'Grade 2 (28 students)',
+                icon: 'fas fa-users text-info',
+                children: [
+                  {
+                    id: 'math_g2',
+                    text: 'Intermediate Mathematics (72% complete)',
+                    icon: 'fas fa-book text-warning',
+                    data: {
+                      type: 'subject',
+                      code: 'MATH201',
+                      completion: 72,
+                      creditHours: 4,
+                      isElective: false
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'science_dept',
+        text: 'Science Department',
+        icon: 'fas fa-flask text-info',
+        children: [
+          {
+            id: 'primary_section_sci',
+            text: 'Primary Section',
+            icon: 'fas fa-layer-group text-success',
+            children: [
+              {
+                id: 'grade_1_sci',
+                text: 'Grade 1',
+                icon: 'fas fa-users text-info',
+                children: [
+                  {
+                    id: 'sci_g1',
+                    text: 'General Science (45% complete)',
+                    icon: 'fas fa-book text-danger',
+                    data: {
+                      type: 'subject',
+                      code: 'SCI101',
+                      completion: 45,
+                      creditHours: 3,
+                      isElective: false
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'arts_dept',
+        text: 'Arts Department',
+        icon: 'fas fa-palette text-purple',
+        children: [
+          {
+            id: 'all_sections_arts',
+            text: 'All Sections',
+            icon: 'fas fa-layer-group text-success',
+            children: [
+              {
+                id: 'arts_elective',
+                text: 'Creative Arts (Elective)',
+                icon: 'fas fa-book text-success',
+                data: {
+                  type: 'subject',
+                  code: 'ART100',
+                  completion: 100,
+                  creditHours: 2,
+                  isElective: true
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ];
+
+    // Initialize JSTree
+    $('#curriculumTree').jstree({
+      core: {
+        data: curriculumData,
+        themes: {
+          responsive: true,
+          variant: 'large'
+        }
+      },
+      plugins: ['search', 'state', 'types'],
+      types: {
+        default: {
+          icon: 'fas fa-folder'
+        }
+      }
+    });
+
+    // Tree selection handler
+    $('#curriculumTree').on('select_node.jstree', function (e, data) {
+      showNodeDetails(data.node);
+    });
+
+    function showNodeDetails(node) {
+      const detailsPanel = $('#detailsPanel');
+      let html = '';
+
+      if (node.data && node.data.type === 'subject') {
+        // Subject details
+        html = `
+                <div class="subject-details">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="fw-bold text-primary">${node.text.split(' (')[0]}</h5>
+                            <p class="text-muted mb-0">Subject Code: ${node.data.code}</p>
+                        </div>
+                        <span class="badge ${node.data.isElective ? 'bg-info' : 'bg-secondary'}">
+                            ${node.data.isElective ? 'Elective' : 'Mandatory'}
+                        </span>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <small class="text-muted">Credit Hours</small>
+                            <div class="fw-bold">${node.data.creditHours}</div>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Completion</small>
+                            <div class="fw-bold text-${node.data.completion >= 75 ? 'success' : node.data.completion >= 50 ? 'warning' : 'danger'}">${node.data.completion}%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="progress mb-3" style="height: 10px;">
+                        <div class="progress-bar bg-${node.data.completion >= 75 ? 'success' : node.data.completion >= 50 ? 'warning' : 'danger'}" 
+                             style="width: ${node.data.completion}%"></div>
+                    </div>
+                    
+                    <div class="card bg-light border-0">
+                        <div class="card-body">
+                            <h6 class="fw-bold mb-2">Quick Actions</h6>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-primary btn-sm" onclick="viewSyllabus('${node.data.code}')">
+                                    <i class="fas fa-book-open me-1"></i>View Syllabus
+                                </button>
+                                <button class="btn btn-outline-success btn-sm" onclick="viewProgress('${node.data.code}')">
+                                    <i class="fas fa-chart-line me-1"></i>View Progress
+                                </button>
+                                <button class="btn btn-outline-info btn-sm" onclick="viewAssignments('${node.data.code}')">
+                                    <i class="fas fa-user-tie me-1"></i>Teacher Assignments
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+      } else {
+        // Department/Section/Grade details
+        const nodeType = node.id.includes('dept') ? 'Department' :
+          node.id.includes('section') ? 'Section' :
+            node.id.includes('grade') ? 'Grade' : 'Category';
+
+        html = `
+                <div class="node-details">
+                    <h5 class="fw-bold text-secondary mb-3">${nodeType}: ${node.text}</h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <div class="card bg-primary bg-opacity-10 border-0 text-center">
+                                <div class="card-body py-2">
+                                    <h6 class="fw-bold text-primary mb-0">${node.children ? node.children.length : 0}</h6>
+                                    <small class="text-muted">Child Items</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card bg-success bg-opacity-10 border-0 text-center">
+                                <div class="card-body py-2">
+                                    <h6 class="fw-bold text-success mb-0">${getSubjectCount(node)}</h6>
+                                    <small class="text-muted">Subjects</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card bg-light border-0">
+                        <div class="card-body">
+                            <h6 class="fw-bold mb-2">Available Actions</h6>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-primary btn-sm" onclick="expandNode('${node.id}')">
+                                    <i class="fas fa-expand me-1"></i>Expand All Children
+                                </button>
+                                <button class="btn btn-outline-info btn-sm" onclick="viewStatistics('${node.id}')">
+                                    <i class="fas fa-chart-bar me-1"></i>View Statistics
+                                </button>
+                                <button class="btn btn-outline-success btn-sm" onclick="exportBranch('${node.id}')">
+                                    <i class="fas fa-download me-1"></i>Export Branch
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+      }
+
+      detailsPanel.html(html);
+    }
+
+    function getSubjectCount(node) {
+      let count = 0;
+      if (node.children) {
+        node.children.forEach(child => {
+          if (child.data && child.data.type === 'subject') {
+            count++;
+          } else {
+            count += getSubjectCount(child);
+          }
+        });
+      }
+      return count;
+    }
+
+    // View switching
+    $('[data-view]').on('click', function (e) {
+      e.preventDefault();
+      const view = $(this).data('view');
+      switchView(view);
+    });
+
+    function switchView(view) {
+      $('#treeView, #cardView, #tableView').addClass('d-none');
+
+      switch (view) {
+        case 'tree':
+          $('#treeView').removeClass('d-none');
+          break;
+        case 'cards':
+          generateCardView();
+          $('#cardView').removeClass('d-none');
+          break;
+        case 'table':
+          $('#tableView').removeClass('d-none');
+          break;
+      }
+    }
+
+    function generateCardView() {
+      const cardsContainer = $('#curriculumCards');
+      cardsContainer.empty();
+
+      // Generate department cards
+      const departments = ['Mathematics', 'Science', 'Arts', 'English', 'Social Studies', 'Physical Education'];
+
+      departments.forEach(dept => {
+        const card = `
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-${getDepartmentColor(dept)} text-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="card-title mb-0">
+                                    <i class="${getDepartmentIcon(dept)} me-2"></i>${dept} Department
+                                </h6>
+                                <span class="badge bg-light text-dark">${Math.floor(Math.random() * 10) + 5} subjects</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-6 text-center">
+                                    <h5 class="fw-bold text-success">${Math.floor(Math.random() * 5) + 2}</h5>
+                                    <small class="text-muted">Grades</small>
+                                </div>
+                                <div class="col-6 text-center">
+                                    <h5 class="fw-bold text-info">${Math.floor(Math.random() * 200) + 100}</h5>
+                                    <small class="text-muted">Students</small>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <small class="text-muted">Overall Progress</small>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar bg-success" style="width: ${Math.floor(Math.random() * 40) + 60}%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button class="btn btn-outline-primary btn-sm" onclick="viewDepartment('${dept}')">
+                                    <i class="fas fa-eye me-1"></i>View Details
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        cardsContainer.append(card);
+      });
+    }
+
+    function getDepartmentColor(dept) {
+      const colors = {
+        'Mathematics': 'primary',
+        'Science': 'info',
+        'Arts': 'purple',
+        'English': 'success',
+        'Social Studies': 'warning',
+        'Physical Education': 'danger'
+      };
+      return colors[dept] || 'secondary';
+    }
+
+    function getDepartmentIcon(dept) {
+      const icons = {
+        'Mathematics': 'fas fa-calculator',
+        'Science': 'fas fa-flask',
+        'Arts': 'fas fa-palette',
+        'English': 'fas fa-book',
+        'Social Studies': 'fas fa-globe',
+        'Physical Education': 'fas fa-running'
+      };
+      return icons[dept] || 'fas fa-book';
+    }
+
+    // Control buttons
+    $('#expandAllBtn').on('click', function () {
+      $('#curriculumTree').jstree('open_all');
+    });
+
+    $('#collapseAllBtn').on('click', function () {
+      $('#curriculumTree').jstree('close_all');
+    });
+
+    $('#exportStructureBtn').on('click', function () {
+      const button = $(this);
+      const originalText = button.html();
+
+      button.html('<i class="fas fa-spinner fa-spin me-1"></i>Exporting...').prop('disabled', true);
+
+      setTimeout(() => {
+        button.html(originalText).prop('disabled', false);
+        alert('Curriculum structure export would be implemented here');
+      }, 2000);
+    });
+
+    // Filter handlers
+    $('#showCompletionFilter, #showElectivesFilter, #showInactiveFilter').on('change', function () {
+      // Apply filters to tree view
+      applyFilters();
+    });
+
+    function applyFilters() {
+      const showCompletion = $('#showCompletionFilter').is(':checked');
+      const showElectives = $('#showElectivesFilter').is(':checked');
+      const showInactive = $('#showInactiveFilter').is(':checked');
+
+      console.log('Applying filters:', { showCompletion, showElectives, showInactive });
+      // Filter logic would be implemented here
+    }
+
+    // Global functions for button actions
+    window.viewSyllabus = function (code) {
+      console.log('View syllabus for:', code);
+      // Navigate to syllabus page
+    };
+
+    window.viewProgress = function (code) {
+      console.log('View progress for:', code);
+      // Navigate to progress page
+    };
+
+    window.viewAssignments = function (code) {
+      console.log('View assignments for:', code);
+      // Navigate to assignments page
+    };
+
+    window.expandNode = function (nodeId) {
+      $('#curriculumTree').jstree('open_node', nodeId);
+    };
+
+    window.viewStatistics = function (nodeId) {
+      console.log('View statistics for:', nodeId);
+      // Show statistics modal or page
+    };
+
+    window.exportBranch = function (nodeId) {
+      console.log('Export branch:', nodeId);
+      // Export specific branch
+    };
+
+    window.viewDepartment = function (dept) {
+      console.log('View department:', dept);
+      // Navigate to department page
+    };
+
+    // Initialize with card view for demonstration
+    generateCardView();
+  });
+</script>
+
+<style>
+  .text-purple {
+    color: #6f42c1 !important;
+  }
+
+  .bg-purple {
+    background-color: #6f42c1 !important;
+  }
+
+  .jstree-default .jstree-icon {
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: auto;
+  }
+
+  .subject-details .progress {
+    border-radius: 10px;
+  }
+
+  .node-details .card {
+    transition: all 0.3s ease;
+  }
+
+  .node-details .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  #curriculumCards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  #curriculumCards .col-lg-4,
+  #curriculumCards .col-md-6 {
+    flex: 0 0 auto;
+  }
+</style>
+{% endblock %}

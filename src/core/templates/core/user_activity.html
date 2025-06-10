@@ -1,0 +1,618 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}User Activity - {{ user_obj.get_full_name|default:user_obj.username }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<link href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.bootstrap5.min.css" rel="stylesheet">
+<link href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap5.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">User Activity</h1>
+          <p class="text-muted mb-0">Activity log for {{ user_obj.get_full_name|default:user_obj.username }}</p>
+        </div>
+        <div>
+          <a href="{% url 'core:user_detail' user_obj.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-user"></i> User Profile
+          </a>
+          <a href="{% url 'core:user_management' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Users
+          </a>
+          <div class="btn-group" role="group">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="fas fa-filter"></i> Time Range
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="?days=7">Last 7 days</a></li>
+              <li><a class="dropdown-item" href="?days=30">Last 30 days</a></li>
+              <li><a class="dropdown-item" href="?days=90">Last 90 days</a></li>
+              <li><a class="dropdown-item" href="?days=365">Last year</a></li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li><a class="dropdown-item" href="?days={{ days }}">All activity</a></li>
+            </ul>
+          </div>
+          <button class="btn btn-outline-primary" onclick="exportActivity()">
+            <i class="fas fa-download"></i> Export
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Summary Card -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-md-2 text-center">
+              <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto"
+                style="width: 60px; height: 60px; font-size: 20px;">
+                {{ user_obj.first_name|first|default:user_obj.username|first|upper }}{{ user_obj.last_name|first|upper }}
+              </div>
+            </div>
+            <div class="col-md-4">
+              <h5 class="mb-1">{{ user_obj.get_full_name|default:user_obj.username }}</h5>
+              <p class="text-muted mb-0">@{{ user_obj.username }}</p>
+              <span class="badge bg-{% if user_obj.is_active %}success{% else %}secondary{% endif %}">
+                {% if user_obj.is_active %}Active{% else %}Inactive{% endif %}
+              </span>
+            </div>
+            <div class="col-md-6">
+              <div class="row text-center">
+                <div class="col-4">
+                  <div class="h5">{{ activity_summary.total_actions|default:0 }}</div>
+                  <div class="small text-gray-500">Total Actions</div>
+                </div>
+                <div class="col-4">
+                  <div class="h5">{{ activity_summary.modules_accessed|default:0 }}</div>
+                  <div class="small text-gray-500">Modules Used</div>
+                </div>
+                <div class="col-4">
+                  <div class="h5">{{ days }} days</div>
+                  <div class="small text-gray-500">Time Period</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Activity Statistics -->
+  <div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-primary shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Actions</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ activity_summary.total_actions|default:0 }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-history fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-success shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Most Common Action</div>
+              <div class="h6 mb-0 font-weight-bold text-gray-800">
+                {% if activity_summary.most_common_action %}
+                {{ activity_summary.most_common_action.action|title }}
+                <div class="small text-gray-500">({{ activity_summary.most_common_action.count }} times)</div>
+                {% else %}
+                N/A
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-chart-bar fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-info shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Modules Accessed</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ activity_summary.modules_accessed|default:0 }}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-layer-group fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-warning shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Time Period</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ days }} days</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-calendar fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Activity Charts -->
+  <div class="row mb-4">
+    <div class="col-xl-8">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Activity Timeline</h6>
+        </div>
+        <div class="card-body">
+          <div id="activityTimelineChart"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Actions Breakdown</h6>
+        </div>
+        <div class="card-body">
+          <div id="actionsBreakdownChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Filters -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Quick Filters</h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3 mb-3">
+              <label class="form-label">Action Type</label>
+              <select id="actionFilter" class="form-select">
+                <option value="">All Actions</option>
+                <option value="create">Create</option>
+                <option value="update">Update</option>
+                <option value="delete">Delete</option>
+                <option value="view">View</option>
+                <option value="login">Login</option>
+                <option value="logout">Logout</option>
+              </select>
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">Module</label>
+              <select id="moduleFilter" class="form-select">
+                <option value="">All Modules</option>
+                {% for log in logs %}
+                {% if log.module_name %}
+                <option value="{{ log.module_name }}">{{ log.module_name|title }}</option>
+                {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">Date From</label>
+              <input type="date" id="dateFromFilter" class="form-control">
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">Date To</label>
+              <input type="date" id="dateToFilter" class="form-control">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-12">
+              <button class="btn btn-primary" onclick="applyFilters()">
+                <i class="fas fa-filter"></i> Apply Filters
+              </button>
+              <button class="btn btn-outline-secondary" onclick="clearFilters()">
+                <i class="fas fa-times"></i> Clear Filters
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Activity Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">Detailed Activity Log</h6>
+          <div>
+            <button class="btn btn-outline-primary btn-sm" onclick="refreshTable()">
+              <i class="fas fa-sync"></i> Refresh
+            </button>
+            <button class="btn btn-outline-success btn-sm" onclick="exportActivity()">
+              <i class="fas fa-download"></i> Export
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover" id="activityTable">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Action</th>
+                  <th>Description</th>
+                  <th>Module</th>
+                  <th>View</th>
+                  <th>IP Address</th>
+                  <th>Duration</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for log in logs %}
+                <tr>
+                  <td>
+                    <span data-bs-toggle="tooltip" title="{{ log.timestamp }}">
+                      {{ log.timestamp|date:"M d, H:i" }}
+                    </span>
+                  </td>
+                  <td>
+                    <span
+                      class="badge bg-{% if log.action == 'create' %}success{% elif log.action == 'update' %}warning{% elif log.action == 'delete' %}danger{% elif log.action == 'login' %}info{% elif log.action == 'logout' %}secondary{% else %}primary{% endif %}">
+                      {{ log.action|title }}
+                    </span>
+                  </td>
+                  <td>{{ log.description|truncatechars:60 }}</td>
+                  <td>
+                    {% if log.module_name %}
+                    <span class="badge bg-light text-dark">{{ log.module_name|title }}</span>
+                    {% else %}
+                    -
+                    {% endif %}
+                  </td>
+                  <td>{{ log.view_name|default:"-" }}</td>
+                  <td>{{ log.ip_address|default:"-" }}</td>
+                  <td>
+                    {% if log.duration_ms %}
+                    {{ log.duration_ms }}ms
+                    {% else %}
+                    -
+                    {% endif %}
+                  </td>
+                  <td>
+                    <button class="btn btn-outline-primary btn-sm" onclick="viewLogDetails({{ log.id }})"
+                      data-bs-toggle="tooltip" title="View Details">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="8" class="text-center text-muted">No activity logs found for the selected period</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Log Details Modal -->
+<div class="modal fade" id="logDetailsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Activity Log Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="logDetailsContent">
+        <!-- Content will be loaded dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.4.1/js/responsive.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Initialize DataTable
+    const table = $('#activityTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[0, 'desc']], // Order by timestamp
+      columnDefs: [
+        { targets: [0], type: 'date' },
+        { targets: [7], orderable: false } // Disable sorting for details column
+      ],
+      language: {
+        search: "Search activity:",
+        lengthMenu: "Show _MENU_ entries per page",
+        info: "Showing _START_ to _END_ of _TOTAL_ activity logs"
+      }
+    });
+
+    // Activity Timeline Chart
+    var timelineOptions = {
+      series: [{
+        name: 'Actions',
+        data: generateTimelineData() // You'd generate this from your logs data
+      }],
+      chart: {
+        height: 350,
+        type: 'area',
+        toolbar: {
+          show: true
+        }
+      },
+      dataLabels: {
+        enabled: false
+      },
+      stroke: {
+        curve: 'smooth',
+        width: 2
+      },
+      xaxis: {
+        type: 'datetime',
+        categories: generateTimelineCategories()
+      },
+      yaxis: {
+        title: {
+          text: 'Number of Actions'
+        }
+      },
+      colors: ['#4e73df'],
+      fill: {
+        type: 'gradient',
+        gradient: {
+          shadeIntensity: 1,
+          opacityFrom: 0.7,
+          opacityTo: 0.3
+        }
+      }
+    };
+
+    var timelineChart = new ApexCharts(document.querySelector("#activityTimelineChart"), timelineOptions);
+    timelineChart.render();
+
+    // Actions Breakdown Chart
+    var breakdownOptions = {
+      series: getActionCounts(),
+      chart: {
+        height: 350,
+        type: 'donut'
+      },
+      labels: getActionTypes(),
+      legend: {
+        position: 'bottom'
+      },
+      colors: ['#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796', '#5a5c69']
+    };
+
+    var breakdownChart = new ApexCharts(document.querySelector("#actionsBreakdownChart"), breakdownOptions);
+    breakdownChart.render();
+
+    // Populate module filter with unique values
+    populateModuleFilter();
+  });
+
+  function generateTimelineData() {
+    // This would be generated from your actual log data
+    // For demo purposes, returning sample data
+    return [12, 8, 15, 20, 5, 18, 25, 10, 22, 16, 14, 30];
+  }
+
+  function generateTimelineCategories() {
+    // Generate date categories based on your time period
+    const categories = [];
+    const now = new Date();
+    for (let i = {{ days }}; i >= 0; i--) {
+    const date = new Date(now);
+    date.setDate(date.getDate() - i);
+    categories.push(date.toISOString());
+  }
+  return categories.slice(-12); // Show last 12 periods
+}
+
+  function getActionCounts() {
+    // Count actions from the table
+    const actions = {};
+    document.querySelectorAll('#activityTable tbody tr').forEach(row => {
+      const actionCell = row.cells[1];
+      if (actionCell) {
+        const actionText = actionCell.textContent.trim();
+        actions[actionText] = (actions[actionText] || 0) + 1;
+      }
+    });
+    return Object.values(actions);
+  }
+
+  function getActionTypes() {
+    // Get unique action types
+    const actions = new Set();
+    document.querySelectorAll('#activityTable tbody tr').forEach(row => {
+      const actionCell = row.cells[1];
+      if (actionCell) {
+        actions.add(actionCell.textContent.trim());
+      }
+    });
+    return Array.from(actions);
+  }
+
+  function populateModuleFilter() {
+    const modules = new Set();
+    document.querySelectorAll('#activityTable tbody tr').forEach(row => {
+      const moduleCell = row.cells[3];
+      if (moduleCell && moduleCell.textContent.trim() !== '-') {
+        modules.add(moduleCell.textContent.trim());
+      }
+    });
+
+    const moduleFilter = document.getElementById('moduleFilter');
+    modules.forEach(module => {
+      const option = document.createElement('option');
+      option.value = module;
+      option.textContent = module;
+      moduleFilter.appendChild(option);
+    });
+  }
+
+  function applyFilters() {
+    const table = $('#activityTable').DataTable();
+
+    // Get filter values
+    const actionFilter = document.getElementById('actionFilter').value;
+    const moduleFilter = document.getElementById('moduleFilter').value;
+    const dateFromFilter = document.getElementById('dateFromFilter').value;
+    const dateToFilter = document.getElementById('dateToFilter').value;
+
+    // Apply filters
+    if (actionFilter) {
+      table.column(1).search(actionFilter);
+    }
+    if (moduleFilter) {
+      table.column(3).search(moduleFilter);
+    }
+
+    // For date filters, you'd need to implement custom filtering
+    // This is a simplified version
+    table.draw();
+  }
+
+  function clearFilters() {
+    const table = $('#activityTable').DataTable();
+
+    // Clear filter inputs
+    document.getElementById('actionFilter').value = '';
+    document.getElementById('moduleFilter').value = '';
+    document.getElementById('dateFromFilter').value = '';
+    document.getElementById('dateToFilter').value = '';
+
+    // Clear table filters
+    table.search('').columns().search('').draw();
+  }
+
+  function refreshTable() {
+    location.reload();
+  }
+
+  function exportActivity() {
+    // Implementation for exporting activity data
+    const params = new URLSearchParams({
+      user_id: {{ user_obj.id }},
+  days: { { days } },
+  format: 'csv'
+    });
+
+  window.location.href = `/api/core/audit-logs/export/?${params.toString()}`;
+}
+
+  function viewLogDetails(logId) {
+    // Load detailed log information
+    fetch(`/api/core/audit-logs/${logId}/`)
+      .then(response => response.json())
+      .then(data => {
+        const content = generateLogDetailsHTML(data);
+        document.getElementById('logDetailsContent').innerHTML = content;
+        new bootstrap.Modal(document.getElementById('logDetailsModal')).show();
+      })
+      .catch(error => {
+        console.error('Error loading log details:', error);
+        alert('Error loading log details. Please try again.');
+      });
+  }
+
+  function generateLogDetailsHTML(log) {
+    return `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Basic Information</h6>
+                <dl class="row">
+                    <dt class="col-sm-4">Timestamp:</dt>
+                    <dd class="col-sm-8">${log.timestamp}</dd>
+                    <dt class="col-sm-4">Action:</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge bg-primary">${log.action}</span>
+                    </dd>
+                    <dt class="col-sm-4">Module:</dt>
+                    <dd class="col-sm-8">${log.module_name || '-'}</dd>
+                    <dt class="col-sm-4">View:</dt>
+                    <dd class="col-sm-8">${log.view_name || '-'}</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <h6>Technical Details</h6>
+                <dl class="row">
+                    <dt class="col-sm-4">IP Address:</dt>
+                    <dd class="col-sm-8">${log.ip_address || '-'}</dd>
+                    <dt class="col-sm-4">User Agent:</dt>
+                    <dd class="col-sm-8">${log.user_agent ? log.user_agent.substring(0, 50) + '...' : '-'}</dd>
+                    <dt class="col-sm-4">Duration:</dt>
+                    <dd class="col-sm-8">${log.duration_ms ? log.duration_ms + 'ms' : '-'}</dd>
+                    <dt class="col-sm-4">Session:</dt>
+                    <dd class="col-sm-8">${log.session_key || '-'}</dd>
+                </dl>
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-12">
+                <h6>Description</h6>
+                <p>${log.description || 'No description available'}</p>
+                
+                ${log.data_before || log.data_after ? '<h6>Data Changes</h6>' : ''}
+                ${log.data_before ? `<h6 class="small">Before:</h6><pre class="bg-light p-2 rounded small">${JSON.stringify(log.data_before, null, 2)}</pre>` : ''}
+                ${log.data_after ? `<h6 class="small">After:</h6><pre class="bg-light p-2 rounded small">${JSON.stringify(log.data_after, null, 2)}</pre>` : ''}
+            </div>
+        </div>
+    `;
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,585 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}User Details - {{ user_obj.get_full_name|default:user_obj.username }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<link href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.bootstrap5.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">User Details</h1>
+          <p class="text-muted mb-0">{{ user_obj.get_full_name|default:user_obj.username }}</p>
+        </div>
+        <div>
+          <a href="{% url 'core:user_management' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Users
+          </a>
+          <button class="btn btn-primary" onclick="editUser()">
+            <i class="fas fa-edit"></i> Edit User
+          </button>
+          <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="fas fa-cogs"></i> Actions
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#" onclick="resetPassword()"><i class="fas fa-key"></i> Reset
+                  Password</a></li>
+              <li><a class="dropdown-item" href="#" onclick="sendEmail()"><i class="fas fa-envelope"></i> Send Email</a>
+              </li>
+              <li><a class="dropdown-item" href="{% url 'core:user_activity' user_obj.pk %}"><i
+                    class="fas fa-history"></i> View Activity</a></li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              {% if user_obj.is_active %}
+              <li><a class="dropdown-item text-warning" href="#" onclick="toggleUserStatus(false)"><i
+                    class="fas fa-user-times"></i> Deactivate User</a></li>
+              {% else %}
+              <li><a class="dropdown-item text-success" href="#" onclick="toggleUserStatus(true)"><i
+                    class="fas fa-user-check"></i> Activate User</a></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- User Profile Card -->
+    <div class="col-lg-4">
+      <div class="card shadow mb-4">
+        <div class="card-body text-center">
+          <div
+            class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3"
+            style="width: 80px; height: 80px; font-size: 24px;">
+            {{ user_obj.first_name|first|default:user_obj.username|first|upper }}{{ user_obj.last_name|first|upper }}
+          </div>
+          <h5 class="card-title">{{ user_obj.get_full_name|default:user_obj.username }}</h5>
+          <p class="text-muted">@{{ user_obj.username }}</p>
+
+          <div class="mb-3">
+            <span class="badge bg-{% if user_obj.is_active %}success{% else %}secondary{% endif %} fs-6">
+              {% if user_obj.is_active %}Active{% else %}Inactive{% endif %}
+            </span>
+            {% if user_obj.is_superuser %}
+            <span class="badge bg-danger fs-6">Superuser</span>
+            {% endif %}
+            {% if user_obj.is_staff %}
+            <span class="badge bg-warning fs-6">Staff</span>
+            {% endif %}
+          </div>
+
+          <div class="d-grid gap-2">
+            <button class="btn btn-outline-primary" onclick="sendEmail()">
+              <i class="fas fa-envelope"></i> Send Email
+            </button>
+            <button class="btn btn-outline-info" onclick="viewActivity()">
+              <i class="fas fa-history"></i> View Activity
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Quick Stats</h6>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-6">
+              <div class="h4">{{ recent_activity|length }}</div>
+              <div class="small text-gray-500">Recent Actions</div>
+            </div>
+            <div class="col-6">
+              <div class="h4">
+                {% if user_obj.last_login %}
+                {{ user_obj.last_login|timesince }} ago
+                {% else %}
+                Never
+                {% endif %}
+              </div>
+              <div class="small text-gray-500">Last Login</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-lg-8">
+      <!-- Basic Information -->
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Basic Information</h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <dl class="row">
+                <dt class="col-sm-5">Full Name:</dt>
+                <dd class="col-sm-7">{{ user_obj.get_full_name|default:"-" }}</dd>
+
+                <dt class="col-sm-5">Username:</dt>
+                <dd class="col-sm-7">{{ user_obj.username }}</dd>
+
+                <dt class="col-sm-5">Email:</dt>
+                <dd class="col-sm-7">
+                  {% if user_obj.email %}
+                  <a href="mailto:{{ user_obj.email }}">{{ user_obj.email }}</a>
+                  {% else %}
+                  -
+                  {% endif %}
+                </dd>
+
+                <dt class="col-sm-5">User ID:</dt>
+                <dd class="col-sm-7">{{ user_obj.id }}</dd>
+              </dl>
+            </div>
+            <div class="col-md-6">
+              <dl class="row">
+                <dt class="col-sm-5">Date Joined:</dt>
+                <dd class="col-sm-7">{{ user_obj.date_joined|date:"M d, Y H:i" }}</dd>
+
+                <dt class="col-sm-5">Last Login:</dt>
+                <dd class="col-sm-7">
+                  {% if user_obj.last_login %}
+                  {{ user_obj.last_login|date:"M d, Y H:i" }}
+                  {% else %}
+                  Never
+                  {% endif %}
+                </dd>
+
+                <dt class="col-sm-5">Status:</dt>
+                <dd class="col-sm-7">
+                  <span class="badge bg-{% if user_obj.is_active %}success{% else %}secondary{% endif %}">
+                    {% if user_obj.is_active %}Active{% else %}Inactive{% endif %}
+                  </span>
+                </dd>
+
+                <dt class="col-sm-5">Permissions:</dt>
+                <dd class="col-sm-7">
+                  {% if user_obj.is_superuser %}
+                  <span class="badge bg-danger">Superuser</span>
+                  {% endif %}
+                  {% if user_obj.is_staff %}
+                  <span class="badge bg-warning">Staff</span>
+                  {% endif %}
+                  {% if not user_obj.is_superuser and not user_obj.is_staff %}
+                  <span class="text-muted">Regular User</span>
+                  {% endif %}
+                </dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Roles and Groups -->
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Roles and Groups</h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h6>Group Memberships</h6>
+              {% if user_obj.groups.all %}
+              <div class="d-flex flex-wrap gap-2">
+                {% for group in user_obj.groups.all %}
+                <span class="badge bg-secondary">{{ group.name }}</span>
+                {% endfor %}
+              </div>
+              {% else %}
+              <p class="text-muted">No group memberships</p>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <h6>Profile Types</h6>
+              <div class="d-flex flex-wrap gap-2">
+                {% if teacher %}
+                <span class="badge bg-primary">Teacher</span>
+                {% endif %}
+                {% if parent %}
+                <span class="badge bg-info">Parent</span>
+                {% endif %}
+                {% if student %}
+                <span class="badge bg-success">Student</span>
+                {% endif %}
+                {% if not teacher and not parent and not student %}
+                <span class="text-muted">No specific profile</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Role-Specific Information -->
+      {% if teacher %}
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Teacher Information</h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <dl class="row">
+                <dt class="col-sm-5">Employee ID:</dt>
+                <dd class="col-sm-7">{{ teacher.employee_id }}</dd>
+
+                <dt class="col-sm-5">Department:</dt>
+                <dd class="col-sm-7">{{ teacher.department.name|default:"-" }}</dd>
+
+                <dt class="col-sm-5">Position:</dt>
+                <dd class="col-sm-7">{{ teacher.position|default:"-" }}</dd>
+              </dl>
+            </div>
+            <div class="col-md-6">
+              <dl class="row">
+                <dt class="col-sm-5">Joining Date:</dt>
+                <dd class="col-sm-7">{{ teacher.joining_date|date:"M d, Y"|default:"-" }}</dd>
+
+                <dt class="col-sm-5">Experience:</dt>
+                <dd class="col-sm-7">{{ teacher.experience_years|default:0 }} years</dd>
+
+                <dt class="col-sm-5">Status:</dt>
+                <dd class="col-sm-7">
+                  <span class="badge bg-{% if teacher.status == 'active' %}success{% else %}secondary{% endif %}">
+                    {{ teacher.status|title }}
+                  </span>
+                </dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if student %}
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Student Information</h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <dl class="row">
+                <dt class="col-sm-5">Admission Number:</dt>
+                <dd class="col-sm-7">{{ student.admission_number }}</dd>
+
+                <dt class="col-sm-5">Current Class:</dt>
+                <dd class="col-sm-7">{{ student.current_class|default:"-" }}</dd>
+
+                <dt class="col-sm-5">Roll Number:</dt>
+                <dd class="col-sm-7">{{ student.roll_number|default:"-" }}</dd>
+              </dl>
+            </div>
+            <div class="col-md-6">
+              <dl class="row">
+                <dt class="col-sm-5">Admission Date:</dt>
+                <dd class="col-sm-7">{{ student.admission_date|date:"M d, Y"|default:"-" }}</dd>
+
+                <dt class="col-sm-5">Status:</dt>
+                <dd class="col-sm-7">
+                  <span class="badge bg-{% if student.status == 'active' %}success{% else %}secondary{% endif %}">
+                    {{ student.status|title }}
+                  </span>
+                </dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if parent %}
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Parent Information</h6>
+        </div>
+        <div class="card-body">
+          <dl class="row">
+            <dt class="col-sm-3">Occupation:</dt>
+            <dd class="col-sm-9">{{ parent.occupation|default:"-" }}</dd>
+
+            <dt class="col-sm-3">Education:</dt>
+            <dd class="col-sm-9">{{ parent.education|default:"-" }}</dd>
+          </dl>
+
+          <!-- Children Information -->
+          <h6 class="mt-4">Children</h6>
+          {% if parent.studentparentrelation_set.all %}
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Class</th>
+                  <th>Relationship</th>
+                  <th>Primary Contact</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for relation in parent.studentparentrelation_set.all %}
+                <tr>
+                  <td>{{ relation.student.user.get_full_name }}</td>
+                  <td>{{ relation.student.current_class|default:"-" }}</td>
+                  <td>{{ relation.relation_type|title }}</td>
+                  <td>
+                    {% if relation.is_primary_contact %}
+                    <span class="badge bg-primary">Yes</span>
+                    {% else %}
+                    No
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="text-muted">No children records found</p>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">Recent Activity</h6>
+          <a href="{% url 'core:user_activity' user_obj.pk %}" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-history"></i> View All Activity
+          </a>
+        </div>
+        <div class="card-body">
+          {% if recent_activity %}
+          <div class="table-responsive">
+            <table class="table table-hover" id="activityTable">
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                  <th>Module</th>
+                  <th>Timestamp</th>
+                  <th>IP Address</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for activity in recent_activity %}
+                <tr>
+                  <td>
+                    <span
+                      class="badge bg-{% if activity.action == 'create' %}success{% elif activity.action == 'update' %}warning{% elif activity.action == 'delete' %}danger{% else %}primary{% endif %}">
+                      {{ activity.action|title }}
+                    </span>
+                  </td>
+                  <td>{{ activity.description|truncatechars:80 }}</td>
+                  <td>{{ activity.module_name|title|default:"-" }}</td>
+                  <td>
+                    <span data-bs-toggle="tooltip" title="{{ activity.timestamp }}">
+                      {{ activity.timestamp|timesince }} ago
+                    </span>
+                  </td>
+                  <td>{{ activity.ip_address|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="text-muted text-center">No recent activity found</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit User</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="editUserContent">
+        <!-- Content will be loaded dynamically -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm Action</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="confirmMessage">
+        Are you sure you want to perform this action?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmAction">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.4.1/js/responsive.bootstrap5.min.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Initialize DataTable for activity
+    {% if recent_activity %}
+    $('#activityTable').DataTable({
+      responsive: true,
+      pageLength: 10,
+      order: [[3, 'desc']], // Order by timestamp
+      columnDefs: [
+        { targets: [3], type: 'date' }
+      ],
+      language: {
+        search: "Search activity:",
+        lengthMenu: "Show _MENU_ activities per page"
+      }
+    });
+    {% endif %}
+  });
+
+  function editUser() {
+    // Load edit form
+    fetch(`/api/core/users/{{ user_obj.id }}/edit/`)
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('editUserContent').innerHTML = html;
+        new bootstrap.Modal(document.getElementById('editUserModal')).show();
+      })
+      .catch(error => {
+        console.error('Error loading edit form:', error);
+        alert('Error loading edit form. Please try again.');
+      });
+  }
+
+  function resetPassword() {
+    const message = 'Are you sure you want to reset this user\'s password? A new password will be generated and sent to their email.';
+
+    showConfirmModal(message, function () {
+      fetch(`/api/core/users/{{ user_obj.id }}/reset-password/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'Content-Type': 'application/json',
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Password reset successful. New password sent to user email.');
+          } else {
+            alert('Error: ' + data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred. Please try again.');
+        });
+    });
+  }
+
+  function toggleUserStatus(activate) {
+    const action = activate ? 'activate' : 'deactivate';
+    const message = `Are you sure you want to ${action} this user?`;
+
+    showConfirmModal(message, function () {
+      fetch(`/api/core/users/{{ user_obj.id }}/toggle-status/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ activate: activate })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            location.reload();
+          } else {
+            alert('Error: ' + data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred. Please try again.');
+        });
+    });
+  }
+
+  function sendEmail() {
+    // Open email composition
+    const email = '{{ user_obj.email }}';
+    if (email) {
+      window.location.href = `mailto:${email}`;
+    } else {
+      alert('User does not have an email address.');
+    }
+  }
+
+  function viewActivity() {
+    window.location.href = '{% url "core:user_activity" user_obj.pk %}';
+  }
+
+  function showConfirmModal(message, callback) {
+    document.getElementById('confirmMessage').textContent = message;
+    document.getElementById('confirmAction').onclick = function () {
+      bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
+      callback();
+    };
+    new bootstrap.Modal(document.getElementById('confirmModal')).show();
+  }
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,534 @@
+{% load teacher_tags %}
+
+<div class="recent-evaluations">
+  {% if has_evaluations %}
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-gradient-success text-white d-flex justify-content-between align-items-center">
+      <h6 class="mb-0 fw-bold">
+        <i class="fas fa-star me-2"></i>
+        Recent Evaluations
+      </h6>
+      <span class="badge bg-light text-success rounded-pill">{{ evaluations|length }}</span>
+    </div>
+
+    <div class="card-body p-0">
+      <div class="evaluation-timeline">
+        {% for evaluation in evaluations %}
+        <div class="timeline-item {% if forloop.first %}latest{% endif %}" data-evaluation-id="{{ evaluation.id }}">
+          <div class="timeline-marker">
+            <div
+              class="timeline-dot {% if evaluation.score >= 90 %}bg-success{% elif evaluation.score >= 80 %}bg-info{% elif evaluation.score >= 70 %}bg-warning{% else %}bg-danger{% endif %}">
+              <i class="fas fa-star"></i>
+            </div>
+          </div>
+
+          <div class="timeline-content p-3">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div class="evaluation-header">
+                <h6 class="evaluation-title mb-1">
+                  {{ evaluation.evaluation_date|date:"F d, Y" }}
+                  {% if forloop.first %}
+                  <span class="badge bg-primary ms-2">Latest</span>
+                  {% endif %}
+                </h6>
+                <div class="evaluator-info text-muted small">
+                  <i class="fas fa-user me-1"></i>
+                  Evaluated by: {{ evaluation.evaluator.get_full_name }}
+                </div>
+              </div>
+
+              <div class="evaluation-score text-end">
+                <div class="score-display">
+                  <span
+                    class="score-number fw-bold {% if evaluation.score >= 90 %}text-success{% elif evaluation.score >= 80 %}text-info{% elif evaluation.score >= 70 %}text-warning{% else %}text-danger{% endif %}">
+                    {{ evaluation.score|floatformat:1 }}%
+                  </span>
+                </div>
+                <div class="score-badge">
+                  {% evaluation_status_badge evaluation.status %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Performance Level -->
+            <div class="performance-level mb-3">
+              {% with evaluation.get_performance_level as perf_level %}
+              <div class="d-flex align-items-center">
+                <i class="{{ perf_level.icon }} text-{{ perf_level.color }} me-2"></i>
+                <span class="badge bg-{{ perf_level.color }} bg-opacity-10 text-{{ perf_level.color }}">
+                  {{ perf_level.level }}
+                </span>
+                {% if evaluation.is_followup_required %}
+                <span class="badge bg-warning ms-2">
+                  <i class="fas fa-exclamation-triangle me-1"></i>
+                  Follow-up Required
+                </span>
+                {% endif %}
+              </div>
+              {% endwith %}
+            </div>
+
+            <!-- Criteria Breakdown (Mini) -->
+            {% if evaluation.criteria %}
+            <div class="criteria-mini mb-3">
+              <div class="row g-2">
+                {% for criterion, data in evaluation.criteria.items %}
+                {% if forloop.counter <= 3 %}
+                <div class="col-4">
+                  <div class="criteria-item text-center p-2 border rounded">
+                    <div class="criteria-score text-sm fw-bold">
+                      {% if data.score and data.max_score %}
+                      {{ data.score|floatformat:0 }}/{{ data.max_score|floatformat:0 }}
+                      {% else %}
+                      N/A
+                      {% endif %}
+                    </div>
+                    <div class="criteria-name text-xs text-muted">
+                      {{ criterion|format_criteria_name|truncatechars:12 }}
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+
+                {% if evaluation.criteria|length > 3 %}
+                <div class="col-12 text-center mt-1">
+                  <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" data-bs-toggle="collapse"
+                    data-bs-target="#criteria-{{ evaluation.id }}" aria-expanded="false">
+                    <small>
+                      <i class="fas fa-chevron-down me-1"></i>
+                      View all criteria ({{ evaluation.criteria|length }})
+                    </small>
+                  </button>
+                </div>
+
+                <div class="collapse mt-2" id="criteria-{{ evaluation.id }}">
+                  <div class="row g-2">
+                    {% for criterion, data in evaluation.criteria.items %}
+                    {% if forloop.counter > 3 %}
+                    <div class="col-6">
+                      <div class="criteria-item text-center p-2 border rounded">
+                        <div class="criteria-score text-sm fw-bold">
+                          {% if data.score and data.max_score %}
+                          {{ data.score|floatformat:0 }}/{{ data.max_score|floatformat:0 }}
+                          {% else %}
+                          N/A
+                          {% endif %}
+                        </div>
+                        <div class="criteria-name text-xs text-muted">
+                          {{ criterion|format_criteria_name }}
+                        </div>
+                      </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+            {% endif %}
+
+            <!-- Comments/Remarks (if available) -->
+            {% if evaluation.remarks %}
+            <div class="evaluation-remarks mb-3">
+              <div class="remarks-content p-2 bg-light rounded border-start border-3 border-info">
+                <div class="remarks-header mb-1">
+                  <small class="text-muted fw-bold">
+                    <i class="fas fa-quote-left me-1"></i>
+                    Remarks:
+                  </small>
+                </div>
+                <div class="remarks-text text-sm">
+                  {{ evaluation.remarks|truncatechars:150 }}
+                  {% if evaluation.remarks|length > 150 %}
+                  <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" data-bs-toggle="modal"
+                    data-bs-target="#remarksModal-{{ evaluation.id }}">
+                    Read more...
+                  </button>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+            <!-- Follow-up Information -->
+            {% if evaluation.is_followup_required %}
+            <div class="followup-info mb-3">
+              <div class="alert alert-warning alert-sm p-2 mb-0">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-calendar-check text-warning me-2"></i>
+                  <div>
+                    <small class="fw-bold">Follow-up Required</small>
+                    {% if evaluation.followup_date %}
+                    <div class="text-xs">
+                      Due: {{ evaluation.followup_date|date:"M d, Y" }}
+                      {% if evaluation.is_followup_overdue %}
+                      <span class="text-danger">(Overdue)</span>
+                      {% endif %}
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+            <!-- Actions -->
+            <div class="evaluation-actions">
+              <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
+                  data-bs-target="#evaluationModal-{{ evaluation.id }}">
+                  <i class="fas fa-eye me-1"></i>
+                  View Details
+                </button>
+
+                {% if perms.teachers.change_teacherevaluation and evaluation.status != 'closed' %}
+                <a href="{% url 'teachers:teacher-evaluation-update' evaluation.id %}"
+                  class="btn btn-outline-secondary btn-sm">
+                  <i class="fas fa-edit me-1"></i>
+                  Edit
+                </a>
+                {% endif %}
+
+                {% if evaluation.is_followup_required and perms.teachers.change_teacherevaluation %}
+                <button type="button" class="btn btn-outline-success btn-sm"
+                  onclick="markFollowupComplete({{ evaluation.id }})">
+                  <i class="fas fa-check me-1"></i>
+                  Complete Follow-up
+                </button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Evaluation Detail Modal -->
+        <div class="modal fade" id="evaluationModal-{{ evaluation.id }}" tabindex="-1">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">
+                  Evaluation Details - {{ evaluation.evaluation_date|date:"F d, Y" }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                {% evaluation_progress evaluation.criteria show_details=True %}
+
+                {% if evaluation.remarks %}
+                <div class="mt-4">
+                  <h6>Evaluator Remarks</h6>
+                  <div class="alert alert-info">
+                    {{ evaluation.remarks }}
+                  </div>
+                </div>
+                {% endif %}
+
+                {% if evaluation.followup_actions %}
+                <div class="mt-3">
+                  <h6>Follow-up Actions</h6>
+                  <div class="alert alert-warning">
+                    {{ evaluation.followup_actions }}
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                {% if perms.teachers.change_teacherevaluation %}
+                <a href="{% url 'teachers:teacher-evaluation-update' evaluation.id %}" class="btn btn-primary">Edit
+                  Evaluation</a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Remarks Modal (for long remarks) -->
+        {% if evaluation.remarks|length > 150 %}
+        <div class="modal fade" id="remarksModal-{{ evaluation.id }}" tabindex="-1">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Evaluation Remarks</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <div class="evaluation-meta mb-3">
+                  <strong>Date:</strong> {{ evaluation.evaluation_date|date:"F d, Y" }}<br>
+                  <strong>Evaluator:</strong> {{ evaluation.evaluator.get_full_name }}<br>
+                  <strong>Score:</strong> {{ evaluation.score|floatformat:1 }}%
+                </div>
+                <hr>
+                <div class="remarks-full">
+                  {{ evaluation.remarks|linebreaks }}
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Card Footer with Summary -->
+    <div class="card-footer bg-light border-0">
+      <div class="row text-center">
+        <div class="col-3">
+          <div class="summary-stat">
+            <div class="stat-number text-primary fw-bold">
+              {% if evaluations %}
+              {{ evaluations|first.score|floatformat:1 }}%
+              {% else %}
+              N/A
+              {% endif %}
+            </div>
+            <div class="stat-label text-muted small">Latest Score</div>
+          </div>
+        </div>
+        <div class="col-3">
+          <div class="summary-stat">
+            <div class="stat-number text-success fw-bold">
+              {% evaluations_average evaluations as avg_score %}
+              {{ avg_score|floatformat:1 }}%
+            </div>
+            <div class="stat-label text-muted small">Average</div>
+          </div>
+        </div>
+        <div class="col-3">
+          <div class="summary-stat">
+            <div class="stat-number text-info fw-bold">
+              {{ evaluations|length }}
+            </div>
+            <div class="stat-label text-muted small">Total</div>
+          </div>
+        </div>
+        <div class="col-3">
+          <div class="summary-stat">
+            <div
+              class="stat-number {% evaluation_trend evaluations as trend %}{% if trend == 'improving' %}text-success{% elif trend == 'declining' %}text-danger{% else %}text-warning{% endif %} fw-bold">
+              {% if trend == 'improving' %}
+              <i class="fas fa-arrow-up"></i>
+              {% elif trend == 'declining' %}
+              <i class="fas fa-arrow-down"></i>
+              {% else %}
+              <i class="fas fa-minus"></i>
+              {% endif %}
+            </div>
+            <div class="stat-label text-muted small">Trend</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="evaluation-actions mt-3">
+    <div class="d-flex flex-wrap gap-2">
+      {% if perms.teachers.add_teacherevaluation %}
+      <a href="{% url 'teachers:teacher-evaluation-create' teacher.id %}" class="btn btn-success btn-sm">
+        <i class="fas fa-plus me-1"></i>
+        New Evaluation
+      </a>
+      {% endif %}
+
+      <a href="{% url 'teachers:teacher-evaluations' teacher.id %}" class="btn btn-outline-primary btn-sm">
+        <i class="fas fa-list me-1"></i>
+        View All
+      </a>
+
+      <button type="button" class="btn btn-outline-info btn-sm" onclick="generateEvaluationReport({{ teacher.id }})">
+        <i class="fas fa-chart-line me-1"></i>
+        Performance Report
+      </button>
+    </div>
+  </div>
+
+  {% else %}
+  <!-- No Evaluations -->
+  <div class="text-center py-5">
+    <div class="text-muted">
+      <i class="fas fa-star fa-4x mb-3 opacity-25"></i>
+      <h5>No Recent Evaluations</h5>
+      <p class="mb-3">This teacher hasn't been evaluated recently.</p>
+      {% if perms.teachers.add_teacherevaluation %}
+      <a href="{% url 'teachers:teacher-evaluation-create' teacher.id %}" class="btn btn-success">
+        <i class="fas fa-plus me-1"></i>
+        Create First Evaluation
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  function markFollowupComplete(evaluationId) {
+    if (confirm('Mark this follow-up as complete?')) {
+      fetch(`/api/teachers/evaluations/${evaluationId}/complete-followup/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+          'Content-Type': 'application/json'
+        }
+      })
+        .then(response => {
+          if (response.ok) {
+            location.reload();
+          } else {
+            alert('Error completing follow-up');
+          }
+        });
+    }
+  }
+
+  function generateEvaluationReport(teacherId) {
+    window.open(`/teachers/${teacherId}/evaluation-report/`, '_blank');
+  }
+</script>
+
+<style>
+  .recent-evaluations .card-header.bg-gradient-success {
+    background: linear-gradient(45deg, #1cc88a, #17a673);
+  }
+
+  .recent-evaluations .evaluation-timeline {
+    position: relative;
+  }
+
+  .recent-evaluations .timeline-item {
+    position: relative;
+    padding-left: 60px;
+    padding-bottom: 1.5rem;
+    border-left: 2px solid #e3e6f0;
+    margin-left: 20px;
+  }
+
+  .recent-evaluations .timeline-item:last-child {
+    border-left: none;
+    padding-bottom: 0;
+  }
+
+  .recent-evaluations .timeline-item.latest {
+    background: linear-gradient(to right, rgba(78, 115, 223, 0.05), transparent);
+  }
+
+  .recent-evaluations .timeline-marker {
+    position: absolute;
+    left: -30px;
+    top: 15px;
+  }
+
+  .recent-evaluations .timeline-dot {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.9rem;
+    border: 3px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .recent-evaluations .timeline-content {
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e3e6f0;
+    transition: all 0.2s ease;
+  }
+
+  .recent-evaluations .timeline-content:hover {
+    border-color: #4e73df;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .recent-evaluations .score-number {
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+
+  .recent-evaluations .criteria-mini .criteria-item {
+    transition: all 0.2s ease;
+    background: #f8f9fc;
+  }
+
+  .recent-evaluations .criteria-mini .criteria-item:hover {
+    background: #e7f3ff;
+    border-color: #4e73df !important;
+  }
+
+  .recent-evaluations .criteria-score {
+    font-size: 0.9rem;
+    color: #4e73df;
+  }
+
+  .recent-evaluations .criteria-name {
+    font-size: 0.7rem;
+    line-height: 1.2;
+  }
+
+  .recent-evaluations .alert-sm {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .recent-evaluations .evaluation-actions .btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .recent-evaluations .summary-stat {
+    padding: 0.5rem;
+  }
+
+  .recent-evaluations .stat-number {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .recent-evaluations .stat-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .recent-evaluations .text-xs {
+    font-size: 0.7rem;
+  }
+
+  .recent-evaluations .text-sm {
+    font-size: 0.875rem;
+  }
+
+  @media (max-width: 768px) {
+    .recent-evaluations .timeline-item {
+      padding-left: 45px;
+      margin-left: 15px;
+    }
+
+    .recent-evaluations .timeline-marker {
+      left: -22px;
+    }
+
+    .recent-evaluations .timeline-dot {
+      width: 30px;
+      height: 30px;
+      font-size: 0.8rem;
+    }
+
+    .recent-evaluations .score-number {
+      font-size: 1.25rem;
+    }
+
+    .recent-evaluations .criteria-mini .col-4 {
+      margin-bottom: 0.5rem;
+    }
+  }
+</style>

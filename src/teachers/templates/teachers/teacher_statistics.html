@@ -1,0 +1,514 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load teacher_tags %}
+
+{% block title %}Teacher Statistics - School Management System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0 text-gray-800">
+        <i class="fas fa-chart-bar text-primary me-2"></i>
+        Teacher Statistics & Analytics
+      </h1>
+      <p class="text-muted">Comprehensive analytics and insights on teacher performance</p>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-outline-primary" id="refreshStats">
+        <i class="fas fa-sync-alt"></i> Refresh
+      </button>
+      <button class="btn btn-outline-success" id="exportStats">
+        <i class="fas fa-download"></i> Export
+      </button>
+    </div>
+  </div>
+
+  <!-- Quick Stats Cards -->
+  <div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-primary shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                Total Teachers
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_teachers }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-users fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-success shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                Active Teachers
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ active_teachers }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-user-check fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-info shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                Avg Experience
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ avg_experience|floatformat:1 }} years</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-graduation-cap fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-warning shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                Avg Performance
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {% if avg_performance %}{{ avg_performance|floatformat:1 }}%{% else %}N/A{% endif %}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="row mb-4">
+    <!-- Contract Distribution -->
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-file-contract me-2"></i>
+            Contract Type Distribution
+          </h6>
+        </div>
+        <div class="card-body">
+          <div id="contractChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tenure Distribution -->
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-clock me-2"></i>
+            Tenure Distribution
+          </h6>
+        </div>
+        <div class="card-body">
+          <div id="tenureChart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Performance Analysis Row -->
+  <div class="row mb-4">
+    <!-- Performance by Experience -->
+    <div class="col-lg-8 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-chart-bar me-2"></i>
+            Performance by Experience Level
+          </h6>
+          <div class="dropdown">
+            <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-filter"></i> Filter
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#" data-filter="all">All Departments</a></li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              {% for dept in departments %}
+              <li><a class="dropdown-item" href="#" data-filter="{{ dept.id }}">{{ dept.name }}</a></li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="experienceChart" style="height: 350px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Summary -->
+    <div class="col-lg-4 mb-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-trophy me-2"></i>
+            Performance Summary
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="text-center">
+            <div id="performanceSummaryChart" style="height: 250px;"></div>
+          </div>
+          <hr>
+          <div class="row text-center">
+            <div class="col-6">
+              <div class="border-end">
+                <div class="h4 font-weight-bold text-success">
+                  {% with performance_distribution|first as excellent %}
+                  {{ excellent.count|default:0 }}
+                  {% endwith %}
+                </div>
+                <div class="text-xs text-uppercase">Excellent</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="h4 font-weight-bold text-warning">
+                {% with performance_distribution|last as poor %}
+                {{ poor.count|default:0 }}
+                {% endwith %}
+              </div>
+              <div class="text-xs text-uppercase">Needs Attention</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Departmental Analysis -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-building me-2"></i>
+            Departmental Performance Analysis
+          </h6>
+        </div>
+        <div class="card-body">
+          <div id="departmentChart" style="height: 400px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Evaluation Trends -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-chart-line me-2"></i>
+            Evaluation Trends Over Time
+          </h6>
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-primary active" data-period="6">6 Months</button>
+            <button type="button" class="btn btn-outline-primary" data-period="12">12 Months</button>
+            <button type="button" class="btn btn-outline-primary" data-period="24">24 Months</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="evalTrendChart" style="height: 350px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Evaluation Criteria Analysis -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-clipboard-check me-2"></i>
+            Evaluation Criteria Performance
+          </h6>
+        </div>
+        <div class="card-body">
+          <div id="criteriaChart" style="height: 350px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@latest"></script>
+
+<script>
+  $(document).ready(function () {
+    // Chart data from Django context
+    const chartData = {{ chart_data| safe
+  }};
+
+  // Contract Distribution Chart
+  const contractChart = new ApexCharts(document.querySelector("#contractChart"), {
+    series: chartData.contract_counts,
+    chart: {
+      type: 'donut',
+      height: 300
+    },
+    labels: chartData.contract_types,
+    colors: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'],
+    legend: {
+      position: 'bottom'
+    },
+    responsive: [{
+      breakpoint: 480,
+      options: {
+        chart: {
+          width: 200
+        },
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }]
+  });
+  contractChart.render();
+
+  // Tenure Distribution Chart
+  const tenureChart = new ApexCharts(document.querySelector("#tenureChart"), {
+    series: [{
+      name: 'Teachers',
+      data: chartData.tenure_counts
+    }],
+    chart: {
+      type: 'bar',
+      height: 300
+    },
+    xaxis: {
+      categories: chartData.tenure_ranges
+    },
+    colors: ['#4e73df'],
+    plotOptions: {
+      bar: {
+        columnWidth: '50%',
+        dataLabels: {
+          position: 'top'
+        }
+      }
+    }
+  });
+  tenureChart.render();
+
+  // Experience vs Performance Chart
+  const experienceChart = new ApexCharts(document.querySelector("#experienceChart"), {
+    series: [{
+      name: 'Average Score',
+      type: 'column',
+      data: chartData.exp_scores
+    }, {
+      name: 'Teacher Count',
+      type: 'line',
+      data: chartData.exp_counts
+    }],
+    chart: {
+      height: 350,
+      type: 'line'
+    },
+    stroke: {
+      width: [0, 4]
+    },
+    xaxis: {
+      categories: chartData.exp_ranges
+    },
+    yaxis: [{
+      title: {
+        text: 'Average Score (%)'
+      }
+    }, {
+      opposite: true,
+      title: {
+        text: 'Number of Teachers'
+      }
+    }],
+    colors: ['#4e73df', '#1cc88a']
+  });
+  experienceChart.render();
+
+  // Department Performance Chart
+  const departmentChart = new ApexCharts(document.querySelector("#departmentChart"), {
+    series: [{
+      name: 'Teacher Count',
+      type: 'column',
+      data: chartData.dept_teachers
+    }, {
+      name: 'Avg Score',
+      type: 'line',
+      data: chartData.dept_scores
+    }, {
+      name: 'Avg Experience',
+      type: 'line',
+      data: chartData.dept_experience
+    }],
+    chart: {
+      height: 400,
+      type: 'line'
+    },
+    stroke: {
+      width: [0, 4, 4]
+    },
+    xaxis: {
+      categories: chartData.departments
+    },
+    yaxis: [{
+      title: {
+        text: 'Count / Score (%)'
+      }
+    }, {
+      opposite: true,
+      title: {
+        text: 'Experience (Years)'
+      }
+    }],
+    colors: ['#4e73df', '#1cc88a', '#36b9cc']
+  });
+  departmentChart.render();
+
+  // Evaluation Trends Chart
+  const evalTrendChart = new ApexCharts(document.querySelector("#evalTrendChart"), {
+    series: [{
+      name: 'Average Score',
+      data: chartData.eval_scores
+    }, {
+      name: 'Min Score',
+      data: chartData.eval_min
+    }, {
+      name: 'Max Score',
+      data: chartData.eval_max
+    }],
+    chart: {
+      height: 350,
+      type: 'line',
+      zoom: {
+        enabled: false
+      }
+    },
+    stroke: {
+      curve: 'smooth',
+      width: [3, 2, 2]
+    },
+    xaxis: {
+      categories: chartData.eval_months
+    },
+    yaxis: {
+      title: {
+        text: 'Score (%)'
+      },
+      min: 0,
+      max: 100
+    },
+    colors: ['#4e73df', '#e74a3b', '#1cc88a']
+  });
+  evalTrendChart.render();
+
+  // Criteria Performance Chart
+  const criteriaChart = new ApexCharts(document.querySelector("#criteriaChart"), {
+    series: [{
+      name: 'Average Score',
+      data: chartData.criteria_scores
+    }],
+    chart: {
+      type: 'radar',
+      height: 350
+    },
+    xaxis: {
+      categories: chartData.criteria
+    },
+    yaxis: {
+      min: 0,
+      max: 100
+    },
+    colors: ['#4e73df']
+  });
+  criteriaChart.render();
+
+  // Performance Summary Gauge
+  const performanceSummaryChart = new ApexCharts(document.querySelector("#performanceSummaryChart"), {
+    series: [{{ avg_performance|default: 0
+  }}],
+  chart: {
+    height: 250,
+      type: 'radialBar'
+  },
+  plotOptions: {
+    radialBar: {
+      hollow: {
+        size: '70%'
+      },
+      dataLabels: {
+        name: {
+          show: false
+        },
+        value: {
+          fontSize: '30px',
+            fontWeight: 'bold',
+              formatter: function(val) {
+                return val + '%'
+              }
+        }
+      }
+    }
+  },
+  colors: ['#4e73df'],
+    labels: ['Overall Performance']
+    });
+  performanceSummaryChart.render();
+
+  // Refresh button
+  $('#refreshStats').click(function () {
+    location.reload();
+  });
+
+  // Export button
+  $('#exportStats').click(function () {
+    window.open('{% url "teachers:teacher-export" "excel" %}', '_blank');
+  });
+
+  // Period filter buttons
+  $('[data-period]').click(function () {
+    $('[data-period]').removeClass('active');
+    $(this).addClass('active');
+    // Implement period filtering logic here
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,414 @@
+{% extends 'base.html' %}
+{% load teacher_tags %}
+{% load static %}
+
+{% block title %}{{ teacher.get_full_name }} - Teachers{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">{{ teacher.get_display_name }}</h1>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'teachers:teacher-list' %}">Teachers</a></li>
+              <li class="breadcrumb-item active">{{ teacher.get_full_name }}</li>
+            </ol>
+          </nav>
+        </div>
+        <div class="btn-group" role="group">
+          {% if perms.teachers.change_teacher %}
+          <a href="{% url 'teachers:teacher-update' teacher.pk %}" class="btn btn-primary">
+            <i class="fas fa-edit me-2"></i>Edit Teacher
+          </a>
+          {% endif %}
+          <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="fas fa-cog me-2"></i>Actions
+            </button>
+            <ul class="dropdown-menu">
+              {% if perms.teachers.assign_classes %}
+              <li><a class="dropdown-item" href="{% url 'teachers:teacher-assignment-create' teacher.pk %}">
+                  <i class="fas fa-chalkboard me-2"></i>Assign Class
+                </a></li>
+              {% endif %}
+              {% if perms.teachers.add_teacherevaluation %}
+              <li><a class="dropdown-item" href="{% url 'teachers:teacher-evaluation-create' teacher.pk %}">
+                  <i class="fas fa-star me-2"></i>Create Evaluation
+                </a></li>
+              {% endif %}
+              <li><a class="dropdown-item" href="{% url 'teachers:teacher-timetable' teacher.pk %}">
+                  <i class="fas fa-calendar me-2"></i>View Timetable
+                </a></li>
+              <li><a class="dropdown-item" href="{% url 'teachers:teacher-timetable-pdf' teacher.pk %}">
+                  <i class="fas fa-file-pdf me-2"></i>Download Timetable PDF
+                </a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Teacher Profile -->
+    <div class="col-md-4">
+      <div class="card mb-4">
+        <div class="card-body text-center">
+          {% teacher_avatar teacher 120 %}
+          <h5 class="mt-3">{{ teacher.get_full_name }}</h5>
+          <p class="text-muted">{{ teacher.position }}</p>
+          <div class="row text-center">
+            <div class="col-4">
+              <h6 class="mb-0">{{ teacher.experience_years }}</h6>
+              <small class="text-muted">Years Exp.</small>
+            </div>
+            <div class="col-4">
+              <h6 class="mb-0">{{ teacher|years_of_service }}</h6>
+              <small class="text-muted">Tenure</small>
+            </div>
+            <div class="col-4">
+              <h6 class="mb-0">{{ teacher.evaluations.count }}</h6>
+              <small class="text-muted">Evaluations</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Basic Information -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-id-card me-2"></i>Basic Information</h6>
+        </div>
+        <div class="card-body">
+          <table class="table table-sm table-borderless">
+            <tr>
+              <td><strong>Employee ID:</strong></td>
+              <td>{{ teacher.employee_id }}</td>
+            </tr>
+            <tr>
+              <td><strong>Email:</strong></td>
+              <td><a href="mailto:{{ teacher.user.email }}">{{ teacher.user.email }}</a></td>
+            </tr>
+            <tr>
+              <td><strong>Department:</strong></td>
+              <td>
+                {% if teacher.department %}
+                {{ teacher.department.name }}
+                {% if teacher|is_department_head %}
+                <br><small class="text-success"><i class="fas fa-crown"></i> Department Head</small>
+                {% endif %}
+                {% else %}
+                <span class="text-muted">Not assigned</span>
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Status:</strong></td>
+              <td>{{ teacher.status|teacher_status_badge }}</td>
+            </tr>
+            <tr>
+              <td><strong>Contract:</strong></td>
+              <td>{{ teacher.contract_type|contract_type_badge }}</td>
+            </tr>
+            <tr>
+              <td><strong>Joining Date:</strong></td>
+              <td>{{ teacher.joining_date|date:"M d, Y" }}</td>
+            </tr>
+            <tr>
+              <td><strong>Qualification:</strong></td>
+              <td>{{ teacher.qualification }}</td>
+            </tr>
+            <tr>
+              <td><strong>Specialization:</strong></td>
+              <td>{{ teacher.specialization }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      {% if teacher.bio %}
+      <!-- Bio -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-user me-2"></i>About</h6>
+        </div>
+        <div class="card-body">
+          <p>{{ teacher.bio }}</p>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Emergency Contact -->
+      {% if teacher.emergency_contact %}
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-phone me-2"></i>Emergency Contact</h6>
+        </div>
+        <div class="card-body">
+          <p class="mb-1"><strong>{{ teacher.emergency_contact }}</strong></p>
+          {% if teacher.emergency_phone %}
+          <p class="mb-0"><a href="tel:{{ teacher.emergency_phone }}">{{ teacher.emergency_phone }}</a></p>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-md-8">
+      <!-- Performance Overview -->
+      {% if performance %}
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-chart-line me-2"></i>Performance Overview</h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3 text-center">
+              <h4 class="mb-0 {{ performance.average_score|performance_color_class }}">
+                {{ performance.average_score|floatformat:1 }}%
+              </h4>
+              <small class="text-muted">Average Score</small>
+            </div>
+            <div class="col-md-3 text-center">
+              <h4 class="mb-0">{{ performance.evaluation_count }}</h4>
+              <small class="text-muted">Evaluations</small>
+            </div>
+            <div class="col-md-3 text-center">
+              <h4 class="mb-0">
+                {% if performance.latest_evaluation %}
+                {{ performance.latest_evaluation.score|floatformat:1 }}%
+                {% else %}
+                -
+                {% endif %}
+              </h4>
+              <small class="text-muted">Latest Score</small>
+            </div>
+            <div class="col-md-3 text-center">
+              {% evaluation_trend_icon teacher 12 %}
+              <br><small class="text-muted">Trend</small>
+            </div>
+          </div>
+
+          {% if performance_chart_data %}
+          <div class="mt-4">
+            <div id="performanceChart" style="height: 300px;"></div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Current Workload -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-tasks me-2"></i>Current Workload</h6>
+        </div>
+        <div class="card-body">
+          {% workload_summary teacher current_academic_year True %}
+        </div>
+      </div>
+
+      <!-- Tabs Navigation -->
+      <nav>
+        <div class="nav nav-tabs" role="tablist">
+          <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#assignments" type="button" role="tab">
+            <i class="fas fa-chalkboard me-2"></i>Class Assignments
+          </button>
+          {% if perms.teachers.view_teacherevaluation %}
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#evaluations" type="button" role="tab">
+            <i class="fas fa-star me-2"></i>Evaluations
+          </button>
+          {% endif %}
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#timetable" type="button" role="tab">
+            <i class="fas fa-calendar me-2"></i>Timetable
+          </button>
+        </div>
+      </nav>
+
+      <!-- Tab Content -->
+      <div class="tab-content mt-3">
+        <!-- Assignments Tab -->
+        <div class="tab-pane fade show active" id="assignments" role="tabpanel">
+          <div class="card">
+            <div class="card-body">
+              {% if class_assignments %}
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>Class</th>
+                      <th>Subject</th>
+                      <th>Role</th>
+                      <th>Academic Year</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for assignment in class_assignments %}
+                    <tr>
+                      <td>
+                        <strong>{{ assignment.class_instance }}</strong>
+                        <br>
+                        <small class="text-muted">{{ assignment.class_instance.grade.section.name }}</small>
+                      </td>
+                      <td>{{ assignment.subject.name }}</td>
+                      <td>
+                        {% if assignment.is_class_teacher %}
+                        <span class="badge bg-primary">Class Teacher</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Subject Teacher</span>
+                        {% endif %}
+                      </td>
+                      <td>{{ assignment.academic_year.name }}</td>
+                      <td>
+                        {% if assignment.is_active %}
+                        <span class="badge bg-success">Active</span>
+                        {% else %}
+                        <span class="badge bg-danger">Inactive</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% else %}
+              <div class="text-center py-4">
+                <i class="fas fa-chalkboard fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No class assignments found.</p>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Evaluations Tab -->
+        {% if perms.teachers.view_teacherevaluation %}
+        <div class="tab-pane fade" id="evaluations" role="tabpanel">
+          <div class="card">
+            <div class="card-body">
+              {% recent_evaluations teacher 10 %}
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Timetable Tab -->
+        <div class="tab-pane fade" id="timetable" role="tabpanel">
+          <div class="card">
+            <div class="card-body">
+              {% if timetable %}
+              <div class="table-responsive">
+                <table class="table table-bordered">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Time</th>
+                      <th>Monday</th>
+                      <th>Tuesday</th>
+                      <th>Wednesday</th>
+                      <th>Thursday</th>
+                      <th>Friday</th>
+                      <th>Saturday</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for period in timetable %}
+                    <tr>
+                      <td class="fw-bold">{{ period.time_slot }}</td>
+                      {% for day in period.days %}
+                      <td>
+                        {% if day.subject %}
+                        <div class="small">
+                          <strong>{{ day.subject }}</strong><br>
+                          <span class="text-muted">{{ day.class }}</span><br>
+                          {% if day.room %}
+                          <span class="text-info">Room: {{ day.room }}</span>
+                          {% endif %}
+                        </div>
+                        {% else %}
+                        <span class="text-muted">Free</span>
+                        {% endif %}
+                      </td>
+                      {% endfor %}
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% else %}
+              <div class="text-center py-4">
+                <i class="fas fa-calendar fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No timetable available for current academic year.</p>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+{% if performance_chart_data %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var chartData = {{ performance_chart_data| safe
+  }};
+
+  var options = {
+    series: [{
+      name: 'Performance Score',
+      data: chartData.scores
+    }],
+    chart: {
+      type: 'line',
+      height: 300,
+      toolbar: { show: false }
+    },
+    dataLabels: { enabled: false },
+    stroke: {
+      curve: 'smooth',
+      width: 3
+    },
+    xaxis: {
+      categories: chartData.dates,
+      title: { text: 'Evaluation Date' }
+    },
+    yaxis: {
+      title: { text: 'Score (%)' },
+      min: 0,
+      max: 100
+    },
+    colors: ['#28a745'],
+    grid: {
+      borderColor: '#e9ecef'
+    },
+    tooltip: {
+      y: {
+        formatter: function (val) {
+          return val.toFixed(1) + '%'
+        }
+      }
+    }
+  };
+
+  var chart = new ApexCharts(document.querySelector("#performanceChart"), options);
+  chart.render();
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,654 @@
+{% extends 'base.html' %}
+{% load teacher_tags %}
+{% load static %}
+
+{% block title %}
+Evaluate {{ teacher.get_full_name }} - School Management System
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@15.7.0/dist/nouislider.min.css">
+<style>
+  .criteria-card {
+    transition: all 0.3s ease;
+  }
+
+  .criteria-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .score-slider {
+    margin: 20px 0;
+  }
+
+  .score-display {
+    font-size: 1.5em;
+    font-weight: bold;
+  }
+
+  .criteria-description {
+    font-size: 0.9em;
+    color: #6c757d;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">
+            <i class="fas fa-star me-2"></i>Teacher Evaluation
+          </h1>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'teachers:teacher-list' %}">Teachers</a></li>
+              <li class="breadcrumb-item"><a
+                  href="{% url 'teachers:teacher-detail' teacher.pk %}">{{ teacher.get_full_name }}</a></li>
+              <li class="breadcrumb-item active">Evaluation</li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <a href="{% url 'teachers:teacher-detail' teacher.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Teacher
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Teacher Info Sidebar -->
+    <div class="col-md-4">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-user me-2"></i>Teacher Being Evaluated
+          </h6>
+        </div>
+        <div class="card-body text-center">
+          {% teacher_avatar teacher 100 %}
+          <h5 class="mt-3">{{ teacher.get_full_name }}</h5>
+          <p class="text-muted mb-1">{{ teacher.employee_id }}</p>
+          <p class="text-muted">{{ teacher.position }}</p>
+
+          <div class="row text-center mt-3">
+            <div class="col-6">
+              <small class="text-muted">Department</small>
+              <div class="fw-bold">
+                {% if teacher.department %}
+                {{ teacher.department.name }}
+                {% else %}
+                <span class="text-muted">None</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-6">
+              <small class="text-muted">Experience</small>
+              <div class="fw-bold">{{ teacher.experience_years }} years</div>
+            </div>
+          </div>
+
+          <div class="row text-center mt-2">
+            <div class="col-12">
+              <small class="text-muted">Specialization</small>
+              <div class="fw-bold">{{ teacher.specialization }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Previous Evaluations -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-history me-2"></i>Recent Evaluations
+          </h6>
+        </div>
+        <div class="card-body">
+          {% recent_evaluations teacher 3 %}
+        </div>
+      </div>
+
+      <!-- Evaluation Guidelines -->
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-info-circle me-2"></i>Evaluation Guidelines
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="small">
+            <p><strong>Scoring Scale:</strong></p>
+            <ul class="mb-2">
+              <li><strong>9-10:</strong> Excellent performance</li>
+              <li><strong>7-8:</strong> Good performance</li>
+              <li><strong>5-6:</strong> Satisfactory performance</li>
+              <li><strong>3-4:</strong> Needs improvement</li>
+              <li><strong>1-2:</strong> Poor performance</li>
+            </ul>
+            <p class="mb-0"><strong>Note:</strong> Scores below 7 will require follow-up actions.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Evaluation Form -->
+    <div class="col-md-8">
+      <form method="post" id="evaluationForm">
+        {% csrf_token %}
+        {{ form.teacher }}
+        {{ form.criteria }}
+        {{ form.score }}
+
+        <!-- Evaluation Details -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h6 class="card-title mb-0">
+              <i class="fas fa-calendar me-2"></i>Evaluation Details
+            </h6>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <label for="{{ form.evaluation_date.id_for_label }}" class="form-label">
+                  Evaluation Date <span class="text-danger">*</span>
+                </label>
+                {{ form.evaluation_date }}
+                {% if form.evaluation_date.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.evaluation_date.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="{{ form.status.id_for_label }}" class="form-label">
+                  Status <span class="text-danger">*</span>
+                </label>
+                {{ form.status }}
+                {% if form.status.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.status.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Evaluation Criteria -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+              <h6 class="card-title mb-0">
+                <i class="fas fa-clipboard-check me-2"></i>Evaluation Criteria
+              </h6>
+              <div>
+                <span class="badge bg-primary" id="overallScore">Overall: 0%</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="criteriaContainer">
+              <!-- Criteria cards will be generated by JavaScript -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Comments and Feedback -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h6 class="card-title mb-0">
+              <i class="fas fa-comments me-2"></i>Comments and Feedback
+            </h6>
+          </div>
+          <div class="card-body">
+            <div class="row mb-3">
+              <div class="col-12">
+                <label for="{{ form.remarks.id_for_label }}" class="form-label">
+                  Overall Remarks <span class="text-danger">*</span>
+                </label>
+                {{ form.remarks }}
+                <div class="form-text">Provide overall feedback on the teacher's performance</div>
+                {% if form.remarks.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.remarks.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div id="followupSection" style="display: none;">
+              <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Follow-up Required:</strong> Performance score below 70% requires follow-up actions.
+              </div>
+
+              <div class="row">
+                <div class="col-md-6">
+                  <label for="{{ form.followup_actions.id_for_label }}" class="form-label">
+                    Follow-up Actions <span class="text-danger">*</span>
+                  </label>
+                  {{ form.followup_actions }}
+                  <div class="form-text">Specify actions to address performance issues</div>
+                  {% if form.followup_actions.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.followup_actions.errors.0 }}
+                  </div>
+                  {% endif %}
+                </div>
+                <div class="col-md-6">
+                  <label for="{{ form.followup_date.id_for_label }}" class="form-label">
+                    Follow-up Date <span class="text-danger">*</span>
+                  </label>
+                  {{ form.followup_date }}
+                  <div class="form-text">When to review progress</div>
+                  {% if form.followup_date.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.followup_date.errors.0 }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="card mb-4" id="summaryCard" style="display: none;">
+          <div class="card-header">
+            <h6 class="card-title mb-0">
+              <i class="fas fa-chart-pie me-2"></i>Evaluation Summary
+            </h6>
+          </div>
+          <div class="card-body">
+            <div id="summaryContent">
+              <!-- Summary will be populated by JavaScript -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between">
+              <div>
+                <a href="{% url 'teachers:teacher-detail' teacher.pk %}" class="btn btn-outline-secondary">
+                  <i class="fas fa-times me-2"></i>Cancel
+                </a>
+              </div>
+              <div>
+                <button type="button" class="btn btn-outline-primary me-2" id="previewBtn">
+                  <i class="fas fa-eye me-2"></i>Preview Summary
+                </button>
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                  <i class="fas fa-save me-2"></i>Save Evaluation
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/nouislider@15.7.0/dist/nouislider.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Default criteria structure
+    const defaultCriteria = {
+      teaching_methodology: {
+        name: 'Teaching Methodology',
+        description: 'Effectiveness of teaching methods and techniques',
+        weight: 0.25,
+        score: 0,
+        max_score: 10,
+        comments: ''
+      },
+      subject_knowledge: {
+        name: 'Subject Knowledge',
+        description: 'Depth and accuracy of subject matter expertise',
+        weight: 0.20,
+        score: 0,
+        max_score: 10,
+        comments: ''
+      },
+      classroom_management: {
+        name: 'Classroom Management',
+        description: 'Ability to maintain discipline and create learning environment',
+        weight: 0.20,
+        score: 0,
+        max_score: 10,
+        comments: ''
+      },
+      student_engagement: {
+        name: 'Student Engagement',
+        description: 'Ability to involve and motivate students',
+        weight: 0.20,
+        score: 0,
+        max_score: 10,
+        comments: ''
+      },
+      professional_conduct: {
+        name: 'Professional Conduct',
+        description: 'Professional behavior and ethics',
+        weight: 0.15,
+        score: 0,
+        max_score: 10,
+        comments: ''
+      }
+    };
+
+    let currentCriteria = defaultCriteria;
+    let sliders = {};
+
+    // Initialize the form
+    initializeCriteriaCards();
+
+    // Form submission
+    $('#evaluationForm').on('submit', function (e) {
+      if (!validateForm()) {
+        e.preventDefault();
+      } else {
+        updateHiddenFields();
+      }
+    });
+
+    // Preview button
+    $('#previewBtn').on('click', function () {
+      generateSummary();
+      $('#summaryCard').slideDown();
+    });
+
+    function initializeCriteriaCards() {
+      const container = $('#criteriaContainer');
+      container.empty();
+
+      Object.keys(currentCriteria).forEach(function (key, index) {
+        const criterion = currentCriteria[key];
+        const cardHtml = createCriteriaCard(key, criterion, index);
+        container.append(cardHtml);
+        initializeSlider(key, criterion);
+      });
+
+      calculateOverallScore();
+    }
+
+    function createCriteriaCard(key, criterion, index) {
+      return `
+            <div class="criteria-card card mb-3" data-criterion="${key}">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6 class="card-title mb-1">${criterion.name}</h6>
+                            <p class="criteria-description mb-2">${criterion.description}</p>
+                            <div class="score-slider" id="slider-${key}"></div>
+                            <div class="mt-2">
+                                <textarea class="form-control form-control-sm" 
+                                         id="comments-${key}" 
+                                         placeholder="Comments for this criterion..." 
+                                         rows="2">${criterion.comments}</textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="score-display mb-2">
+                                <span id="score-${key}" class="text-primary">0</span>
+                                <span class="text-muted">/ ${criterion.max_score}</span>
+                            </div>
+                            <div class="mb-2">
+                                <span class="badge bg-light text-dark">Weight: ${(criterion.weight * 100).toFixed(0)}%</span>
+                            </div>
+                            <div>
+                                <span id="percentage-${key}" class="badge bg-secondary">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function initializeSlider(key, criterion) {
+      const slider = document.getElementById(`slider-${key}`);
+
+      noUiSlider.create(slider, {
+        start: [criterion.score],
+        connect: [true, false],
+        range: {
+          'min': 0,
+          'max': criterion.max_score
+        },
+        step: 0.1,
+        tooltips: [true],
+        format: {
+          to: function (value) {
+            return value.toFixed(1);
+          },
+          from: function (value) {
+            return Number(value);
+          }
+        }
+      });
+
+      // Store slider reference
+      sliders[key] = slider;
+
+      // Update display when slider changes
+      slider.noUiSlider.on('update', function (values, handle) {
+        const score = parseFloat(values[handle]);
+        currentCriteria[key].score = score;
+
+        $(`#score-${key}`).text(score.toFixed(1));
+
+        const percentage = (score / criterion.max_score * 100).toFixed(0);
+        $(`#percentage-${key}`)
+          .text(percentage + '%')
+          .removeClass('bg-secondary bg-success bg-warning bg-danger')
+          .addClass(getPerformanceBadgeClass(percentage));
+
+        calculateOverallScore();
+        checkFollowupRequirement();
+      });
+
+      // Update comments
+      $(`#comments-${key}`).on('input', function () {
+        currentCriteria[key].comments = $(this).val();
+      });
+    }
+
+    function getPerformanceBadgeClass(percentage) {
+      if (percentage >= 90) return 'bg-success';
+      if (percentage >= 80) return 'bg-primary';
+      if (percentage >= 70) return 'bg-warning';
+      return 'bg-danger';
+    }
+
+    function calculateOverallScore() {
+      let totalWeightedScore = 0;
+      let totalWeight = 0;
+
+      Object.keys(currentCriteria).forEach(function (key) {
+        const criterion = currentCriteria[key];
+        const percentage = criterion.score / criterion.max_score * 100;
+        totalWeightedScore += percentage * criterion.weight;
+        totalWeight += criterion.weight;
+      });
+
+      const overallScore = totalWeight > 0 ? totalWeightedScore / totalWeight : 0;
+
+      $('#overallScore')
+        .text(`Overall: ${overallScore.toFixed(1)}%`)
+        .removeClass('bg-primary bg-success bg-warning bg-danger')
+        .addClass('bg-' + getPerformanceColor(overallScore));
+
+      // Update hidden score field
+      $('#id_score').val(overallScore.toFixed(2));
+
+      return overallScore;
+    }
+
+    function getPerformanceColor(score) {
+      if (score >= 90) return 'success';
+      if (score >= 80) return 'primary';
+      if (score >= 70) return 'warning';
+      return 'danger';
+    }
+
+    function checkFollowupRequirement() {
+      const overallScore = calculateOverallScore();
+
+      if (overallScore < 70) {
+        $('#followupSection').slideDown();
+        $('#id_followup_actions').attr('required', true);
+        $('#id_followup_date').attr('required', true);
+      } else {
+        $('#followupSection').slideUp();
+        $('#id_followup_actions').attr('required', false);
+        $('#id_followup_date').attr('required', false);
+      }
+    }
+
+    function generateSummary() {
+      const overallScore = calculateOverallScore();
+
+      let summaryHtml = `
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <h5>Overall Performance</h5>
+                    <div class="display-6 ${getPerformanceColor(overallScore) === 'success' ? 'text-success' :
+          getPerformanceColor(overallScore) === 'primary' ? 'text-primary' :
+            getPerformanceColor(overallScore) === 'warning' ? 'text-warning' : 'text-danger'}">
+                        ${overallScore.toFixed(1)}%
+                    </div>
+                    <p class="text-muted">${getPerformanceLevel(overallScore)}</p>
+                </div>
+                <div class="col-md-6">
+                    <canvas id="criteriaChart" width="200" height="200"></canvas>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <h6>Criteria Breakdown</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Criterion</th>
+                                    <th>Score</th>
+                                    <th>Percentage</th>
+                                    <th>Weight</th>
+                                    <th>Contribution</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+        `;
+
+      Object.keys(currentCriteria).forEach(function (key) {
+        const criterion = currentCriteria[key];
+        const percentage = (criterion.score / criterion.max_score * 100);
+        const contribution = percentage * criterion.weight;
+
+        summaryHtml += `
+                <tr>
+                    <td>${criterion.name}</td>
+                    <td>${criterion.score.toFixed(1)}/${criterion.max_score}</td>
+                    <td><span class="badge ${getPerformanceBadgeClass(percentage)}">${percentage.toFixed(0)}%</span></td>
+                    <td>${(criterion.weight * 100).toFixed(0)}%</td>
+                    <td>${contribution.toFixed(1)}%</td>
+                </tr>
+            `;
+      });
+
+      summaryHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+
+      $('#summaryContent').html(summaryHtml);
+    }
+
+    function getPerformanceLevel(score) {
+      if (score >= 90) return 'Excellent Performance';
+      if (score >= 80) return 'Good Performance';
+      if (score >= 70) return 'Satisfactory Performance';
+      if (score >= 60) return 'Needs Improvement';
+      return 'Poor Performance';
+    }
+
+    function updateHiddenFields() {
+      // Update criteria field
+      $('#id_criteria').val(JSON.stringify(currentCriteria));
+
+      // Update score field
+      const overallScore = calculateOverallScore();
+      $('#id_score').val(overallScore.toFixed(2));
+    }
+
+    function validateForm() {
+      let isValid = true;
+
+      // Check if all criteria have been scored
+      Object.keys(currentCriteria).forEach(function (key) {
+        if (currentCriteria[key].score === 0) {
+          $(`[data-criterion="${key}"]`).addClass('border-danger');
+          isValid = false;
+        } else {
+          $(`[data-criterion="${key}"]`).removeClass('border-danger');
+        }
+      });
+
+      // Check required fields
+      const requiredFields = ['#id_evaluation_date', '#id_remarks'];
+      requiredFields.forEach(function (field) {
+        if (!$(field).val()) {
+          $(field).addClass('is-invalid');
+          isValid = false;
+        } else {
+          $(field).removeClass('is-invalid');
+        }
+      });
+
+      // Check followup fields if required
+      if ($('#followupSection').is(':visible')) {
+        if (!$('#id_followup_actions').val()) {
+          $('#id_followup_actions').addClass('is-invalid');
+          isValid = false;
+        }
+        if (!$('#id_followup_date').val()) {
+          $('#id_followup_date').addClass('is-invalid');
+          isValid = false;
+        }
+      }
+
+      if (!isValid) {
+        alert('Please complete all required fields and score all criteria.');
+      }
+
+      return isValid;
+    }
+
+    // Set default followup date (30 days from evaluation date)
+    $('#id_evaluation_date').on('change', function () {
+      const evalDate = new Date($(this).val());
+      if (evalDate) {
+        const followupDate = new Date(evalDate);
+        followupDate.setDate(followupDate.getDate() + 30);
+        $('#id_followup_date').val(followupDate.toISOString().split('T')[0]);
+      }
+    });
+  });
+</script>
+{% endblock %}

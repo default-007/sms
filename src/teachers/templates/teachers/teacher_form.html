@@ -1,0 +1,551 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}
+{% if form.instance.pk %}Edit Teacher{% else %}Add New Teacher{% endif %} - School Management System
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+<link rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">
+            {% if form.instance.pk %}
+            <i class="fas fa-edit me-2"></i>Edit Teacher
+            {% else %}
+            <i class="fas fa-plus me-2"></i>Add New Teacher
+            {% endif %}
+          </h1>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'teachers:teacher-list' %}">Teachers</a></li>
+              <li class="breadcrumb-item active">
+                {% if form.instance.pk %}Edit{% else %}Add{% endif %}
+              </li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <a href="{% url 'teachers:teacher-list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to List
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-user me-2"></i>Teacher Information
+          </h6>
+        </div>
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data" id="teacherForm">
+            {% csrf_token %}
+
+            <!-- Personal Information Section -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h5 class="border-bottom pb-2 mb-3">
+                  <i class="fas fa-user-circle me-2"></i>Personal Information
+                </h5>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                  First Name <span class="text-danger">*</span>
+                </label>
+                {{ form.first_name }}
+                {% if form.first_name.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.first_name.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                  Last Name <span class="text-danger">*</span>
+                </label>
+                {{ form.last_name }}
+                {% if form.last_name.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.last_name.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="{{ form.email.id_for_label }}" class="form-label">
+                  Email <span class="text-danger">*</span>
+                </label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.email.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="{{ form.phone_number.id_for_label }}" class="form-label">
+                  Phone Number
+                </label>
+                {{ form.phone_number }}
+                {% if form.phone_number.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.phone_number.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <label for="{{ form.profile_picture.id_for_label }}" class="form-label">
+                  Profile Picture
+                </label>
+                {{ form.profile_picture }}
+                <div class="form-text">Upload a profile picture (JPG, PNG, max 2MB)</div>
+                {% if form.profile_picture.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.profile_picture.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Employment Information Section -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <hr>
+                <h5 class="border-bottom pb-2 mb-3">
+                  <i class="fas fa-briefcase me-2"></i>Employment Information
+                </h5>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="{{ form.employee_id.id_for_label }}" class="form-label">
+                  Employee ID <span class="text-danger">*</span>
+                </label>
+                {{ form.employee_id }}
+                <div class="form-text">Format: T followed by 6 digits (e.g., T123456)</div>
+                {% if form.employee_id.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.employee_id.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="{{ form.joining_date.id_for_label }}" class="form-label">
+                  Joining Date <span class="text-danger">*</span>
+                </label>
+                {{ form.joining_date }}
+                {% if form.joining_date.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.joining_date.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="{{ form.department.id_for_label }}" class="form-label">
+                  Department
+                </label>
+                {{ form.department }}
+                {% if form.department.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.department.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="{{ form.position.id_for_label }}" class="form-label">
+                  Position <span class="text-danger">*</span>
+                </label>
+                {{ form.position }}
+                {% if form.position.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.position.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-4">
+                <label for="{{ form.salary.id_for_label }}" class="form-label">
+                  Salary <span class="text-danger">*</span>
+                </label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  {{ form.salary }}
+                </div>
+                {% if form.salary.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.salary.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+              <div class="col-md-4">
+                <label for="{{ form.contract_type.id_for_label }}" class="form-label">
+                  Contract Type <span class="text-danger">*</span>
+                </label>
+                {{ form.contract_type }}
+                {% if form.contract_type.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.contract_type.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+              <div class="col-md-4">
+                <label for="{{ form.status.id_for_label }}" class="form-label">
+                  Status <span class="text-danger">*</span>
+                </label>
+                {{ form.status }}
+                {% if form.status.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.status.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Qualifications Section -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <hr>
+                <h5 class="border-bottom pb-2 mb-3">
+                  <i class="fas fa-graduation-cap me-2"></i>Qualifications & Expertise
+                </h5>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="{{ form.qualification.id_for_label }}" class="form-label">
+                  Qualification <span class="text-danger">*</span>
+                </label>
+                {{ form.qualification }}
+                <div class="form-text">Educational qualifications and degrees</div>
+                {% if form.qualification.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.qualification.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="{{ form.experience_years.id_for_label }}" class="form-label">
+                  Experience (Years) <span class="text-danger">*</span>
+                </label>
+                {{ form.experience_years }}
+                <div class="form-text">Total years of teaching experience</div>
+                {% if form.experience_years.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.experience_years.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-12">
+                <label for="{{ form.specialization.id_for_label }}" class="form-label">
+                  Specialization <span class="text-danger">*</span>
+                </label>
+                {{ form.specialization }}
+                <div class="form-text">Subject areas of expertise</div>
+                {% if form.specialization.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.specialization.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Additional Information Section -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <hr>
+                <h5 class="border-bottom pb-2 mb-3">
+                  <i class="fas fa-info-circle me-2"></i>Additional Information
+                </h5>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-12">
+                <label for="{{ form.bio.id_for_label }}" class="form-label">
+                  Biography
+                </label>
+                {{ form.bio }}
+                <div class="form-text">Brief description about the teacher</div>
+                {% if form.bio.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.bio.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <label for="{{ form.emergency_contact.id_for_label }}" class="form-label">
+                  Emergency Contact Name
+                </label>
+                {{ form.emergency_contact }}
+                {% if form.emergency_contact.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.emergency_contact.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="{{ form.emergency_phone.id_for_label }}" class="form-label">
+                  Emergency Contact Phone
+                </label>
+                {{ form.emergency_phone }}
+                {% if form.emergency_phone.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.emergency_phone.errors.0 }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="row">
+              <div class="col-12">
+                <hr>
+                <div class="d-flex justify-content-end gap-2">
+                  <a href="{% url 'teachers:teacher-list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-2"></i>Cancel
+                  </a>
+                  <button type="button" class="btn btn-outline-primary" id="previewBtn">
+                    <i class="fas fa-eye me-2"></i>Preview
+                  </button>
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>
+                    {% if form.instance.pk %}Update Teacher{% else %}Add Teacher{% endif %}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="previewModalLabel">
+          <i class="fas fa-eye me-2"></i>Teacher Information Preview
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="previewContent">
+        <!-- Preview content will be populated by JavaScript -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="$('#teacherForm').submit();">
+          <i class="fas fa-save me-2"></i>Save Teacher
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize Select2 for dropdowns
+    $('.select2').select2({
+      theme: 'bootstrap-5',
+      width: '100%'
+    });
+
+    // Form validation
+    $('#teacherForm').on('submit', function (e) {
+      var isValid = true;
+      var firstError = null;
+
+      // Remove previous validation classes
+      $('.is-invalid').removeClass('is-invalid');
+
+      // Required field validation
+      $(this).find('input[required], select[required], textarea[required]').each(function () {
+        if (!$(this).val()) {
+          $(this).addClass('is-invalid');
+          isValid = false;
+          if (!firstError) {
+            firstError = $(this);
+          }
+        }
+      });
+
+      // Email validation
+      var email = $('#id_email').val();
+      if (email && !isValidEmail(email)) {
+        $('#id_email').addClass('is-invalid');
+        isValid = false;
+        if (!firstError) firstError = $('#id_email');
+      }
+
+      // Employee ID validation
+      var employeeId = $('#id_employee_id').val();
+      if (employeeId && !employeeId.match(/^T\d{6}$/)) {
+        $('#id_employee_id').addClass('is-invalid');
+        isValid = false;
+        if (!firstError) firstError = $('#id_employee_id');
+      }
+
+      // Experience validation
+      var experience = $('#id_experience_years').val();
+      if (experience && (isNaN(experience) || experience < 0 || experience > 50)) {
+        $('#id_experience_years').addClass('is-invalid');
+        isValid = false;
+        if (!firstError) firstError = $('#id_experience_years');
+      }
+
+      if (!isValid) {
+        e.preventDefault();
+        if (firstError) {
+          firstError.focus();
+          firstError[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // Show error toast
+        showToast('Please correct the highlighted fields', 'error');
+      }
+    });
+
+    // Preview functionality
+    $('#previewBtn').click(function () {
+      generatePreview();
+      $('#previewModal').modal('show');
+    });
+
+    // Auto-generate Employee ID if empty
+    $('#id_first_name, #id_last_name').on('blur', function () {
+      if (!$('#id_employee_id').val()) {
+        generateEmployeeId();
+      }
+    });
+  });
+
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  function generateEmployeeId() {
+    // Simple employee ID generation (should be replaced with backend logic)
+    var timestamp = Date.now().toString().slice(-6);
+    $('#id_employee_id').val('T' + timestamp);
+  }
+
+  function generatePreview() {
+    var firstName = $('#id_first_name').val();
+    var lastName = $('#id_last_name').val();
+    var email = $('#id_email').val();
+    var phone = $('#id_phone_number').val();
+    var employeeId = $('#id_employee_id').val();
+    var department = $('#id_department option:selected').text();
+    var position = $('#id_position').val();
+    var status = $('#id_status option:selected').text();
+    var contractType = $('#id_contract_type option:selected').text();
+    var salary = $('#id_salary').val();
+    var qualification = $('#id_qualification').val();
+    var specialization = $('#id_specialization').val();
+    var experience = $('#id_experience_years').val();
+    var bio = $('#id_bio').val();
+
+    var previewHtml = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Personal Information</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Name:</strong></td><td>${firstName} ${lastName}</td></tr>
+                    <tr><td><strong>Email:</strong></td><td>${email}</td></tr>
+                    <tr><td><strong>Phone:</strong></td><td>${phone || 'Not provided'}</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6>Employment Details</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Employee ID:</strong></td><td>${employeeId}</td></tr>
+                    <tr><td><strong>Department:</strong></td><td>${department}</td></tr>
+                    <tr><td><strong>Position:</strong></td><td>${position}</td></tr>
+                    <tr><td><strong>Status:</strong></td><td>${status}</td></tr>
+                    <tr><td><strong>Contract:</strong></td><td>${contractType}</td></tr>
+                    <tr><td><strong>Salary:</strong></td><td>$${salary}</td></tr>
+                </table>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-12">
+                <h6>Qualifications</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Qualification:</strong></td><td>${qualification}</td></tr>
+                    <tr><td><strong>Specialization:</strong></td><td>${specialization}</td></tr>
+                    <tr><td><strong>Experience:</strong></td><td>${experience} years</td></tr>
+                </table>
+            </div>
+        </div>
+        ${bio ? `<div class="row mt-3"><div class="col-12"><h6>Biography</h6><p>${bio}</p></div></div>` : ''}
+    `;
+
+    $('#previewContent').html(previewHtml);
+  }
+
+  function showToast(message, type = 'info') {
+    // Simple toast notification
+    var toastClass = type === 'error' ? 'bg-danger' : 'bg-success';
+    var toastHtml = `
+        <div class="toast ${toastClass} text-white" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-body">
+                ${message}
+            </div>
+        </div>
+    `;
+
+    // Append to body and show
+    var $toast = $(toastHtml).appendTo('body');
+    var toast = new bootstrap.Toast($toast[0]);
+    toast.show();
+
+    // Remove after hiding
+    $toast.on('hidden.bs.toast', function () {
+      $(this).remove();
+    });
+  }
+</script>
+{% endblock %}

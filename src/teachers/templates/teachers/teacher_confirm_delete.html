@@ -1,0 +1,324 @@
+{% extends 'base.html' %}
+{% load teacher_tags %}
+
+{% block title %}Delete Teacher - {{ teacher.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0 text-danger">
+            <i class="fas fa-trash me-2"></i>Delete Teacher
+          </h1>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'teachers:teacher-list' %}">Teachers</a></li>
+              <li class="breadcrumb-item"><a
+                  href="{% url 'teachers:teacher-detail' teacher.pk %}">{{ teacher.get_full_name }}</a></li>
+              <li class="breadcrumb-item active">Delete</li>
+            </ol>
+          </nav>
+        </div>
+        <div>
+          <a href="{% url 'teachers:teacher-detail' teacher.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Teacher
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <!-- Warning Alert -->
+      <div class="alert alert-danger d-flex align-items-center mb-4" role="alert">
+        <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+        <div>
+          <h5 class="alert-heading mb-1">Warning: Permanent Action</h5>
+          <p class="mb-0">You are about to permanently delete this teacher record. This action cannot be undone.</p>
+        </div>
+      </div>
+
+      <!-- Teacher Information Card -->
+      <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-user me-2"></i>Teacher to be Deleted
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3 text-center">
+              {% teacher_avatar teacher 100 %}
+              <p class="mt-2 mb-0"><strong>{{ teacher.get_full_name }}</strong></p>
+              <small class="text-muted">{{ teacher.position }}</small>
+            </div>
+            <div class="col-md-9">
+              <div class="row">
+                <div class="col-md-6">
+                  <table class="table table-sm table-borderless">
+                    <tr>
+                      <td><strong>Employee ID:</strong></td>
+                      <td>{{ teacher.employee_id }}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Email:</strong></td>
+                      <td>{{ teacher.user.email }}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Department:</strong></td>
+                      <td>
+                        {% if teacher.department %}
+                        {{ teacher.department.name }}
+                        {% if teacher|is_department_head %}
+                        <br><small class="text-warning"><i class="fas fa-crown"></i> Department Head</small>
+                        {% endif %}
+                        {% else %}
+                        <span class="text-muted">Not assigned</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>Status:</strong></td>
+                      <td>{{ teacher.status|teacher_status_badge }}</td>
+                    </tr>
+                  </table>
+                </div>
+                <div class="col-md-6">
+                  <table class="table table-sm table-borderless">
+                    <tr>
+                      <td><strong>Contract Type:</strong></td>
+                      <td>{{ teacher.contract_type|contract_type_badge }}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Experience:</strong></td>
+                      <td>{{ teacher.experience_years }} years</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Joining Date:</strong></td>
+                      <td>{{ teacher.joining_date|date:"M d, Y" }}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Tenure:</strong></td>
+                      <td>{{ teacher|years_of_service }}</td>
+                    </tr>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Impact Analysis -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-info-circle me-2"></i>Deletion Impact Analysis
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h6 class="text-warning"><i class="fas fa-chalkboard me-2"></i>Class Assignments</h6>
+              {% with assignments_count=teacher.class_assignments.count %}
+              {% if assignments_count > 0 %}
+              <div class="alert alert-warning">
+                <strong>{{ assignments_count }} active assignment{{ assignments_count|pluralize }}</strong> will be
+                removed.
+                This may affect timetables and class schedules.
+              </div>
+              {% else %}
+              <p class="text-success"><i class="fas fa-check-circle me-1"></i>No active class assignments</p>
+              {% endif %}
+              {% endwith %}
+            </div>
+            <div class="col-md-6">
+              <h6 class="text-warning"><i class="fas fa-star me-2"></i>Evaluations</h6>
+              {% with evaluations_count=teacher.evaluations.count %}
+              {% if evaluations_count > 0 %}
+              <div class="alert alert-warning">
+                <strong>{{ evaluations_count }} evaluation record{{ evaluations_count|pluralize }}</strong> will be
+                removed.
+                This will affect performance history.
+              </div>
+              {% else %}
+              <p class="text-success"><i class="fas fa-check-circle me-1"></i>No evaluation records</p>
+              {% endif %}
+              {% endwith %}
+            </div>
+          </div>
+
+          {% if teacher|is_department_head %}
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Department Head Impact:</strong> This teacher is currently the head of
+            {{ teacher.department.name }}.
+            Deleting this record will leave the department without a head. Please assign a new department head before
+            deletion.
+          </div>
+          {% endif %}
+
+          {% if teacher.status == 'Active' %}
+          <div class="alert alert-warning">
+            <i class="fas fa-user-check me-2"></i>
+            <strong>Active Teacher:</strong> This teacher is currently active. Consider changing their status to
+            'Terminated' instead of deleting the record to maintain historical data.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Alternative Actions -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-lightbulb me-2"></i>Alternative Actions
+          </h6>
+        </div>
+        <div class="card-body">
+          <p>Instead of permanently deleting this teacher record, consider these alternatives:</p>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="d-grid">
+                <a href="{% url 'teachers:teacher-update' teacher.pk %}" class="btn btn-outline-warning">
+                  <i class="fas fa-user-times me-2"></i>Mark as Terminated
+                </a>
+              </div>
+              <small class="text-muted d-block mt-1">Preserves historical data while marking as inactive</small>
+            </div>
+            <div class="col-md-6">
+              <div class="d-grid">
+                <a href="{% url 'teachers:teacher-update' teacher.pk %}" class="btn btn-outline-info">
+                  <i class="fas fa-archive me-2"></i>Archive Record
+                </a>
+              </div>
+              <small class="text-muted d-block mt-1">Keeps record for compliance and audit purposes</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confirmation Form -->
+      <div class="card mt-4 border-danger">
+        <div class="card-header bg-light">
+          <h6 class="card-title mb-0 text-danger">
+            <i class="fas fa-check-square me-2"></i>Deletion Confirmation
+          </h6>
+        </div>
+        <div class="card-body">
+          <form method="post" id="deleteForm">
+            {% csrf_token %}
+
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="confirmDeletion" required>
+              <label class="form-check-label" for="confirmDeletion">
+                I understand that this action is permanent and cannot be undone
+              </label>
+            </div>
+
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="confirmImpact" required>
+              <label class="form-check-label" for="confirmImpact">
+                I have reviewed the impact analysis and understand the consequences
+              </label>
+            </div>
+
+            <div class="form-group mb-4">
+              <label for="confirmText" class="form-label">
+                Type <strong>"DELETE {{ teacher.employee_id }}"</strong> to confirm:
+              </label>
+              <input type="text" class="form-control" id="confirmText" placeholder="Type confirmation text here"
+                required>
+              <div class="invalid-feedback">
+                Please type the exact confirmation text.
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+              <div>
+                <a href="{% url 'teachers:teacher-detail' teacher.pk %}" class="btn btn-outline-secondary">
+                  <i class="fas fa-times me-2"></i>Cancel
+                </a>
+                <a href="{% url 'teachers:teacher-update' teacher.pk %}" class="btn btn-warning ms-2">
+                  <i class="fas fa-edit me-2"></i>Edit Instead
+                </a>
+              </div>
+              <button type="submit" class="btn btn-danger" id="deleteBtn" disabled>
+                <i class="fas fa-trash me-2"></i>Delete Teacher Permanently
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    const expectedText = "DELETE {{ teacher.employee_id }}";
+    const $deleteBtn = $('#deleteBtn');
+    const $confirmText = $('#confirmText');
+    const $confirmDeletion = $('#confirmDeletion');
+    const $confirmImpact = $('#confirmImpact');
+
+    function checkFormValidity() {
+      const textMatch = $confirmText.val() === expectedText;
+      const deletionChecked = $confirmDeletion.is(':checked');
+      const impactChecked = $confirmImpact.is(':checked');
+
+      const isValid = textMatch && deletionChecked && impactChecked;
+
+      $deleteBtn.prop('disabled', !isValid);
+
+      if ($confirmText.val() && !textMatch) {
+        $confirmText.addClass('is-invalid');
+      } else {
+        $confirmText.removeClass('is-invalid');
+      }
+    }
+
+    // Check validity on any input change
+    $confirmText.on('input', checkFormValidity);
+    $confirmDeletion.on('change', checkFormValidity);
+    $confirmImpact.on('change', checkFormValidity);
+
+    // Form submission confirmation
+    $('#deleteForm').on('submit', function (e) {
+      if (!$deleteBtn.prop('disabled')) {
+        if (!confirm('Are you absolutely sure you want to permanently delete this teacher? This action cannot be undone.')) {
+          e.preventDefault();
+        }
+      } else {
+        e.preventDefault();
+        alert('Please complete all confirmation requirements before proceeding.');
+      }
+    });
+
+    // Add visual feedback for dangerous action
+    $deleteBtn.on('mouseenter', function () {
+      if (!$(this).prop('disabled')) {
+        $(this).removeClass('btn-danger').addClass('btn-outline-danger');
+      }
+    }).on('mouseleave', function () {
+      if (!$(this).prop('disabled')) {
+        $(this).removeClass('btn-outline-danger').addClass('btn-danger');
+      }
+    });
+
+    // Auto-focus on confirmation text after checkboxes are checked
+    $confirmImpact.on('change', function () {
+      if ($(this).is(':checked') && $confirmDeletion.is(':checked')) {
+        setTimeout(() => $confirmText.focus(), 100);
+      }
+    });
+  });
+</script>
+{% endblock %}

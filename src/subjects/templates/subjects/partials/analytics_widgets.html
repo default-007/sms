@@ -1,0 +1,444 @@
+{% load i18n %}
+
+<!-- Analytics Widgets Partial -->
+<!-- Usage: {% include "subjects/partials/analytics_widgets.html" with widget_type="overview" data=analytics_data %} -->
+
+{% if widget_type == "overview" %}
+<!-- Overview Analytics Widget -->
+<div class="row">
+  <div class="col-lg-3 col-md-6 mb-4">
+    <div class="card bg-primary text-white h-100">
+      <div class="card-body d-flex align-items-center">
+        <div class="flex-shrink-0">
+          <i class="fas fa-book-open fa-2x"></i>
+        </div>
+        <div class="flex-grow-1 ms-3">
+          <div class="small">{% trans "Total Syllabi" %}</div>
+          <div class="h4 mb-0">{{ data.overview.total_syllabi|default:0 }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-3 col-md-6 mb-4">
+    <div class="card bg-success text-white h-100">
+      <div class="card-body d-flex align-items-center">
+        <div class="flex-shrink-0">
+          <i class="fas fa-percentage fa-2x"></i>
+        </div>
+        <div class="flex-grow-1 ms-3">
+          <div class="small">{% trans "Avg Completion" %}</div>
+          <div class="h4 mb-0">{{ data.overview.average_completion|floatformat:1|default:0 }}%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-3 col-md-6 mb-4">
+    <div class="card bg-info text-white h-100">
+      <div class="card-body d-flex align-items-center">
+        <div class="flex-shrink-0">
+          <i class="fas fa-check-circle fa-2x"></i>
+        </div>
+        <div class="flex-grow-1 ms-3">
+          <div class="small">{% trans "Completed" %}</div>
+          <div class="h4 mb-0">{{ data.overview.completed_syllabi|default:0 }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-3 col-md-6 mb-4">
+    <div class="card bg-warning text-white h-100">
+      <div class="card-body d-flex align-items-center">
+        <div class="flex-shrink-0">
+          <i class="fas fa-clock fa-2x"></i>
+        </div>
+        <div class="flex-grow-1 ms-3">
+          <div class="small">{% trans "In Progress" %}</div>
+          <div class="h4 mb-0">{{ data.overview.in_progress_syllabi|default:0 }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% elif widget_type == "department_performance" %}
+<!-- Department Performance Widget -->
+<div class="card">
+  <div class="card-header">
+    <h6 class="mb-0">
+      <i class="fas fa-building me-2"></i>
+      {% trans "Department Performance" %}
+    </h6>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-sm">
+        <thead class="table-light">
+          <tr>
+            <th>{% trans "Department" %}</th>
+            <th>{% trans "Syllabi" %}</th>
+            <th>{% trans "Avg Completion" %}</th>
+            <th>{% trans "Status" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for dept_name, dept_data in data.by_department.items %}
+          <tr>
+            <td>{{ dept_name }}</td>
+            <td>{{ dept_data.total_syllabi }}</td>
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="flex-grow-1">
+                  <div class="progress" style="height: 8px;">
+                    <div class="progress-bar" style="width: {{ dept_data.avg_completion }}%"></div>
+                  </div>
+                </div>
+                <span class="ms-2 small">{{ dept_data.avg_completion|floatformat:1 }}%</span>
+              </div>
+            </td>
+            <td>
+              {% if dept_data.avg_completion >= 90 %}
+              <span class="badge bg-success">{% trans "Excellent" %}</span>
+              {% elif dept_data.avg_completion >= 70 %}
+              <span class="badge bg-info">{% trans "Good" %}</span>
+              {% elif dept_data.avg_completion >= 50 %}
+              <span class="badge bg-warning">{% trans "Fair" %}</span>
+              {% else %}
+              <span class="badge bg-danger">{% trans "Needs Attention" %}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% elif widget_type == "grade_performance" %}
+<!-- Grade Performance Widget -->
+<div class="card">
+  <div class="card-header">
+    <h6 class="mb-0">
+      <i class="fas fa-graduation-cap me-2"></i>
+      {% trans "Grade Level Performance" %}
+    </h6>
+  </div>
+  <div class="card-body">
+    <div class="row">
+      {% for grade_name, grade_data in data.by_grade.items %}
+      <div class="col-md-6 col-lg-4 mb-3">
+        <div class="card bg-light">
+          <div class="card-body text-center">
+            <h6>{{ grade_name }}</h6>
+            <div class="mt-2">
+              <div class="h4 text-primary">{{ grade_data.avg_completion|floatformat:1 }}%</div>
+              <div class="small text-muted">{{ grade_data.total_syllabi }} syllabi</div>
+            </div>
+            <div class="progress mt-2" style="height: 6px;">
+              <div class="progress-bar" style="width: {{ grade_data.avg_completion }}%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% elif widget_type == "completion_distribution" %}
+<!-- Completion Distribution Widget -->
+<div class="card">
+  <div class="card-header">
+    <h6 class="mb-0">
+      <i class="fas fa-chart-pie me-2"></i>
+      {% trans "Completion Distribution" %}
+    </h6>
+  </div>
+  <div class="card-body">
+    <div id="completionChart" style="height: 300px;"></div>
+  </div>
+</div>
+
+<script>
+  // ApexCharts for completion distribution
+  document.addEventListener('DOMContentLoaded', function () {
+    const completionData = {
+      completed: {{ data.completion_distribution.completed|default: 0
+  }},
+    in_progress: {{ data.completion_distribution.in_progress |default: 0 }},
+    not_started: {{ data.completion_distribution.not_started |default: 0 }}
+    };
+
+  const options = {
+    series: [completionData.completed, completionData.in_progress, completionData.not_started],
+    chart: {
+      type: 'donut',
+      height: 300
+    },
+    labels: ['{% trans "Completed" %}', '{% trans "In Progress" %}', '{% trans "Not Started" %}'],
+    colors: ['#28a745', '#ffc107', '#dc3545'],
+    legend: {
+      position: 'bottom'
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '70%',
+          labels: {
+            show: true,
+            total: {
+              show: true,
+              label: '{% trans "Total" %}',
+              formatter: function (w) {
+                return w.globals.seriesTotals.reduce((a, b) => a + b, 0)
+              }
+            }
+          }
+        }
+      }
+    },
+    dataLabels: {
+      enabled: true,
+      formatter: function (val, opts) {
+        return Math.round(val) + '%'
+      }
+    }
+  };
+
+  const chart = new ApexCharts(document.querySelector("#completionChart"), options);
+  chart.render();
+});
+</script>
+
+{% elif widget_type == "progress_timeline" %}
+<!-- Progress Timeline Widget -->
+<div class="card">
+  <div class="card-header">
+    <h6 class="mb-0">
+      <i class="fas fa-chart-line me-2"></i>
+      {% trans "Progress Timeline" %}
+    </h6>
+  </div>
+  <div class="card-body">
+    <div id="progressTimeline" style="height: 300px;"></div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Sample timeline data - in real implementation, this would come from backend
+    const timelineOptions = {
+      series: [{
+        name: '{% trans "Average Completion" %}',
+        data: [
+          { x: '{% trans "Week 1" %}', y: 5 },
+          { x: '{% trans "Week 2" %}', y: 12 },
+          { x: '{% trans "Week 3" %}', y: 18 },
+          { x: '{% trans "Week 4" %}', y: 25 },
+          { x: '{% trans "Week 5" %}', y: 32 },
+          { x: '{% trans "Week 6" %}', y: 41 },
+          { x: '{% trans "Week 7" %}', y: 48 },
+          { x: '{% trans "Week 8" %}', y: 55 }
+        ]
+      }],
+      chart: {
+        type: 'line',
+        height: 300,
+        toolbar: {
+          show: false
+        }
+      },
+      stroke: {
+        curve: 'smooth',
+        width: 3
+      },
+      colors: ['#007bff'],
+      xaxis: {
+        title: {
+          text: '{% trans "Time Period" %}'
+        }
+      },
+      yaxis: {
+        title: {
+          text: '{% trans "Completion %" %}'
+        },
+        min: 0,
+        max: 100
+      },
+      grid: {
+        borderColor: '#e7e7e7',
+        row: {
+          colors: ['#f3f3f3', 'transparent'],
+          opacity: 0.5
+        }
+      },
+      markers: {
+        size: 6,
+        colors: ['#007bff'],
+        strokeColors: '#fff',
+        strokeWidth: 2
+      }
+    };
+
+    const timelineChart = new ApexCharts(document.querySelector("#progressTimeline"), timelineOptions);
+    timelineChart.render();
+  });
+</script>
+
+{% elif widget_type == "teacher_workload" %}
+<!-- Teacher Workload Widget -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0">
+      <i class="fas fa-users me-2"></i>
+      {% trans "Teacher Workload Overview" %}
+    </h6>
+    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#workloadDetailModal">
+      {% trans "View Details" %}
+    </button>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-sm">
+        <thead class="table-light">
+          <tr>
+            <th>{% trans "Teacher" %}</th>
+            <th>{% trans "Subjects" %}</th>
+            <th>{% trans "Classes" %}</th>
+            <th>{% trans "Credit Hours" %}</th>
+            <th>{% trans "Workload" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if data.teacher_workloads %}
+          {% for teacher, workload in data.teacher_workloads.items %}
+          <tr>
+            <td>{{ teacher }}</td>
+            <td>{{ workload.subjects_count }}</td>
+            <td>{{ workload.classes_count }}</td>
+            <td>{{ workload.total_credit_hours }}</td>
+            <td>
+              {% if workload.total_credit_hours <= 15 %}
+              <span class="badge bg-success">{% trans "Normal" %}</span>
+              {% elif workload.total_credit_hours <= 20 %}
+              <span class="badge bg-warning">{% trans "High" %}</span>
+              {% else %}
+              <span class="badge bg-danger">{% trans "Overloaded" %}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          {% else %}
+          <tr>
+            <td colspan="5" class="text-center text-muted">
+              {% trans "No teacher workload data available" %}
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% elif widget_type == "quick_stats" %}
+<!-- Quick Statistics Widget -->
+<div class="card border-left-primary">
+  <div class="card-body">
+    <div class="row">
+      <div class="col-3">
+        <div class="text-center">
+          <div class="h5 mb-0 text-primary">{{ data.total_subjects|default:0 }}</div>
+          <div class="small text-muted">{% trans "Subjects" %}</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="text-center">
+          <div class="h5 mb-0 text-success">{{ data.active_teachers|default:0 }}</div>
+          <div class="small text-muted">{% trans "Teachers" %}</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="text-center">
+          <div class="h5 mb-0 text-info">{{ data.total_classes|default:0 }}</div>
+          <div class="small text-muted">{% trans "Classes" %}</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="text-center">
+          <div class="h5 mb-0 text-warning">{{ data.total_credit_hours|default:0 }}</div>
+          <div class="small text-muted">{% trans "Credit Hours" %}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% elif widget_type == "alerts" %}
+<!-- Alerts Widget -->
+<div class="card border-left-warning">
+  <div class="card-header">
+    <h6 class="mb-0">
+      <i class="fas fa-exclamation-triangle me-2"></i>
+      {% trans "Attention Required" %}
+    </h6>
+  </div>
+  <div class="card-body">
+    {% if data.alerts %}
+    {% for alert in data.alerts %}
+    <div class="alert alert-{{ alert.type }} alert-dismissible fade show" role="alert">
+      <i class="fas fa-{{ alert.icon }} me-2"></i>
+      <strong>{{ alert.title }}:</strong> {{ alert.message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="text-center text-muted">
+      <i class="fas fa-check-circle fa-2x mb-2"></i>
+      <p class="mb-0">{% trans "All systems running smoothly!" %}</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endif %}
+
+<!-- Common Styles for Analytics Widgets -->
+<style>
+  .border-left-primary {
+    border-left: 4px solid #007bff !important;
+  }
+
+  .border-left-warning {
+    border-left: 4px solid #ffc107 !important;
+  }
+
+  .card.h-100 {
+    height: 100% !important;
+  }
+
+  .progress {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .card-body .fas {
+    opacity: 0.8;
+  }
+
+  .small {
+    font-size: 0.875rem;
+  }
+
+  @media (max-width: 768px) {
+    .col-lg-3.col-md-6 {
+      margin-bottom: 1rem;
+    }
+
+    .h4 {
+      font-size: 1.25rem;
+    }
+  }
+</style>

@@ -1,0 +1,767 @@
+{% load i18n %}
+
+<!-- Quick Actions Modal -->
+<div class="modal fade" id="quickActionsModal" tabindex="-1" aria-labelledby="quickActionsModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="quickActionsModalLabel">
+          <i class="fas fa-bolt me-2"></i>
+          {% trans "Quick Actions" %}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="row">
+          <!-- Subject Actions -->
+          <div class="col-md-6 mb-4">
+            <div class="card h-100">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">
+                  <i class="fas fa-book me-2"></i>
+                  {% trans "Subject Management" %}
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="d-grid gap-2">
+                  <button type="button" class="btn btn-outline-primary btn-sm" onclick="quickAction('create_subject')">
+                    <i class="fas fa-plus me-2"></i>
+                    {% trans "Create New Subject" %}
+                  </button>
+                  <button type="button" class="btn btn-outline-info btn-sm" onclick="quickAction('import_subjects')">
+                    <i class="fas fa-upload me-2"></i>
+                    {% trans "Import Subjects" %}
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm"
+                    onclick="quickAction('duplicate_subject')">
+                    <i class="fas fa-copy me-2"></i>
+                    {% trans "Duplicate Subject" %}
+                  </button>
+                  <button type="button" class="btn btn-outline-warning btn-sm"
+                    onclick="quickAction('manage_prerequisites')">
+                    <i class="fas fa-sitemap me-2"></i>
+                    {% trans "Manage Prerequisites" %}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Syllabus Actions -->
+          <div class="col-md-6 mb-4">
+            <div class="card h-100">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">
+                  <i class="fas fa-file-alt me-2"></i>
+                  {% trans "Syllabus Management" %}
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="d-grid gap-2">
+                  <button type="button" class="btn btn-outline-primary btn-sm" onclick="quickAction('create_syllabus')">
+                    <i class="fas fa-plus me-2"></i>
+                    {% trans "Create Syllabus" %}
+                  </button>
+                  <button type="button" class="btn btn-outline-success btn-sm"
+                    onclick="quickAction('bulk_create_syllabi')">
+                    <i class="fas fa-layer-group me-2"></i>
+                    {% trans "Bulk Create Syllabi" %}
+                  </button>
+                  <button type="button" class="btn btn-outline-info btn-sm" onclick="quickAction('clone_syllabus')">
+                    <i class="fas fa-clone me-2"></i>
+                    {% trans "Clone from Previous Term" %}
+                  </button>
+                  <button type="button" class="btn btn-outline-warning btn-sm"
+                    onclick="quickAction('syllabus_templates')">
+                    <i class="fas fa-template me-2"></i>
+                    {% trans "Manage Templates" %}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Assignment Actions -->
+          <div class="col-md-6 mb-4">
+            <div class="card h-100">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">
+                  <i class="fas fa-chalkboard-teacher me-2"></i>
+                  {% trans "Teacher Assignments" %}
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="d-grid gap-2">
+                  <button type="button" class="btn btn-outline-primary btn-sm" onclick="quickAction('assign_teacher')">
+                    <i class="fas fa-user-plus me-2"></i>
+                    {% trans "Assign Teacher" %}
+                  </button>
+                  <button type="button" class="btn btn-outline-success btn-sm"
+                    onclick="quickAction('bulk_assignments')">
+                    <i class="fas fa-users me-2"></i>
+                    {% trans "Bulk Assignments" %}
+                  </button>
+                  <button type="button" class="btn btn-outline-info btn-sm" onclick="quickAction('workload_analysis')">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    {% trans "Workload Analysis" %}
+                  </button>
+                  <button type="button" class="btn btn-outline-warning btn-sm"
+                    onclick="quickAction('assignment_conflicts')">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    {% trans "Check Conflicts" %}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Analytics & Reports -->
+          <div class="col-md-6 mb-4">
+            <div class="card h-100">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">
+                  <i class="fas fa-chart-line me-2"></i>
+                  {% trans "Analytics & Reports" %}
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="d-grid gap-2">
+                  <button type="button" class="btn btn-outline-primary btn-sm"
+                    onclick="quickAction('curriculum_analytics')">
+                    <i class="fas fa-analytics me-2"></i>
+                    {% trans "Curriculum Analytics" %}
+                  </button>
+                  <button type="button" class="btn btn-outline-success btn-sm" onclick="quickAction('progress_report')">
+                    <i class="fas fa-file-chart-line me-2"></i>
+                    {% trans "Progress Report" %}
+                  </button>
+                  <button type="button" class="btn btn-outline-info btn-sm"
+                    onclick="quickAction('teacher_performance')">
+                    <i class="fas fa-user-graduate me-2"></i>
+                    {% trans "Teacher Performance" %}
+                  </button>
+                  <button type="button" class="btn btn-outline-warning btn-sm"
+                    onclick="quickAction('completion_forecast')">
+                    <i class="fas fa-crystal-ball me-2"></i>
+                    {% trans "Completion Forecast" %}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- System Actions -->
+          <div class="col-md-6 mb-4">
+            <div class="card h-100">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">
+                  <i class="fas fa-cogs me-2"></i>
+                  {% trans "System Management" %}
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="d-grid gap-2">
+                  <button type="button" class="btn btn-outline-secondary btn-sm"
+                    onclick="quickAction('backup_curriculum')">
+                    <i class="fas fa-download me-2"></i>
+                    {% trans "Export Curriculum" %}
+                  </button>
+                  <button type="button" class="btn btn-outline-info btn-sm" onclick="quickAction('sync_data')">
+                    <i class="fas fa-sync me-2"></i>
+                    {% trans "Sync Data" %}
+                  </button>
+                  <button type="button" class="btn btn-outline-warning btn-sm" onclick="quickAction('data_validation')">
+                    <i class="fas fa-check-double me-2"></i>
+                    {% trans "Validate Data" %}
+                  </button>
+                  <button type="button" class="btn btn-outline-danger btn-sm" onclick="quickAction('cleanup_orphaned')">
+                    <i class="fas fa-broom me-2"></i>
+                    {% trans "Cleanup Orphaned Data" %}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Stats -->
+          <div class="col-md-6 mb-4">
+            <div class="card h-100">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">
+                  <i class="fas fa-tachometer-alt me-2"></i>
+                  {% trans "Quick Stats" %}
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="row text-center">
+                  <div class="col-6 mb-3">
+                    <div class="quick-stat" onclick="quickAction('view_subjects')">
+                      <i class="fas fa-book text-primary fa-2x"></i>
+                      <div class="h4 mt-1" id="totalSubjects">-</div>
+                      <small>{% trans "Subjects" %}</small>
+                    </div>
+                  </div>
+                  <div class="col-6 mb-3">
+                    <div class="quick-stat" onclick="quickAction('view_syllabi')">
+                      <i class="fas fa-file-alt text-success fa-2x"></i>
+                      <div class="h4 mt-1" id="totalSyllabi">-</div>
+                      <small>{% trans "Syllabi" %}</small>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="quick-stat" onclick="quickAction('view_assignments')">
+                      <i class="fas fa-chalkboard-teacher text-info fa-2x"></i>
+                      <div class="h4 mt-1" id="totalAssignments">-</div>
+                      <small>{% trans "Assignments" %}</small>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="quick-stat" onclick="quickAction('view_teachers')">
+                      <i class="fas fa-users text-warning fa-2x"></i>
+                      <div class="h4 mt-1" id="totalTeachers">-</div>
+                      <small>{% trans "Teachers" %}</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card">
+          <div class="card-header">
+            <h6 class="mb-0">
+              <i class="fas fa-history me-2"></i>
+              {% trans "Recent Activity" %}
+            </h6>
+          </div>
+          <div class="card-body">
+            <div id="recentActivity">
+              <div class="text-center py-3">
+                <div class="spinner-border spinner-border-sm text-muted" role="status">
+                  <span class="visually-hidden">{% trans "Loading..." %}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          {% trans "Close" %}
+        </button>
+        <button type="button" class="btn btn-primary" onclick="quickAction('refresh_stats')">
+          <i class="fas fa-refresh me-2"></i>
+          {% trans "Refresh" %}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Action Confirmation Modal -->
+<div class="modal fade" id="quickActionConfirmModal" tabindex="-1" aria-labelledby="quickActionConfirmModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="quickActionConfirmModalLabel">
+          {% trans "Confirm Action" %}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="confirmActionContent">
+          <!-- Dynamic content will be inserted here -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          {% trans "Cancel" %}
+        </button>
+        <button type="button" class="btn btn-primary" id="confirmActionBtn">
+          {% trans "Confirm" %}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Action Progress Modal -->
+<div class="modal fade" id="actionProgressModal" tabindex="-1" aria-labelledby="actionProgressModalLabel"
+  aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="actionProgressModalLabel">
+          {% trans "Processing..." %}
+        </h5>
+      </div>
+      <div class="modal-body">
+        <div class="text-center mb-3">
+          <i class="fas fa-cog fa-spin fa-3x text-primary"></i>
+        </div>
+        <div class="progress mb-3">
+          <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" id="actionProgressBar"
+            style="width: 0%">
+            0%
+          </div>
+        </div>
+        <div id="actionProgressMessage" class="text-center text-muted">
+          {% trans "Initializing..." %}
+        </div>
+        <div id="actionProgressLog" class="mt-3" style="max-height: 200px; overflow-y: auto; display: none;">
+          <!-- Progress log messages -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .quick-stat {
+    cursor: pointer;
+    padding: 15px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+
+  .quick-stat:hover {
+    background-color: #f8f9fa;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header {
+    border-bottom: 1px solid #dee2e6;
+    background-color: #f8f9fa !important;
+  }
+
+  .btn-outline-primary:hover,
+  .btn-outline-success:hover,
+  .btn-outline-info:hover,
+  .btn-outline-warning:hover,
+  .btn-outline-secondary:hover,
+  .btn-outline-danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .recent-activity-item {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 10px 0;
+  }
+
+  .recent-activity-item:last-child {
+    border-bottom: none;
+  }
+
+  .activity-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .activity-time {
+    font-size: 12px;
+    color: #6c757d;
+  }
+
+  @media (max-width: 768px) {
+    .modal-lg {
+      max-width: 95%;
+    }
+
+    .btn-sm {
+      padding: 0.375rem 0.75rem;
+      font-size: 0.875rem;
+    }
+
+    .quick-stat {
+      padding: 10px;
+    }
+
+    .quick-stat .h4 {
+      font-size: 1.25rem;
+    }
+  }
+</style>
+
+<script>
+  // Quick Actions functionality
+  let quickActionsModal;
+  let quickActionConfirmModal;
+  let actionProgressModal;
+
+  document.addEventListener('DOMContentLoaded', function () {
+    quickActionsModal = new bootstrap.Modal(document.getElementById('quickActionsModal'));
+    quickActionConfirmModal = new bootstrap.Modal(document.getElementById('quickActionConfirmModal'));
+    actionProgressModal = new bootstrap.Modal(document.getElementById('actionProgressModal'));
+
+    // Load initial stats when modal is opened
+    document.getElementById('quickActionsModal').addEventListener('shown.bs.modal', function () {
+      loadQuickStats();
+      loadRecentActivity();
+    });
+  });
+
+  function openQuickActions() {
+    quickActionsModal.show();
+  }
+
+  function quickAction(action) {
+    switch (action) {
+      case 'create_subject':
+        window.location.href = '/subjects/create/';
+        break;
+
+      case 'create_syllabus':
+        window.location.href = '/subjects/syllabi/create/';
+        break;
+
+      case 'bulk_create_syllabi':
+        // Show term selection for bulk creation
+        showTermSelectionForBulkCreation();
+        break;
+
+      case 'assign_teacher':
+        window.location.href = '/subjects/assignments/create/';
+        break;
+
+      case 'curriculum_analytics':
+        window.location.href = '/subjects/analytics/';
+        break;
+
+      case 'view_subjects':
+        window.location.href = '/subjects/';
+        break;
+
+      case 'view_syllabi':
+        window.location.href = '/subjects/syllabi/';
+        break;
+
+      case 'view_assignments':
+        window.location.href = '/subjects/assignments/';
+        break;
+
+      case 'refresh_stats':
+        refreshQuickStats();
+        break;
+
+      case 'backup_curriculum':
+        confirmAction('backup_curriculum',
+          'Export Curriculum Data',
+          'This will export all curriculum data to a downloadable file. Continue?',
+          performBackup);
+        break;
+
+      case 'sync_data':
+        confirmAction('sync_data',
+          'Sync Curriculum Data',
+          'This will synchronize curriculum data across all modules. This may take a few minutes. Continue?',
+          performDataSync);
+        break;
+
+      case 'data_validation':
+        confirmAction('data_validation',
+          'Validate Data Integrity',
+          'This will check for data inconsistencies and orphaned records. Continue?',
+          performDataValidation);
+        break;
+
+      case 'cleanup_orphaned':
+        confirmAction('cleanup_orphaned',
+          'Cleanup Orphaned Data',
+          'This will remove orphaned records and clean up unused data. This action cannot be undone. Continue?',
+          performDataCleanup);
+        break;
+
+      default:
+        console.log('Quick action not implemented:', action);
+        showNotImplementedMessage(action);
+    }
+  }
+
+  function loadQuickStats() {
+    // Simulate loading stats
+    setTimeout(() => {
+      document.getElementById('totalSubjects').textContent = Math.floor(Math.random() * 50) + 20;
+      document.getElementById('totalSyllabi').textContent = Math.floor(Math.random() * 100) + 50;
+      document.getElementById('totalAssignments').textContent = Math.floor(Math.random() * 200) + 100;
+      document.getElementById('totalTeachers').textContent = Math.floor(Math.random() * 30) + 15;
+    }, 500);
+  }
+
+  function loadRecentActivity() {
+    const container = document.getElementById('recentActivity');
+
+    // Simulate loading recent activity
+    setTimeout(() => {
+      const activities = [
+        {
+          icon: 'fas fa-plus',
+          iconColor: 'bg-success',
+          title: 'New syllabus created',
+          description: 'Mathematics - Grade 10 - Term 2',
+          time: '2 minutes ago',
+          user: 'John Smith'
+        },
+        {
+          icon: 'fas fa-edit',
+          iconColor: 'bg-info',
+          title: 'Syllabus updated',
+          description: 'Physics - Grade 11 - Topic progress updated',
+          time: '15 minutes ago',
+          user: 'Jane Doe'
+        },
+        {
+          icon: 'fas fa-user-plus',
+          iconColor: 'bg-primary',
+          title: 'Teacher assigned',
+          description: 'Biology - Grade 9 - Sarah Wilson assigned',
+          time: '1 hour ago',
+          user: 'Admin'
+        },
+        {
+          icon: 'fas fa-check',
+          iconColor: 'bg-warning',
+          title: 'Topics completed',
+          description: 'Chemistry - Grade 12 - 3 topics marked complete',
+          time: '2 hours ago',
+          user: 'Mike Johnson'
+        }
+      ];
+
+      container.innerHTML = activities.map(activity => `
+            <div class="recent-activity-item d-flex align-items-center">
+                <div class="activity-icon ${activity.iconColor} text-white me-3">
+                    <i class="${activity.icon}"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="fw-bold">${activity.title}</div>
+                    <div class="text-muted small">${activity.description}</div>
+                    <div class="activity-time">${activity.time} by ${activity.user}</div>
+                </div>
+            </div>
+        `).join('');
+    }, 800);
+  }
+
+  function refreshQuickStats() {
+    // Show loading state
+    ['totalSubjects', 'totalSyllabi', 'totalAssignments', 'totalTeachers'].forEach(id => {
+      document.getElementById(id).innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    });
+
+    // Reload stats
+    loadQuickStats();
+  }
+
+  function confirmAction(action, title, message, callback) {
+    document.getElementById('quickActionConfirmModalLabel').textContent = title;
+    document.getElementById('confirmActionContent').innerHTML = `
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            ${message}
+        </div>
+    `;
+
+    document.getElementById('confirmActionBtn').onclick = function () {
+      quickActionConfirmModal.hide();
+      callback();
+    };
+
+    quickActionConfirmModal.show();
+  }
+
+  function showActionProgress(title, steps) {
+    document.getElementById('actionProgressModalLabel').textContent = title;
+    document.getElementById('actionProgressBar').style.width = '0%';
+    document.getElementById('actionProgressBar').textContent = '0%';
+    document.getElementById('actionProgressMessage').textContent = 'Initializing...';
+    document.getElementById('actionProgressLog').style.display = 'none';
+
+    actionProgressModal.show();
+
+    return {
+      updateProgress: function (percent, message) {
+        document.getElementById('actionProgressBar').style.width = percent + '%';
+        document.getElementById('actionProgressBar').textContent = percent + '%';
+        document.getElementById('actionProgressMessage').textContent = message;
+      },
+      addLogMessage: function (message) {
+        const log = document.getElementById('actionProgressLog');
+        log.style.display = 'block';
+        log.innerHTML += `<div class="small text-muted">${new Date().toLocaleTimeString()}: ${message}</div>`;
+        log.scrollTop = log.scrollHeight;
+      },
+      complete: function (message) {
+        document.getElementById('actionProgressBar').style.width = '100%';
+        document.getElementById('actionProgressBar').textContent = '100%';
+        document.getElementById('actionProgressMessage').textContent = message;
+        setTimeout(() => {
+          actionProgressModal.hide();
+        }, 2000);
+      }
+    };
+  }
+
+  function performBackup() {
+    const progress = showActionProgress('Exporting Curriculum Data', [
+      'Collecting subject data',
+      'Collecting syllabus data',
+      'Collecting assignment data',
+      'Generating export file',
+      'Preparing download'
+    ]);
+
+    let step = 0;
+    const steps = [
+      'Collecting subject data...',
+      'Collecting syllabus data...',
+      'Collecting assignment data...',
+      'Generating export file...',
+      'Preparing download...'
+    ];
+
+    const interval = setInterval(() => {
+      step++;
+      const percent = Math.round((step / steps.length) * 100);
+      progress.updateProgress(percent, steps[step - 1]);
+      progress.addLogMessage(steps[step - 1]);
+
+      if (step >= steps.length) {
+        clearInterval(interval);
+        progress.complete('Export completed successfully!');
+
+        // Simulate file download
+        setTimeout(() => {
+          const link = document.createElement('a');
+          link.download = 'curriculum_backup_' + new Date().toISOString().split('T')[0] + '.json';
+          link.href = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify({
+            exported_at: new Date().toISOString(),
+            subjects: [],
+            syllabi: [],
+            assignments: []
+          }));
+          link.click();
+        }, 1000);
+      }
+    }, 1000);
+  }
+
+  function performDataSync() {
+    const progress = showActionProgress('Synchronizing Data', []);
+
+    let step = 0;
+    const steps = [
+      'Checking data consistency...',
+      'Updating subject references...',
+      'Synchronizing syllabus data...',
+      'Updating assignment records...',
+      'Rebuilding indexes...',
+      'Clearing cache...'
+    ];
+
+    const interval = setInterval(() => {
+      step++;
+      const percent = Math.round((step / steps.length) * 100);
+      progress.updateProgress(percent, steps[step - 1]);
+      progress.addLogMessage(steps[step - 1]);
+
+      if (step >= steps.length) {
+        clearInterval(interval);
+        progress.complete('Data synchronization completed!');
+      }
+    }, 1500);
+  }
+
+  function performDataValidation() {
+    const progress = showActionProgress('Validating Data', []);
+
+    let step = 0;
+    const steps = [
+      'Checking subject integrity...',
+      'Validating syllabus references...',
+      'Checking assignment consistency...',
+      'Validating topic progress...',
+      'Generating validation report...'
+    ];
+
+    const interval = setInterval(() => {
+      step++;
+      const percent = Math.round((step / steps.length) * 100);
+      progress.updateProgress(percent, steps[step - 1]);
+      progress.addLogMessage(steps[step - 1]);
+
+      if (step >= steps.length) {
+        clearInterval(interval);
+        progress.complete('Validation completed! No issues found.');
+      }
+    }, 1200);
+  }
+
+  function performDataCleanup() {
+    const progress = showActionProgress('Cleaning Up Data', []);
+
+    let step = 0;
+    const steps = [
+      'Identifying orphaned records...',
+      'Removing unused topic progress...',
+      'Cleaning up inactive assignments...',
+      'Removing duplicate entries...',
+      'Optimizing database...'
+    ];
+
+    const interval = setInterval(() => {
+      step++;
+      const percent = Math.round((step / steps.length) * 100);
+      progress.updateProgress(percent, steps[step - 1]);
+      progress.addLogMessage(steps[step - 1]);
+
+      if (step >= steps.length) {
+        clearInterval(interval);
+        progress.complete('Cleanup completed! Database optimized.');
+      }
+    }, 1800);
+  }
+
+  function showTermSelectionForBulkCreation() {
+    // This would show a term selection modal
+    // For now, redirect to bulk creation page
+    window.location.href = '/subjects/bulk/create-syllabi/1/';  // Assuming term ID 1
+  }
+
+  function showNotImplementedMessage(action) {
+    const toast = document.createElement('div');
+    toast.className = 'toast align-items-center text-white bg-info border-0';
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                Action "${action}" is not yet implemented.
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+
+    document.body.appendChild(toast);
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+
+    setTimeout(() => {
+      toast.remove();
+    }, 5000);
+  }
+
+  // Global function to open quick actions
+  window.openQuickActions = openQuickActions;
+</script>

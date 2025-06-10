@@ -1,0 +1,741 @@
+{% load i18n %}
+
+<!-- Data Visualization Widgets -->
+<!-- Usage: {% include "subjects/partials/data_visualization.html" with chart_type="completion_trends" data=chart_data %} -->
+
+{% if chart_type == "completion_trends" %}
+<!-- Syllabus Completion Trends Chart -->
+<div class="chart-container">
+  <div class="chart-header d-flex justify-content-between align-items-center mb-3">
+    <h6 class="mb-0">
+      <i class="fas fa-chart-line me-2"></i>
+      {% trans "Completion Trends" %}
+    </h6>
+    <div class="chart-controls">
+      <div class="btn-group btn-group-sm" role="group">
+        <button type="button" class="btn btn-outline-secondary period-btn active" data-period="weekly">
+          {% trans "Week" %}
+        </button>
+        <button type="button" class="btn btn-outline-secondary period-btn" data-period="monthly">
+          {% trans "Month" %}
+        </button>
+        <button type="button" class="btn btn-outline-secondary period-btn" data-period="termly">
+          {% trans "Term" %}
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="chart-wrapper">
+    <div id="completionTrendsChart" style="height: 350px;"></div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Sample data - replace with actual data from backend
+    const weeklyData = [
+      { period: 'Week 1', mathematics: 15, science: 12, english: 18, arts: 10 },
+      { period: 'Week 2', mathematics: 25, science: 22, english: 28, arts: 15 },
+      { period: 'Week 3', mathematics: 35, science: 30, english: 38, arts: 25 },
+      { period: 'Week 4', mathematics: 45, science: 42, english: 48, arts: 35 },
+      { period: 'Week 5', mathematics: 55, science: 50, english: 58, arts: 45 },
+      { period: 'Week 6', mathematics: 65, science: 62, english: 68, arts: 55 },
+      { period: 'Week 7', mathematics: 75, science: 70, english: 78, arts: 65 },
+      { period: 'Week 8', mathematics: 85, science: 82, english: 88, arts: 75 }
+    ];
+
+    const monthlyData = [
+      { period: 'Jan', mathematics: 20, science: 18, english: 25, arts: 15 },
+      { period: 'Feb', mathematics: 35, science: 32, english: 40, arts: 28 },
+      { period: 'Mar', mathematics: 50, science: 48, english: 55, arts: 42 },
+      { period: 'Apr', mathematics: 65, science: 62, english: 70, arts: 58 },
+      { period: 'May', mathematics: 80, science: 78, english: 85, arts: 72 },
+      { period: 'Jun', mathematics: 95, science: 92, english: 98, arts: 88 }
+    ];
+
+    let currentChart;
+    let currentPeriod = 'weekly';
+
+    function createChart(data, period) {
+      if (currentChart) {
+        currentChart.destroy();
+      }
+
+      const options = {
+        series: [
+          {
+            name: '{% trans "Mathematics" %}',
+            data: data.map(d => d.mathematics)
+          },
+          {
+            name: '{% trans "Science" %}',
+            data: data.map(d => d.science)
+          },
+          {
+            name: '{% trans "English" %}',
+            data: data.map(d => d.english)
+          },
+          {
+            name: '{% trans "Arts" %}',
+            data: data.map(d => d.arts)
+          }
+        ],
+        chart: {
+          type: 'line',
+          height: 350,
+          toolbar: {
+            show: true,
+            tools: {
+              download: true,
+              selection: false,
+              zoom: true,
+              zoomin: true,
+              zoomout: true,
+              pan: false,
+              reset: true
+            }
+          },
+          animations: {
+            enabled: true,
+            easing: 'easeinout',
+            speed: 800
+          }
+        },
+        stroke: {
+          curve: 'smooth',
+          width: 3
+        },
+        colors: ['#007bff', '#28a745', '#ffc107', '#dc3545'],
+        xaxis: {
+          categories: data.map(d => d.period),
+          title: {
+            text: period === 'weekly' ? '{% trans "Weeks" %}' :
+              period === 'monthly' ? '{% trans "Months" %}' : '{% trans "Terms" %}'
+          }
+        },
+        yaxis: {
+          title: {
+            text: '{% trans "Completion Percentage" %}'
+          },
+          min: 0,
+          max: 100
+        },
+        grid: {
+          borderColor: '#e7e7e7',
+          row: {
+            colors: ['#f3f3f3', 'transparent'],
+            opacity: 0.5
+          }
+        },
+        markers: {
+          size: 6,
+          colors: ['#fff'],
+          strokeColors: ['#007bff', '#28a745', '#ffc107', '#dc3545'],
+          strokeWidth: 2
+        },
+        legend: {
+          position: 'top',
+          horizontalAlign: 'right'
+        },
+        tooltip: {
+          shared: true,
+          intersect: false,
+          y: {
+            formatter: function (val) {
+              return val + '%'
+            }
+          }
+        }
+      };
+
+      currentChart = new ApexCharts(document.querySelector("#completionTrendsChart"), options);
+      currentChart.render();
+    }
+
+    // Initialize chart
+    createChart(weeklyData, 'weekly');
+
+    // Period button handlers
+    document.querySelectorAll('.period-btn').forEach(btn => {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+
+        const period = this.dataset.period;
+        currentPeriod = period;
+
+        const data = period === 'weekly' ? weeklyData :
+          period === 'monthly' ? monthlyData : weeklyData; // termly would use different data
+
+        createChart(data, period);
+      });
+    });
+  });
+</script>
+
+{% elif chart_type == "department_comparison" %}
+<!-- Department Performance Comparison -->
+<div class="chart-container">
+  <div class="chart-header d-flex justify-content-between align-items-center mb-3">
+    <h6 class="mb-0">
+      <i class="fas fa-building me-2"></i>
+      {% trans "Department Performance Comparison" %}
+    </h6>
+    <div class="chart-controls">
+      <select class="form-select form-select-sm" id="metricSelector" style="width: auto;">
+        <option value="completion">{% trans "Completion Rate" %}</option>
+        <option value="progress">{% trans "Progress Rate" %}</option>
+        <option value="efficiency">{% trans "Teaching Efficiency" %}</option>
+      </select>
+    </div>
+  </div>
+  <div class="chart-wrapper">
+    <div id="departmentComparisonChart" style="height: 400px;"></div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const departmentData = {
+      departments: ['Mathematics', 'Science', 'English', 'Arts', 'Sports', 'Languages'],
+      completion: [85, 78, 92, 70, 65, 88],
+      progress: [75, 82, 88, 68, 72, 85],
+      efficiency: [90, 85, 95, 75, 70, 92]
+    };
+
+    let deptChart;
+
+    function createDepartmentChart(metric) {
+      if (deptChart) {
+        deptChart.destroy();
+      }
+
+      const options = {
+        series: [{
+          name: metric === 'completion' ? '{% trans "Completion Rate" %}' :
+            metric === 'progress' ? '{% trans "Progress Rate" %}' : '{% trans "Teaching Efficiency" %}',
+          data: departmentData[metric]
+        }],
+        chart: {
+          type: 'bar',
+          height: 400,
+          toolbar: {
+            show: true
+          }
+        },
+        plotOptions: {
+          bar: {
+            horizontal: false,
+            columnWidth: '55%',
+            borderRadius: 4,
+            dataLabels: {
+              position: 'top'
+            }
+          }
+        },
+        colors: ['#007bff'],
+        dataLabels: {
+          enabled: true,
+          formatter: function (val) {
+            return val + '%'
+          },
+          offsetY: -20,
+          style: {
+            fontSize: '12px',
+            colors: ["#304758"]
+          }
+        },
+        xaxis: {
+          categories: departmentData.departments,
+          position: 'bottom',
+          labels: {
+            rotate: -45
+          }
+        },
+        yaxis: {
+          title: {
+            text: '{% trans "Percentage" %}'
+          },
+          min: 0,
+          max: 100
+        },
+        grid: {
+          borderColor: '#e7e7e7'
+        },
+        tooltip: {
+          y: {
+            formatter: function (val) {
+              return val + '%'
+            }
+          }
+        }
+      };
+
+      deptChart = new ApexCharts(document.querySelector("#departmentComparisonChart"), options);
+      deptChart.render();
+    }
+
+    // Initialize chart
+    createDepartmentChart('completion');
+
+    // Metric selector handler
+    document.getElementById('metricSelector').addEventListener('change', function () {
+      createDepartmentChart(this.value);
+    });
+  });
+</script>
+
+{% elif chart_type == "teacher_workload" %}
+<!-- Teacher Workload Distribution -->
+<div class="chart-container">
+  <div class="chart-header d-flex justify-content-between align-items-center mb-3">
+    <h6 class="mb-0">
+      <i class="fas fa-users me-2"></i>
+      {% trans "Teacher Workload Distribution" %}
+    </h6>
+    <div class="chart-controls">
+      <button type="button" class="btn btn-outline-primary btn-sm" onclick="exportWorkloadData()">
+        <i class="fas fa-download me-1"></i>
+        {% trans "Export" %}
+      </button>
+    </div>
+  </div>
+  <div class="chart-wrapper">
+    <div id="teacherWorkloadChart" style="height: 350px;"></div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const workloadData = [
+      { teacher: 'John Smith', subjects: 3, classes: 5, hours: 18 },
+      { teacher: 'Jane Doe', subjects: 2, classes: 4, hours: 14 },
+      { teacher: 'Bob Johnson', subjects: 4, classes: 6, hours: 22 },
+      { teacher: 'Alice Brown', subjects: 2, classes: 3, hours: 12 },
+      { teacher: 'Charlie Wilson', subjects: 3, classes: 4, hours: 16 },
+      { teacher: 'Diana Davis', subjects: 5, classes: 7, hours: 25 }
+    ];
+
+    const options = {
+      series: [
+        {
+          name: '{% trans "Subjects" %}',
+          data: workloadData.map(d => d.subjects)
+        },
+        {
+          name: '{% trans "Classes" %}',
+          data: workloadData.map(d => d.classes)
+        },
+        {
+          name: '{% trans "Hours/Week" %}',
+          data: workloadData.map(d => d.hours)
+        }
+      ],
+      chart: {
+        type: 'bar',
+        height: 350,
+        stacked: false,
+        toolbar: {
+          show: true
+        }
+      },
+      colors: ['#007bff', '#28a745', '#ffc107'],
+      plotOptions: {
+        bar: {
+          horizontal: false,
+          columnWidth: '70%',
+          borderRadius: 2
+        }
+      },
+      dataLabels: {
+        enabled: false
+      },
+      xaxis: {
+        categories: workloadData.map(d => d.teacher.split(' ')[0]), // First names only
+        labels: {
+          rotate: -45
+        }
+      },
+      yaxis: [
+        {
+          title: {
+            text: '{% trans "Count" %}'
+          }
+        }
+      ],
+      legend: {
+        position: 'top',
+        horizontalAlign: 'right'
+      },
+      tooltip: {
+        shared: true,
+        intersect: false
+      }
+    };
+
+    const workloadChart = new ApexCharts(document.querySelector("#teacherWorkloadChart"), options);
+    workloadChart.render();
+  });
+
+  function exportWorkloadData() {
+    // Simulate data export
+    showNotification('{% trans "Workload data exported successfully" %}', 'success');
+  }
+</script>
+
+{% elif chart_type == "subject_progress_heatmap" %}
+<!-- Subject Progress Heatmap -->
+<div class="chart-container">
+  <div class="chart-header d-flex justify-content-between align-items-center mb-3">
+    <h6 class="mb-0">
+      <i class="fas fa-th me-2"></i>
+      {% trans "Subject Progress Heatmap" %}
+    </h6>
+    <div class="chart-controls">
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" id="showValues" checked>
+        <label class="form-check-label" for="showValues">
+          {% trans "Show Values" %}
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="chart-wrapper">
+    <div id="progressHeatmapChart" style="height: 400px;"></div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Generate sample heatmap data
+    const subjects = ['Mathematics', 'Science', 'English', 'Arts', 'PE', 'Music'];
+    const grades = ['Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'];
+
+    const heatmapData = [];
+    let dataIndex = 0;
+
+    grades.forEach((grade, gradeIndex) => {
+      subjects.forEach((subject, subjectIndex) => {
+        heatmapData.push({
+          x: subject,
+          y: grade,
+          value: Math.floor(Math.random() * 100)
+        });
+      });
+    });
+
+    const options = {
+      series: [{
+        name: '{% trans "Completion %" %}',
+        data: heatmapData
+      }],
+      chart: {
+        height: 400,
+        type: 'heatmap',
+        toolbar: {
+          show: true
+        }
+      },
+      dataLabels: {
+        enabled: true,
+        style: {
+          colors: ['#fff']
+        }
+      },
+      colors: ["#008FFB"],
+      plotOptions: {
+        heatmap: {
+          shadeIntensity: 0.5,
+          radius: 0,
+          useFillColorAsStroke: true,
+          colorScale: {
+            ranges: [{
+              from: 0,
+              to: 30,
+              name: '{% trans "Low" %}',
+              color: '#dc3545'
+            }, {
+              from: 31,
+              to: 60,
+              name: '{% trans "Medium" %}',
+              color: '#ffc107'
+            }, {
+              from: 61,
+              to: 100,
+              name: '{% trans "High" %}',
+              color: '#28a745'
+            }]
+          }
+        }
+      },
+      xaxis: {
+        type: 'category',
+        title: {
+          text: '{% trans "Subjects" %}'
+        }
+      },
+      yaxis: {
+        title: {
+          text: '{% trans "Grades" %}'
+        }
+      },
+      tooltip: {
+        y: {
+          formatter: function (val) {
+            return val + '%'
+          }
+        }
+      }
+    };
+
+    const heatmapChart = new ApexCharts(document.querySelector("#progressHeatmapChart"), options);
+    heatmapChart.render();
+
+    // Show/hide values toggle
+    document.getElementById('showValues').addEventListener('change', function () {
+      heatmapChart.updateOptions({
+        dataLabels: {
+          enabled: this.checked
+        }
+      });
+    });
+  });
+</script>
+
+{% elif chart_type == "completion_gauge" %}
+<!-- Overall Completion Gauge -->
+<div class="chart-container">
+  <div class="chart-header mb-3">
+    <h6 class="mb-0">
+      <i class="fas fa-tachometer-alt me-2"></i>
+      {% trans "Overall Completion Rate" %}
+    </h6>
+  </div>
+  <div class="chart-wrapper">
+    <div class="row">
+      <div class="col-md-6">
+        <div id="completionGaugeChart" style="height: 300px;"></div>
+      </div>
+      <div class="col-md-6">
+        <div class="completion-stats mt-4">
+          <div class="stat-item mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="text-muted">{% trans "Completed Syllabi" %}</span>
+              <span class="fw-bold text-success">{{ completed_count|default:42 }}</span>
+            </div>
+            <div class="progress mt-1" style="height: 4px;">
+              <div class="progress-bar bg-success" style="width: 70%"></div>
+            </div>
+          </div>
+          <div class="stat-item mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="text-muted">{% trans "In Progress" %}</span>
+              <span class="fw-bold text-warning">{{ in_progress_count|default:28 }}</span>
+            </div>
+            <div class="progress mt-1" style="height: 4px;">
+              <div class="progress-bar bg-warning" style="width: 47%"></div>
+            </div>
+          </div>
+          <div class="stat-item mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="text-muted">{% trans "Not Started" %}</span>
+              <span class="fw-bold text-danger">{{ not_started_count|default:12 }}</span>
+            </div>
+            <div class="progress mt-1" style="height: 4px;">
+              <div class="progress-bar bg-danger" style="width: 20%"></div>
+            </div>
+          </div>
+          <hr>
+          <div class="stat-item">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="text-muted">{% trans "Total Syllabi" %}</span>
+              <span class="fw-bold">{{ total_count|default:82 }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const completionPercentage = {{ completion_percentage|default: 68.5
+  }};
+
+  const options = {
+    series: [completionPercentage],
+    chart: {
+      height: 300,
+      type: 'radialBar',
+      toolbar: {
+        show: false
+      }
+    },
+    plotOptions: {
+      radialBar: {
+        startAngle: -135,
+        endAngle: 225,
+        hollow: {
+          margin: 0,
+          size: '70%',
+          background: '#fff',
+          image: undefined,
+          position: 'front',
+          dropShadow: {
+            enabled: true,
+            top: 3,
+            left: 0,
+            blur: 4,
+            opacity: 0.24
+          }
+        },
+        track: {
+          background: '#fff',
+          strokeWidth: '67%',
+          margin: 0,
+          dropShadow: {
+            enabled: true,
+            top: -3,
+            left: 0,
+            blur: 4,
+            opacity: 0.35
+          }
+        },
+        dataLabels: {
+          show: true,
+          name: {
+            offsetY: -10,
+            show: true,
+            color: '#888',
+            fontSize: '17px'
+          },
+          value: {
+            formatter: function (val) {
+              return parseInt(val) + '%';
+            },
+            color: '#111',
+            fontSize: '36px',
+            show: true,
+          }
+        }
+      }
+    },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        shade: 'dark',
+        type: 'horizontal',
+        shadeIntensity: 0.5,
+        gradientToColors: ['#ABE5A1'],
+        inverseColors: true,
+        opacityFrom: 1,
+        opacityTo: 1,
+        stops: [0, 100]
+      }
+    },
+    stroke: {
+      lineCap: 'round'
+    },
+    labels: ['{% trans "Completion" %}'],
+    colors: ['#20E647']
+  };
+
+  const gaugeChart = new ApexCharts(document.querySelector("#completionGaugeChart"), options);
+  gaugeChart.render();
+});
+</script>
+
+{% endif %}
+
+<!-- Common Chart Styles -->
+<style>
+  .chart-container {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 1.5rem;
+  }
+
+  .chart-header h6 {
+    color: #495057;
+    font-weight: 600;
+  }
+
+  .chart-controls .btn-group-sm .btn {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .chart-controls .form-select-sm {
+    font-size: 0.875rem;
+  }
+
+  .chart-wrapper {
+    position: relative;
+  }
+
+  .period-btn.active {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+  }
+
+  .completion-stats .stat-item {
+    padding: 0.5rem 0;
+  }
+
+  .completion-stats .progress {
+    border-radius: 2px;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .chart-container {
+      padding: 1rem;
+    }
+
+    .chart-header {
+      flex-direction: column;
+      align-items: flex-start !important;
+    }
+
+    .chart-controls {
+      margin-top: 0.5rem;
+      width: 100%;
+    }
+
+    .chart-controls .btn-group {
+      width: 100%;
+    }
+
+    .chart-controls .btn {
+      flex: 1;
+    }
+
+    #completionTrendsChart,
+    #departmentComparisonChart,
+    #teacherWorkloadChart,
+    #progressHeatmapChart {
+      height: 250px !important;
+    }
+
+    #completionGaugeChart {
+      height: 200px !important;
+    }
+  }
+
+  /* Print styles */
+  @media print {
+    .chart-controls {
+      display: none;
+    }
+
+    .chart-container {
+      box-shadow: none;
+      border: 1px solid #dee2e6;
+      page-break-inside: avoid;
+    }
+  }
+</style>

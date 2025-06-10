@@ -1,0 +1,664 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+<style>
+  /* Subjects Module Specific Styles */
+  .subjects-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+    border-radius: 0 0 15px 15px;
+  }
+
+  .subjects-nav {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    padding: 1rem 0;
+    margin-bottom: 1rem;
+  }
+
+  .subjects-nav .nav-link {
+    color: #495057;
+    font-weight: 500;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin-right: 0.5rem;
+    transition: all 0.3s ease;
+  }
+
+  .subjects-nav .nav-link:hover {
+    background-color: #e9ecef;
+    color: #007bff;
+  }
+
+  .subjects-nav .nav-link.active {
+    background-color: #007bff;
+    color: white;
+  }
+
+  .module-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: all 0.3s ease;
+    overflow: hidden;
+  }
+
+  .module-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  }
+
+  .module-card .card-header {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border: none;
+    font-weight: 600;
+  }
+
+  .status-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+  }
+
+  .progress-ring {
+    width: 60px;
+    height: 60px;
+  }
+
+  .progress-ring circle {
+    fill: none;
+    stroke-width: 4;
+    stroke-linecap: round;
+  }
+
+  .progress-ring .progress-ring-bg {
+    stroke: #e9ecef;
+  }
+
+  .progress-ring .progress-ring-fill {
+    stroke: #007bff;
+    stroke-dasharray: 0 100;
+    transition: stroke-dasharray 0.3s ease;
+  }
+
+  .quick-action-btn {
+    border: 2px dashed #dee2e6;
+    background: transparent;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    color: #6c757d;
+  }
+
+  .quick-action-btn:hover {
+    border-color: #007bff;
+    color: #007bff;
+    background-color: #f8f9ff;
+  }
+
+  .analytics-widget {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .analytics-widget h4 {
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+  }
+
+  .analytics-widget .widget-value {
+    font-size: 2rem;
+    font-weight: 300;
+    margin-bottom: 0.5rem;
+  }
+
+  .analytics-widget .widget-change {
+    font-size: 0.875rem;
+    opacity: 0.9;
+  }
+
+  .floating-action-menu {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 1050;
+  }
+
+  .floating-action-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    box-shadow: 0 4px 16px rgba(0, 123, 255, 0.4);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+  }
+
+  .floating-action-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 123, 255, 0.6);
+    color: white;
+  }
+
+  .floating-submenu {
+    display: none;
+    position: absolute;
+    bottom: 70px;
+    right: 0;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    padding: 0.5rem;
+    min-width: 200px;
+  }
+
+  .floating-submenu.show {
+    display: block;
+    animation: fadeInUp 0.3s ease;
+  }
+
+  .floating-submenu-item {
+    display: block;
+    padding: 0.75rem 1rem;
+    color: #495057;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    font-size: 0.875rem;
+  }
+
+  .floating-submenu-item:hover {
+    background-color: #f8f9fa;
+    color: #007bff;
+  }
+
+  .floating-submenu-item i {
+    width: 20px;
+    margin-right: 0.5rem;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .breadcrumb-modern {
+    background: transparent;
+    padding: 0;
+    margin-bottom: 1rem;
+  }
+
+  .breadcrumb-modern .breadcrumb-item {
+    font-size: 0.875rem;
+  }
+
+  .breadcrumb-modern .breadcrumb-item+.breadcrumb-item::before {
+    content: ">";
+    color: #6c757d;
+    font-weight: bold;
+  }
+
+  .breadcrumb-modern .breadcrumb-item.active {
+    color: #007bff;
+    font-weight: 600;
+  }
+
+  .loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .loading-overlay.show {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .subjects-header {
+      padding: 1rem 0;
+      margin-bottom: 1rem;
+    }
+
+    .floating-action-menu {
+      bottom: 1rem;
+      right: 1rem;
+    }
+
+    .floating-action-btn {
+      width: 48px;
+      height: 48px;
+      font-size: 1rem;
+    }
+
+    .floating-submenu {
+      right: -150px;
+      min-width: 180px;
+    }
+
+    .module-card {
+      margin-bottom: 1rem;
+    }
+
+    .analytics-widget .widget-value {
+      font-size: 1.5rem;
+    }
+  }
+
+  /* Print styles */
+  @media print {
+
+    .floating-action-menu,
+    .subjects-nav,
+    .btn,
+    .dropdown,
+    .modal {
+      display: none !important;
+    }
+
+    .module-card {
+      box-shadow: none;
+      border: 1px solid #dee2e6;
+    }
+
+    .subjects-header {
+      background: #f8f9fa !important;
+      color: #333 !important;
+      border: 1px solid #dee2e6;
+    }
+  }
+
+  /* Dark mode support */
+  @media (prefers-color-scheme: dark) {
+    .subjects-nav {
+      background-color: #343a40;
+      border-bottom-color: #495057;
+    }
+
+    .subjects-nav .nav-link {
+      color: #adb5bd;
+    }
+
+    .subjects-nav .nav-link:hover {
+      background-color: #495057;
+      color: #17a2b8;
+    }
+
+    .module-card {
+      background-color: #343a40;
+      border-color: #495057;
+    }
+
+    .quick-action-btn {
+      border-color: #495057;
+      color: #adb5bd;
+    }
+
+    .quick-action-btn:hover {
+      border-color: #17a2b8;
+      color: #17a2b8;
+      background-color: #1e2329;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="subjects-module">
+  <!-- Module Header -->
+  <div class="subjects-header">
+    <div class="container-fluid">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <h1 class="h2 mb-0">
+            <i class="fas fa-graduation-cap me-2"></i>
+            {% block page_title %}{% trans "Subjects & Curriculum" %}{% endblock %}
+          </h1>
+          <p class="mb-0 mt-2 opacity-75">
+            {% block page_description %}{% trans "Comprehensive curriculum and syllabus management system" %}{% endblock %}
+          </p>
+        </div>
+        <div class="col-md-4 text-end">
+          {% block header_actions %}
+          <button type="button" class="btn btn-light btn-sm me-2" onclick="openQuickActions()">
+            <i class="fas fa-bolt me-1"></i>
+            {% trans "Quick Actions" %}
+          </button>
+          {% endblock %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="subjects-nav">
+    <div class="container-fluid">
+      <nav class="nav">
+        {% block navigation %}
+        <a class="nav-link {% if 'subject-list' in request.resolver_match.url_name or 'subject-detail' in request.resolver_match.url_name %}active{% endif %}"
+          href="{% url 'subjects:subject-list' %}">
+          <i class="fas fa-book me-1"></i>
+          {% trans "Subjects" %}
+        </a>
+        <a class="nav-link {% if 'syllabus' in request.resolver_match.url_name %}active{% endif %}"
+          href="{% url 'subjects:syllabus-list' %}">
+          <i class="fas fa-file-alt me-1"></i>
+          {% trans "Syllabi" %}
+        </a>
+        <a class="nav-link {% if 'assignment' in request.resolver_match.url_name %}active{% endif %}"
+          href="{% url 'subjects:assignment-list' %}">
+          <i class="fas fa-chalkboard-teacher me-1"></i>
+          {% trans "Assignments" %}
+        </a>
+        <a class="nav-link {% if 'analytics' in request.resolver_match.url_name %}active{% endif %}"
+          href="{% url 'subjects:curriculum-analytics' %}">
+          <i class="fas fa-chart-line me-1"></i>
+          {% trans "Analytics" %}
+        </a>
+        <a class="nav-link {% if 'dashboard' in request.resolver_match.url_name %}active{% endif %}"
+          href="{% url 'subjects:dashboard' %}">
+          <i class="fas fa-tachometer-alt me-1"></i>
+          {% trans "Dashboard" %}
+        </a>
+        {% endblock %}
+      </nav>
+    </div>
+  </div>
+
+  <!-- Breadcrumb -->
+  <div class="container-fluid">
+    {% block breadcrumb %}
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb breadcrumb-modern">
+        <li class="breadcrumb-item">
+          <a href="{% url 'subjects:dashboard' %}">
+            <i class="fas fa-home me-1"></i>
+            {% trans "Home" %}
+          </a>
+        </li>
+        <li class="breadcrumb-item">
+          <a href="{% url 'subjects:dashboard' %}">{% trans "Subjects" %}</a>
+        </li>
+        {% block breadcrumb_items %}{% endblock %}
+      </ol>
+    </nav>
+    {% endblock %}
+  </div>
+
+  <!-- Main Content -->
+  <div class="container-fluid">
+    {% block main_content %}
+    <!-- This block will be overridden by child templates -->
+    {% endblock %}
+  </div>
+</div>
+
+<!-- Floating Action Menu -->
+<div class="floating-action-menu">
+  <div class="floating-submenu" id="floatingSubmenu">
+    <a href="{% url 'subjects:subject-create' %}" class="floating-submenu-item">
+      <i class="fas fa-plus"></i>
+      {% trans "New Subject" %}
+    </a>
+    <a href="{% url 'subjects:syllabus-create' %}" class="floating-submenu-item">
+      <i class="fas fa-file-plus"></i>
+      {% trans "New Syllabus" %}
+    </a>
+    <a href="{% url 'subjects:assignment-create' %}" class="floating-submenu-item">
+      <i class="fas fa-user-plus"></i>
+      {% trans "Assign Teacher" %}
+    </a>
+    <div class="dropdown-divider"></div>
+    <a href="#" onclick="openQuickActions()" class="floating-submenu-item">
+      <i class="fas fa-bolt"></i>
+      {% trans "Quick Actions" %}
+    </a>
+    <a href="{% url 'subjects:curriculum-analytics' %}" class="floating-submenu-item">
+      <i class="fas fa-chart-bar"></i>
+      {% trans "View Analytics" %}
+    </a>
+  </div>
+  <button type="button" class="floating-action-btn" id="floatingActionBtn">
+    <i class="fas fa-plus"></i>
+  </button>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="text-center">
+    <div class="loading-spinner"></div>
+    <div class="mt-3">{% trans "Loading..." %}</div>
+  </div>
+</div>
+
+<!-- Include Quick Actions Modal -->
+{% include 'subjects/partials/quick_actions_modal.html' %}
+
+<!-- Include Content Editor Modal -->
+{% include 'subjects/partials/content_editor_modal.html' %}
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="{% url 'static' 'js/content_editor.js' %}"></script>
+
+<script>
+  // Subjects Module JavaScript
+  document.addEventListener('DOMContentLoaded', function () {
+    // Initialize floating action menu
+    initializeFloatingActionMenu();
+
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Initialize progress rings
+    initializeProgressRings();
+
+    // Setup auto-refresh for dynamic content
+    setupAutoRefresh();
+
+    // Setup keyboard shortcuts
+    setupKeyboardShortcuts();
+  });
+
+  function initializeFloatingActionMenu() {
+    const floatingBtn = document.getElementById('floatingActionBtn');
+    const submenu = document.getElementById('floatingSubmenu');
+    let isOpen = false;
+
+    if (floatingBtn && submenu) {
+      floatingBtn.addEventListener('click', function () {
+        isOpen = !isOpen;
+        submenu.classList.toggle('show', isOpen);
+
+        // Rotate the plus icon
+        const icon = floatingBtn.querySelector('i');
+        icon.style.transform = isOpen ? 'rotate(45deg)' : 'rotate(0deg)';
+      });
+
+      // Close menu when clicking outside
+      document.addEventListener('click', function (e) {
+        if (!floatingBtn.contains(e.target) && !submenu.contains(e.target)) {
+          isOpen = false;
+          submenu.classList.remove('show');
+          const icon = floatingBtn.querySelector('i');
+          icon.style.transform = 'rotate(0deg)';
+        }
+      });
+    }
+  }
+
+  function initializeProgressRings() {
+    document.querySelectorAll('.progress-ring').forEach(ring => {
+      const circle = ring.querySelector('.progress-ring-fill');
+      const percentage = parseFloat(ring.dataset.percentage || 0);
+
+      if (circle) {
+        const radius = circle.r.baseVal.value;
+        const circumference = radius * 2 * Math.PI;
+        const offset = circumference - (percentage / 100) * circumference;
+
+        circle.style.strokeDasharray = `${circumference} ${circumference}`;
+        circle.style.strokeDashoffset = offset;
+      }
+    });
+  }
+
+  function setupAutoRefresh() {
+    // Auto-refresh dynamic content every 5 minutes
+    if (window.location.pathname.includes('dashboard') ||
+      window.location.pathname.includes('analytics')) {
+      setInterval(function () {
+        // Refresh specific widgets without full page reload
+        refreshDynamicWidgets();
+      }, 300000); // 5 minutes
+    }
+  }
+
+  function refreshDynamicWidgets() {
+    // Implement widget-specific refresh logic
+    console.log('Refreshing dynamic widgets...');
+  }
+
+  function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', function (e) {
+      // Ctrl/Cmd + Shift + combinations
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
+        switch (e.key) {
+          case 'S': // New Subject
+            e.preventDefault();
+            window.location.href = "{% url 'subjects:subject-create' %}";
+            break;
+          case 'Y': // New Syllabus
+            e.preventDefault();
+            window.location.href = "{% url 'subjects:syllabus-create' %}";
+            break;
+          case 'A': // New Assignment
+            e.preventDefault();
+            window.location.href = "{% url 'subjects:assignment-create' %}";
+            break;
+          case 'Q': // Quick Actions
+            e.preventDefault();
+            openQuickActions();
+            break;
+        }
+      }
+    });
+  }
+
+  // Utility functions
+  function showLoading() {
+    document.getElementById('loadingOverlay').classList.add('show');
+  }
+
+  function hideLoading() {
+    document.getElementById('loadingOverlay').classList.remove('show');
+  }
+
+  function showNotification(message, type = 'success') {
+    // Create and show toast notification
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-white bg-${type} border-0`;
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) {
+      toastContainer = document.createElement('div');
+      toastContainer.id = 'toastContainer';
+      toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+      toastContainer.style.zIndex = '1080';
+      document.body.appendChild(toastContainer);
+    }
+
+    toastContainer.appendChild(toast);
+
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+
+    // Remove toast from DOM after it's hidden
+    toast.addEventListener('hidden.bs.toast', function () {
+      toast.remove();
+    });
+  }
+
+  // Global functions
+  window.showLoading = showLoading;
+  window.hideLoading = hideLoading;
+  window.showNotification = showNotification;
+</script>
+
+{% block page_js %}
+<!-- Page-specific JavaScript can be added here -->
+{% endblock %}
+{% endblock %}

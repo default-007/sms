@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if notification_type == "completion" %}Syllabus
+      Completed{% elif notification_type == "behind_schedule" %}Syllabus Behind
+      Schedule{% elif notification_type == "assignment" %}New Subject Assignment{% else %}Syllabus
+      Notification{% endif %}</title>
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #f4f4f4;
+        padding: 20px;
+      }
+
+      .email-container {
+        background-color: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        color: white;
+        padding: 30px 20px;
+        text-align: center;
+      }
+
+      .header h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+      }
+
+      .header .subtitle {
+        margin-top: 10px;
+        opacity: 0.9;
+        font-size: 16px;
+      }
+
+      .content {
+        padding: 30px 20px;
+      }
+
+      .greeting {
+        font-size: 18px;
+        margin-bottom: 20px;
+        color: #2c3e50;
+      }
+
+      .notification-card {
+        background-color: #f8f9fa;
+        border-left: 4px solid #007bff;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 0 5px 5px 0;
+      }
+
+      .notification-card.success {
+        border-left-color: #28a745;
+        background-color: #f8fff9;
+      }
+
+      .notification-card.warning {
+        border-left-color: #ffc107;
+        background-color: #fffbf0;
+      }
+
+      .notification-card.danger {
+        border-left-color: #dc3545;
+        background-color: #fff5f5;
+      }
+
+      .details-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        background-color: white;
+        border-radius: 5px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .details-table th {
+        background-color: #f8f9fa;
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 1px solid #dee2e6;
+      }
+
+      .details-table td {
+        padding: 12px;
+        border-bottom: 1px solid #f1f3f4;
+      }
+
+      .details-table tr:last-child td {
+        border-bottom: none;
+      }
+
+      .progress-bar {
+        background-color: #e9ecef;
+        border-radius: 10px;
+        height: 20px;
+        overflow: hidden;
+        margin: 10px 0;
+      }
+
+      .progress-fill {
+        height: 100%;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+      }
+
+      .progress-fill.success {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      }
+
+      .progress-fill.warning {
+        background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+      }
+
+      .progress-fill.danger {
+        background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+      }
+
+      .action-button {
+        display: inline-block;
+        padding: 12px 25px;
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 25px;
+        font-weight: 600;
+        margin: 15px 0;
+        box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+        transition: all 0.3s ease;
+      }
+
+      .action-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+        color: white;
+        text-decoration: none;
+      }
+
+      .recommendations {
+        background-color: #e3f2fd;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+      }
+
+      .recommendations h4 {
+        color: #1565c0;
+        margin-top: 0;
+        display: flex;
+        align-items: center;
+      }
+
+      .recommendations h4:before {
+        content: "💡";
+        margin-right: 10px;
+        font-size: 20px;
+      }
+
+      .recommendations ul {
+        margin: 10px 0;
+        padding-left: 20px;
+      }
+
+      .recommendations li {
+        margin: 8px 0;
+        color: #2e7d32;
+      }
+
+      .footer {
+        background-color: #f8f9fa;
+        padding: 20px;
+        text-align: center;
+        color: #6c757d;
+        font-size: 14px;
+        border-top: 1px solid #dee2e6;
+      }
+
+      .footer a {
+        color: #007bff;
+        text-decoration: none;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 4px 8px;
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: 12px;
+        color: white;
+      }
+
+      .badge.success {
+        background-color: #28a745;
+      }
+
+      .badge.warning {
+        background-color: #ffc107;
+        color: #333;
+      }
+
+      .badge.danger {
+        background-color: #dc3545;
+      }
+
+      .badge.info {
+        background-color: #17a2b8;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 15px;
+        margin: 20px 0;
+      }
+
+      .stat-item {
+        text-align: center;
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+      }
+
+      .stat-number {
+        font-size: 24px;
+        font-weight: bold;
+        color: #007bff;
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      @media (max-width: 600px) {
+        body {
+          padding: 10px;
+        }
+
+        .content {
+          padding: 20px 15px;
+        }
+
+        .header {
+          padding: 20px 15px;
+        }
+
+        .header h1 {
+          font-size: 20px;
+        }
+
+        .stats-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="email-container">
+      <div class="header">
+        <h1>
+          {% if notification_type == "completion" %}
+          🎉 Syllabus Completed!
+          {% elif notification_type == "behind_schedule" %}
+          ⚠️ Syllabus Behind Schedule
+          {% elif notification_type == "assignment" %}
+          👨‍🏫 New Subject Assignment
+          {% else %}
+          📚 Syllabus Update
+          {% endif %}
+        </h1>
+        <div class="subtitle">School Management System</div>
+      </div>
+
+      <div class="content">
+        <div class="greeting">
+          Hello {{ recipient_name|default:"Teacher" }},
+        </div>
+
+        {% if notification_type == "completion" %}
+        <!-- Syllabus Completion Notification -->
+        <div class="notification-card success">
+          <h3>🎯 Congratulations on completing your syllabus!</h3>
+          <p>You have successfully completed the syllabus for <strong>{{ subject_name }}</strong> in
+            <strong>{{ grade_name }}</strong> for <strong>{{ term_name }}</strong>.
+          </p>
+        </div>
+
+        <table class="details-table">
+          <tr>
+            <th>Subject</th>
+            <td>{{ subject_name }} ({{ subject_code }})</td>
+          </tr>
+          <tr>
+            <th>Grade</th>
+            <td>{{ grade_name }}</td>
+          </tr>
+          <tr>
+            <th>Term</th>
+            <td>{{ term_name }}</td>
+          </tr>
+          <tr>
+            <th>Completion Date</th>
+            <td>{{ completion_date|date:"F d, Y" }}</td>
+          </tr>
+          <tr>
+            <th>Total Topics</th>
+            <td>{{ total_topics }}</td>
+          </tr>
+          <tr>
+            <th>Hours Taught</th>
+            <td>{{ hours_taught }} hours</td>
+          </tr>
+        </table>
+
+        <div class="progress-bar">
+          <div class="progress-fill success" style="width: 100%;">
+            100% Complete
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-number">{{ total_topics }}</div>
+            <div class="stat-label">Topics Covered</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">{{ hours_taught }}</div>
+            <div class="stat-label">Hours Taught</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">{{ days_taken }}</div>
+            <div class="stat-label">Days Taken</div>
+          </div>
+        </div>
+
+        {% elif notification_type == "behind_schedule" %}
+        <!-- Behind Schedule Notification -->
+        <div class="notification-card {% if risk_level == 'high' %}danger{% else %}warning{% endif %}">
+          <h3>📅 Syllabus Progress Alert</h3>
+          <p>The syllabus for <strong>{{ subject_name }}</strong> in <strong>{{ grade_name }}</strong> is currently
+            <strong>{{ status_message }}</strong>.
+          </p>
+        </div>
+
+        <table class="details-table">
+          <tr>
+            <th>Subject</th>
+            <td>{{ subject_name }} ({{ subject_code }})</td>
+          </tr>
+          <tr>
+            <th>Grade</th>
+            <td>{{ grade_name }}</td>
+          </tr>
+          <tr>
+            <th>Term</th>
+            <td>{{ term_name }}</td>
+          </tr>
+          <tr>
+            <th>Current Progress</th>
+            <td>{{ completion_percentage }}%</td>
+          </tr>
+          <tr>
+            <th>Expected Progress</th>
+            <td>{{ expected_progress }}%</td>
+          </tr>
+          <tr>
+            <th>Days Remaining</th>
+            <td>{{ remaining_days }} days</td>
+          </tr>
+          <tr>
+            <th>Risk Level</th>
+            <td>
+              <span
+                class="badge {% if risk_level == 'high' %}danger{% elif risk_level == 'medium' %}warning{% else %}success{% endif %}">
+                {{ risk_level|title }}
+              </span>
+            </td>
+          </tr>
+        </table>
+
+        <div class="progress-bar">
+          <div
+            class="progress-fill {% if risk_level == 'high' %}danger{% elif risk_level == 'medium' %}warning{% else %}success{% endif %}"
+            style="width: {{ completion_percentage }}%;">
+            {{ completion_percentage }}% Complete
+          </div>
+        </div>
+
+        {% if recommendations %}
+        <div class="recommendations">
+          <h4>Recommendations</h4>
+          <ul>
+            {% for recommendation in recommendations %}
+            <li>{{ recommendation }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        {% elif notification_type == "assignment" %}
+        <!-- New Assignment Notification -->
+        <div class="notification-card">
+          <h3>📋 New Subject Assignment</h3>
+          <p>You have been assigned to teach <strong>{{ subject_name }}</strong> for <strong>{{ class_name }}</strong>
+            in <strong>{{ term_name }}</strong>.</p>
+        </div>
+
+        <table class="details-table">
+          <tr>
+            <th>Subject</th>
+            <td>{{ subject_name }} ({{ subject_code }})</td>
+          </tr>
+          <tr>
+            <th>Class</th>
+            <td>{{ class_name }}</td>
+          </tr>
+          <tr>
+            <th>Academic Year</th>
+            <td>{{ academic_year }}</td>
+          </tr>
+          <tr>
+            <th>Term</th>
+            <td>{{ term_name }}</td>
+          </tr>
+          <tr>
+            <th>Assignment Type</th>
+            <td>
+              <span class="badge {% if is_primary_teacher %}success{% else %}info{% endif %}">
+                {% if is_primary_teacher %}Primary Teacher{% else %}Secondary Teacher{% endif %}
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <th>Credit Hours</th>
+            <td>{{ credit_hours }}</td>
+          </tr>
+          <tr>
+            <th>Assignment Date</th>
+            <td>{{ assignment_date|date:"F d, Y" }}</td>
+          </tr>
+        </table>
+
+        {% if syllabus_exists %}
+        <div class="notification-card success">
+          <p>✅ A syllabus is already available for this subject and term. You can start teaching immediately!</p>
+        </div>
+        {% else %}
+        <div class="notification-card warning">
+          <p>⚠️ No syllabus has been created yet for this subject and term. Please create or request a syllabus before
+            starting classes.</p>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- General Notification -->
+        <div class="notification-card">
+          <h3>📢 Syllabus Update</h3>
+          <p>{{ message|default:"You have a new notification regarding your syllabus." }}</p>
+        </div>
+        {% endif %}
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="{{ action_url|default:'#' }}" class="action-button">
+            {% if notification_type == "completion" %}
+            View Completed Syllabus
+            {% elif notification_type == "behind_schedule" %}
+            Update Progress
+            {% elif notification_type == "assignment" %}
+            View Assignment Details
+            {% else %}
+            View Details
+            {% endif %}
+          </a>
+        </div>
+
+        <p style="color: #6c757d; font-size: 14px; margin-top: 30px;">
+          {% if notification_type == "completion" %}
+          Thank you for your dedication to completing the curriculum. Your commitment to education makes a difference!
+          {% elif notification_type == "behind_schedule" %}
+          We're here to support you in getting back on track. Don't hesitate to reach out if you need assistance.
+          {% elif notification_type == "assignment" %}
+          We look forward to your contributions to this class. Please prepare accordingly and reach out if you have any
+          questions.
+          {% else %}
+          Thank you for your attention to this matter.
+          {% endif %}
+        </p>
+      </div>
+
+      <div class="footer">
+        <p>
+          <strong>School Management System</strong><br>
+          <a href="{{ system_url|default:'#' }}">Visit System</a> |
+          <a href="{{ help_url|default:'#' }}">Get Help</a> |
+          <a href="{{ settings_url|default:'#' }}">Notification Settings</a>
+        </p>
+        <p style="margin-top: 15px; font-size: 12px; color: #adb5bd;">
+          This is an automated notification from the School Management System.<br>
+          If you have questions, please contact your system administrator.
+        </p>
+      </div>
+    </div>
+  </body>
+
+</html>

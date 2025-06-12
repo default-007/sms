@@ -1,4 +1,4 @@
-# api/urls.py
+# core/api/urls.py
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
@@ -11,20 +11,14 @@ from .views import (
     FinancialAnalyticsViewSet,
     TeacherPerformanceAnalyticsViewSet,
     SystemHealthMetricsViewSet,
-    AnalyticsDashboardView,
-    BulkAnalyticsCalculationView,
-    SystemMetricsView,
+    AnalyticsAPIView,
+    DashboardAPIView,
 )
 
 # Create router and register viewsets
 router = DefaultRouter()
-
-# System management endpoints
 router.register(r"settings", SystemSettingViewSet, basename="systemsetting")
 router.register(r"audit-logs", AuditLogViewSet, basename="auditlog")
-router.register(r"system-health", SystemHealthMetricsViewSet, basename="systemhealth")
-
-# Analytics endpoints
 router.register(
     r"analytics/student-performance",
     StudentPerformanceAnalyticsViewSet,
@@ -46,16 +40,19 @@ router.register(
     TeacherPerformanceAnalyticsViewSet,
     basename="teacher-analytics",
 )
+router.register(
+    r"system/health-metrics", SystemHealthMetricsViewSet, basename="health-metrics"
+)
 
 urlpatterns = [
     # Include router URLs
     path("", include(router.urls)),
-    # Custom API views
-    path("dashboard/", AnalyticsDashboardView.as_view(), name="analytics-dashboard"),
+    # Custom API endpoints
     path(
-        "analytics/calculate/",
-        BulkAnalyticsCalculationView.as_view(),
-        name="analytics-calculate",
+        "analytics/calculate/", AnalyticsAPIView.as_view(), name="analytics-calculate"
     ),
-    path("system/metrics/", SystemMetricsView.as_view(), name="system-metrics"),
+    path("dashboard/", DashboardAPIView.as_view(), name="analytics-dashboard"),
+    # System metrics and status
+    path("system/metrics/", DashboardAPIView.as_view(), name="system-metrics"),
+    path("system/status/", DashboardAPIView.as_view(), name="system-status"),
 ]

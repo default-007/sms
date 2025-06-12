@@ -168,24 +168,14 @@
           <div class="mb-4">
             <div class="small mb-1 d-flex justify-content-between">
               <span>Storage Usage</span>
-              <span>{{ latest_health.storage_used_gb|floatformat:1 }}GB /
-                {{ latest_health.storage_used_gb|add:latest_health.storage_available_gb|floatformat:1 }}GB</span>
+              <span>{{ latest_health.storage_used_gb|floatformat:1 }}GB / {{ total_storage|floatformat:1 }}GB</span>
             </div>
-            {% with total_storage=latest_health.storage_used_gb|add:latest_health.storage_available_gb %}
             {% if total_storage > 0 %}
-            {% with usage_percent=latest_health.storage_used_gb|div:total_storage|mul:100 %}
             <div class="progress mb-2">
-              <div class="progress-bar 
-                                        {% if usage_percent < 70 %}bg-success
-                                        {% elif usage_percent < 85 %}bg-warning
-                                        {% else %}bg-danger{% endif %}" role="progressbar"
-                style="width: {{ usage_percent|floatformat:0 }}%">
-              </div>
+              <div class="progress-bar bg-primary" role="progressbar" style="width: {{ storage_usage_percent }}%"></div>
             </div>
-            <div class="small text-muted">{{ usage_percent|floatformat:1 }}% used</div>
-            {% endwith %}
+            <div class="small text-muted">{{ storage_usage_percent }}% used</div>
             {% endif %}
-            {% endwith %}
           </div>
 
           <!-- Memory Usage -->
@@ -207,228 +197,221 @@
               <span>{{ latest_health.db_connection_count }}</span>
             </div>
             <div class="progress mb-2">
-              <div class="progress-bar bg-primary" role="progressbar"
-                style="width: {{ latest_health.db_connection_count|div:100|mul:100|floatformat:0 }}%"></div>
+              <div class="progress-bar {{ db_status_class }}" style="width: {{ db_connection_percent }}%"></div>
             </div>
-            <div class="small text-muted">Active connections</div>
           </div>
-
-          <!-- Active Users -->
-          <div class="mb-3">
-            <div class="small mb-1 d-flex justify-content-between">
-              <span>Active Users</span>
-              <span>{{ latest_health.active_users }}</span>
-            </div>
-            <div class="h6 mb-0 font-weight-bold text-primary">{{ latest_health.active_users }}</div>
-          </div>
-          {% else %}
-          <div class="text-center text-muted">
-            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-            <p>No resource data available</p>
-          </div>
-          {% endif %}
+          <div class="small text-muted">Active connections</div>
         </div>
+
+        <!-- Active Users -->
+        <div class="mb-3">
+          <div class="small mb-1 d-flex justify-content-between">
+            <span>Active Users</span>
+            <span>{{ latest_health.active_users }}</span>
+          </div>
+          <div class="h6 mb-0 font-weight-bold text-primary">{{ latest_health.active_users }}</div>
+        </div>
+        {% else %}
+        <div class="text-center text-muted">
+          <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+          <p>No resource data available</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Background Tasks Status -->
+<div class="row mb-4">
+  <div class="col-xl-6 col-lg-6">
+    <div class="card shadow mb-4">
+      <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Background Tasks</h6>
+      </div>
+      <div class="card-body">
+        {% if latest_health %}
+        <div class="row text-center">
+          <div class="col-4">
+            <div class="border-right">
+              <div class="h5 mb-0 font-weight-bold text-info">{{ latest_health.pending_tasks }}</div>
+              <div class="small text-muted">Pending</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="border-right">
+              <div class="h5 mb-0 font-weight-bold text-success">{{ latest_health.completed_tasks }}</div>
+              <div class="small text-muted">Completed</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="h5 mb-0 font-weight-bold text-danger">{{ latest_health.failed_tasks }}</div>
+            <div class="small text-muted">Failed</div>
+          </div>
+        </div>
+        <hr>
+        <div class="text-center">
+          <a href="#" class="btn btn-sm btn-outline-primary" onclick="viewTaskDetails()">
+            <i class="fas fa-tasks"></i> View Task Queue
+          </a>
+        </div>
+        {% else %}
+        <div class="text-center text-muted">
+          <i class="fas fa-tasks fa-2x mb-2"></i>
+          <p>No task data available</p>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
 
-  <!-- Background Tasks Status -->
-  <div class="row mb-4">
-    <div class="col-xl-6 col-lg-6">
-      <div class="card shadow mb-4">
-        <div class="card-header py-3">
-          <h6 class="m-0 font-weight-bold text-primary">Background Tasks</h6>
-        </div>
-        <div class="card-body">
-          {% if latest_health %}
-          <div class="row text-center">
-            <div class="col-4">
-              <div class="border-right">
-                <div class="h5 mb-0 font-weight-bold text-info">{{ latest_health.pending_tasks }}</div>
-                <div class="small text-muted">Pending</div>
-              </div>
-            </div>
-            <div class="col-4">
-              <div class="border-right">
-                <div class="h5 mb-0 font-weight-bold text-success">{{ latest_health.completed_tasks }}</div>
-                <div class="small text-muted">Completed</div>
-              </div>
-            </div>
-            <div class="col-4">
-              <div class="h5 mb-0 font-weight-bold text-danger">{{ latest_health.failed_tasks }}</div>
-              <div class="small text-muted">Failed</div>
-            </div>
+  <!-- Service Status -->
+  <div class="col-xl-6 col-lg-6">
+    <div class="card shadow mb-4">
+      <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Service Status</h6>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-6 text-center mb-3">
+            <i class="fas fa-server fa-2x mb-2 text-success"></i>
+            <div class="font-weight-bold">Web Server</div>
+            <small class="text-success">Operational</small>
           </div>
-          <hr>
-          <div class="text-center">
-            <a href="#" class="btn btn-sm btn-outline-primary" onclick="viewTaskDetails()">
-              <i class="fas fa-tasks"></i> View Task Queue
+          <div class="col-6 text-center mb-3">
+            <i class="fas fa-database fa-2x mb-2 text-success"></i>
+            <div class="font-weight-bold">Database</div>
+            <small class="text-success">Operational</small>
+          </div>
+          <div class="col-6 text-center mb-3">
+            <i class="fas fa-memory fa-2x mb-2 text-success"></i>
+            <div class="font-weight-bold">Cache</div>
+            <small class="text-success">Operational</small>
+          </div>
+          <div class="col-6 text-center mb-3">
+            <i class="fas fa-cogs fa-2x mb-2 text-success"></i>
+            <div class="font-weight-bold">Tasks</div>
+            <small class="text-success">Operational</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Health History and Alerts -->
+<div class="row">
+  <!-- Health Trends -->
+  <div class="col-xl-8 col-lg-7">
+    <div class="card shadow mb-4">
+      <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Health Trends</h6>
+      </div>
+      <div class="card-body">
+        <div id="healthTrendsChart"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Alerts -->
+  <div class="col-xl-4 col-lg-5">
+    <div class="card shadow mb-4">
+      <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">System Alerts</h6>
+      </div>
+      <div class="card-body">
+        <div id="alertsList">
+          {% if latest_health %}
+          {% if storage_usage_percent > 85 %}
+          <div class="alert alert-danger alert-sm mb-2">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Critical:</strong> Storage usage is at {{ storage_usage_percent }}%
+          </div>
+          {% elif storage_usage_percent > 70 %}
+          <div class="alert alert-warning alert-sm mb-2">
+            <i class="fas fa-exclamation-circle"></i>
+            <strong>Warning:</strong> Storage usage is at {{ storage_usage_percent }}%
+          </div>
+          {% endif %}
+          {% endif %}
+
+          {% if latest_health.avg_response_time_ms > 1000 %}
+          <div class="alert alert-warning alert-sm mb-2">
+            <i class="fas fa-clock"></i>
+            <strong>Performance:</strong> High response time detected
+            ({{ latest_health.avg_response_time_ms|floatformat:0 }}ms)
+          </div>
+          {% endif %}
+
+          {% if latest_health.cache_hit_rate < 60 %}
+          <div class="alert alert-warning alert-sm mb-2">
+            <i class="fas fa-memory"></i>
+            <strong>Cache:</strong> Low cache hit rate ({{ latest_health.cache_hit_rate|floatformat:1 }}%)
+          </div>
+          {% endif %}
+
+          {% if latest_health.failed_tasks > 10 %}
+          <div class="alert alert-danger alert-sm mb-2">
+            <i class="fas fa-tasks"></i>
+            <strong>Tasks:</strong> Multiple failed tasks detected ({{ latest_health.failed_tasks }})
+          </div>
+          {% endif %}
+
+          <!-- If no alerts -->
+          <script>
+            if (document.querySelectorAll('#alertsList .alert').length === 0) {
+              document.getElementById('alertsList').innerHTML =
+                '<div class="text-center text-muted">' +
+                '<i class="fas fa-check-circle fa-2x mb-2 text-success"></i>' +
+                '<p>No active alerts</p>' +
+                '<small>All systems operating normally</small>' +
+                '</div>';
+            }
+          </script>
+          <div class="text-center text-muted">
+            <i class="fas fa-bell fa-2x mb-2"></i>
+            <p>No alert data available</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Actions Panel -->
+<div class="row">
+  <div class="col-12">
+    <div class="card shadow mb-4">
+      <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">System Actions</h6>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-3 mb-2">
+            <button class="btn btn-outline-primary btn-block" onclick="runDiagnostics()">
+              <i class="fas fa-stethoscope"></i> Run Diagnostics
+            </button>
+          </div>
+          <div class="col-md-3 mb-2">
+            <button class="btn btn-outline-success btn-block" onclick="clearCache()">
+              <i class="fas fa-broom"></i> Clear Cache
+            </button>
+          </div>
+          <div class="col-md-3 mb-2">
+            <button class="btn btn-outline-warning btn-block" onclick="restartServices()">
+              <i class="fas fa-redo"></i> Restart Services
+            </button>
+          </div>
+          <div class="col-md-3 mb-2">
+            <a href="{% url 'core:audit_logs' %}" class="btn btn-outline-info btn-block">
+              <i class="fas fa-history"></i> View Logs
             </a>
           </div>
-          {% else %}
-          <div class="text-center text-muted">
-            <i class="fas fa-tasks fa-2x mb-2"></i>
-            <p>No task data available</p>
-          </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-
-    <!-- Service Status -->
-    <div class="col-xl-6 col-lg-6">
-      <div class="card shadow mb-4">
-        <div class="card-header py-3">
-          <h6 class="m-0 font-weight-bold text-primary">Service Status</h6>
-        </div>
-        <div class="card-body">
-          <div class="row">
-            <div class="col-6 text-center mb-3">
-              <i class="fas fa-server fa-2x mb-2 text-success"></i>
-              <div class="font-weight-bold">Web Server</div>
-              <small class="text-success">Operational</small>
-            </div>
-            <div class="col-6 text-center mb-3">
-              <i class="fas fa-database fa-2x mb-2 text-success"></i>
-              <div class="font-weight-bold">Database</div>
-              <small class="text-success">Operational</small>
-            </div>
-            <div class="col-6 text-center mb-3">
-              <i class="fas fa-memory fa-2x mb-2 text-success"></i>
-              <div class="font-weight-bold">Cache</div>
-              <small class="text-success">Operational</small>
-            </div>
-            <div class="col-6 text-center mb-3">
-              <i class="fas fa-cogs fa-2x mb-2 text-success"></i>
-              <div class="font-weight-bold">Tasks</div>
-              <small class="text-success">Operational</small>
-            </div>
-          </div>
         </div>
       </div>
     </div>
   </div>
-
-  <!-- Health History and Alerts -->
-  <div class="row">
-    <!-- Health Trends -->
-    <div class="col-xl-8 col-lg-7">
-      <div class="card shadow mb-4">
-        <div class="card-header py-3">
-          <h6 class="m-0 font-weight-bold text-primary">Health Trends</h6>
-        </div>
-        <div class="card-body">
-          <div id="healthTrendsChart"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- System Alerts -->
-    <div class="col-xl-4 col-lg-5">
-      <div class="card shadow mb-4">
-        <div class="card-header py-3">
-          <h6 class="m-0 font-weight-bold text-primary">System Alerts</h6>
-        </div>
-        <div class="card-body">
-          <div id="alertsList">
-            {% if latest_health %}
-            {% with total_storage=latest_health.storage_used_gb|add:latest_health.storage_available_gb %}
-            {% if total_storage > 0 %}
-            {% with usage_percent=latest_health.storage_used_gb|div:total_storage|mul:100 %}
-            {% if usage_percent > 85 %}
-            <div class="alert alert-danger alert-sm mb-2">
-              <i class="fas fa-exclamation-triangle"></i>
-              <strong>Critical:</strong> Storage usage is at {{ usage_percent|floatformat:1 }}%
-            </div>
-            {% elif usage_percent > 70 %}
-            <div class="alert alert-warning alert-sm mb-2">
-              <i class="fas fa-exclamation-circle"></i>
-              <strong>Warning:</strong> Storage usage is at {{ usage_percent|floatformat:1 }}%
-            </div>
-            {% endif %}
-            {% endwith %}
-            {% endif %}
-            {% endwith %}
-
-            {% if latest_health.avg_response_time_ms > 1000 %}
-            <div class="alert alert-warning alert-sm mb-2">
-              <i class="fas fa-clock"></i>
-              <strong>Performance:</strong> High response time detected
-              ({{ latest_health.avg_response_time_ms|floatformat:0 }}ms)
-            </div>
-            {% endif %}
-
-            {% if latest_health.cache_hit_rate < 60 %}
-            <div class="alert alert-warning alert-sm mb-2">
-              <i class="fas fa-memory"></i>
-              <strong>Cache:</strong> Low cache hit rate ({{ latest_health.cache_hit_rate|floatformat:1 }}%)
-            </div>
-            {% endif %}
-
-            {% if latest_health.failed_tasks > 10 %}
-            <div class="alert alert-danger alert-sm mb-2">
-              <i class="fas fa-tasks"></i>
-              <strong>Tasks:</strong> Multiple failed tasks detected ({{ latest_health.failed_tasks }})
-            </div>
-            {% endif %}
-
-            <!-- If no alerts -->
-            <script>
-              if (document.querySelectorAll('#alertsList .alert').length === 0) {
-                document.getElementById('alertsList').innerHTML =
-                  '<div class="text-center text-muted">' +
-                  '<i class="fas fa-check-circle fa-2x mb-2 text-success"></i>' +
-                  '<p>No active alerts</p>' +
-                  '<small>All systems operating normally</small>' +
-                  '</div>';
-              }
-            </script>
-            {% else %}
-            <div class="text-center text-muted">
-              <i class="fas fa-bell fa-2x mb-2"></i>
-              <p>No alert data available</p>
-            </div>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Actions Panel -->
-  <div class="row">
-    <div class="col-12">
-      <div class="card shadow mb-4">
-        <div class="card-header py-3">
-          <h6 class="m-0 font-weight-bold text-primary">System Actions</h6>
-        </div>
-        <div class="card-body">
-          <div class="row">
-            <div class="col-md-3 mb-2">
-              <button class="btn btn-outline-primary btn-block" onclick="runDiagnostics()">
-                <i class="fas fa-stethoscope"></i> Run Diagnostics
-              </button>
-            </div>
-            <div class="col-md-3 mb-2">
-              <button class="btn btn-outline-success btn-block" onclick="clearCache()">
-                <i class="fas fa-broom"></i> Clear Cache
-              </button>
-            </div>
-            <div class="col-md-3 mb-2">
-              <button class="btn btn-outline-warning btn-block" onclick="restartServices()">
-                <i class="fas fa-redo"></i> Restart Services
-              </button>
-            </div>
-            <div class="col-md-3 mb-2">
-              <a href="{% url 'core:audit_logs' %}" class="btn btn-outline-info btn-block">
-                <i class="fas fa-history"></i> View Logs
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+</div>
 </div>
 {% endblock %}
 

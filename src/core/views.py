@@ -18,15 +18,12 @@ from django.contrib.auth import get_user_model
 from datetime import datetime, timedelta
 import json
 
-from src.finance.models import FinancialAnalytics
-
 from .models import (
     SystemSetting,
     AuditLog,
     StudentPerformanceAnalytics,
     ClassPerformanceAnalytics,
     AttendanceAnalytics,
-    # FinancialAnalytics,
     TeacherPerformanceAnalytics,
     SystemHealthMetrics,
 )
@@ -142,16 +139,21 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         data = {}
 
         if current_year and current_term:
-            # Financial summary
-            financial_analytics = FinancialAnalytics.objects.filter(
-                academic_year=current_year, term=current_term
-            ).aggregate(
-                total_expected=Sum("total_expected_revenue"),
-                total_collected=Sum("total_collected_revenue"),
-                avg_collection_rate=Avg("collection_rate"),
-            )
+            # Financial summary - import here to avoid dependency issues
+            try:
+                from src.finance.models import FinancialAnalytics
 
-            data["financial_summary"] = financial_analytics
+                financial_analytics = FinancialAnalytics.objects.filter(
+                    academic_year=current_year, term=current_term
+                ).aggregate(
+                    total_expected=Sum("total_expected_revenue"),
+                    total_collected=Sum("total_collected_revenue"),
+                    avg_collection_rate=Avg("collection_rate"),
+                )
+                data["financial_summary"] = financial_analytics
+            except ImportError:
+                # Finance module not available
+                data["financial_summary"] = {}
 
             # Performance summary
             student_analytics = StudentPerformanceAnalytics.objects.filter(
@@ -180,51 +182,59 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         teacher = self.request.user.teacher
 
         # Get classes taught
-        from teachers.models import TeacherClassAssignment
+        try:
+            from src.teachers.models import TeacherClassAssignment
 
-        assignments = TeacherClassAssignment.objects.filter(
-            teacher=teacher, academic_year__is_current=True
-        ).select_related("class_instance", "subject")
+            assignments = TeacherClassAssignment.objects.filter(
+                teacher=teacher, academic_year__is_current=True
+            ).select_related("class_instance", "subject")
 
-        return {
-            "teacher_assignments": assignments,
-            "classes_count": assignments.values("class_instance").distinct().count(),
-            "subjects_count": assignments.values("subject").distinct().count(),
-        }
+            return {
+                "teacher_assignments": assignments,
+                "classes_count": assignments.values("class_instance")
+                .distinct()
+                .count(),
+                "subjects_count": assignments.values("subject").distinct().count(),
+            }
+        except ImportError:
+            return {}
 
     def get_parent_dashboard_data(self):
         """Get dashboard data for parents"""
         parent = self.request.user.parent
 
         # Get children
-        from students.models import StudentParentRelation
+        try:
+            from src.students.models import StudentParentRelation
 
-        children_relations = StudentParentRelation.objects.filter(
-            parent=parent
-        ).select_related("student__user", "student__current_class")
+            children_relations = StudentParentRelation.objects.filter(
+                parent=parent
+            ).select_related("student__user", "student__current_class")
 
-        children_data = []
-        for relation in children_relations:
-            student = relation.student
+            children_data = []
+            for relation in children_relations:
+                student = relation.student
 
-            # Get latest performance
-            latest_performance = (
-                StudentPerformanceAnalytics.objects.filter(
-                    student=student, subject__isnull=True
+                # Get latest performance
+                latest_performance = (
+                    StudentPerformanceAnalytics.objects.filter(
+                        student=student, subject__isnull=True
+                    )
+                    .order_by("-calculated_at")
+                    .first()
                 )
-                .order_by("-calculated_at")
-                .first()
-            )
 
-            children_data.append(
-                {
-                    "student": student,
-                    "relation_type": relation.relation_type,
-                    "performance": latest_performance,
-                }
-            )
+                children_data.append(
+                    {
+                        "student": student,
+                        "relation_type": relation.relation_type,
+                        "performance": latest_performance,
+                    }
+                )
 
-        return {"children": children_data, "children_count": len(children_data)}
+            return {"children": children_data, "children_count": len(children_data)}
+        except ImportError:
+            return {}
 
     def get_student_dashboard_data(self):
         """Get dashboard data for students"""
@@ -240,19 +250,26 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         )
 
         # Get recent assignments
-        from src.assignments.models import AssignmentSubmission
+        try:
+            from src.assignments.models import AssignmentSubmission
 
-        recent_assignments = (
-            AssignmentSubmission.objects.filter(student=student)
-            .select_related("assignment")
-            .order_by("-submission_date")[:5]
-        )
+            recent_assignments = (
+                AssignmentSubmission.objects.filter(student=student)
+                .select_related("assignment")
+                .order_by("-submission_date")[:5]
+            )
 
-        return {
-            "student": student,
-            "performance": latest_performance,
-            "recent_assignments": recent_assignments,
-        }
+            return {
+                "student": student,
+                "performance": latest_performance,
+                "recent_assignments": recent_assignments,
+            }
+        except ImportError:
+            return {
+                "student": student,
+                "performance": latest_performance,
+                "recent_assignments": [],
+            }
 
 
 class SystemAdminView(SystemAdminMixin, TemplateView):
@@ -464,15 +481,102 @@ class SystemHealthView(SystemAdminMixin, TemplateView):
 
         context["health_history"] = health_history
 
-        # System status indicators
+        # System status indicators and calculated metrics
         if latest_health:
-            context["system_status"] = {
-                "overall": self.get_overall_status(latest_health),
-                "database": self.get_database_status(latest_health),
-                "cache": self.get_cache_status(latest_health),
-                "storage": self.get_storage_status(latest_health),
-                "performance": self.get_performance_status(latest_health),
-            }
+            # Storage calculations
+            total_storage = (
+                latest_health.storage_used_gb + latest_health.storage_available_gb
+            )
+            storage_usage_percent = 0
+            if total_storage > 0:
+                storage_usage_percent = (
+                    latest_health.storage_used_gb / total_storage
+                ) * 100
+
+            # Database connection percentage (assuming max 100 connections)
+            max_db_connections = 100
+            db_connection_percent = min(
+                round(
+                    (latest_health.db_connection_count / max_db_connections) * 100, 1
+                ),
+                100,
+            )
+
+            # Performance metrics
+            error_rate_percent = round(latest_health.error_rate, 1)
+            cache_hit_percent = round(latest_health.cache_hit_rate, 1)
+
+            # Response time percentage (assuming 2000ms as max acceptable)
+            max_response_time = 2000
+            response_time_percent = min(
+                round(
+                    (latest_health.avg_response_time_ms / max_response_time) * 100, 1
+                ),
+                100,
+            )
+
+            # Status classes for color coding
+            storage_status_class = (
+                "bg-danger"
+                if storage_usage_percent > 85
+                else "bg-warning" if storage_usage_percent > 70 else "bg-success"
+            )
+
+            db_status_class = (
+                "bg-danger"
+                if db_connection_percent > 80
+                else "bg-warning" if db_connection_percent > 60 else "bg-success"
+            )
+
+            cache_status_class = (
+                "bg-success"
+                if cache_hit_percent > 80
+                else "bg-warning" if cache_hit_percent > 60 else "bg-danger"
+            )
+
+            performance_status_class = (
+                "bg-danger"
+                if latest_health.avg_response_time_ms > 1000
+                else (
+                    "bg-warning"
+                    if latest_health.avg_response_time_ms > 500
+                    else "bg-success"
+                )
+            )
+
+            error_status_class = (
+                "bg-danger"
+                if error_rate_percent > 5
+                else "bg-warning" if error_rate_percent > 1 else "bg-success"
+            )
+
+            context.update(
+                {
+                    "system_status": {
+                        "overall": self.get_overall_status(latest_health),
+                        "database": self.get_database_status(latest_health),
+                        "cache": self.get_cache_status(latest_health),
+                        "storage": self.get_storage_status(latest_health),
+                        "performance": self.get_performance_status(latest_health),
+                    },
+                    # Calculated percentages
+                    "storage_usage_percent": round(storage_usage_percent, 1),
+                    "total_storage": round(total_storage, 1),
+                    "db_connection_percent": db_connection_percent,
+                    "cache_hit_percent": cache_hit_percent,
+                    "error_rate_percent": error_rate_percent,
+                    "response_time_percent": response_time_percent,
+                    # Status classes
+                    "storage_status_class": storage_status_class,
+                    "db_status_class": db_status_class,
+                    "cache_status_class": cache_status_class,
+                    "performance_status_class": performance_status_class,
+                    "error_status_class": error_status_class,
+                    # Raw values for display
+                    "max_db_connections": max_db_connections,
+                    "max_response_time": max_response_time,
+                }
+            )
 
         return context
 
@@ -589,25 +693,34 @@ class AnalyticsView(SchoolAdminMixin, TemplateView):
             or 0,
         }
 
-        # Financial analytics
-        financial_analytics = FinancialAnalytics.objects.filter(
-            academic_year=academic_year, term=term
-        )
+        # Financial analytics - try to import if available
+        try:
+            from src.finance.models import FinancialAnalytics
 
-        summary["financial"] = {
-            "total_expected": financial_analytics.aggregate(
-                sum=Sum("total_expected_revenue")
-            )["sum"]
-            or 0,
-            "total_collected": financial_analytics.aggregate(
-                sum=Sum("total_collected_revenue")
-            )["sum"]
-            or 0,
-            "avg_collection_rate": financial_analytics.aggregate(
-                avg=Avg("collection_rate")
-            )["avg"]
-            or 0,
-        }
+            financial_analytics = FinancialAnalytics.objects.filter(
+                academic_year=academic_year, term=term
+            )
+
+            summary["financial"] = {
+                "total_expected": financial_analytics.aggregate(
+                    sum=Sum("total_expected_revenue")
+                )["sum"]
+                or 0,
+                "total_collected": financial_analytics.aggregate(
+                    sum=Sum("total_collected_revenue")
+                )["sum"]
+                or 0,
+                "avg_collection_rate": financial_analytics.aggregate(
+                    avg=Avg("collection_rate")
+                )["avg"]
+                or 0,
+            }
+        except ImportError:
+            summary["financial"] = {
+                "total_expected": 0,
+                "total_collected": 0,
+                "avg_collection_rate": 0,
+            }
 
         return summary
 
@@ -802,21 +915,27 @@ class ClassAnalyticsView(SchoolAdminMixin, ListView):
             queryset = queryset.filter(academic_year_id=academic_year_id)
         else:
             # Default to current academic year
-            from academics.models import AcademicYear
+            try:
+                from src.academics.models import AcademicYear
 
-            current_year = AcademicYear.objects.filter(is_current=True).first()
-            if current_year:
-                queryset = queryset.filter(academic_year=current_year)
+                current_year = AcademicYear.objects.filter(is_current=True).first()
+                if current_year:
+                    queryset = queryset.filter(academic_year=current_year)
+            except ImportError:
+                pass
 
         if term_id:
             queryset = queryset.filter(term_id=term_id)
         else:
             # Default to current term
-            from academics.models import Term
+            try:
+                from src.academics.models import Term
 
-            current_term = Term.objects.filter(is_current=True).first()
-            if current_term:
-                queryset = queryset.filter(term=current_term)
+                current_term = Term.objects.filter(is_current=True).first()
+                if current_term:
+                    queryset = queryset.filter(term=current_term)
+            except ImportError:
+                pass
 
         # Filter by subject (or overall performance)
         subject_id = self.request.GET.get("subject")
@@ -844,14 +963,23 @@ class ClassAnalyticsView(SchoolAdminMixin, ListView):
         context = super().get_context_data(**kwargs)
 
         # Get filter options
-        from academics.models import AcademicYear, Term, Section, Grade
-        from subjects.models import Subject
+        try:
+            from src.academics.models import AcademicYear, Term, Section, Grade
+            from src.subjects.models import Subject
 
-        context["academic_years"] = AcademicYear.objects.all().order_by("-start_date")
-        context["terms"] = Term.objects.all().order_by("term_number")
-        context["sections"] = Section.objects.all().order_by("name")
-        context["grades"] = Grade.objects.all().order_by("order_sequence")
-        context["subjects"] = Subject.objects.all().order_by("name")
+            context["academic_years"] = AcademicYear.objects.all().order_by(
+                "-start_date"
+            )
+            context["terms"] = Term.objects.all().order_by("term_number")
+            context["sections"] = Section.objects.all().order_by("name")
+            context["grades"] = Grade.objects.all().order_by("order_sequence")
+            context["subjects"] = Subject.objects.all().order_by("name")
+        except ImportError:
+            context["academic_years"] = []
+            context["terms"] = []
+            context["sections"] = []
+            context["grades"] = []
+            context["subjects"] = []
 
         # Current filter values
         context["current_filters"] = {
@@ -938,10 +1066,17 @@ class AttendanceAnalyticsView(SchoolAdminMixin, ListView):
         context = super().get_context_data(**kwargs)
 
         # Get filter options
-        from academics.models import AcademicYear, Term
+        try:
+            from src.academics.models import AcademicYear, Term
 
-        context["academic_years"] = AcademicYear.objects.all().order_by("-start_date")
-        context["terms"] = Term.objects.all().order_by("term_number")
+            context["academic_years"] = AcademicYear.objects.all().order_by(
+                "-start_date"
+            )
+            context["terms"] = Term.objects.all().order_by("term_number")
+        except ImportError:
+            context["academic_years"] = []
+            context["terms"] = []
+
         context["entity_types"] = AttendanceAnalytics.ENTITY_TYPES
 
         # Current filter values
@@ -991,13 +1126,25 @@ class AttendanceAnalyticsView(SchoolAdminMixin, ListView):
 class FinancialAnalyticsView(SchoolAdminMixin, ListView):
     """Financial analytics view"""
 
-    model = FinancialAnalytics
     template_name = "core/financial_analytics.html"
     context_object_name = "analytics"
     paginate_by = 20
 
+    def get_model(self):
+        """Dynamically get the FinancialAnalytics model"""
+        try:
+            from src.finance.models import FinancialAnalytics
+
+            return FinancialAnalytics
+        except ImportError:
+            return None
+
     def get_queryset(self):
-        queryset = FinancialAnalytics.objects.select_related(
+        model = self.get_model()
+        if not model:
+            return model.objects.none() if model else []
+
+        queryset = model.objects.select_related(
             "academic_year", "term", "section", "grade", "fee_category"
         )
 
@@ -1039,14 +1186,23 @@ class FinancialAnalyticsView(SchoolAdminMixin, ListView):
         context = super().get_context_data(**kwargs)
 
         # Get filter options
-        from academics.models import AcademicYear, Term, Section, Grade
-        from finance.models import FeeCategory
+        try:
+            from src.academics.models import AcademicYear, Term, Section, Grade
+            from src.finance.models import FeeCategory
 
-        context["academic_years"] = AcademicYear.objects.all().order_by("-start_date")
-        context["terms"] = Term.objects.all().order_by("term_number")
-        context["sections"] = Section.objects.all().order_by("name")
-        context["grades"] = Grade.objects.all().order_by("order_sequence")
-        context["fee_categories"] = FeeCategory.objects.all().order_by("name")
+            context["academic_years"] = AcademicYear.objects.all().order_by(
+                "-start_date"
+            )
+            context["terms"] = Term.objects.all().order_by("term_number")
+            context["sections"] = Section.objects.all().order_by("name")
+            context["grades"] = Grade.objects.all().order_by("order_sequence")
+            context["fee_categories"] = FeeCategory.objects.all().order_by("name")
+        except ImportError:
+            context["academic_years"] = []
+            context["terms"] = []
+            context["sections"] = []
+            context["grades"] = []
+            context["fee_categories"] = []
 
         # Current filter values
         context["current_filters"] = {
@@ -1067,7 +1223,7 @@ class FinancialAnalyticsView(SchoolAdminMixin, ListView):
         """Calculate summary financial statistics"""
         all_analytics = self.get_queryset()
 
-        if not all_analytics.exists():
+        if not all_analytics or not all_analytics.exists():
             return {}
 
         totals = all_analytics.aggregate(
@@ -1140,10 +1296,16 @@ class TeacherAnalyticsView(SchoolAdminMixin, ListView):
         context = super().get_context_data(**kwargs)
 
         # Get filter options
-        from academics.models import AcademicYear, Term
+        try:
+            from src.academics.models import AcademicYear, Term
 
-        context["academic_years"] = AcademicYear.objects.all().order_by("-start_date")
-        context["terms"] = Term.objects.all().order_by("term_number")
+            context["academic_years"] = AcademicYear.objects.all().order_by(
+                "-start_date"
+            )
+            context["terms"] = Term.objects.all().order_by("term_number")
+        except ImportError:
+            context["academic_years"] = []
+            context["terms"] = []
 
         # Current filter values
         context["current_filters"] = {
@@ -1298,12 +1460,20 @@ class GenerateReportView(SchoolAdminMixin, TemplateView):
         context["report_config"] = self.get_report_config(report_type)
 
         # Get filter options
-        from academics.models import AcademicYear, Term, Section, Grade
+        try:
+            from src.academics.models import AcademicYear, Term, Section, Grade
 
-        context["academic_years"] = AcademicYear.objects.all().order_by("-start_date")
-        context["terms"] = Term.objects.all().order_by("term_number")
-        context["sections"] = Section.objects.all().order_by("name")
-        context["grades"] = Grade.objects.all().order_by("order_sequence")
+            context["academic_years"] = AcademicYear.objects.all().order_by(
+                "-start_date"
+            )
+            context["terms"] = Term.objects.all().order_by("term_number")
+            context["sections"] = Section.objects.all().order_by("name")
+            context["grades"] = Grade.objects.all().order_by("order_sequence")
+        except ImportError:
+            context["academic_years"] = []
+            context["terms"] = []
+            context["sections"] = []
+            context["grades"] = []
 
         return context
 

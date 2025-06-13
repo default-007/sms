@@ -1,4 +1,4 @@
-# decorators.py
+# core/decorators.py
 from functools import wraps
 from django.core.cache import cache
 from django.http import JsonResponse, HttpResponseForbidden
@@ -128,13 +128,20 @@ def cache_result(timeout: int = 3600, key_func=None):
                 )
 
             # Try to get from cache
-            cached_result = cache.get(cache_key)
-            if cached_result is not None:
-                return cached_result
+            try:
+                cached_result = cache.get(cache_key)
+                if cached_result is not None:
+                    return cached_result
+            except Exception as e:
+                logger.warning(f"Cache get failed for {cache_key}: {e}")
 
             # Execute function and cache result
             result = func(*args, **kwargs)
-            cache.set(cache_key, result, timeout)
+
+            try:
+                cache.set(cache_key, result, timeout)
+            except Exception as e:
+                logger.warning(f"Cache set failed for {cache_key}: {e}")
 
             return result
 

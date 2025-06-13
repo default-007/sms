@@ -310,6 +310,7 @@ class CacheManager:
             # Note: This method depends on cache backend supporting pattern deletion
             # For Redis: cache.delete_pattern()
             # For Memcached: Not directly supported
+            cache.delete_pattern()
 
             logger.warning("Clearing all user caches")
 

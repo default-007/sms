@@ -297,7 +297,7 @@
             <div class="mb-3">
               <div class="small mb-1">Outstanding Amount</div>
               <div class="h6 mb-0 font-weight-bold text-warning">
-                ${{ analytics_summary.financial.total_expected|sub:analytics_summary.financial.total_collected|floatformat:0|default:"0" }}
+                ${{ analytics_summary.financial.total_outstanding|floatformat:0|default:"0" }}
               </div>
             </div>
             <div class="progress mb-2">

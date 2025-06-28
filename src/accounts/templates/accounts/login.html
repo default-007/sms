@@ -1,597 +1,461 @@
+<!-- src/accounts/templates/accounts/login.html -->
+{% extends "base.html" %}
 {% load static %}
+{% load widget_tweaks %}
 
-<!DOCTYPE html>
-<html lang="en" dir="ltr" data-bs-theme="light" data-color-theme="Blue_Theme" data-layout="vertical">
+{% block title %}{{ page_title }} - {{ branding.site_name }}{% endblock %}
 
-  <head>
-    <!-- Required meta tags -->
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+{% block extra_css %}
+<style>
+  .login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
 
-    <!-- Favicon icon-->
-    <link rel="shortcut icon" type="image/png" href="{% static 'assets/images/logos/favicon.png' %}" />
+  .login-card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    max-width: 450px;
+    width: 100%;
+    margin: 20px;
+  }
 
+  .login-header {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: white;
+    padding: 30px;
+    text-align: center;
+  }
 
-    <style>
-      .login-container {
-        background: white;
-        border-radius: 20px;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-        width: 100%;
-        max-width: 1000px;
-        min-height: 600px;
-        display: flex;
-      }
+  .login-body {
+    padding: 40px;
+  }
 
-      .login-left {
-        flex: 1;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 3rem;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        color: white;
-        text-align: center;
-      }
+  .identifier-type-indicator {
+    display: none;
+    font-size: 0.875rem;
+    margin-top: 5px;
+    padding: 5px 10px;
+    border-radius: 15px;
+    text-align: center;
+  }
 
-      .login-right {
-        flex: 1;
-        padding: 3rem;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-      }
+  .identifier-type-email {
+    background: #e3f2fd;
+    color: #1976d2;
+  }
 
-      .logo {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-      }
+  .identifier-type-phone {
+    background: #f3e5f5;
+    color: #7b1fa2;
+  }
 
-      .welcome-text h2 {
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin-bottom: 1rem;
-      }
+  .identifier-type-username {
+    background: #e8f5e8;
+    color: #388e3c;
+  }
 
-      .welcome-text p {
-        font-size: 1.1rem;
-        opacity: 0.9;
-        line-height: 1.6;
-      }
+  .identifier-type-admission {
+    background: #fff3e0;
+    color: #f57c00;
+  }
 
-      .login-form {
-        width: 100%;
-      }
+  .form-group {
+    margin-bottom: 25px;
+  }
 
-      .form-title {
-        text-align: center;
-        margin-bottom: 2rem;
-      }
+  .form-control {
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+  }
 
-      .form-title h3 {
-        color: #333;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-      }
+  .form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+  }
 
-      .form-title p {
-        color: #666;
-        margin-bottom: 0;
-      }
+  .btn-login {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    border: none;
+    border-radius: 10px;
+    padding: 15px;
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+    width: 100%;
+    transition: all 0.3s ease;
+  }
 
-      .form-floating {
-        margin-bottom: 1.5rem;
-      }
+  .btn-login:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    color: white;
+  }
 
-      .form-floating input {
-        border: 2px solid #e1e5e9;
-        border-radius: 10px;
-        padding: 1rem 0.75rem;
-        height: auto;
-        transition: all 0.3s ease;
-      }
+  .login-help {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+    font-size: 0.875rem;
+    color: #6c757d;
+  }
 
-      .form-floating input:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-      }
+  .security-notice {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    padding: 10px 15px;
+    margin-top: 20px;
+    font-size: 0.8rem;
+    color: #856404;
+  }
 
-      .form-floating label {
-        color: #666;
-        padding: 1rem 0.75rem;
-      }
+  .loading-overlay {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
 
-      .btn-login {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
-        border-radius: 10px;
-        padding: 0.8rem 2rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        transition: all 0.3s ease;
-        width: 100%;
-        margin-bottom: 1rem;
-      }
+  .spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #667eea;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+  }
 
-      .btn-login:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-      }
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
 
-      .forgot-password {
-        text-align: center;
-        margin-top: 1rem;
-      }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
 
-      .forgot-password a {
-        color: #667eea;
-        text-decoration: none;
-        font-weight: 500;
-      }
+  .form-check {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+  }
 
-      .forgot-password a:hover {
-        text-decoration: underline;
-      }
+  .form-check-input {
+    margin-right: 10px;
+  }
 
-      .form-check {
-        margin-bottom: 1rem;
-      }
+  .links-section {
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+  }
 
-      .form-check-input:checked {
-        background-color: #667eea;
-        border-color: #667eea;
-      }
+  .links-section a {
+    color: #667eea;
+    text-decoration: none;
+    margin: 0 10px;
+  }
 
-      .alert {
-        border-radius: 10px;
-        border: none;
-        margin-bottom: 1.5rem;
-      }
+  .links-section a:hover {
+    text-decoration: underline;
+  }
+</style>
+{% endblock %}
 
-      .login-features {
-        margin-top: 2rem;
-      }
-
-      .feature-item {
-        display: flex;
-        align-items: center;
-        margin-bottom: 1rem;
-        font-size: 0.95rem;
-      }
-
-      .feature-item i {
-        margin-right: 1rem;
-        width: 20px;
-        text-align: center;
-      }
-
-      .security-info {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-        padding: 1.5rem;
-        margin-top: 2rem;
-      }
-
-      .security-info h5 {
-        margin-bottom: 1rem;
-        font-weight: 600;
-      }
-
-      .security-info ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-
-      .security-info li {
-        margin-bottom: 0.5rem;
-        font-size: 0.9rem;
-      }
-
-      .security-info li i {
-        margin-right: 0.5rem;
-        color: #4CAF50;
-      }
-
-      .loading-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(255, 255, 255, 0.9);
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-      }
-
-      .login-stats {
-        position: absolute;
-        bottom: 2rem;
-        left: 50%;
-        transform: translateX(-50%);
-        text-align: center;
-        font-size: 0.85rem;
-        opacity: 0.8;
-      }
-
-      @media (max-width: 768px) {
-        .login-container {
-          flex-direction: column;
-          max-width: 400px;
-        }
-
-        .login-left {
-          padding: 2rem;
-          min-height: 200px;
-        }
-
-        .login-right {
-          padding: 2rem;
-        }
-
-        .welcome-text h2 {
-          font-size: 2rem;
-        }
-
-        .logo {
-          font-size: 2rem;
-        }
-      }
-
-      .input-group-text {
-        background: transparent;
-        border: 2px solid #e1e5e9;
-        border-right: none;
-        border-radius: 10px 0 0 10px;
-      }
-
-      .input-group input {
-        border-left: none;
-        border-radius: 0 10px 10px 0;
-      }
-
-      .password-toggle {
-        cursor: pointer;
-        transition: color 0.3s ease;
-      }
-
-      .password-toggle:hover {
-        color: #667eea;
-      }
-    </style>
-
-    <!-- Core Css -->
-    <link rel="stylesheet" href="{% static 'assets/css/styles.css' %}" />
-
-    <!-- CSS Libraries -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
-
-    <title>Mentura Admin</title>
-  </head>
-
-  <body>
-    <!-- Preloader -->
-    <div class="preloader">
-      <img src="{% static 'assets/images/logos/favicon.png' %}" alt="loader" class="lds-ripple img-fluid" />
+{% block content %}
+<div class="login-container">
+  <div class="login-card">
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="spinner"></div>
     </div>
-    <div id="main-wrapper">
-      <div class="position-relative overflow-hidden radial-gradient min-vh-100 w-100">
-        <div class="position-relative z-index-5">
-          <div class="row">
-            <div class="col-lg-6 col-xl-7 col-xxl-6 position-relative overflow-hidden bg-dark d-none d-lg-block">
-              <div class="circle-top"></div>
-              <div>
-                <img src="{% static 'assets/images/logos/logo-icon.svg' %}" class="circle-bottom" alt="Logo-Dark" />
-              </div>
-              <div class="d-lg-flex align-items-center z-index-5 position-relative h-n80">
-                <div class="row justify-content-center w-100">
-                  <div class="col-lg-7">
-                    <h2 class="text-white fs-10 mb-3">
-                      Welcome Back to
-                      <br />
-                      Mentura
-                    </h2>
-                    <span class="opacity-75 fs-4 text-white d-block mb-3">Access your School Management System account
-                      to continue managing your educational institution efficiently.
-                    </span>
-                    <a href="../landingpage/index.html" class="btn btn-primary">Learn More</a>
-                    <div class="welcome-content text-white d-block">
 
-                      <div class="login-features">
-                        <div class="feature-item">
-                          <i class="fas fa-users"></i>
-                          <span>Comprehensive User Management</span>
-                        </div>
-                        <div class="feature-item">
-                          <i class="fas fa-chart-line"></i>
-                          <span>Advanced Analytics & Reporting</span>
-                        </div>
-                        <div class="feature-item">
-                          <i class="fas fa-shield-alt"></i>
-                          <span>Enterprise-Grade Security</span>
-                        </div>
-                        <div class="feature-item">
-                          <i class="fas fa-mobile-alt"></i>
-                          <span>Mobile-Responsive Design</span>
-                        </div>
-                      </div>
+    <div class="login-header">
+      {% if branding.logo_url %}
+      <img src="{{ branding.logo_url }}" alt="{{ branding.site_name }}" style="max-height: 60px; margin-bottom: 15px;">
+      {% endif %}
+      <h2>{{ page_title }}</h2>
+      <p>{{ branding.site_name }}</p>
+    </div>
 
-                      <div class="security-info">
-                        <h5><i class="fas fa-lock me-2"></i>Security Features</h5>
-                        <ul>
-                          <li><i class="fas fa-check"></i>Two-Factor Authentication</li>
-                          <li><i class="fas fa-check"></i>Session Management</li>
-                          <li><i class="fas fa-check"></i>Audit Logging</li>
-                          <li><i class="fas fa-check"></i>IP Monitoring</li>
-                        </ul>
-                      </div>
-                    </div>
+    <div class="login-body">
+      <!-- Display messages -->
+      {% if messages %}
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+      {% endif %}
 
-                    <!-- <div class="login-stats">
-                      <small>Trusted by 500+ Educational Institutions</small>
-                    </div> -->
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-lg-6 col-xl-5 col-xxl-6">
-              <div
-                class="min-vh-100 bg-body row justify-content-center justify-content-lg-start align-items-center p-5">
-                <div class="col-sm-8 col-md-9 col-xxl-6 auth-card">
-                  <a href="../index.html" class="text-nowrap logo-img d-block w-100">
-                    <img src="{% static 'assets/images/logos/logo-icon.svg' %}" class="dark-logo" alt="Logo-Dark" />
-                  </a>
-                  <h2 class="mb-2 mt-4 fs-7 fw-bolder">Login</h2>
-                  <p class="mb-9">Enter your credentials to access your account</p>
-                  <!--
-                  <div class="position-relative text-center my-4">
-                    <p class="mb-0 fs-4 px-3 d-inline-block bg-body text-dark z-index-5 position-relative">
-                      or sign in with
-                    </p>
-                    <span class="border-top w-100 position-absolute top-50 start-50 translate-middle"></span>
-                  </div> -->
-                  <div class="card shadow">
-                    <div class="card-header bg-primary text-white text-center">
-                      <h4 class="mb-0">
-                        <i class="bi bi-shield-lock me-2"></i>
-                        Login to Your Account
-                      </h4>
-                    </div>
-                    <div class="card-body p-4">
-                      {% if messages %}
-                      {% for message in messages %}
-                      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                      </div>
-                      {% endfor %}
-                      {% endif %}
+      <!-- Login help text -->
+      <div class="login-help">
+        <strong>How to login:</strong><br>
+        {{ login_help_text }}
+      </div>
 
-                      {% if request.GET.locked %}
-                      <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle me-2"></i>
-                        Your account has been locked due to multiple failed login attempts. Please contact support.
-                      </div>
-                      {% endif %}
+      <!-- Login form -->
+      <form method="post" id="loginForm" novalidate>
+        {% csrf_token %}
 
-                      {% if request.GET.expired %}
-                      <div class="alert alert-info">
-                        <i class="bi bi-clock me-2"></i>
-                        Your session has expired. Please log in again.
-                      </div>
-                      {% endif %}
+        <!-- Identifier field -->
+        <div class="form-group">
+          <label for="{{ form.identifier.id_for_label }}" class="form-label">
+            {{ form.identifier.label }}
+          </label>
+          {{ form.identifier|add_class:"form-control form-control-lg" }}
 
-                      <form method="post" class="needs-validation" novalidate>
-                        {% csrf_token %}
+          <!-- Identifier type indicator -->
+          <div id="identifierTypeIndicator" class="identifier-type-indicator"></div>
 
-                        <div class="mb-3">
-                          <label for="{{ form.identifier.id_for_label }}" class="form-label">
-                            <i class="bi bi-person me-1"></i>
-                            {{ form.identifier.label }}
-                          </label>
-                          {{ form.identifier }}
-                          {% if form.identifier.help_text %}
-                          <div class="form-text">{{ form.identifier.help_text }}</div>
-                          <small class="text-info">
-                            <i class="fas fa-info-circle"></i>
-                            Students can use their admission number (e.g., STU2024001) to log in
-                          </small>
-                          {% endif %}
-                          {% if form.identifier.errors %}
-                          <div class="invalid-feedback d-block">
-                            {{ form.identifier.errors.0 }}
-                          </div>
-                          {% endif %}
-                        </div>
+          {% if form.identifier.help_text %}
+          <div class="form-text">{{ form.identifier.help_text|safe }}</div>
+          {% endif %}
 
-                        <div class="mb-3">
-                          <label for="{{ form.password.id_for_label }}" class="form-label">
-                            <i class="bi bi-lock me-1"></i>
-                            {{ form.password.label }}
-                          </label>
-                          <div class="input-group">
-                            {{ form.password }}
-                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
-                              <i class="bi bi-eye" id="toggleIcon"></i>
-                            </button>
-                          </div>
-                          {% if form.password.errors %}
-                          <div class="invalid-feedback d-block">
-                            {{ form.password.errors.0 }}
-                          </div>
-                          {% endif %}
-                        </div>
-
-                        <div class="mb-3 form-check">
-                          {{ form.remember_me }}
-                          <label class="form-check-label" for="{{ form.remember_me.id_for_label }}">
-                            {{ form.remember_me.label }}
-                          </label>
-                        </div>
-
-                        {% if form.non_field_errors %}
-                        <div class="alert alert-danger">
-                          {{ form.non_field_errors.0 }}
-                        </div>
-                        {% endif %}
-
-                        <div class="d-grid">
-                          <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="bi bi-box-arrow-in-right me-2"></i>
-                            Sign In
-                          </button>
-                        </div>
-                      </form>
-
-                      <hr class="my-4">
-
-                      <div class="text-center">
-                        {% if allow_password_reset %}
-                        <a href="{% url 'accounts:password_reset' %}" class="text-decoration-none">
-                          <i class="bi bi-key me-1"></i>
-                          Forgot your password?
-                        </a>
-                        {% endif %}
-                      </div>
-                    </div>
-                    <div class="card-footer text-center bg-light">
-                      <small class="text-muted">
-                        <i class="bi bi-shield-check me-1"></i>
-                        Your connection is secure and encrypted
-                      </small>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+          {% if form.identifier.errors %}
+          <div class="invalid-feedback d-block">
+            {% for error in form.identifier.errors %}
+            <div>{{ error }}</div>
+            {% endfor %}
           </div>
+          {% endif %}
         </div>
+
+        <!-- Password field -->
+        <div class="form-group">
+          <label for="{{ form.password.id_for_label }}" class="form-label">
+            {{ form.password.label }}
+          </label>
+          {{ form.password|add_class:"form-control form-control-lg" }}
+
+          {% if form.password.errors %}
+          <div class="invalid-feedback d-block">
+            {% for error in form.password.errors %}
+            <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Remember me checkbox -->
+        {% if show_remember_me %}
+        <div class="form-check">
+          {{ form.remember_me|add_class:"form-check-input" }}
+          <label for="{{ form.remember_me.id_for_label }}" class="form-check-label">
+            {{ form.remember_me.label }}
+          </label>
+          {% if form.remember_me.help_text %}
+          <small class="form-text text-muted">{{ form.remember_me.help_text }}</small>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Non-field errors -->
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+          {% for error in form.non_field_errors %}
+          <div>{{ error }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Submit button -->
+        <button type="submit" class="btn btn-login">
+          <span id="loginButtonText">Login</span>
+          <span id="loginButtonSpinner" class="spinner-border spinner-border-sm d-none" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </span>
+        </button>
+      </form>
+
+      <!-- Links section -->
+      <div class="links-section">
+        {% if allow_password_reset %}
+        <a href="{% url 'accounts:password_reset' %}">Forgot Password?</a>
+        {% endif %}
+
+        {% if allow_registration %}
+        <a href="{% url 'accounts:user_create' %}">Create Account</a>
+        {% endif %}
+      </div>
+
+      <!-- Security notice -->
+      <div class="security-notice">
+        <i class="fas fa-shield-alt"></i> {{ security_notice }}
       </div>
     </div>
-    <div class="dark-transparent sidebartoggler"></div>
-    <!-- Import Js Files -->
-    <script src="{% static 'assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js' %}"></script>
-    <script src="{% static 'assets/libs/simplebar/dist/simplebar.min.js' %}"></script>
-    <script src="{% static 'assets/js/theme/app.init.js' %}"></script>
-    <script src="{% static 'assets/js/theme/theme.js' %}"></script>
-    <script src="{% static 'assets/js/theme/app.min.js' %}"></script>
+  </div>
+</div>
+{% endblock %}
 
-    <!-- JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-      document.addEventListener('DOMContentLoaded', function () {
-        // Password visibility toggle
-        const togglePassword = document.getElementById('togglePassword');
-        const passwordField = document.getElementById('{{ form.password.id_for_label }}');
-        const toggleIcon = document.getElementById('toggleIcon');
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const identifierField = document.getElementById('{{ form.identifier.id_for_label }}');
+    const identifierIndicator = document.getElementById('identifierTypeIndicator');
+    const loginForm = document.getElementById('loginForm');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loginButton = document.querySelector('.btn-login');
+    const loginButtonText = document.getElementById('loginButtonText');
+    const loginButtonSpinner = document.getElementById('loginButtonSpinner');
 
-        if (togglePassword && passwordField) {
-          togglePassword.addEventListener('click', function () {
-            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordField.setAttribute('type', type);
-            toggleIcon.className = type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
-          });
-        }
+    // Supported identifier types from backend
+    const supportedTypes = {{ supported_identifiers| safe
+  }};
 
-        // Form validation
-        const form = document.querySelector('.needs-validation');
-        if (form) {
-          form.addEventListener('submit', function (event) {
-            if (!form.checkValidity()) {
-              event.preventDefault();
-              event.stopPropagation();
-            }
-            form.classList.add('was-validated');
-          });
-        }
-      });
+  // Identifier type detection patterns
+  const patterns = {
+    email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+    phone: /^[\+]?[\d\s\-\(\)]{10,15}$/,
+    admission: /^([A-Z]{2,4}[-\/]?\d{4}[-\/]?[A-Z0-9]{3,8}|\d{7,12})$/i,
+    username: /^[a-zA-Z0-9_]{3,}$/
+  };
 
-      // Auto-focus on identifier field
-      document.addEventListener('DOMContentLoaded', function () {
-        document.getElementById('id_identifier').focus();
-      });
+  // Type labels and colors
+  const typeInfo = {
+    email: { label: 'Email Address', class: 'identifier-type-email' },
+    phone: { label: 'Phone Number', class: 'identifier-type-phone' },
+    admission: { label: 'Admission Number', class: 'identifier-type-admission' },
+    username: { label: 'Username', class: 'identifier-type-username' }
+  };
 
-      // Handle form errors
-      const errorAlerts = document.querySelectorAll('.alert-danger');
-      if (errorAlerts.length > 0) {
-        // If there are errors, reset the form button state
-        const submitBtn = document.querySelector('button[type="submit"]');
-        const btnText = submitBtn.querySelector('.btn-text');
-        const btnLoading = submitBtn.querySelector('.btn-loading');
+  // Real-time identifier type detection
+  identifierField.addEventListener('input', function () {
+    const value = this.value.trim();
 
-        btnText.classList.remove('d-none');
-        btnLoading.classList.add('d-none');
-        submitBtn.disabled = false;
+    if (!value) {
+      hideIdentifierIndicator();
+      return;
+    }
 
-        // Hide loading overlay
-        document.getElementById('loadingOverlay').style.display = 'none';
+    // Detect identifier type
+    let detectedType = null;
+
+    for (const [type, pattern] of Object.entries(patterns)) {
+      if (supportedTypes[type] && pattern.test(value)) {
+        detectedType = type;
+        break;
       }
+    }
 
-      // Check for URL parameters
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('locked') === '1') {
-        showAlert('Your account has been locked due to multiple failed login attempts. Please contact support.', 'warning');
-      } else if (urlParams.get('expired') === '1') {
-        showAlert('Your session has expired. Please log in again.', 'info');
-      } else if (urlParams.get('security') === '1') {
-        showAlert('Session security violation detected. Please log in again.', 'warning');
-      }
+    if (detectedType && typeInfo[detectedType]) {
+      showIdentifierIndicator(detectedType);
+    } else {
+      hideIdentifierIndicator();
+    }
+  });
 
-      function showAlert(message, type) {
-        const alertContainer = document.querySelector('.login-form');
-        const alertHTML = `
-                    <div class="alert alert-${type} animate__animated animate__fadeInDown" role="alert">
-                        <i class="fas fa-${type === 'warning' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
-                        ${message}
-                    </div>
-                `;
-        alertContainer.insertAdjacentHTML('afterbegin', alertHTML);
-      }
+  function showIdentifierIndicator(type) {
+    const info = typeInfo[type];
+    identifierIndicator.textContent = `Detected: ${info.label}`;
+    identifierIndicator.className = `identifier-type-indicator ${info.class}`;
+    identifierIndicator.style.display = 'block';
+  }
 
-      // Keyboard shortcuts
-      document.addEventListener('keydown', function (e) {
-        // Alt + L to focus login field
-        if (e.altKey && e.key === 'l') {
-          e.preventDefault();
-          document.getElementById('id_identifier').focus();
-        }
-      });
+  function hideIdentifierIndicator() {
+    identifierIndicator.style.display = 'none';
+  }
 
-      // Enhanced security indicator
-      function checkCapsLock(event) {
-        if (event.getModifierState && event.getModifierState('CapsLock')) {
-          showCapsLockWarning(true);
+  // Form submission with loading state
+  loginForm.addEventListener('submit', function (e) {
+    // Show loading state
+    showLoading();
+
+    // Disable form controls
+    const formControls = this.querySelectorAll('input, button');
+    formControls.forEach(control => control.disabled = true);
+
+    // Note: Don't prevent default - let form submit normally
+    // The loading state will be reset on page reload or by hideLoading() if using AJAX
+  });
+
+  function showLoading() {
+    loadingOverlay.style.display = 'flex';
+    loginButtonText.textContent = 'Logging in...';
+    loginButtonSpinner.classList.remove('d-none');
+  }
+
+  function hideLoading() {
+    loadingOverlay.style.display = 'none';
+    loginButtonText.textContent = 'Login';
+    loginButtonSpinner.classList.add('d-none');
+
+    // Re-enable form controls
+    const formControls = loginForm.querySelectorAll('input, button');
+    formControls.forEach(control => control.disabled = false);
+  }
+
+  // Optional: Real-time validation feedback
+  identifierField.addEventListener('blur', function () {
+    const value = this.value.trim();
+    if (value && value.length > 3) {
+      validateIdentifier(value);
+    }
+  });
+
+  function validateIdentifier(identifier) {
+    // Optional: AJAX call to validate identifier exists
+    // This provides immediate feedback before password entry
+    fetch('{% url "accounts:validate_identifier" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: `identifier=${encodeURIComponent(identifier)}`
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.valid) {
+          // Show positive feedback
+          identifierField.classList.remove('is-invalid');
+          identifierField.classList.add('is-valid');
         } else {
-          showCapsLockWarning(false);
+          // Show helpful error message
+          identifierField.classList.remove('is-valid');
+          identifierField.classList.add('is-invalid');
         }
-      }
+      })
+      .catch(error => {
+        // Silently ignore validation errors to not disrupt user experience
+        console.log('Validation request failed:', error);
+      });
+  }
 
-      function showCapsLockWarning(show) {
-        let warning = document.getElementById('capsLockWarning');
-        if (show && !warning) {
-          const passwordField = document.getElementById('id_password');
-          warning = document.createElement('div');
-          warning.id = 'capsLockWarning';
-          warning.className = 'alert alert-warning mt-2 py-2';
-          warning.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Caps Lock is on';
-          passwordField.parentNode.insertBefore(warning, passwordField.nextSibling);
-        } else if (!show && warning) {
-          warning.remove();
-        }
-      }
+  // Auto-focus on identifier field
+  identifierField.focus();
 
-      // Add caps lock detection to password field
-      document.getElementById('id_password').addEventListener('keydown', checkCapsLock);
-      document.getElementById('id_password').addEventListener('keyup', checkCapsLock);
-    </script>
-  </body>
+  // Clear validation states when user starts typing
+  identifierField.addEventListener('input', function () {
+    this.classList.remove('is-valid', 'is-invalid');
+  });
 
-</html>
+  // Handle Enter key in identifier field to move to password
+  identifierField.addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const passwordField = document.getElementById('{{ form.password.id_for_label }}');
+      passwordField.focus();
+    }
+  });
+});
+</script>
+{% endblock %}

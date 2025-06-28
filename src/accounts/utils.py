@@ -4,7 +4,7 @@ import hashlib
 import re
 import secrets
 import string
-import uuid
+import user_agents
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 import phonenumbers
@@ -253,28 +253,19 @@ def validate_phone_number(
     return result
 
 
-def send_notification_email(
-    user: User,
-    subject: str,
-    template_name: str,
-    context: Dict[str, Any] = None,
-    from_email: str = None,
-) -> bool:
+def send_notification_email(user, subject: str, template: str, context: Dict = None):
     """
-    Send notification email to user with enhanced features.
+    Send notification email to user.
 
     Args:
-        user: User to send email to
+        user: User object
         subject: Email subject
-        template_name: Email template name
-        context: Template context
-        from_email: Custom from email address
-
-    Returns:
-        True if sent successfully, False otherwise
+        template: Template name
+        context: Additional context for template
     """
     try:
-        if not user.email_notifications:
+        if not user.email:
+            logger.warning(f"No email address for user {user.id}")
             return False
 
         context = context or {}
@@ -282,52 +273,179 @@ def send_notification_email(
             {
                 "user": user,
                 "site_name": getattr(settings, "SITE_NAME", "School Management System"),
-                "site_url": getattr(settings, "SITE_URL", "http://localhost:8000"),
-                "support_email": getattr(
-                    settings, "SUPPORT_EMAIL", settings.DEFAULT_FROM_EMAIL
-                ),
             }
         )
 
-        html_message = render_to_string(template_name, context)
-
-        # Try to render plain text version
-        plain_text_template = template_name.replace(".html", ".txt")
-        try:
-            plain_message = render_to_string(plain_text_template, context)
-        except:
-            # Fallback to basic plain text
-            plain_message = f"Hello {user.get_full_name()},\n\nPlease view this email in HTML format.\n\nBest regards,\nSchool Management System"
+        message = render_to_string(template, context)
 
         send_mail(
             subject=subject,
-            message=plain_message,
-            from_email=from_email or settings.DEFAULT_FROM_EMAIL,
+            message="",
+            html_message=message,
+            from_email=None,  # Use default
             recipient_list=[user.email],
-            html_message=html_message,
             fail_silently=False,
         )
+
+        logger.info(f"Notification email sent to user {user.id}")
         return True
 
     except Exception as e:
-        import logging
-
-        logger = logging.getLogger(__name__)
-        logger.error(f"Failed to send email to {user.email}: {str(e)}")
+        logger.error(f"Failed to send notification email to user {user.id}: {str(e)}")
         return False
+
+
+def get_device_fingerprint(request) -> str:
+    """
+    Generate a device fingerprint for security tracking.
+
+    Args:
+        request: Django HTTP request object
+
+    Returns:
+        Device fingerprint hash
+    """
+    import hashlib
+
+    client_info = get_client_info(request)
+
+    # Components for fingerprinting
+    components = [
+        client_info.get("user_agent", ""),
+        client_info.get("accept_language", ""),
+        client_info.get("accept_encoding", ""),
+        str(client_info.get("is_mobile", False)),
+        str(client_info.get("is_tablet", False)),
+    ]
+
+    # Create hash
+    fingerprint_string = "|".join(components)
+    return hashlib.sha256(fingerprint_string.encode()).hexdigest()[:16]
+
+
+def is_suspicious_login(user, request) -> Dict[str, Any]:
+    """
+    Check for suspicious login patterns.
+
+    Args:
+        user: User object
+        request: HTTP request
+
+    Returns:
+        Dict with suspicion analysis
+    """
+    suspicion_factors = []
+    risk_score = 0
+
+    client_info = get_client_info(request)
+
+    # Check for unusual IP
+    from .models import UserAuditLog
+
+    recent_ips = (
+        UserAuditLog.objects.filter(
+            user=user, action="login", description__icontains="Successful"
+        )
+        .values_list("ip_address", flat=True)
+        .distinct()[:10]
+    )
+
+    current_ip = client_info.get("ip_address")
+    if current_ip not in recent_ips:
+        suspicion_factors.append("New IP address")
+        risk_score += 2
+
+    # Check for unusual user agent
+    recent_agents = (
+        UserAuditLog.objects.filter(
+            user=user, action="login", description__icontains="Successful"
+        )
+        .values_list("user_agent", flat=True)
+        .distinct()[:5]
+    )
+
+    current_agent = client_info.get("user_agent")
+    if current_agent not in recent_agents:
+        suspicion_factors.append("New device/browser")
+        risk_score += 1
+
+    # Check login frequency
+    from django.utils import timezone
+    from datetime import timedelta
+
+    recent_logins = UserAuditLog.objects.filter(
+        user=user, action="login", timestamp__gte=timezone.now() - timedelta(hours=1)
+    ).count()
+
+    if recent_logins > 5:
+        suspicion_factors.append("Frequent login attempts")
+        risk_score += 3
+
+    return {
+        "is_suspicious": risk_score >= 3,
+        "risk_score": risk_score,
+        "factors": suspicion_factors,
+        "recommendation": (
+            "require_2fa"
+            if risk_score >= 5
+            else "monitor" if risk_score >= 3 else "allow"
+        ),
+    }
 
 
 def generate_otp(length: int = 6) -> str:
     """
-    Generate a random OTP (One-Time Password).
+    Generate a random OTP.
 
     Args:
-        length: OTP length
+        length: Length of OTP
 
     Returns:
-        Generated OTP
+        OTP string
     """
-    return "".join(secrets.choice(string.digits) for _ in range(length))
+    import secrets
+
+    return "".join([str(secrets.randbelow(10)) for _ in range(length)])
+
+
+def mask_identifier(identifier: str, identifier_type: str) -> str:
+    """
+    Mask identifier for display purposes (privacy).
+
+    Args:
+        identifier: Identifier to mask
+        identifier_type: Type of identifier
+
+    Returns:
+        Masked identifier
+    """
+    if not identifier:
+        return identifier
+
+    if identifier_type == "email":
+        username, domain = identifier.split("@", 1)
+        if len(username) <= 2:
+            masked_username = "*" * len(username)
+        else:
+            masked_username = username[0] + "*" * (len(username) - 2) + username[-1]
+        return f"{masked_username}@{domain}"
+
+    elif identifier_type == "phone":
+        if len(identifier) <= 4:
+            return "*" * len(identifier)
+        return identifier[:2] + "*" * (len(identifier) - 4) + identifier[-2:]
+
+    elif identifier_type == "admission_number":
+        if len(identifier) <= 4:
+            return identifier[:2] + "*" * (len(identifier) - 2)
+        return identifier[:3] + "*" * (len(identifier) - 6) + identifier[-3:]
+
+    elif identifier_type == "username":
+        if len(identifier) <= 4:
+            return identifier[0] + "*" * (len(identifier) - 1)
+        return identifier[:2] + "*" * (len(identifier) - 4) + identifier[-2:]
+
+    return identifier
 
 
 def generate_verification_token() -> str:
@@ -495,44 +613,244 @@ def sanitize_filename(filename: str) -> str:
     return f"{name}.{ext}" if ext else name
 
 
-def get_client_info(request) -> Dict[str, str]:
+def get_client_info(request):
     """
-    Extract comprehensive client information from request.
+    Simple version of get_client_info to avoid errors.
+    Extract basic client information from request.
+    """
+    if not request:
+        return {
+            "ip_address": "unknown",
+            "user_agent": "unknown",
+            "browser": "unknown",
+            "os": "unknown",
+            "is_mobile": False,
+            "is_tablet": False,
+            "is_pc": True,
+        }
+
+    try:
+        # Get IP address
+        ip_address = get_client_ip(request)
+
+        # Get user agent
+        user_agent = request.META.get("HTTP_USER_AGENT", "unknown")
+
+        return {
+            "ip_address": ip_address,
+            "user_agent": user_agent,
+            "browser": "unknown",
+            "os": "unknown",
+            "is_mobile": False,
+            "is_tablet": False,
+            "is_pc": True,
+            "forwarded_for": request.META.get("HTTP_X_FORWARDED_FOR", ""),
+            "host": request.META.get("HTTP_HOST", ""),
+            "referer": request.META.get("HTTP_REFERER", ""),
+            "session_key": getattr(request.session, "session_key", None),
+            "request_method": request.method,
+            "request_path": request.path,
+            "is_secure": request.is_secure(),
+        }
+    except Exception as e:
+        logger.error(f"Error getting client info: {str(e)}")
+        return {
+            "ip_address": "unknown",
+            "user_agent": "unknown",
+            "browser": "unknown",
+            "os": "unknown",
+            "is_mobile": False,
+        }
+
+
+def get_client_ip(request):
+    """
+    Simple version to get client IP address.
+    """
+    try:
+        # Check for IP in various headers (proxy environments)
+        ip_headers = [
+            "HTTP_X_FORWARDED_FOR",
+            "HTTP_X_REAL_IP",
+            "REMOTE_ADDR",
+        ]
+
+        for header in ip_headers:
+            ip = request.META.get(header)
+            if ip:
+                # Handle comma-separated IPs (X-Forwarded-For)
+                if "," in ip:
+                    ip = ip.split(",")[0].strip()
+
+                # Basic validation
+                if ip and ip != "unknown":
+                    return ip
+
+        return "unknown"
+    except Exception as e:
+        logger.error(f"Error getting client IP: {str(e)}")
+        return "unknown"
+
+
+def is_valid_ip(ip: str) -> bool:
+    """
+    Basic IP address validation.
 
     Args:
-        request: Django request object
+        ip: IP address string to validate
 
     Returns:
-        Dictionary with client info
+        True if valid IP, False otherwise
     """
-    # Get IP address
-    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-    if x_forwarded_for:
-        ip_address = x_forwarded_for.split(",")[0].strip()
-    else:
-        ip_address = request.META.get("REMOTE_ADDR", "")
+    if not ip or ip in ["unknown", "localhost", "127.0.0.1"]:
+        return False
 
-    # Get user agent
-    user_agent = request.META.get("HTTP_USER_AGENT", "")
+    # IPv4 pattern
+    ipv4_pattern = r"^(\d{1,3}\.){3}\d{1,3}$"
+    if re.match(ipv4_pattern, ip):
+        parts = ip.split(".")
+        return all(0 <= int(part) <= 255 for part in parts)
 
-    # Parse user agent for browser and OS info
-    browser_info = parse_user_agent(user_agent)
+    # IPv6 basic check
+    if ":" in ip and len(ip) > 2:
+        return True
 
-    # Get geographic info (would need a service like GeoIP)
-    geo_info = get_geographic_info(ip_address)
+    return False
 
-    return {
-        "ip_address": ip_address,
-        "user_agent": user_agent,
-        "browser": browser_info.get("browser", "Unknown"),
-        "browser_version": browser_info.get("browser_version", ""),
-        "os": browser_info.get("os", "Unknown"),
-        "os_version": browser_info.get("os_version", ""),
-        "device_type": browser_info.get("device_type", "unknown"),
-        "country": geo_info.get("country", ""),
-        "city": geo_info.get("city", ""),
-        "timezone": geo_info.get("timezone", ""),
-    }
+
+def normalize_identifier(identifier: str, identifier_type: str) -> str:
+    """
+    Normalize identifier based on its type.
+
+    Args:
+        identifier: The identifier to normalize
+        identifier_type: Type of identifier ('email', 'phone', 'username', 'admission_number')
+
+    Returns:
+        Normalized identifier
+    """
+    if not identifier:
+        return identifier
+
+    identifier = identifier.strip()
+
+    if identifier_type == "email":
+        return identifier.lower()
+    elif identifier_type == "phone":
+        return normalize_phone_number(identifier)
+    elif identifier_type == "admission_number":
+        return identifier.upper()
+    elif identifier_type == "username":
+        return identifier.lower()
+
+    return identifier
+
+
+def normalize_phone_number(phone: str) -> str:
+    """
+    Normalize phone number for consistent storage and comparison.
+
+    Args:
+        phone: Phone number to normalize
+
+    Returns:
+        Normalized phone number
+    """
+    if not phone:
+        return phone
+
+    # Remove all non-digit characters except +
+    clean_phone = re.sub(r"[^\d\+]", "", phone)
+
+    # Get phone settings
+    phone_settings = getattr(settings, "UNIFIED_AUTH_SETTINGS", {}).get(
+        "PHONE_NUMBER_SETTINGS", {}
+    )
+    default_country_code = phone_settings.get("DEFAULT_COUNTRY_CODE", "+1")
+
+    # Handle different formats
+    if clean_phone.startswith("+"):
+        return clean_phone
+    elif clean_phone.startswith("0") and len(clean_phone) == 11:
+        # Convert local format to international
+        return f"{default_country_code}{clean_phone[1:]}"
+    elif len(clean_phone) == 10:
+        # Add country code for 10-digit numbers
+        return f"{default_country_code}{clean_phone}"
+
+    return clean_phone
+
+
+def validate_identifier_format(identifier: str, identifier_type: str) -> Dict[str, Any]:
+    """
+    Validate identifier format and provide feedback.
+
+    Args:
+        identifier: Identifier to validate
+        identifier_type: Type of identifier
+
+    Returns:
+        Dict with validation results
+    """
+    from .services.authentication_service import UnifiedAuthenticationService
+
+    result = {"valid": False, "message": "", "suggestions": []}
+
+    if not identifier:
+        result["message"] = "Identifier cannot be empty"
+        return result
+
+    if identifier_type == "email":
+        from django.core.validators import validate_email
+        from django.core.exceptions import ValidationError
+
+        try:
+            validate_email(identifier)
+            result["valid"] = True
+            result["message"] = "Valid email format"
+        except ValidationError:
+            result["message"] = "Invalid email format"
+            result["suggestions"] = [
+                "Check for typos",
+                "Ensure @ symbol is present",
+                "Include domain extension",
+            ]
+
+    elif identifier_type == "phone":
+        if UnifiedAuthenticationService._is_phone_number(identifier):
+            result["valid"] = True
+            result["message"] = "Valid phone number format"
+        else:
+            result["message"] = "Invalid phone number format"
+            result["suggestions"] = [
+                "Use 10-15 digits",
+                "Include country code if international",
+                "Remove letters and symbols",
+            ]
+
+    elif identifier_type == "admission_number":
+        if UnifiedAuthenticationService._is_admission_number(identifier):
+            result["valid"] = True
+            result["message"] = "Valid admission number format"
+        else:
+            result["message"] = "Invalid admission number format"
+            result["suggestions"] = [
+                "Check with school administration",
+                "Ensure correct format (e.g., STU-2024-123)",
+            ]
+
+    elif identifier_type == "username":
+        if len(identifier) >= 3 and re.match(r"^[a-zA-Z0-9_]+$", identifier):
+            result["valid"] = True
+            result["message"] = "Valid username format"
+        else:
+            result["message"] = "Invalid username format"
+            result["suggestions"] = [
+                "Use only letters, numbers, and underscores",
+                "Minimum 3 characters",
+            ]
+
+    return result
 
 
 def parse_user_agent(user_agent: str) -> Dict[str, str]:

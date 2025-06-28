@@ -9,9 +9,11 @@ class FinanceConfig(AppConfig):
     verbose_name = "Finance Management"
 
     def ready(self):
-        """Initialize app when Django starts."""
-        # Import signals to ensure they are connected
-        try:
-            import finance.signals
-        except ImportError:
-            pass
+        # Import signals only once
+        if not hasattr(self, "_signals_imported"):
+            try:
+                import finance.signals  # noqa
+
+                self._signals_imported = True
+            except ImportError:
+                pass

@@ -257,9 +257,21 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
-# Authentication backends
+# ==============================================================================
+# AUTHENTICATION BACKENDS
+# ==============================================================================
+
+# Authentication backends - Order matters!
+# The first backend that successfully authenticates will be used
 AUTHENTICATION_BACKENDS = [
+    # Primary unified backend supporting all identifier types
+    "src.accounts.authentication.UnifiedAuthenticationBackend",
+    # Fallback to Django's default backend for admin/superuser accounts
     "django.contrib.auth.backends.ModelBackend",
+    # Specialized backends (optional - for specific use cases)
+    # "src.accounts.authentication.EmailAuthenticationBackend",  # Email only
+    # "src.accounts.authentication.PhoneAuthenticationBackend",  # Phone only
+    # "src.accounts.authentication.StudentAdmissionBackend",     # Admission number only
 ]
 
 
@@ -285,6 +297,10 @@ SITE_NAME = "School Management System"
 
 # Authentication Settings
 AUTH_USER_MODEL = "accounts.User"
+
+# Remember me functionality
+REMEMBER_ME_DURATION = 60 * 60 * 24 * 14  # 2 weeks in seconds
+
 
 # Password Validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -640,3 +656,111 @@ ASSIGNMENTS_SETTINGS = {
     "NOTIFICATION_DAYS_BEFORE": 2,
     "BATCH_SIZE": 100,
 }
+
+# ==============================================================================
+# UNIFIED AUTHENTICATION SETTINGS
+# ==============================================================================
+
+# Settings for the unified authentication system
+UNIFIED_AUTH_SETTINGS = {
+    # Identifier type priorities (lower number = higher priority)
+    "IDENTIFIER_PRIORITIES": {
+        "email": 1,
+        "phone": 2,
+        "admission_number": 3,
+        "username": 4,
+    },
+    # Phone number settings
+    "PHONE_NUMBER_SETTINGS": {
+        "DEFAULT_COUNTRY_CODE": "+1",  # Adjust for your country
+        "ALLOW_INTERNATIONAL": True,
+        "MIN_LENGTH": 10,
+        "MAX_LENGTH": 15,
+        "NORMALIZE_FORMAT": True,
+    },
+    # Admission number settings
+    "ADMISSION_NUMBER_SETTINGS": {
+        "PATTERNS": [
+            r"^[A-Z]{2,4}-\d{4}-[A-Z0-9]{3,8}$",  # STU-2024-ABC123
+            r"^\d{4}[A-Z0-9]{3,8}$",  # 2024ABC123
+            r"^[A-Z]{2,4}\d{4}[A-Z0-9]{3,8}$",  # STU2024ABC123
+            r"^\d{7,12}$",  # 202400001
+            r"^[A-Z]{2,4}/\d{4}/\d{3,6}$",  # STU/2024/001
+        ],
+        "CASE_SENSITIVE": False,
+        "MIN_LENGTH": 3,
+        "MAX_LENGTH": 20,
+    },
+    # Security settings
+    "SECURITY_SETTINGS": {
+        "LOG_ALL_ATTEMPTS": True,
+        "LOG_SUCCESSFUL_LOGINS": True,
+        "LOG_FAILED_ATTEMPTS": True,
+        "ENABLE_RATE_LIMITING": True,
+        "MAX_ATTEMPTS_PER_IP": 10,  # Per hour
+        "LOCKOUT_DURATION": 3600,  # 1 hour in seconds
+    },
+    # User experience settings
+    "UX_SETTINGS": {
+        "SHOW_IDENTIFIER_TYPE": True,
+        "PROVIDE_HINTS": True,
+        "REMEMBER_LAST_IDENTIFIER_TYPE": True,
+        "AUTO_DETECT_IDENTIFIER_TYPE": True,
+    },
+}
+# ==============================================================================
+# FEATURE FLAGS FOR AUTHENTICATION
+# ==============================================================================
+
+# Feature flags for authentication system
+AUTH_FEATURE_FLAGS = {
+    "UNIFIED_LOGIN": True,  # Enable unified login system
+    "PHONE_LOGIN": True,  # Allow login with phone numbers
+    "ADMISSION_LOGIN": True,  # Allow login with admission numbers
+    "USERNAME_LOGIN": True,  # Allow login with usernames
+    "EMAIL_LOGIN": True,  # Allow login with email addresses
+    "REMEMBER_ME": True,  # Enable "remember me" functionality
+    "ACCOUNT_LOCKOUT": True,  # Enable account lockout after failed attempts
+    "DETAILED_LOGIN_LOGS": True,  # Log detailed authentication information
+    "LOGIN_ATTEMPT_TRACKING": True,  # Track and store login attempts
+    "SUSPICIOUS_ACTIVITY_DETECTION": False,  # Advanced threat detection
+    "TWO_FACTOR_AUTH": False,  # Two-factor authentication (if implemented)
+}
+
+# ==============================================================================
+# RATE LIMITING SETTINGS
+# ==============================================================================
+
+# Rate limiting for authentication endpoints
+RATE_LIMITING = {
+    "LOGIN_ATTEMPTS": {
+        "RATE": "10/hour",  # 10 attempts per hour per IP
+        "BURST": 3,  # Allow 3 rapid attempts initially
+    },
+    "PASSWORD_RESET": {
+        "RATE": "5/hour",  # 5 password reset attempts per hour per IP
+        "BURST": 1,
+    },
+    "ACCOUNT_CREATION": {
+        "RATE": "3/hour",  # 3 account creations per hour per IP
+        "BURST": 1,
+    },
+}
+
+# ==============================================================================
+# DEVELOPMENT/DEBUG SETTINGS
+# ==============================================================================
+
+if DEBUG:
+    # Additional debug settings for authentication
+    AUTH_FEATURE_FLAGS["DEBUG_AUTH_DETAILS"] = True
+
+    # Log all authentication attempts in development
+    UNIFIED_AUTH_SETTINGS["SECURITY_SETTINGS"]["LOG_ALL_ATTEMPTS"] = True
+
+    # Relaxed rate limiting in development
+    RATE_LIMITING["LOGIN_ATTEMPTS"]["RATE"] = "100/hour"
+
+    # Allow easier testing
+    MAX_FAILED_LOGIN_ATTEMPTS = 10
+    ACCOUNT_LOCKOUT_DURATION = 5  # 5 minutes

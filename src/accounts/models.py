@@ -975,6 +975,49 @@ class UserAuditLog(models.Model):
 
     objects = UserAuditLogManager()
 
+    def save(self, *args, **kwargs):
+        """Override save to handle cache clearing safely."""
+        try:
+            super().save(*args, **kwargs)
+
+            # Only clear cache if the object has a pk (i.e., it was saved successfully)
+            if self.pk:
+                self.clear_related_cache()
+        except Exception as e:
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error saving UserAuditLog: {str(e)}")
+            # Re-raise the exception to maintain normal error handling
+            raise
+
+    def clear_related_cache(self):
+        """Clear related cache entries safely."""
+        try:
+            from django.core.cache import cache
+
+            # Only proceed if we have a primary key
+            if not self.pk:
+                return
+
+            # Clear user-specific cache if user exists
+            if self.user and self.user.pk:
+                cache_keys = [
+                    f"user_audit_logs:{self.user.pk}",
+                    f"user_recent_activity:{self.user.pk}",
+                    f"user_login_stats:{self.user.pk}",
+                ]
+
+                for key in cache_keys:
+                    cache.delete(key)
+
+        except Exception as e:
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to clear cache for UserAuditLog: {str(e)}")
+            # Don't re-raise here - cache clearing failure shouldn't break the main operation
+
     class Meta:
         verbose_name = _("user audit log")
         verbose_name_plural = _("user audit logs")

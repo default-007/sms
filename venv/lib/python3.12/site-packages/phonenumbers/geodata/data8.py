@@ -1002,6 +1002,7 @@ data = {
  '6124091':{'en': 'Newcastle/Maitland'},
  '6124092':{'en': 'Newcastle'},
  '6124099':{'en': 'Newcastle'},
+ '61241':{'en': 'Clarence Town/Dungog/Eccleston/East Gresford/Maitland/Mulbring/Karuah/Laguna/Wards River/Wootton/Tea Gardens/Swansea/Newcastle/Nelson Bay/Raymond Terrace/Stroud/Newcastle'},
  '6124200':{'en': 'Wollongong'},
  '6124201':{'en': 'Wollongong'},
  '61242020':{'en': 'Helensburgh'},
@@ -10018,5 +10019,4 @@ data = {
  '61263785':{'en': 'Coolah'},
  '61263786':{'en': 'Mudgee'},
  '61263787':{'en': 'Gulgong'},
- '61263788':{'en': 'Laheys Creek'},
 }

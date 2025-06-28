@@ -13,96 +13,113 @@ from django.contrib.auth.forms import (
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.utils.translation import gettext_lazy as _
-
+from .services.authentication_service import UnifiedAuthenticationService
 from .constants import PERMISSION_SCOPES
 from .models import UserProfile, UserRole, UserRoleAssignment
-from .services import AuthenticationService
 from .utils import validate_password_strength
 
 User = get_user_model()
 
 
-class CustomAuthenticationForm(AuthenticationForm):
-    """Enhanced login form supporting email, phone, or username."""
+class CustomAuthenticationForm(forms.Form):
+    """
+    Enhanced authentication form supporting multiple identifier types:
+    - Email address
+    - Phone number
+    - Username
+    - Admission number (for students)
+
+    Note: This inherits from forms.Form instead of AuthenticationForm to avoid
+    conflicts with Django's built-in username field handling.
+    """
 
     identifier = forms.CharField(
         label=_("Email, Phone, Username, or Admission Number"),
+        max_length=254,
         widget=forms.TextInput(
             attrs={
-                "class": "form-control",
-                "placeholder": "Email, phone, username, or admission number",
+                "class": "form-control form-control-lg",
+                "placeholder": "Enter your email, phone, username, or admission number",
                 "autofocus": True,
                 "autocomplete": "username",
             }
         ),
         help_text=_(
-            "You can log in using your email address, phone number, username, or admission number (for students)"
+            "You can login using:<br>"
+            "• Your email address<br>"
+            "• Your phone number<br>"
+            "• Your username<br>"
+            "• Your admission number (for students)"
         ),
     )
+
     password = forms.CharField(
         label=_("Password"),
+        strip=False,
         widget=forms.PasswordInput(
             attrs={
-                "class": "form-control",
-                "placeholder": "Password",
+                "class": "form-control form-control-lg",
+                "placeholder": "Enter your password",
                 "autocomplete": "current-password",
             }
         ),
     )
+
     remember_me = forms.BooleanField(
         label=_("Remember me"),
         required=False,
-        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        widget=forms.CheckboxInput(
+            attrs={
+                "class": "form-check-input",
+            }
+        ),
+        help_text=_("Keep me logged in for 2 weeks"),
     )
 
     error_messages = {
         "invalid_login": _(
-            "Please enter valid credentials. Note that fields may be case-sensitive."
+            "Please enter a correct identifier and password. Note that both "
+            "fields may be case-sensitive."
         ),
         "inactive": _("This account is inactive."),
         "account_locked": _(
-            "This account is locked due to multiple failed login attempts."
+            "This account has been locked due to multiple failed login attempts. "
+            "Please contact administrator or try again later."
+        ),
+        "user_not_found": _("No account found with this identifier."),
+        "invalid_credentials": _("Invalid password provided."),
+        "student_inactive": _(
+            "Your student account is inactive. Please contact administration."
         ),
     }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, request=None, *args, **kwargs):
+        """Initialize form with request for logging purposes."""
+        self.request = request
+        self.user_cache = None
         super().__init__(*args, **kwargs)
-        # Remove the username field from parent class
-        if "username" in self.fields:
-            del self.fields["username"]
+
+        # Set required attribute for better validation
+        self.fields["identifier"].required = True
+        self.fields["password"].required = True
 
     def clean_identifier(self):
-        """Validate and normalize the identifier."""
+        """Validate and clean the identifier field."""
         identifier = self.cleaned_data.get("identifier", "").strip()
 
         if not identifier:
             raise forms.ValidationError(_("This field is required."))
 
-        # Basic format validation for email
-        if "@" in identifier:
-            try:
-                validate_email(identifier)
-            except ValidationError:
-                raise forms.ValidationError(_("Please enter a valid email address."))
+        # Provide specific validation feedback based on identifier type
+        identifier_type = self._detect_identifier_type(identifier)
 
-        # Basic format validation for phone
-        elif (
-            identifier.replace("+", "")
-            .replace("-", "")
-            .replace(" ", "")
-            .replace("(", "")
-            .replace(")", "")
-            .isdigit()
-        ):
-            # Basic phone number validation
-            clean_phone = re.sub(r"[^\d+]", "", identifier)
-            if len(clean_phone) < 10:
-                raise forms.ValidationError(_("Please enter a valid phone number."))
-
-        # Basic format validation for admission number
-        elif re.match(r"^[A-Z0-9]{6,20}$", identifier, re.IGNORECASE):
-            # Admission numbers are typically alphanumeric
-            pass
+        if identifier_type == "email":
+            self._validate_email_format(identifier)
+        elif identifier_type == "phone":
+            self._validate_phone_format(identifier)
+        elif identifier_type == "admission":
+            self._validate_admission_format(identifier)
+        # Username needs no specific format validation
 
         return identifier
 
@@ -112,8 +129,8 @@ class CustomAuthenticationForm(AuthenticationForm):
         password = self.cleaned_data.get("password")
 
         if identifier and password:
-            # Use our custom authentication service
-            user, result = AuthenticationService.authenticate_user(
+            # Use our unified authentication service
+            user, result = UnifiedAuthenticationService.authenticate_user(
                 identifier, password, self.request
             )
 
@@ -125,13 +142,30 @@ class CustomAuthenticationForm(AuthenticationForm):
                 error_messages = {
                     "user_not_found": _("No account found with this identifier."),
                     "account_locked": _(
-                        "Account is locked due to multiple failed attempts."
+                        "Account is locked due to multiple failed attempts. "
+                        "Please contact administrator or try again later."
                     ),
                     "account_inactive": _("This account is inactive."),
-                    "invalid_credentials": _("Invalid credentials."),
+                    "invalid_credentials": _("Invalid password provided."),
+                    "authentication_error": _(
+                        "Authentication failed due to system error."
+                    ),
                 }
 
                 error_message = error_messages.get(result, _("Authentication failed."))
+
+                # Add helpful context based on identifier type
+                identifier_type = self._detect_identifier_type(identifier)
+                if result == "user_not_found":
+                    if identifier_type == "admission":
+                        error_message = _(
+                            "No student found with this admission number."
+                        )
+                    elif identifier_type == "email":
+                        error_message = _("No account found with this email address.")
+                    elif identifier_type == "phone":
+                        error_message = _("No account found with this phone number.")
+
                 raise forms.ValidationError(error_message, code="invalid_login")
 
         return self.cleaned_data
@@ -144,11 +178,180 @@ class CustomAuthenticationForm(AuthenticationForm):
                 code="inactive",
             )
 
-        if user.is_account_locked():
+        if hasattr(user, "is_account_locked") and user.is_account_locked():
             raise ValidationError(
                 self.error_messages["account_locked"],
                 code="account_locked",
             )
+
+    def get_user(self):
+        """Return the authenticated user."""
+        return self.user_cache
+
+    def _detect_identifier_type(self, identifier):
+        """Detect the type of identifier provided."""
+        if UnifiedAuthenticationService._is_email(identifier):
+            return "email"
+        elif UnifiedAuthenticationService._is_phone_number(identifier):
+            return "phone"
+        elif UnifiedAuthenticationService._is_admission_number(identifier):
+            return "admission"
+        else:
+            return "username"
+
+    def _validate_email_format(self, email):
+        """Validate email format."""
+        try:
+            validate_email(email)
+        except ValidationError:
+            raise forms.ValidationError(_("Please enter a valid email address."))
+
+    def _validate_phone_format(self, phone):
+        """Validate phone number format."""
+        # Remove common phone number characters for validation
+        clean_phone = re.sub(r"[\s\-\(\)\+]", "", phone)
+
+        if not clean_phone.isdigit():
+            raise forms.ValidationError(
+                _(
+                    "Phone number should contain only digits, spaces, hyphens, and parentheses."
+                )
+            )
+
+        if len(clean_phone) < 10:
+            raise forms.ValidationError(
+                _("Please enter a valid phone number with at least 10 digits.")
+            )
+
+        if len(clean_phone) > 15:
+            raise forms.ValidationError(
+                _("Phone number is too long. Maximum 15 digits allowed.")
+            )
+
+    def _validate_admission_format(self, admission_number):
+        """Validate admission number format."""
+        # Basic validation - adjust patterns based on your institution's format
+        if len(admission_number.strip()) < 3:
+            raise forms.ValidationError(_("Admission number is too short."))
+
+        if len(admission_number.strip()) > 20:
+            raise forms.ValidationError(_("Admission number is too long."))
+
+    def get_identifier_type_display(self):
+        """Get user-friendly display name for the identifier type used."""
+        if not hasattr(self, "cleaned_data") or not self.cleaned_data.get("identifier"):
+            return None
+
+        identifier = self.cleaned_data["identifier"]
+        identifier_type = self._detect_identifier_type(identifier)
+
+        type_mapping = {
+            "email": _("Email Address"),
+            "phone": _("Phone Number"),
+            "admission": _("Admission Number"),
+            "username": _("Username"),
+        }
+
+        return type_mapping.get(identifier_type, _("Identifier"))
+
+
+class QuickLoginForm(forms.Form):
+    """
+    Simplified login form for mobile apps or quick access.
+    """
+
+    identifier = forms.CharField(
+        max_length=254,
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Email, Phone, Username, or Admission #",
+                "class": "form-control",
+            }
+        ),
+    )
+
+    password = forms.CharField(
+        widget=forms.PasswordInput(
+            attrs={
+                "placeholder": "Password",
+                "class": "form-control",
+            }
+        )
+    )
+
+    def clean(self):
+        """Simple authentication using unified service."""
+        identifier = self.cleaned_data.get("identifier")
+        password = self.cleaned_data.get("password")
+
+        if identifier and password:
+            user, result = UnifiedAuthenticationService.authenticate_user(
+                identifier, password
+            )
+
+            if result == "success" and user:
+                self.user_cache = user
+            else:
+                raise forms.ValidationError(_("Invalid login credentials."))
+
+        return self.cleaned_data
+
+    def get_user(self):
+        """Return the authenticated user."""
+        return getattr(self, "user_cache", None)
+
+
+class IdentifierValidationForm(forms.Form):
+    """
+    Form for validating identifier format before password entry.
+    Useful for multi-step login processes.
+    """
+
+    identifier = forms.CharField(
+        max_length=254,
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Enter your email, phone, username, or admission number",
+                "class": "form-control form-control-lg",
+                "autofocus": True,
+            }
+        ),
+    )
+
+    def clean_identifier(self):
+        """Validate identifier and check if user exists."""
+        identifier = self.cleaned_data.get("identifier", "").strip()
+
+        if not identifier:
+            raise forms.ValidationError(_("This field is required."))
+
+        # Check if user exists
+        user = UnifiedAuthenticationService._find_user_by_identifier(identifier)
+        if not user:
+            identifier_type = UnifiedAuthenticationService._get_identifier_type(
+                identifier
+            )
+            if identifier_type == UnifiedAuthenticationService.IDENTIFIER_ADMISSION:
+                raise forms.ValidationError(
+                    _("No student found with this admission number.")
+                )
+            else:
+                raise forms.ValidationError(_("No account found with this identifier."))
+
+        # Store user for next step
+        self.user_cache = user
+        return identifier
+
+    def get_user(self):
+        """Return the found user."""
+        return getattr(self, "user_cache", None)
+
+    def get_identifier_type(self):
+        """Get the type of identifier entered."""
+        identifier = self.cleaned_data.get("identifier")
+        if identifier:
+            return UnifiedAuthenticationService._get_identifier_type(identifier)
+        return None
 
 
 class EnhancedUserCreationForm(UserCreationForm):

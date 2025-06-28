@@ -106,48 +106,43 @@ class EnhancedLoginView(LoginView):
         return context
 
     def form_valid(self, form):
-        """Handle successful login with enhanced features."""
+        """Handle successful form submission."""
         try:
             user = form.get_user()
             if not user:
                 messages.error(self.request, "Authentication failed. Please try again.")
                 return self.form_invalid(form)
 
-            client_info = get_client_info(self.request)
-
-            # Check rate limiting
-            if self._is_rate_limited():
-                messages.error(
-                    self.request, "Too many login attempts. Please try again later."
-                )
-                return self.form_invalid(form)
-
             # Handle remember me functionality
             remember_me = form.cleaned_data.get("remember_me", False)
             if remember_me:
-                # Extend session duration
-                remember_duration = getattr(
-                    settings, "REMEMBER_ME_DURATION", 1209600
-                )  # 2 weeks
+                remember_duration = getattr(settings, "REMEMBER_ME_DURATION", 1209600)
                 self.request.session.set_expiry(remember_duration)
             else:
-                # Session expires when browser closes
                 self.request.session.set_expiry(0)
 
-            # Log successful login with identifier type
+            # CRITICAL FIX: Set the backend attribute on the user
+            user.backend = "django.contrib.auth.backends.ModelBackend"
+
+            # Perform login
+            login(self.request, user)
+
+            # Add success message
+            messages.success(
+                self.request, f"Welcome back, {user.get_full_name() or user.username}!"
+            )
+
+            # Log successful login (simplified)
             try:
-                identifier_type = form.get_identifier_type_display()
+                client_info = get_client_info(self.request)
                 UserAuditLog.objects.create(
                     user=user,
                     action="login",
-                    description=f"Successful web login using {identifier_type or 'identifier'}",
+                    description="Successful web login",
                     ip_address=client_info.get("ip_address"),
                     user_agent=client_info.get("user_agent"),
                     extra_data={
                         **client_info,
-                        "identifier_type": form._detect_identifier_type(
-                            form.cleaned_data.get("identifier", "")
-                        ),
                         "remember_me": remember_me,
                         "login_method": "web_form",
                     },
@@ -155,33 +150,18 @@ class EnhancedLoginView(LoginView):
             except Exception as e:
                 logger.error(f"Failed to log successful login: {str(e)}")
 
-            # Clear any rate limiting for successful login
-            self._clear_rate_limit()
-
-            # Perform login with backend specification
-            # Specify the backend that was used for authentication
-            user.backend = "src.accounts.authentication.UnifiedAuthenticationBackend"
-            login(self.request, user)
-
-            # Add success message with personalization
-            welcome_message = self._get_welcome_message(user, identifier_type)
-            messages.success(self.request, welcome_message)
-
-            # Check for any security alerts
-            self._check_security_alerts(user)
-
             # Get redirect URL
             redirect_url = self.get_success_url()
             next_url = self.request.GET.get("next")
             if next_url:
                 redirect_url = next_url
 
-            return HttpResponseRedirect(redirect_url)
+            return redirect(redirect_url)
 
         except Exception as e:
             logger.error(f"Error in form_valid: {str(e)}")
             messages.error(
-                self.request, "Login failed due to an error. Please try again."
+                self.request, "Login failed due to a system error. Please try again."
             )
             return self.form_invalid(form)
 
@@ -336,23 +316,18 @@ class EnhancedLoginView(LoginView):
             logger.error(f"Error checking security alerts: {str(e)}")
 
     def _is_rate_limited(self):
-        """Check if current IP is rate limited."""
+        """Check if the current request is rate limited."""
         try:
-            client_ip = get_client_info(self.request).get("ip_address", "unknown")
+            from django.core.cache import cache
+
+            client_info = get_client_info(self.request)
+            client_ip = client_info.get("ip_address", "unknown")
+
             rate_limit_key = f"login_attempts:{client_ip}"
+            current_attempts = cache.get(rate_limit_key, 0)
+            max_attempts = getattr(settings, "MAX_FAILED_LOGIN_ATTEMPTS", 5)
 
-            attempts = cache.get(rate_limit_key, 0)
-            max_attempts = (
-                getattr(settings, "RATE_LIMITING", {})
-                .get("LOGIN_ATTEMPTS", {})
-                .get("RATE", "10/hour")
-            )
-
-            try:
-                max_count = int(max_attempts.split("/")[0])
-                return attempts >= max_count
-            except (ValueError, IndexError):
-                return False
+            return current_attempts >= max_attempts
         except Exception as e:
             logger.error(f"Error checking rate limit: {str(e)}")
             return False
@@ -360,18 +335,25 @@ class EnhancedLoginView(LoginView):
     def _increment_rate_limit(self):
         """Increment rate limiting counter."""
         try:
-            client_ip = get_client_info(self.request).get("ip_address", "unknown")
-            rate_limit_key = f"login_attempts:{client_ip}"
+            from django.core.cache import cache
 
-            current = cache.get(rate_limit_key, 0)
-            cache.set(rate_limit_key, current + 1, timeout=3600)  # 1 hour
+            client_info = get_client_info(self.request)
+            client_ip = client_info.get("ip_address", "unknown")
+
+            rate_limit_key = f"login_attempts:{client_ip}"
+            current_attempts = cache.get(rate_limit_key, 0)
+            cache.set(rate_limit_key, current_attempts + 1, 300)  # 5 minutes
         except Exception as e:
             logger.error(f"Error incrementing rate limit: {str(e)}")
 
     def _clear_rate_limit(self):
         """Clear rate limiting for successful login."""
         try:
-            client_ip = get_client_info(self.request).get("ip_address", "unknown")
+            from django.core.cache import cache
+
+            client_info = get_client_info(self.request)
+            client_ip = client_info.get("ip_address", "unknown")
+
             rate_limit_key = f"login_attempts:{client_ip}"
             cache.delete(rate_limit_key)
         except Exception as e:

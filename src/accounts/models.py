@@ -249,6 +249,15 @@ class User(AbstractBaseUser, PermissionsMixin):
         super().save(*args, **kwargs)
         self.clear_user_cache()
 
+    def clear_user_cache(self):
+        """Clear cached data for this user."""
+        try:
+            from .cache_utils import CacheManager
+
+            CacheManager.clear_user_cache(self.pk)
+        except Exception as e:
+            logger.debug(f"Cache clear failed for user {self.pk}: {str(e)}")
+
     def _resize_profile_picture(self):
         """Resize profile picture to optimize storage."""
         if not self.profile_picture or not hasattr(self.profile_picture, "path"):

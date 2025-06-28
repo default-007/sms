@@ -350,6 +350,29 @@ class EnhancedUserCreationForm(UserCreationForm):
 
         return username
 
+    def get_identifier_type_display(self):
+        """Get display name for identifier type."""
+        return "credentials"
+
+    def _detect_identifier_type(self, identifier):
+        """Detect the type of identifier being used."""
+        if not identifier:
+            return "unknown"
+
+        if "@" in identifier:
+            return "email"
+        elif (
+            identifier.replace("+", "")
+            .replace("-", "")
+            .replace(" ", "")
+            .replace("(", "")
+            .replace(")", "")
+            .isdigit()
+        ):
+            return "phone"
+        else:
+            return "username"
+
     def save(self, commit=True):
         """Save user with additional processing."""
         user = super().save(commit=False)

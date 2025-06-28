@@ -259,6 +259,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Authentication backends
 AUTHENTICATION_BACKENDS = [
+    "src.accounts.authentication.UnifiedAuthenticationBackend",
     "django.contrib.auth.backends.ModelBackend",
 ]
 
@@ -457,7 +458,7 @@ REST_FRAMEWORK = {
 # LOGGING SETTINGS
 # ==============================================================================
 
-LOGGING = {
+""" LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
@@ -527,7 +528,29 @@ LOGGING = {
             "propagate": True,
         },
     },
+} """
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "django.contrib.auth": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": True,
+        },
+        "accounts": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": True,
+        },
+    },
 }
+
 
 # JWT Settings
 from datetime import timedelta

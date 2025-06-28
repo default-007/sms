@@ -19,6 +19,7 @@ from ..util import u
 # limitations under the License.
 
 data = {
+ '61752934':{'en': 'Caloundra'},
  '61752935':{'en': 'Caloundra'},
  '61752936':{'en': 'Caloundra'},
  '61752937':{'en': 'Nambour'},
@@ -2158,6 +2159,7 @@ data = {
  '61851293':{'en': 'Wittenoom'},
  '61851294':{'en': 'Wyndham'},
  '618513':{'en': 'Marble Bar/Millstream/Mitchell/Mount Bruce/Newman/Onslow/Ord/Pannawonica/Paraburdoo/Port Hedland/Roebuck/Sandfire/Telfer/Tom Price/Whaleback/Wittenoom/Wyndham/Derby/Broome/Christmas Island/Cocos Island/Dampier/De Grey/Fitzroy Crossing/Great Sandy/Hall\'s Creek/Karratha/Kununurra/Leopold'},
+ '618514':{'en': 'Roebuck /Sandfire /Tom Price/Telfer/Wyndham/Whaleback /Wittenoom/Wyndham'},
  '61860000':{'en': 'Kalgoorlie'},
  '61860001':{'en': 'Burracoppin'},
  '61860002':{'en': 'Burracoppin'},
@@ -10017,6 +10019,4 @@ data = {
  '61885874':{'en': 'Wanbi'},
  '61885875':{'en': 'Wanbi'},
  '61885876':{'en': 'Wunkar'},
- '61885877':{'en': 'Wunkar'},
- '61885878':{'en': 'Paruna'},
 }

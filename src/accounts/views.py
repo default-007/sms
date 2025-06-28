@@ -6,7 +6,7 @@ import logging
 from datetime import timedelta
 from io import StringIO
 from typing import Any, Dict
-
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
@@ -61,70 +61,321 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
-# Authentication Views
-class CustomLoginView(LoginView):
-    """Enhanced login view with email/phone support and analytics."""
+class EnhancedLoginView(LoginView):
+    """
+    Enhanced login view supporting unified authentication with:
+    - Email, phone, username, and admission number login
+    - Rate limiting protection
+    - Detailed logging and analytics
+    - Remember me functionality
+    - Better user experience with helpful error messages
+    """
 
     form_class = CustomAuthenticationForm
     template_name = "accounts/login.html"
+    redirect_authenticated_user = True
+    success_url = reverse_lazy("core:dashboard")
 
     def get_context_data(self, **kwargs):
+        """Add context for enhanced login experience."""
         context = super().get_context_data(**kwargs)
+
+        # Get authentication settings safely
+        auth_settings = getattr(settings, "UNIFIED_AUTH_SETTINGS", {})
+        feature_flags = getattr(settings, "AUTH_FEATURE_FLAGS", {})
+
         context.update(
             {
-                "page_title": "Login",
-                "show_remember_me": True,
+                "page_title": "Login to Your Account",
+                "show_remember_me": feature_flags.get("REMEMBER_ME", True),
                 "allow_registration": True,
                 "allow_password_reset": True,
-                "login_help_text": "Students can use their admission number to log in",
+                "login_help_text": self._get_login_help_text(),
+                "supported_identifiers": self._get_supported_identifiers(),
+                "branding": {
+                    "site_name": getattr(
+                        settings, "SITE_NAME", "School Management System"
+                    ),
+                    "logo_url": getattr(settings, "LOGIN_LOGO_URL", None),
+                    "background_url": getattr(settings, "LOGIN_BACKGROUND_URL", None),
+                },
+                "security_notice": self._get_security_notice(),
             }
         )
+
         return context
 
     def form_valid(self, form):
-        """Handle successful login with enhanced logging."""
-        user = form.get_user()
-        client_info = get_client_info(self.request)
+        """Handle successful login with enhanced features."""
+        try:
+            user = form.get_user()
+            if not user:
+                messages.error(self.request, "Authentication failed. Please try again.")
+                return self.form_invalid(form)
 
-        # Log successful login
-        UserAuditLog.objects.create(
-            user=user,
-            action="login",
-            description="Successful web login",
-            ip_address=client_info.get("ip_address"),
-            user_agent=client_info.get("user_agent"),
-            extra_data=client_info,
-        )
+            client_info = get_client_info(self.request)
 
-        # Handle remember me
-        if form.cleaned_data.get("remember_me"):
-            self.request.session.set_expiry(1209600)  # 2 weeks
-        else:
-            self.request.session.set_expiry(0)  # Browser close
+            # Check rate limiting
+            if self._is_rate_limited():
+                messages.error(
+                    self.request, "Too many login attempts. Please try again later."
+                )
+                return self.form_invalid(form)
 
-        # Call parent form_valid
-        response = super().form_valid(form)
+            # Handle remember me functionality
+            remember_me = form.cleaned_data.get("remember_me", False)
+            if remember_me:
+                # Extend session duration
+                remember_duration = getattr(
+                    settings, "REMEMBER_ME_DURATION", 1209600
+                )  # 2 weeks
+                self.request.session.set_expiry(remember_duration)
+            else:
+                # Session expires when browser closes
+                self.request.session.set_expiry(0)
 
-        messages.success(self.request, f"Welcome back, {user.get_display_name()}!")
-        return response
+            # Log successful login with identifier type
+            try:
+                identifier_type = form.get_identifier_type_display()
+                UserAuditLog.objects.create(
+                    user=user,
+                    action="login",
+                    description=f"Successful web login using {identifier_type or 'identifier'}",
+                    ip_address=client_info.get("ip_address"),
+                    user_agent=client_info.get("user_agent"),
+                    extra_data={
+                        **client_info,
+                        "identifier_type": form._detect_identifier_type(
+                            form.cleaned_data.get("identifier", "")
+                        ),
+                        "remember_me": remember_me,
+                        "login_method": "web_form",
+                    },
+                )
+            except Exception as e:
+                logger.error(f"Failed to log successful login: {str(e)}")
+
+            # Clear any rate limiting for successful login
+            self._clear_rate_limit()
+
+            # Perform login with backend specification
+            # Specify the backend that was used for authentication
+            user.backend = "src.accounts.authentication.UnifiedAuthenticationBackend"
+            login(self.request, user)
+
+            # Add success message with personalization
+            welcome_message = self._get_welcome_message(user, identifier_type)
+            messages.success(self.request, welcome_message)
+
+            # Check for any security alerts
+            self._check_security_alerts(user)
+
+            # Get redirect URL
+            redirect_url = self.get_success_url()
+            next_url = self.request.GET.get("next")
+            if next_url:
+                redirect_url = next_url
+
+            return HttpResponseRedirect(redirect_url)
+
+        except Exception as e:
+            logger.error(f"Error in form_valid: {str(e)}")
+            messages.error(
+                self.request, "Login failed due to an error. Please try again."
+            )
+            return self.form_invalid(form)
 
     def form_invalid(self, form):
-        """Handle failed login attempts."""
-        identifier = form.cleaned_data.get("identifier", "")
-        client_info = get_client_info(self.request)
+        """Handle failed login attempts with enhanced security."""
+        try:
+            identifier = form.data.get("identifier", "")
+            client_info = get_client_info(self.request)
 
-        # Log failed attempt
-        UserAuditLog.objects.create(
-            action="login",
-            description=f"Failed login attempt for identifier: {identifier}",
-            ip_address=client_info.get("ip_address"),
-            user_agent=client_info.get("user_agent"),
-            extra_data=client_info,
-            severity="medium",
+            # Increment rate limiting counter
+            self._increment_rate_limit()
+
+            # Log failed attempt with more details
+            try:
+                UserAuditLog.objects.create(
+                    action="login",
+                    description=f"Failed login attempt for identifier: {identifier}",
+                    ip_address=client_info.get("ip_address"),
+                    user_agent=client_info.get("user_agent"),
+                    extra_data={
+                        **client_info,
+                        "identifier_provided": identifier,
+                        "identifier_type": (
+                            form._detect_identifier_type(identifier)
+                            if identifier
+                            else "unknown"
+                        ),
+                        "form_errors": (
+                            dict(form.errors) if hasattr(form, "errors") else {}
+                        ),
+                        "login_method": "web_form",
+                    },
+                    severity="medium",
+                )
+            except Exception as e:
+                logger.error(f"Failed to log failed login attempt: {str(e)}")
+
+            # Add contextual error message
+            error_message = self._get_contextual_error_message(form, identifier)
+            messages.error(self.request, error_message)
+
+        except Exception as e:
+            logger.error(f"Error in form_invalid: {str(e)}")
+            messages.error(
+                self.request,
+                "Login failed. Please check your credentials and try again.",
+            )
+
+        return super().form_invalid(form)
+
+    def get_success_url(self):
+        """Get the success URL."""
+        return str(self.success_url) if self.success_url else "/"
+
+    def _get_login_help_text(self):
+        """Generate helpful login instructions."""
+        feature_flags = getattr(settings, "AUTH_FEATURE_FLAGS", {})
+        help_parts = []
+
+        if feature_flags.get("EMAIL_LOGIN", True):
+            help_parts.append("your email address")
+        if feature_flags.get("PHONE_LOGIN", True):
+            help_parts.append("your phone number")
+        if feature_flags.get("USERNAME_LOGIN", True):
+            help_parts.append("your username")
+        if feature_flags.get("ADMISSION_LOGIN", True):
+            help_parts.append("your admission number (for students)")
+
+        if len(help_parts) > 1:
+            return f"You can login using {', '.join(help_parts[:-1])}, or {help_parts[-1]}."
+        elif help_parts:
+            return f"Login using {help_parts[0]}."
+        else:
+            return "Enter your login credentials."
+
+    def _get_supported_identifiers(self):
+        """Get list of supported identifier types for frontend."""
+        feature_flags = getattr(settings, "AUTH_FEATURE_FLAGS", {})
+        return {
+            "email": feature_flags.get("EMAIL_LOGIN", True),
+            "phone": feature_flags.get("PHONE_LOGIN", True),
+            "username": feature_flags.get("USERNAME_LOGIN", True),
+            "admission": feature_flags.get("ADMISSION_LOGIN", True),
+        }
+
+    def _get_security_notice(self):
+        """Get security notice for login page."""
+        return (
+            "For your security, your session will automatically expire after "
+            "a period of inactivity. Never share your login credentials."
         )
 
-        messages.error(self.request, "Invalid login credentials. Please try again.")
-        return super().form_invalid(form)
+    def _get_welcome_message(self, user, identifier_type):
+        """Generate personalized welcome message."""
+        base_message = f"Welcome back, {user.get_full_name() or user.username}!"
+
+        if identifier_type:
+            base_message += f" (logged in using {identifier_type})"
+
+        # Add role-specific message
+        try:
+            if hasattr(user, "is_student") and user.is_student:
+                base_message += " Ready to learn?"
+            elif hasattr(user, "is_teacher") and user.is_teacher:
+                base_message += " Ready to teach?"
+            elif user.is_staff or user.is_superuser:
+                base_message += " Ready to manage?"
+        except:
+            pass
+
+        return base_message
+
+    def _get_contextual_error_message(self, form, identifier):
+        """Generate contextual error message based on identifier type."""
+        if not identifier:
+            return "Please enter your login credentials."
+
+        try:
+            identifier_type = form._detect_identifier_type(identifier)
+
+            # Customize message based on identifier type
+            type_messages = {
+                "email": "Please check your email address and password.",
+                "phone": "Please check your phone number and password.",
+                "admission": "Please check your admission number and password. Students should use their admission number as provided by the school.",
+                "username": "Please check your username and password.",
+            }
+
+            return type_messages.get(
+                identifier_type, "Please check your credentials and try again."
+            )
+        except:
+            return "Please check your credentials and try again."
+
+    def _check_security_alerts(self, user):
+        """Check for any security alerts to show user."""
+        try:
+            # Check for suspicious login patterns
+            recent_attempts = UserAuditLog.objects.filter(
+                user=user,
+                action="login",
+                timestamp__gte=timezone.now() - timezone.timedelta(hours=24),
+            ).count()
+
+            if recent_attempts > 10:
+                messages.warning(
+                    self.request,
+                    "We noticed several login attempts on your account in the last 24 hours. "
+                    "If this wasn't you, please change your password immediately.",
+                )
+        except Exception as e:
+            logger.error(f"Error checking security alerts: {str(e)}")
+
+    def _is_rate_limited(self):
+        """Check if current IP is rate limited."""
+        try:
+            client_ip = get_client_info(self.request).get("ip_address", "unknown")
+            rate_limit_key = f"login_attempts:{client_ip}"
+
+            attempts = cache.get(rate_limit_key, 0)
+            max_attempts = (
+                getattr(settings, "RATE_LIMITING", {})
+                .get("LOGIN_ATTEMPTS", {})
+                .get("RATE", "10/hour")
+            )
+
+            try:
+                max_count = int(max_attempts.split("/")[0])
+                return attempts >= max_count
+            except (ValueError, IndexError):
+                return False
+        except Exception as e:
+            logger.error(f"Error checking rate limit: {str(e)}")
+            return False
+
+    def _increment_rate_limit(self):
+        """Increment rate limiting counter."""
+        try:
+            client_ip = get_client_info(self.request).get("ip_address", "unknown")
+            rate_limit_key = f"login_attempts:{client_ip}"
+
+            current = cache.get(rate_limit_key, 0)
+            cache.set(rate_limit_key, current + 1, timeout=3600)  # 1 hour
+        except Exception as e:
+            logger.error(f"Error incrementing rate limit: {str(e)}")
+
+    def _clear_rate_limit(self):
+        """Clear rate limiting for successful login."""
+        try:
+            client_ip = get_client_info(self.request).get("ip_address", "unknown")
+            rate_limit_key = f"login_attempts:{client_ip}"
+            cache.delete(rate_limit_key)
+        except Exception as e:
+            logger.error(f"Error clearing rate limit: {str(e)}")
 
 
 class CustomLogoutView(LogoutView):

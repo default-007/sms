@@ -640,3 +640,24 @@ ASSIGNMENTS_SETTINGS = {
     "NOTIFICATION_DAYS_BEFORE": 2,
     "BATCH_SIZE": 100,
 }
+
+AUTH_FEATURE_FLAGS = {
+    "UNIFIED_LOGIN": True,
+    "PHONE_LOGIN": True,
+    "ADMISSION_LOGIN": True,
+    "USERNAME_LOGIN": True,
+    "EMAIL_LOGIN": True,
+    "REMEMBER_ME": True,
+    "ACCOUNT_LOCKOUT": True,
+}
+
+# Rate limiting settings
+RATE_LIMITING = {
+    "LOGIN_ATTEMPTS": {
+        "RATE": "10/hour",
+        "BURST": 3,
+    },
+}
+
+# Session settings
+REMEMBER_ME_DURATION = 1209600  # 2 weeks in seconds

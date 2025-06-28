@@ -1,6 +1,24 @@
 # urls.py
+from django.http import HttpResponse
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 from django.urls import path, include
 from . import views
+
+
+@login_required
+def dashboard_view(request):
+    """Simple dashboard view for testing login."""
+    return HttpResponse(
+        f"""
+    <h1>Dashboard - Login Successful!</h1>
+    <p>Welcome, {request.user.username}!</p>
+    <p>Email: {request.user.email}</p>
+    <p>Login time: {request.user.last_login}</p>
+    <a href="/accounts/logout/">Logout</a>
+    """
+    )
+
 
 app_name = "core"
 

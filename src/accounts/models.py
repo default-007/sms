@@ -2,6 +2,7 @@
 
 import os
 import re
+import logging
 from datetime import timedelta
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
@@ -22,12 +23,39 @@ from .managers import (
     UserSessionManager,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def user_profile_picture_path(instance, filename):
     """Generate upload path for user profile pictures."""
     ext = filename.split(".")[-1].lower()
     filename = f"{instance.username}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.{ext}"
     return f"profile_pictures/{instance.id or 'temp'}/{filename}"
+
+
+def safe_cache_delete(cache_key):
+    """Safely delete cache key without errors."""
+    try:
+        cache.delete(cache_key)
+    except Exception as e:
+        logger.debug(f"Cache delete failed for key {cache_key}: {str(e)}")
+
+
+def safe_cache_delete_pattern(pattern):
+    """Safely delete cache pattern without errors."""
+    try:
+        # Check if the cache backend supports delete_many or delete_pattern
+        if hasattr(cache, "delete_pattern"):
+            cache.delete_pattern(pattern)
+        elif hasattr(cache, "delete_many"):
+            # For backends that support delete_many, we'd need to get matching keys first
+            # This is more complex, so we'll skip it for now
+            pass
+        else:
+            # For DummyCache and other simple backends, just skip
+            logger.debug(f"Cache backend doesn't support pattern deletion: {pattern}")
+    except Exception as e:
+        logger.debug(f"Cache pattern delete failed for pattern {pattern}: {str(e)}")
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -217,6 +245,9 @@ class User(AbstractBaseUser, PermissionsMixin):
             is_new or "profile_picture" in kwargs.get("update_fields", [])
         ):
             self._resize_profile_picture()
+
+        super().save(*args, **kwargs)
+        self.clear_user_cache()
 
     def _resize_profile_picture(self):
         """Resize profile picture to optimize storage."""
@@ -643,6 +674,21 @@ class UserRole(models.Model):
             return {}
         return self.parent_role.get_all_permissions()
 
+    def clear_user_cache(self):
+        """Clear user-related cache entries safely."""
+        if not self.pk:
+            return
+
+        cache_keys = [
+            f"user:{self.pk}",
+            f"user_permissions:{self.pk}",
+            f"user_roles:{self.pk}",
+            f"user_profile:{self.pk}",
+        ]
+
+        for key in cache_keys:
+            safe_cache_delete(key)
+
 
 class UserRoleAssignment(models.Model):
     """Enhanced model to assign roles to users with advanced features."""
@@ -906,6 +952,25 @@ class UserSession(models.Model):
             and request.session.session_key == self.session_key
         )
 
+    def save(self, *args, **kwargs):
+        """Override save to handle cache clearing safely."""
+        super().save(*args, **kwargs)
+        self.clear_session_cache()
+
+    def clear_session_cache(self):
+        """Clear session-related cache entries safely."""
+        if not self.pk:
+            return
+
+        cache_keys = [
+            f"session:{self.session_key}",
+            f"user_sessions:{self.user_id}" if self.user_id else None,
+        ]
+
+        for key in cache_keys:
+            if key:
+                safe_cache_delete(key)
+
 
 class UserAuditLog(models.Model):
     """Enhanced audit trail for user-related actions."""
@@ -991,6 +1056,32 @@ class UserAuditLog(models.Model):
     def __str__(self):
         user_name = self.user.username if self.user else "System"
         return f"{user_name} - {self.get_action_display()} - {self.timestamp}"
+
+    def save(self, *args, **kwargs):
+        """Override save to handle cache clearing safely."""
+        super().save(*args, **kwargs)
+        self.clear_audit_cache()
+
+    def clear_audit_cache(self):
+        """Clear audit-related cache entries safely."""
+        # Only clear cache if the object has been saved and has a pk
+        if not self.pk:
+            return
+
+        cache_keys = []
+
+        # Clear user-specific cache if user exists
+        if self.user_id:
+            cache_keys.extend(
+                [
+                    f"user_audit_logs:{self.user_id}",
+                    f"user_recent_activity:{self.user_id}",
+                    f"user_login_stats:{self.user_id}",
+                ]
+            )
+
+        for key in cache_keys:
+            safe_cache_delete(key)
 
     def get_formatted_timestamp(self):
         """Get formatted timestamp for display."""

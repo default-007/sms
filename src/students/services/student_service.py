@@ -86,21 +86,44 @@ class StudentService:
 
     @staticmethod
     def bulk_import_students(
-        csv_file, send_notifications=False, update_existing=False, created_by=None
+        csv_file,
+        target_class=None,
+        academic_year=None,
+        auto_assign_class=False,
+        send_notifications=False,
+        update_existing=False,
+        created_by=None,
     ):
         """
-        Import students from a CSV file with admission_number as username
+        Enhanced import students from a CSV file with improved UX
+
+        Args:
+            csv_file: CSV file with student data
+            target_class: Optional Class instance to assign all students
+            academic_year: Academic year for the import
+            auto_assign_class: Whether to auto-assign students to target_class
+            send_notifications: Send email notifications (only if email exists)
+            update_existing: Update existing students
+            created_by: User who initiated the import
         """
         created_count = 0
         updated_count = 0
         error_count = 0
         errors = []
+        warnings = []
         success_emails = []
 
         try:
             decoded_file = csv_file.read().decode("utf-8")
             io_string = io.StringIO(decoded_file)
             reader = csv.DictReader(io_string)
+
+            # Validate target class if provided
+            if target_class and academic_year:
+                if target_class.academic_year != academic_year:
+                    raise ValidationError(
+                        "Target class must belong to the selected academic year"
+                    )
 
             for row_num, row in enumerate(reader, start=2):
                 try:
@@ -109,10 +132,12 @@ class StudentService:
                         required_fields = [
                             "first_name",
                             "last_name",
-                            "admission_number",  # Email no longer required
+                            "admission_number",
                         ]
                         missing_fields = [
-                            field for field in required_fields if not row.get(field)
+                            field
+                            for field in required_fields
+                            if not row.get(field, "").strip()
                         ]
 
                         if missing_fields:
@@ -120,119 +145,208 @@ class StudentService:
                                 f"Missing required fields: {', '.join(missing_fields)}"
                             )
 
-                        admission_number = row.get("admission_number")
+                        admission_number = row.get("admission_number").strip()
 
-                        # Prepare user data with admission_number as username
+                        # Check for existing student
+                        existing_user = User.objects.filter(
+                            username=admission_number
+                        ).first()
+                        existing_student = None
+
+                        if existing_user and hasattr(existing_user, "student_profile"):
+                            existing_student = existing_user.student_profile
+
+                        if existing_student and not update_existing:
+                            warnings.append(
+                                f"Row {row_num}: Student with admission number {admission_number} already exists (skipped)"
+                            )
+                            continue
+
+                        # Prepare user data
                         user_data = {
                             "username": admission_number,
-                            "email": row.get("email", ""),  # Email is now optional
-                            "first_name": row.get("first_name"),
-                            "last_name": row.get("last_name"),
-                            "phone_number": row.get("phone_number", ""),
+                            "first_name": row.get("first_name", "").strip(),
+                            "last_name": row.get("last_name", "").strip(),
+                            "email": row.get("email", "").strip(),
+                            "phone_number": row.get("phone_number", "").strip(),
                         }
 
-                        # Parse date of birth
-                        if row.get("date_of_birth"):
+                        # Handle class assignment logic
+                        student_class = None
+
+                        # Priority 1: Use class_id from CSV if provided
+                        class_id = (
+                            row.get("class_id", "").strip()
+                            or row.get("current_class_id", "").strip()
+                        )
+                        if class_id:
                             try:
-                                user_data["date_of_birth"] = timezone.datetime.strptime(
-                                    row["date_of_birth"], "%Y-%m-%d"
-                                ).date()
-                            except ValueError:
-                                pass
+                                from academics.models import Class
+
+                                student_class = Class.objects.get(
+                                    id=int(class_id), is_active=True
+                                )
+                            except (Class.DoesNotExist, ValueError):
+                                if auto_assign_class and target_class:
+                                    student_class = target_class
+                                    warnings.append(
+                                        f"Row {row_num}: Invalid class_id {class_id}, assigned to target class {target_class.display_name}"
+                                    )
+                                else:
+                                    warnings.append(
+                                        f"Row {row_num}: Invalid class_id {class_id}, student will not be assigned to any class"
+                                    )
+
+                        # Priority 2: Use target class if auto_assign is enabled
+                        elif auto_assign_class and target_class:
+                            student_class = target_class
 
                         # Prepare student data
                         student_data = {
                             "admission_number": admission_number,
-                            "admission_date": timezone.datetime.strptime(
-                                row.get(
-                                    "admission_date",
-                                    timezone.now().strftime("%Y-%m-%d"),
-                                ),
-                                "%Y-%m-%d",
-                            ).date(),
-                            "blood_group": row.get("blood_group", "Unknown"),
+                            "admission_date": timezone.now().date(),
+                            "current_class": student_class,
                             "emergency_contact_name": row.get(
                                 "emergency_contact_name", ""
-                            ),
+                            ).strip(),
                             "emergency_contact_number": row.get(
                                 "emergency_contact_number", ""
-                            ),
-                            "status": row.get("status", "Active"),
-                            "nationality": row.get("nationality", ""),
-                            "religion": row.get("religion", ""),
-                            "city": row.get("city", ""),
-                            "state": row.get("state", ""),
-                            "country": row.get("country", "India"),
+                            ).strip(),
+                            "blood_group": row.get("blood_group", "Unknown").strip(),
+                            "status": row.get("status", "Active").strip(),
                         }
 
-                        # Handle current class
-                        class_id = row.get("current_class_id")
-                        if class_id:
-                            from src.academics.models import Class
+                        # Optional fields
+                        optional_fields = [
+                            "roll_number",
+                            "nationality",
+                            "religion",
+                            "city",
+                            "state",
+                            "country",
+                            "medical_conditions",
+                            "date_of_birth",
+                        ]
+                        for field in optional_fields:
+                            if row.get(field, "").strip():
+                                student_data[field] = row.get(field).strip()
 
+                        # Handle date fields
+                        if row.get("admission_date", "").strip():
                             try:
-                                student_data["current_class"] = Class.objects.get(
-                                    id=class_id
-                                )
-                            except Class.DoesNotExist:
-                                pass
+                                from datetime import datetime
 
-                        # Check if student exists
-                        existing_student = Student.objects.filter(
-                            admission_number=student_data["admission_number"]
-                        ).first()
+                                admission_date = datetime.strptime(
+                                    row.get("admission_date").strip(), "%Y-%m-%d"
+                                ).date()
+                                student_data["admission_date"] = admission_date
+                            except ValueError:
+                                warnings.append(
+                                    f"Row {row_num}: Invalid date format for admission_date, using current date"
+                                )
 
                         if existing_student:
-                            if update_existing:
-                                StudentService.update_student(
-                                    existing_student,
-                                    student_data,
-                                    user_data,
-                                    created_by,
-                                )
-                                updated_count += 1
-                            else:
-                                raise ValueError(
-                                    "Student with this admission number already exists"
-                                )
-                        else:
-                            student = StudentService.create_student(
-                                student_data, user_data, created_by
-                            )
-                            created_count += 1
+                            # Update existing student
+                            existing_user.first_name = user_data["first_name"]
+                            existing_user.last_name = user_data["last_name"]
 
-                            # Only add to success emails if email is provided
-                            if user_data.get("email") and send_notifications:
-                                success_emails.append(student.user.email)
+                            # Only update email if provided and not empty
+                            if user_data["email"]:
+                                existing_user.email = user_data["email"]
+
+                            # Only update phone if provided and not empty
+                            if user_data["phone_number"]:
+                                existing_user.phone_number = user_data["phone_number"]
+
+                            existing_user.save()
+
+                            # Update student profile
+                            for key, value in student_data.items():
+                                if (
+                                    key != "admission_number" and value
+                                ):  # Don't update with empty values
+                                    setattr(existing_student, key, value)
+
+                            existing_student.save()
+                            updated_count += 1
+
+                            logger.info(f"Updated student: {admission_number}")
+
+                        else:
+                            # Create new user
+                            user = User.objects.create_user(
+                                username=user_data["username"],
+                                email=user_data["email"],
+                                first_name=user_data["first_name"],
+                                last_name=user_data["last_name"],
+                                phone_number=user_data["phone_number"],
+                            )
+
+                            # Create student profile
+                            student_data["user"] = user
+                            student_data["created_by"] = created_by
+
+                            from students.models import Student
+
+                            student = Student.objects.create(**student_data)
+
+                            # Assign student role
+                            from accounts.services import RoleService
+
+                            RoleService.assign_role_to_user(user, "Student")
+
+                            created_count += 1
+                            logger.info(f"Created student: {admission_number}")
+
+                        # Collect email for notifications if email exists
+                        if send_notifications and user_data["email"]:
+                            success_emails.append(user_data["email"])
 
                 except Exception as e:
                     error_count += 1
-                    errors.append({"row": row_num, "data": dict(row), "error": str(e)})
+                    error_msg = f"Row {row_num}: {str(e)}"
+                    errors.append(error_msg)
                     logger.error(f"Error processing row {row_num}: {str(e)}")
+                    continue
 
-            # Send notification emails only to students with email addresses
+            # Send notifications if requested
             if send_notifications and success_emails:
-                StudentService._send_bulk_welcome_emails(success_emails)
+                try:
+                    StudentService._send_bulk_welcome_emails(success_emails, created_by)
+                except Exception as e:
+                    warnings.append(f"Notifications sent with some errors: {str(e)}")
+
+            # Prepare results summary
+            result = {
+                "success": True,
+                "created_count": created_count,
+                "updated_count": updated_count,
+                "error_count": error_count,
+                "errors": errors,
+                "warnings": warnings,
+                "total_processed": created_count + updated_count + error_count,
+            }
+
+            if target_class:
+                result["target_class"] = {
+                    "id": target_class.id,
+                    "name": target_class.display_name,
+                    "assigned_count": (
+                        created_count + updated_count if auto_assign_class else 0
+                    ),
+                }
+
+            return result
 
         except Exception as e:
-            logger.error(f"Critical error during bulk import: {str(e)}")
+            logger.error(f"Bulk import failed: {str(e)}")
             return {
                 "success": False,
                 "error": str(e),
-                "created": 0,
-                "updated": 0,
-                "errors": 0,
-                "error_details": [],
+                "created_count": created_count,
+                "updated_count": updated_count,
+                "error_count": error_count,
             }
-
-        return {
-            "success": True,
-            "created": created_count,
-            "updated": updated_count,
-            "errors": error_count,
-            "error_details": errors,
-            "total_processed": created_count + updated_count + error_count,
-        }
 
     @staticmethod
     def update_student(student, student_data, user_data=None, updated_by=None):
@@ -284,25 +398,24 @@ class StudentService:
                 raise
 
     @staticmethod
-    def _send_bulk_welcome_emails(email_list):
-        """Send welcome emails to newly created students"""
-        try:
-            for email in email_list:
-                try:
-                    send_mail(
-                        subject="Welcome to School Management System",
-                        message=render_to_string(
-                            "emails/student_welcome.txt",
-                            {"school_name": getattr(settings, "SCHOOL_NAME", "School")},
-                        ),
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=[email],
-                        fail_silently=False,
-                    )
-                except Exception as e:
-                    logger.error(f"Failed to send welcome email to {email}: {str(e)}")
-        except Exception as e:
-            logger.error(f"Error in bulk email sending: {str(e)}")
+    def _send_bulk_welcome_emails(email_list, created_by=None):
+        """Send welcome emails to successfully imported students"""
+        # Implementation depends on your email service
+        # This is a placeholder for the actual email sending logic
+        from django.core.mail import send_mass_mail
+
+        messages = []
+        for email in email_list:
+            message = (
+                "Welcome to Our School",
+                "Welcome! Your student account has been created successfully.",
+                "noreply@school.com",
+                [email],
+            )
+            messages.append(message)
+
+        if messages:
+            send_mass_mail(messages, fail_silently=True)
 
     @staticmethod
     def generate_student_id_card(student):

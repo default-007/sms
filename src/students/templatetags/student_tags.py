@@ -29,6 +29,20 @@ def student_status_badge(status):
 
 
 @register.filter
+def dict_get(dictionary, key):
+    """Get a value from a dictionary using a variable key"""
+    if isinstance(dictionary, dict):
+        return dictionary.get(key, "")
+    return ""
+
+
+@register.filter
+def get_item(dictionary, key):
+    """Alternative name for the same functionality"""
+    return dict_get(dictionary, key)
+
+
+@register.filter
 def parent_relation_icon(relation):
     """Display appropriate icon for parent relation"""
     icon_map = {

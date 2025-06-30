@@ -1,6 +1,20 @@
 from django.urls import include, path
 
 from . import views
+from src.students.views.import_export_views import (
+    # Your existing enhanced import view
+    StudentBulkImportView,
+    # New template download functions (add these to import_export_views.py)
+    download_student_template,
+    download_class_specific_template,
+    generate_admission_numbers,
+    preview_import_data,
+    validate_csv_data,
+    # New AJAX view class (add this to import_export_views.py)
+    ClassInfoAjaxView,
+    # Your existing views (whatever you currently have)
+    # StudentListView, StudentDetailView, etc.
+)
 
 app_name = "students"
 
@@ -109,6 +123,28 @@ import_export_patterns = [
     # Export URLs
     path("export/", views.ExportStudentsView.as_view(), name="student-export"),
     path("export/bulk/", views.BulkExportView.as_view(), name="bulk-export"),
+    # Template downloads
+    path("template/download/", download_student_template, name="download-template"),
+    path(
+        "template/download/<str:template_type>/",
+        download_student_template,
+        name="download-template",
+    ),
+    path(
+        "template/class/<int:class_id>/",
+        download_class_specific_template,
+        name="download-class-template",
+    ),
+    # AJAX endpoints
+    # path("api/classes/<int:class_id>/info/", ClassInfoAjaxView.as_view(), name="class-info-ajax",),
+    path(
+        "api/admission-numbers/generate/",
+        generate_admission_numbers,
+        name="generate-admission-numbers",
+    ),
+    # Additional helpful endpoints
+    # path("import/preview/", "preview_import_data", name="preview-import-data"),
+    # path("import/validate/", "validate_csv_data", name="validate-csv-data"),
     # Template Downloads
     path(
         "templates/<str:template_type>/",

@@ -1,33 +1,88 @@
-<!-- students/templates/students/student_bulk_import.html -->
+<!-- templates/students/student_bulk_import.html -->
 {% extends 'base.html' %}
 {% load static %}
 {% load student_tags %}
 
-{% block title %}Bulk Import Students{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/dropzone.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
 <style>
-  .template-preview {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 0.375rem;
-    padding: 1rem;
-    font-family: 'Courier New', monospace;
-    font-size: 0.8rem;
+  .import-steps {
+    counter-reset: step-counter;
   }
 
   .import-step {
-    opacity: 0.5;
+    counter-increment: step-counter;
+    position: relative;
+    padding-left: 50px;
+    margin-bottom: 2rem;
   }
 
-  .import-step.active {
-    opacity: 1;
+  .import-step::before {
+    content: counter(step-counter);
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
   }
 
-  .import-step.completed {
-    opacity: 1;
-    color: #198754;
+  .class-info-card {
+    border-left: 4px solid #007bff;
+    background: linear-gradient(135deg, #f8f9ff, #ffffff);
+  }
+
+  .capacity-bar {
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .capacity-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+  }
+
+  .dropzone {
+    border: 2px dashed #007bff;
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    background: linear-gradient(135deg, #f8f9ff, #ffffff);
+  }
+
+  .dropzone:hover {
+    border-color: #0056b3;
+    background: linear-gradient(135deg, #e7f0ff, #f8f9ff);
+  }
+
+  .dropzone.dragover {
+    border-color: #28a745;
+    background: linear-gradient(135deg, #e8f5e8, #f0fff0);
+  }
+
+  .template-tip {
+    border-left: 4px solid #28a745;
+    background: linear-gradient(135deg, #f8fff8, #ffffff);
+  }
+
+  .form-section {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e9ecef;
   }
 </style>
 {% endblock %}
@@ -39,7 +94,9 @@
     <div class="col-12">
       <div class="d-flex justify-content-between align-items-center">
         <div>
-          <h2 class="mb-1">{{ title }}</h2>
+          <h2 class="mb-1">
+            <i class="fas fa-upload me-2 text-primary"></i>{{ title }}
+          </h2>
           <p class="text-muted mb-0">{{ description }}</p>
         </div>
         <div>
@@ -51,306 +108,336 @@
     </div>
   </div>
 
-  <!-- Import Steps -->
-  <div class="row mb-4">
-    <div class="col-12">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div class="import-step active" id="step-1">
-              <div class="d-flex align-items-center">
-                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3"
-                  style="width: 40px; height: 40px;">
-                  <i class="fas fa-download"></i>
-                </div>
-                <div>
-                  <h6 class="mb-0">Download Template</h6>
-                  <small class="text-muted">Get the CSV template</small>
-                </div>
-              </div>
-            </div>
-            <div class="import-step" id="step-2">
-              <div class="d-flex align-items-center">
-                <div
-                  class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3"
-                  style="width: 40px; height: 40px;">
-                  <i class="fas fa-edit"></i>
-                </div>
-                <div>
-                  <h6 class="mb-0">Fill Data</h6>
-                  <small class="text-muted">Complete the CSV file</small>
-                </div>
-              </div>
-            </div>
-            <div class="import-step" id="step-3">
-              <div class="d-flex align-items-center">
-                <div
-                  class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3"
-                  style="width: 40px; height: 40px;">
-                  <i class="fas fa-upload"></i>
-                </div>
-                <div>
-                  <h6 class="mb-0">Upload File</h6>
-                  <small class="text-muted">Import your data</small>
-                </div>
-              </div>
-            </div>
-            <div class="import-step" id="step-4">
-              <div class="d-flex align-items-center">
-                <div
-                  class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3"
-                  style="width: 40px; height: 40px;">
-                  <i class="fas fa-check"></i>
-                </div>
-                <div>
-                  <h6 class="mb-0">Review Results</h6>
-                  <small class="text-muted">Check import status</small>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <div class="row">
+    <!-- Main Content -->
     <div class="col-lg-8">
-      <div class="row">
-        <!-- Quick Stats -->
-        {% student_quick_stats %}
-      </div>
-      <!-- Step 1: Template Download -->
-      <div class="card shadow-sm mb-4" id="template-section">
-        <div class="card-header bg-primary text-white">
-          <h5 class="card-title mb-0">
-            <i class="fas fa-download me-2"></i>Step 1: Download Template
-          </h5>
-        </div>
-        <div class="card-body">
-          <p class="mb-3">Download the CSV template to ensure your data is in the correct format.</p>
+      <div class="import-steps">
 
-          <div class="d-flex gap-3 mb-4">
-            <a href="{% url 'students:download-template' 'students' %}" class="btn btn-success" id="download-template">
-              <i class="fas fa-download me-2"></i>Download Student Template
-            </a>
-            <button type="button" class="btn btn-outline-info" data-bs-toggle="modal"
-              data-bs-target="#templatePreviewModal">
-              <i class="fas fa-eye me-2"></i>Preview Template
-            </button>
-          </div>
-
-          <!-- Template Information -->
-          <div class="alert alert-info">
-            <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Template Information</h6>
-            <div class="row">
-              <div class="col-md-6">
-                <strong>Required Fields:</strong>
-                <ul class="mb-0 small">
-                  <li>first_name</li>
-                  <li>last_name</li>
-                  <li>email</li>
-                  <li>admission_number</li>
-                  <li>emergency_contact_name</li>
-                  <li>emergency_contact_number</li>
-                </ul>
-              </div>
-              <div class="col-md-6">
-                <strong>Optional Fields:</strong>
-                <ul class="mb-0 small">
-                  <li>admission_date</li>
-                  <li>current_class_id</li>
-                  <li>blood_group</li>
-                  <li>nationality, religion</li>
-                  <li>city, state, country</li>
-                </ul>
-              </div>
+        <!-- Step 1: Class Selection -->
+        <div class="import-step">
+          <div class="form-section">
+            <div class="card-header bg-primary text-white">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-users me-2"></i>Step 1: Choose Import Method
+              </h5>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Step 2: Upload Form -->
-      <div class="card shadow-sm" id="upload-section" style="display: none;">
-        <div class="card-header bg-success text-white">
-          <h5 class="card-title mb-0">
-            <i class="fas fa-upload me-2"></i>Step 2: Upload CSV File
-          </h5>
-        </div>
-        <div class="card-body">
-          <form method="post" enctype="multipart/form-data" id="importForm">
-            {% csrf_token %}
-
-            <!-- Form Errors -->
-            {% if form.non_field_errors %}
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-              {{ form.non_field_errors }}
-              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            {% endif %}
-
-            <!-- File Upload -->
-            <div class="mb-4">
-              <label for="{{ form.csv_file.id_for_label }}" class="form-label">
-                CSV File <span class="text-danger">*</span>
-              </label>
-              <div class="dropzone" id="csvDropzone">
-                <div class="dz-message">
-                  <div class="display-4 text-muted mb-3">
-                    <i class="fas fa-cloud-upload-alt"></i>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-check form-check-custom mb-3">
+                    <input class="form-check-input" type="radio" name="import_method" id="method_per_class"
+                      value="per_class" checked>
+                    <label class="form-check-label" for="method_per_class">
+                      <strong>Per-Class Import</strong>
+                      <br><small class="text-muted">Import all students to a specific class</small>
+                    </label>
                   </div>
-                  <h5>Drop CSV file here or click to browse</h5>
-                  <p class="text-muted">Maximum file size: 5MB</p>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-check form-check-custom mb-3">
+                    <input class="form-check-input" type="radio" name="import_method" id="method_mixed" value="mixed">
+                    <label class="form-check-label" for="method_mixed">
+                      <strong>Mixed Classes Import</strong>
+                      <br><small class="text-muted">Use class_id column in CSV for different classes</small>
+                    </label>
+                  </div>
                 </div>
               </div>
-              {{ form.csv_file }}
-              {% if form.csv_file.errors %}
-              <div class="text-danger small mt-2">{{ form.csv_file.errors }}</div>
-              {% endif %}
-            </div>
 
-            <!-- Import Options -->
-            <div class="row mb-4">
-              <div class="col-md-6">
-                <div class="form-check form-switch">
-                  {{ form.send_email_notifications }}
-                  <label for="{{ form.send_email_notifications.id_for_label }}" class="form-check-label">
-                    Send Email Notifications
-                  </label>
-                  <div class="form-text">Send welcome emails to new students</div>
+              <!-- Class Selection Form -->
+              <form method="post" enctype="multipart/form-data" id="importForm">
+                {% csrf_token %}
+
+                <div class="row" id="class_selection_section">
+                  <div class="col-md-6">
+                    <label for="{{ form.target_class.id_for_label }}" class="form-label">
+                      <i class="fas fa-chalkboard me-1"></i>Target Class
+                    </label>
+                    {{ form.target_class }}
+                    <div class="form-text">{{ form.target_class.help_text }}</div>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="{{ form.academic_year.id_for_label }}" class="form-label">
+                      <i class="fas fa-calendar me-1"></i>Academic Year
+                    </label>
+                    {{ form.academic_year }}
+                    <div class="form-text">{{ form.academic_year.help_text }}</div>
+                  </div>
+                </div>
+
+                <!-- Class Information Display -->
+                <div id="class_info_display" class="mt-3" style="display: none;">
+                  <div class="class-info-card p-3 rounded">
+                    <h6 class="text-primary mb-2">
+                      <i class="fas fa-info-circle me-1"></i>Selected Class Information
+                    </h6>
+                    <div class="row">
+                      <div class="col-md-6">
+                        <small class="text-muted">Class:</small>
+                        <div class="fw-bold" id="class_display_name">-</div>
+                      </div>
+                      <div class="col-md-6">
+                        <small class="text-muted">Room:</small>
+                        <div id="class_room_number">-</div>
+                      </div>
+                      <div class="col-md-6 mt-2">
+                        <small class="text-muted">Current Students:</small>
+                        <div id="class_current_students">-</div>
+                      </div>
+                      <div class="col-md-6 mt-2">
+                        <small class="text-muted">Available Spots:</small>
+                        <div id="class_available_spots">-</div>
+                      </div>
+                      <div class="col-12 mt-2">
+                        <small class="text-muted">Capacity Utilization:</small>
+                        <div class="capacity-bar mt-1">
+                          <div class="capacity-fill bg-primary" id="capacity_fill" style="width: 0%"></div>
+                        </div>
+                        <small class="text-muted" id="capacity_percentage">0%</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Download Template -->
+        <div class="import-step">
+          <div class="form-section">
+            <div class="card-header bg-success text-white">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-download me-2"></i>Step 2: Download Template
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-8">
+                  <p class="mb-3">Download the CSV template and fill in your student data.</p>
+
+                  <div class="d-flex gap-2 mb-4">
+                    <a href="{% url 'students:download-template' 'students' %}" class="btn btn-success">
+                      <i class="fas fa-download me-2"></i>Download Template
+                    </a>
+                    <button type="button" class="btn btn-outline-info" data-bs-toggle="modal"
+                      data-bs-target="#templatePreviewModal">
+                      <i class="fas fa-eye me-2"></i>Preview Template
+                    </button>
+                  </div>
+
+                  <!-- Required Fields -->
+                  <div class="alert alert-info">
+                    <h6 class="alert-heading">
+                      <i class="fas fa-exclamation-circle me-2"></i>Required Fields
+                    </h6>
+                    <div class="row">
+                      <div class="col-md-6">
+                        <ul class="mb-0 small">
+                          <li><strong>first_name</strong> - Student's first name</li>
+                          <li><strong>last_name</strong> - Student's last name</li>
+                          <li><strong>admission_number</strong> - Unique identifier</li>
+                        </ul>
+                      </div>
+                      <div class="col-md-6">
+                        <ul class="mb-0 small">
+                          <li><em>email</em> - Optional, for notifications</li>
+                          <li><em>class_id</em> - Optional, for mixed class import</li>
+                          <li><em>emergency contacts</em> - Recommended</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <!-- Template Tips -->
+                  {% for tip in template_tips %}
+                  <div class="template-tip p-3 rounded mb-2">
+                    <div class="d-flex">
+                      <i class="{{ tip.icon }} text-success me-2 mt-1"></i>
+                      <div>
+                        <h6 class="mb-1">{{ tip.title }}</h6>
+                        <small class="text-muted">{{ tip.description }}</small>
+                      </div>
+                    </div>
+                  </div>
+                  {% endfor %}
                 </div>
               </div>
-              <div class="col-md-6">
-                <div class="form-check form-switch">
-                  {{ form.update_existing }}
-                  <label for="{{ form.update_existing.id_for_label }}" class="form-check-label">
-                    Update Existing Students
-                  </label>
-                  <div class="form-text">Update data if admission number exists</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Upload File -->
+        <div class="import-step">
+          <div class="form-section">
+            <div class="card-header bg-warning text-dark">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-cloud-upload-alt me-2"></i>Step 3: Upload CSV File
+              </h5>
+            </div>
+            <div class="card-body">
+
+              <!-- File Upload -->
+              <div class="mb-4">
+                <label for="{{ form.csv_file.id_for_label }}" class="form-label">
+                  <i class="fas fa-file-csv me-1"></i>CSV File <span class="text-danger">*</span>
+                </label>
+                <div class="dropzone" id="csvDropzone">
+                  <div class="dz-message">
+                    <div class="display-4 text-muted mb-3">
+                      <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <h5>Drop CSV file here or click to browse</h5>
+                    <p class="text-muted">Maximum file size: 5MB</p>
+                  </div>
+                </div>
+                {{ form.csv_file }}
+                {% if form.csv_file.errors %}
+                <div class="text-danger small mt-2">{{ form.csv_file.errors }}</div>
+                {% endif %}
+              </div>
+
+              <!-- Import Options -->
+              <div class="row mb-4">
+                <div class="col-md-4">
+                  <div class="form-check form-switch">
+                    {{ form.auto_assign_class }}
+                    <label for="{{ form.auto_assign_class.id_for_label }}" class="form-check-label">
+                      Auto-assign to Target Class
+                    </label>
+                    <div class="form-text">{{ form.auto_assign_class.help_text }}</div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-check form-switch">
+                    {{ form.send_email_notifications }}
+                    <label for="{{ form.send_email_notifications.id_for_label }}" class="form-check-label">
+                      Send Email Notifications
+                    </label>
+                    <div class="form-text">{{ form.send_email_notifications.help_text }}</div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-check form-switch">
+                    {{ form.update_existing }}
+                    <label for="{{ form.update_existing.id_for_label }}" class="form-check-label">
+                      Update Existing Students
+                    </label>
+                    <div class="form-text">{{ form.update_existing.help_text }}</div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Form Actions -->
-            <div class="d-flex justify-content-between">
-              <button type="button" class="btn btn-outline-secondary" onclick="showTemplateSection()">
-                <i class="fas fa-arrow-left me-2"></i>Back to Template
-              </button>
-              <button type="submit" class="btn btn-primary" id="importBtn" disabled>
-                <i class="fas fa-upload me-2"></i>Import Students
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
+              <!-- Submit Button -->
+              <div class="d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-secondary" onclick="window.history.back()">
+                  <i class="fas fa-arrow-left me-2"></i>Cancel
+                </button>
+                <button type="submit" class="btn btn-primary" id="importBtn" disabled>
+                  <i class="fas fa-upload me-2"></i>Import Students
+                </button>
+              </div>
 
-      <!-- Import Results -->
-      <div class="card shadow-sm mt-4" id="results-section" style="display: none;">
-        <div class="card-header bg-info text-white">
-          <h5 class="card-title mb-0">
-            <i class="fas fa-chart-bar me-2"></i>Import Results
-          </h5>
+              </form>
+            </div>
+          </div>
         </div>
-        <div class="card-body" id="results-content">
-          <!-- Results will be populated by JavaScript -->
-        </div>
+
       </div>
     </div>
 
     <!-- Sidebar -->
     <div class="col-lg-4">
-
-      <!-- Import Tips -->
-      <div class="card shadow-sm mb-4">
-        <div class="card-header bg-warning text-dark">
+      <!-- Important Notes -->
+      <div class="card mb-4">
+        <div class="card-header">
           <h6 class="card-title mb-0">
-            <i class="fas fa-lightbulb me-2"></i>Import Tips
+            <i class="fas fa-lightbulb me-2 text-warning"></i>Important Notes
           </h6>
         </div>
         <div class="card-body">
-          <div class="mb-3">
-            <h6 class="text-primary">Data Format</h6>
-            <ul class="list-unstyled small">
-              <li><i class="fas fa-check text-success me-2"></i>Use YYYY-MM-DD for dates</li>
-              <li><i class="fas fa-check text-success me-2"></i>Email addresses must be unique</li>
-              <li><i class="fas fa-check text-success me-2"></i>Admission numbers must be unique</li>
-              <li><i class="fas fa-check text-success me-2"></i>Phone numbers with country code</li>
-            </ul>
-          </div>
-
-          <div class="mb-3">
-            <h6 class="text-primary">Common Issues</h6>
-            <ul class="list-unstyled small">
-              <li><i class="fas fa-times text-danger me-2"></i>Empty required fields</li>
-              <li><i class="fas fa-times text-danger me-2"></i>Invalid email formats</li>
-              <li><i class="fas fa-times text-danger me-2"></i>Duplicate admission numbers</li>
-              <li><i class="fas fa-times text-danger me-2"></i>Invalid date formats</li>
-            </ul>
-          </div>
-
-          <div class="alert alert-info">
-            <small>
-              <i class="fas fa-info-circle me-2"></i>
-              <strong>Tip:</strong> Test with a small batch first (5-10 students) before importing large datasets.
-            </small>
-          </div>
+          <ul class="mb-0 small">
+            {% for note in important_notes %}
+            <li class="mb-2">{{ note }}</li>
+            {% endfor %}
+          </ul>
         </div>
       </div>
 
-      <!-- Recent Imports -->
-      <div class="card shadow-sm">
-        <div class="card-header bg-secondary text-white">
+      <!-- Available Classes -->
+      {% if available_classes %}
+      <div class="card">
+        <div class="card-header">
           <h6 class="card-title mb-0">
-            <i class="fas fa-history me-2"></i>Recent Imports
+            <i class="fas fa-chalkboard-teacher me-2"></i>Available Classes
           </h6>
         </div>
-        <div class="card-body">
-          <div class="text-center text-muted">
-            <i class="fas fa-clock fa-2x mb-2"></i>
-            <p class="mb-0">No recent imports</p>
-            <small>Import history will appear here</small>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Class</th>
+                  <th>Students</th>
+                  <th>Capacity</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for class in available_classes %}
+                <tr>
+                  <td>
+                    <small>{{ class.name }}</small>
+                  </td>
+                  <td>
+                    <small>{{ class.current_students }}</small>
+                  </td>
+                  <td>
+                    <small>{{ class.capacity }}</small>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
+      {% endif %}
     </div>
   </div>
 </div>
 
 <!-- Template Preview Modal -->
 <div class="modal fade" id="templatePreviewModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-xl">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">CSV Template Preview</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <p class="mb-3">This is how your CSV file should be structured:</p>
-        <div class="template-preview">
-          <div class="row mb-2 fw-bold">
-            {% for header in csv_template_headers %}
-            <div class="col">{{ header }}</div>
-            {% endfor %}
-          </div>
-          {% for sample in csv_sample_data %}
-          <div class="row mb-1">
-            <div class="col">{{ sample.first_name }}</div>
-            <div class="col">{{ sample.last_name }}</div>
-            <div class="col">{{ sample.email }}</div>
-            <div class="col">{{ sample.admission_number }}</div>
-            <div class="col">{{ sample.admission_date }}</div>
-            <div class="col">{{ sample.emergency_contact_name }}</div>
-            <div class="col">{{ sample.emergency_contact_number }}</div>
-            <div class="col">{{ sample.status }}</div>
-          </div>
-          {% endfor %}
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered">
+            <thead class="table-dark">
+              <tr>
+                {% for header in csv_template_headers %}
+                <th style="min-width: 120px;">{{ header }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for sample in csv_sample_data %}
+              <tr>
+                {% for header in csv_template_headers %}
+                <td>
+                  <small>{{ sample|dict_get:header|default:"-" }}</small>
+                </td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <a href="{% url 'students:download-template' 'students' %}" class="btn btn-primary">
-          <i class="fas fa-download me-2"></i>Download Template
-        </a>
       </div>
     </div>
   </div>
@@ -358,214 +445,130 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/dropzone.min.js"></script>
 <script>
-  $(document).ready(function () {
-    let uploadedFile = null;
+  document.addEventListener('DOMContentLoaded', function () {
+    const importMethodRadios = document.querySelectorAll('input[name="import_method"]');
+    const classSelectionSection = document.getElementById('class_selection_section');
+    const targetClassSelect = document.getElementById('{{ form.target_class.id_for_label }}');
+    const autoAssignCheckbox = document.getElementById('{{ form.auto_assign_class.id_for_label }}');
+    const classInfoDisplay = document.getElementById('class_info_display');
+    const csvFileInput = document.getElementById('{{ form.csv_file.id_for_label }}');
+    const importBtn = document.getElementById('importBtn');
 
-    // Initialize Dropzone
-    Dropzone.autoDiscover = false;
-    const csvDropzone = new Dropzone("#csvDropzone", {
-      url: "#", // We'll handle submission manually
-      autoProcessQueue: false,
-      maxFiles: 1,
-      acceptedFiles: ".csv",
-      maxFilesize: 5, // MB
-      addRemoveLinks: true,
-      dictDefaultMessage: "Drop CSV file here or click to browse",
-
-      init: function () {
-        this.on("addedfile", function (file) {
-          uploadedFile = file;
-          $('#id_csv_file')[0].files = this.files;
-          $('#importBtn').prop('disabled', false);
-          updateStep(2);
-        });
-
-        this.on("removedfile", function (file) {
-          uploadedFile = null;
-          $('#importBtn').prop('disabled', true);
-          updateStep(1);
-        });
-
-        this.on("error", function (file, errorMessage) {
-          toastr.error('File upload error: ' + errorMessage);
-        });
-      }
-    });
-
-    // Handle template download
-    $('#download-template').on('click', function () {
-      updateStep(2);
-      setTimeout(function () {
-        showUploadSection();
-      }, 1000);
-    });
-
-    // Handle form submission
-    $('#importForm').on('submit', function (e) {
-      e.preventDefault();
-
-      if (!uploadedFile) {
-        toastr.error('Please select a CSV file to import.');
-        return;
-      }
-
-      updateStep(3);
-      $('#importBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Importing...');
-
-      // Create FormData object
-      const formData = new FormData(this);
-
-      // Submit via AJAX
-      $.ajax({
-        url: $(this).attr('action') || window.location.href,
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function (response) {
-          updateStep(4);
-          showResults(response);
-        },
-        error: function (xhr) {
-          toastr.error('Import failed. Please try again.');
-          $('#importBtn').prop('disabled', false).html('<i class="fas fa-upload me-2"></i>Import Students');
-        }
-      });
-    });
-
-    function updateStep(stepNumber) {
-      $('.import-step').removeClass('active completed');
-
-      for (let i = 1; i <= stepNumber; i++) {
-        if (i < stepNumber) {
-          $(`#step-${i}`).addClass('completed');
-          $(`#step-${i} .rounded-circle`).removeClass('bg-secondary').addClass('bg-success');
-          $(`#step-${i} .rounded-circle i`).removeClass().addClass('fas fa-check');
+    // Handle import method change
+    importMethodRadios.forEach(radio => {
+      radio.addEventListener('change', function () {
+        if (this.value === 'per_class') {
+          classSelectionSection.style.display = 'block';
+          autoAssignCheckbox.checked = true;
+          targetClassSelect.required = true;
         } else {
-          $(`#step-${i}`).addClass('active');
-          $(`#step-${i} .rounded-circle`).removeClass('bg-secondary').addClass('bg-primary');
+          classSelectionSection.style.display = 'none';
+          autoAssignCheckbox.checked = false;
+          targetClassSelect.required = false;
+          classInfoDisplay.style.display = 'none';
         }
-      }
-    }
-
-    function showUploadSection() {
-      $('#template-section').fadeOut(function () {
-        $('#upload-section').fadeIn();
+        updateImportButton();
       });
-    }
+    });
 
-    function showTemplateSection() {
-      $('#upload-section').fadeOut(function () {
-        $('#template-section').fadeIn();
-      });
-      updateStep(1);
-    }
-
-    function showResults(data) {
-      let resultsHtml = '';
-
-      if (data.success) {
-        resultsHtml = `
-                <div class="row mb-4">
-                    <div class="col-md-3">
-                        <div class="card bg-success text-white">
-                            <div class="card-body text-center">
-                                <h3 class="mb-0">${data.created}</h3>
-                                <small>Created</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card bg-info text-white">
-                            <div class="card-body text-center">
-                                <h3 class="mb-0">${data.updated}</h3>
-                                <small>Updated</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card bg-warning text-dark">
-                            <div class="card-body text-center">
-                                <h3 class="mb-0">${data.errors}</h3>
-                                <small>Errors</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card bg-primary text-white">
-                            <div class="card-body text-center">
-                                <h3 class="mb-0">${data.total_processed}</h3>
-                                <small>Total Processed</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-        if (data.errors > 0 && data.error_details) {
-          resultsHtml += `
-                    <div class="alert alert-warning">
-                        <h6 class="alert-heading">Import Errors</h6>
-                        <ul class="mb-0">
-                `;
-          data.error_details.slice(0, 5).forEach(function (error) {
-            resultsHtml += `<li>Row ${error.row}: ${error.error}</li>`;
-          });
-          if (data.error_details.length > 5) {
-            resultsHtml += `<li>... and ${data.error_details.length - 5} more errors</li>`;
-          }
-          resultsHtml += `</ul></div>`;
-        }
-
-        resultsHtml += `
-                <div class="d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-primary" onclick="location.reload()">
-                        <i class="fas fa-plus me-2"></i>Import More Students
-                    </button>
-                    <a href="{% url 'students:student-list' %}" class="btn btn-success">
-                        <i class="fas fa-list me-2"></i>View Students
-                    </a>
-                </div>
-            `;
-
-        toastr.success(`Import completed! Created: ${data.created}, Updated: ${data.updated}, Errors: ${data.errors}`);
+    // Handle class selection change
+    targetClassSelect.addEventListener('change', function () {
+      if (this.value) {
+        fetchClassInfo(this.value);
       } else {
-        resultsHtml = `
-                <div class="alert alert-danger">
-                    <h6 class="alert-heading">Import Failed</h6>
-                    <p class="mb-0">${data.error}</p>
-                </div>
-                <button type="button" class="btn btn-primary" onclick="showUploadSection()">
-                    <i class="fas fa-retry me-2"></i>Try Again
-                </button>
-            `;
-        toastr.error('Import failed: ' + data.error);
+        classInfoDisplay.style.display = 'none';
       }
+      updateImportButton();
+    });
 
-      $('#results-content').html(resultsHtml);
-      $('#upload-section').fadeOut(function () {
-        $('#results-section').fadeIn();
-      });
+    // Handle file selection
+    csvFileInput.addEventListener('change', function () {
+      updateImportButton();
+    });
+
+    // Fetch class information
+    function fetchClassInfo(classId) {
+      fetch(`/api/classes/${classId}/info/`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            displayClassInfo(data.class_info);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching class info:', error);
+        });
     }
 
-    // Initialize first step
-    updateStep(1);
+    // Display class information
+    function displayClassInfo(classInfo) {
+      document.getElementById('class_display_name').textContent = classInfo.full_name;
+      document.getElementById('class_room_number').textContent = classInfo.room_number;
+      document.getElementById('class_current_students').textContent = classInfo.current_students;
+      document.getElementById('class_available_spots').textContent = classInfo.available_spots;
+      document.getElementById('capacity_percentage').textContent = classInfo.utilization_percentage + '%';
+
+      const capacityFill = document.getElementById('capacity_fill');
+      capacityFill.style.width = classInfo.utilization_percentage + '%';
+
+      // Change color based on utilization
+      if (classInfo.utilization_percentage > 90) {
+        capacityFill.className = 'capacity-fill bg-danger';
+      } else if (classInfo.utilization_percentage > 75) {
+        capacityFill.className = 'capacity-fill bg-warning';
+      } else {
+        capacityFill.className = 'capacity-fill bg-success';
+      }
+
+      classInfoDisplay.style.display = 'block';
+    }
+
+    // Update import button state
+    function updateImportButton() {
+      const hasFile = csvFileInput.files.length > 0;
+      const methodPerClass = document.getElementById('method_per_class').checked;
+      const hasTargetClass = targetClassSelect.value !== '';
+
+      let canImport = hasFile;
+
+      if (methodPerClass) {
+        canImport = canImport && hasTargetClass;
+      }
+
+      importBtn.disabled = !canImport;
+    }
+
+    // Initialize dropzone functionality
+    const dropzone = document.getElementById('csvDropzone');
+
+    dropzone.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      this.classList.add('dragover');
+    });
+
+    dropzone.addEventListener('dragleave', function (e) {
+      e.preventDefault();
+      this.classList.remove('dragover');
+    });
+
+    dropzone.addEventListener('drop', function (e) {
+      e.preventDefault();
+      this.classList.remove('dragover');
+
+      const files = e.dataTransfer.files;
+      if (files.length > 0 && files[0].name.endsWith('.csv')) {
+        csvFileInput.files = files;
+        updateImportButton();
+      }
+    });
+
+    dropzone.addEventListener('click', function () {
+      csvFileInput.click();
+    });
+
+    // Initial state
+    updateImportButton();
   });
-
-  // Make functions global for onclick handlers
-  window.showTemplateSection = function () {
-    $('#upload-section').fadeOut(function () {
-      $('#template-section').fadeIn();
-    });
-    updateStep(1);
-  };
-
-  window.showUploadSection = function () {
-    $('#template-section').fadeOut(function () {
-      $('#upload-section').fadeIn();
-    });
-  };
 </script>
 {% endblock %}

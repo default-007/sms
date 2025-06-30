@@ -451,20 +451,70 @@ class StudentParentRelationForm(BaseModelForm):
 
 
 class StudentBulkImportForm(forms.Form):
+    # Class selection for targeted imports
+    target_class = forms.ModelChoiceField(
+        queryset=Class.objects.none(),
+        required=False,
+        empty_label="Select a specific class (optional)",
+        widget=forms.Select(attrs={"class": "form-select"}),
+        help_text="Optional: Import all students to this specific class",
+    )
+
+    academic_year = forms.ModelChoiceField(
+        queryset=AcademicYear.objects.filter(is_current=True),
+        required=False,
+        empty_label="Current Academic Year",
+        widget=forms.Select(attrs={"class": "form-select"}),
+        help_text="Academic year for the import",
+    )
+
     csv_file = forms.FileField(
-        widget=forms.FileInput(attrs={"accept": ".csv"}),
+        widget=forms.FileInput(attrs={"accept": ".csv", "class": "form-control"}),
         help_text="CSV file containing student data. Download template below.",
     )
+
+    # Simplified notification options
     send_email_notifications = forms.BooleanField(
         required=False,
-        initial=True,
-        help_text="Send email notifications to created students and parents",
+        initial=False,  # Default to False since email is optional
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        help_text="Send welcome emails (only to students with email addresses)",
     )
+
     update_existing = forms.BooleanField(
         required=False,
         initial=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
         help_text="Update existing students if admission number matches",
     )
+
+    # New option for handling missing class assignments
+    auto_assign_class = forms.BooleanField(
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        help_text="Automatically assign students without class_id to the selected target class",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Load active classes for current academic year
+        try:
+            current_year = AcademicYear.objects.filter(is_current=True).first()
+            if current_year:
+                self.fields["target_class"].queryset = (
+                    Class.objects.filter(academic_year=current_year, is_active=True)
+                    .select_related("grade__section")
+                    .order_by(
+                        "grade__section__order_sequence",
+                        "grade__order_sequence",
+                        "name",
+                    )
+                )
+                self.fields["academic_year"].initial = current_year
+        except:
+            pass
 
     def clean_csv_file(self):
         csv_file = self.cleaned_data.get("csv_file")
@@ -487,7 +537,8 @@ class StudentBulkImportForm(forms.Form):
             if not csv_data.fieldnames:
                 raise ValidationError(_("CSV file is empty or improperly formatted."))
 
-            required_columns = ["first_name", "last_name", "email", "admission_number"]
+            # Updated required columns - removed email requirement
+            required_columns = ["first_name", "last_name", "admission_number"]
             missing_columns = [
                 col for col in required_columns if col not in csv_data.fieldnames
             ]
@@ -497,14 +548,61 @@ class StudentBulkImportForm(forms.Form):
                     _(f"Missing required columns: {', '.join(missing_columns)}")
                 )
 
+            # Validate data rows
+            row_count = 0
+            for row_num, row in enumerate(csv_data, start=2):
+                row_count += 1
+
+                # Check required fields have values
+                for field in required_columns:
+                    if not row.get(field, "").strip():
+                        raise ValidationError(
+                            _(
+                                f"Row {row_num}: Missing value for required field '{field}'"
+                            )
+                        )
+
+                # Validate admission number format (customize as needed)
+                admission_number = row.get("admission_number", "").strip()
+                if not admission_number:
+                    raise ValidationError(
+                        _(f"Row {row_num}: Admission number is required")
+                    )
+
+                # Optional: Validate admission number format
+                if len(admission_number) < 3:
+                    raise ValidationError(
+                        _(
+                            f"Row {row_num}: Admission number must be at least 3 characters long"
+                        )
+                    )
+
+            if row_count == 0:
+                raise ValidationError(_("CSV file contains no data rows."))
+
         except UnicodeDecodeError:
             raise ValidationError(
                 _("Unable to decode file. Please ensure it's UTF-8 encoded.")
             )
         except Exception as e:
+            if isinstance(e, ValidationError):
+                raise
             raise ValidationError(_(f"Error parsing CSV file: {str(e)}"))
 
         return csv_file
+
+    def clean(self):
+        cleaned_data = super().clean()
+        target_class = cleaned_data.get("target_class")
+        auto_assign_class = cleaned_data.get("auto_assign_class")
+
+        # If auto_assign_class is enabled, target_class should be selected
+        if auto_assign_class and not target_class:
+            raise ValidationError(
+                "Please select a target class when auto-assign is enabled, or disable auto-assign to use class_id from CSV."
+            )
+
+        return cleaned_data
 
 
 class ParentBulkImportForm(forms.Form):

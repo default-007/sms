@@ -182,8 +182,21 @@ class EnhancedUserCreationForm(UserCreationForm):
         widget=forms.EmailInput(
             attrs={"class": "form-control", "placeholder": "Email"}
         ),
+        required=False,  # CHANGED: Make conditional based on user type
+        help_text=_(
+            "Required for teachers, parents, and staff. Optional for students."
+        ),
+    )
+    user_type = forms.ChoiceField(
+        choices=[
+            ("student", "Student"),
+            ("teacher", "Teacher"),
+            ("parent", "Parent"),
+            ("staff", "Staff"),
+        ],
+        widget=forms.Select(attrs={"class": "form-control"}),
         required=True,
-        help_text=_("Required. Must be a valid email address."),
+        help_text=_("Select the type of user account to create."),
     )
     first_name = forms.CharField(
         label=_("First Name"),
@@ -257,6 +270,7 @@ class EnhancedUserCreationForm(UserCreationForm):
         model = User
         fields = (
             "username",
+            "user_type",
             "email",
             "first_name",
             "last_name",
@@ -280,17 +294,40 @@ class EnhancedUserCreationForm(UserCreationForm):
             "Optional. If not provided, one will be generated automatically."
         )
         self.fields["username"].required = False
+        self.fields["email"].widget.attrs.update(
+            {
+                "data-conditional-required": "true",
+                "data-depends-on": "user_type",
+                "data-required-for": "teacher,parent,staff",
+            }
+        )
 
     def clean_email(self):
-        """Validate email uniqueness."""
-        email = self.cleaned_data.get("email")
-        if User.objects.filter(email=email).exists():
-            raise forms.ValidationError(_("This email address is already in use."))
-        return email.lower()
+        """Validate email based on user type"""
+        email = self.cleaned_data.get("email", "").strip()
+        user_type = self.cleaned_data.get("user_type")
+
+        # Email is required for non-students
+        if user_type in ["teacher", "parent", "staff"] and not email:
+            raise forms.ValidationError(
+                _("Email address is required for this user type.")
+            )
+
+        if email:
+            # Validate email format and uniqueness
+            try:
+                validate_email_address(email, user_type=user_type)
+            except ValidationError as e:
+                raise forms.ValidationError(str(e))
+
+            return email.lower()
+
+        return email
 
     def clean_username(self):
-        """Validate username or generate one if not provided."""
+        """Enhanced username validation"""
         username = self.cleaned_data.get("username", "").strip()
+        user_type = self.cleaned_data.get("user_type")
 
         if username:
             if User.objects.filter(username=username).exists():
@@ -299,8 +336,19 @@ class EnhancedUserCreationForm(UserCreationForm):
                 raise forms.ValidationError(
                     _("Username must be at least 3 characters long.")
                 )
+
+            # For students, username should look like admission number
+            if user_type == "student":
+                import re
+
+                if not re.match(r"^[A-Z0-9-]{6,20}$", username, re.IGNORECASE):
+                    raise forms.ValidationError(
+                        _(
+                            "For students, username should be a valid admission number format."
+                        )
+                    )
         else:
-            # Generate username from email or names
+            # Generate username if not provided
             email = self.cleaned_data.get("email", "")
             first_name = self.cleaned_data.get("first_name", "")
             last_name = self.cleaned_data.get("last_name", "")
@@ -359,7 +407,9 @@ class EnhancedUserCreationForm(UserCreationForm):
         elif email:
             base_username = email.split("@")[0].lower()
         else:
-            base_username = "user"
+            import secrets
+
+            base_username = f"user_{secrets.token_hex(4)}"
 
         # Clean username
         base_username = re.sub(r"[^a-zA-Z0-9_]", "", base_username)

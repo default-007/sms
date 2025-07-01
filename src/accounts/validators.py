@@ -82,19 +82,29 @@ def validate_username(username: str, exclude_user: Optional[User] = None) -> Non
         raise ValidationError(_("This username is already taken."))
 
 
-def validate_email_address(email: str, exclude_user: Optional[User] = None) -> None:
+def validate_email_address(
+    email: str, exclude_user: Optional[User] = None, user_type: str = None
+) -> None:
     """
-    Validate email format, domain, and uniqueness.
+    Validate email format, domain, and uniqueness with user type consideration.
 
     Args:
         email: Email to validate
         exclude_user: User to exclude from uniqueness check
+        user_type: Type of user (student, teacher, parent, etc.)
 
     Raises:
         ValidationError: If email is invalid
     """
+    # For students, email is optional
+    if user_type == "student" and not email:
+        return  # No validation needed for empty student email
+
     if not email:
-        raise ValidationError(_("Email address is required."))
+        # For non-students, email is required
+        if user_type in ["teacher", "parent", "staff", "admin"]:
+            raise ValidationError(_("Email address is required for this user type."))
+        return
 
     # Basic format validation
     try:
@@ -105,7 +115,7 @@ def validate_email_address(email: str, exclude_user: Optional[User] = None) -> N
     # Normalize email
     email = email.lower().strip()
 
-    # Domain validation
+    # Domain validation (existing code...)
     domain = email.split("@")[1] if "@" in email else ""
 
     # Check against blocked domains
@@ -121,19 +131,7 @@ def validate_email_address(email: str, exclude_user: Optional[User] = None) -> N
     if domain in blocked_domains:
         raise ValidationError(_("Email addresses from this domain are not allowed."))
 
-    # Check for obviously fake patterns
-    suspicious_patterns = [
-        r"test.*@test\.com",
-        r"fake.*@.*\.com",
-        r"dummy.*@.*\.com",
-        r"temp.*@.*\.com",
-    ]
-
-    for pattern in suspicious_patterns:
-        if re.match(pattern, email, re.IGNORECASE):
-            raise ValidationError(_("This email address appears to be invalid."))
-
-    # Check uniqueness
+    # Check uniqueness (existing code...)
     queryset = User.objects.filter(email__iexact=email)
     if exclude_user:
         queryset = queryset.exclude(pk=exclude_user.pk)

@@ -81,7 +81,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(
         _("email address"),
         unique=True,
-        help_text=_("Required. Must be a valid email address."),
+        null=True,  # CHANGED: Allow null emails
+        blank=True,  # CHANGED: Allow blank emails
+        help_text=_(
+            "Optional for students. Email address for login and communication."
+        ),
     )
 
     phone_number = models.CharField(
@@ -183,8 +187,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     USERNAME_FIELD = "username"
-    EMAIL_FIELD = "email"
-    REQUIRED_FIELDS = ["email"]
+    REQUIRED_FIELDS = []
 
     class Meta:
         verbose_name = _("user")
@@ -200,19 +203,27 @@ class User(AbstractBaseUser, PermissionsMixin):
         ]
 
     def __str__(self):
-        return f"{self.username} ({self.get_full_name()})"
+        if self.first_name and self.last_name:
+            return f"{self.first_name} {self.last_name}"
+        elif self.has_email():
+            return self.email
+        else:
+            return self.username
 
     def clean(self):
         """Validate model fields."""
         super().clean()
 
         # Normalize email
-        if self.email:
-            self.email = self.email.lower().strip()
-            try:
-                validate_email(self.email)
-            except ValidationError:
-                raise ValidationError({"email": _("Enter a valid email address.")})
+        if not self.is_student() and not self.email:
+            # Only require email for non-students
+            roles_requiring_email = ["teacher", "parent", "staff", "admin"]
+            user_roles = self.get_user_roles()
+
+            if any(role.name.lower() in roles_requiring_email for role in user_roles):
+                raise ValidationError(
+                    {"email": _("Email address is required for this user type.")}
+                )
 
         # Normalize phone number
         if self.phone_number:
@@ -230,6 +241,14 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def save(self, *args, **kwargs):
         """Override save to handle profile picture resizing and cache invalidation."""
+
+        if self.email == "":
+            self.email = None
+
+        # Normalize phone to None if empty string
+        if self.phone_number == "":
+            self.phone_number = None
+
         # Clean fields
         self.full_clean()
 
@@ -284,6 +303,49 @@ class User(AbstractBaseUser, PermissionsMixin):
                 f"Could not resize profile picture for user {self.username}: {e}"
             )
 
+    def is_student(self):
+        """Check if user is a student"""
+        try:
+            # Check if user has student profile
+            return hasattr(self, "student_profile")
+        except:
+            return False
+
+    def get_user_roles(self):
+        """Get user roles for validation"""
+        try:
+            from .models import UserRoleAssignment
+
+            return [
+                assignment.role
+                for assignment in UserRoleAssignment.objects.filter(
+                    user=self, is_active=True
+                )
+            ]
+        except:
+            return []
+
+    def has_email(self):
+        """Check if user has a valid email"""
+        return bool(self.email and self.email.strip())
+
+    def get_contact_email(self):
+        """Get email for contact purposes, with fallback"""
+        if self.has_email():
+            return self.email
+
+        # For students without email, try to get parent's email
+        if self.is_student():
+            try:
+                student = self.student_profile
+                primary_parent = student.get_primary_parent()
+                if primary_parent and primary_parent.user.has_email():
+                    return primary_parent.user.email
+            except:
+                pass
+
+        return None
+
     def get_full_name(self):
         """Return the first_name plus the last_name, with a space in between."""
         full_name = f"{self.first_name} {self.last_name}"
@@ -333,6 +395,11 @@ class User(AbstractBaseUser, PermissionsMixin):
             assignment.role.name
             for assignment in self.role_assignments.filter(role__is_active=True)
         ]
+
+    @property
+    def can_receive_email_notifications(self):
+        """Check if user can receive email notifications"""
+        return self.has_email() and self.is_active and self.email_verified
 
     def has_role(self, role_name):
         """Check if user has specific role"""

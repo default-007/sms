@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Create Grade{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h4 class="card-title">Create New Grade</h4>
+          <div class="breadcrumb">
+            <a href="{% url 'academics:grade-list' %}" class="btn btn-outline-secondary btn-sm">
+              <i class="fas fa-arrow-left"></i> Back to Grades
+            </a>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <!-- Debug Information (remove in production) -->
+          {% if debug %}
+          <div class="alert alert-info">
+            <strong>Debug Info:</strong><br>
+            POST Data: {{ request.POST }}<br>
+            User: {{ request.user }}<br>
+            Method: {{ request.method }}
+          </div>
+          {% endif %}
+
+          <!-- Messages Display -->
+          {% if messages %}
+          {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            <strong>
+              {% if message.tags == 'error' %}
+              <i class="fas fa-exclamation-circle"></i> Error!
+              {% elif message.tags == 'success' %}
+              <i class="fas fa-check-circle"></i> Success!
+              {% elif message.tags == 'warning' %}
+              <i class="fas fa-exclamation-triangle"></i> Warning!
+              {% else %}
+              <i class="fas fa-info-circle"></i> Info!
+              {% endif %}
+            </strong>
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+          {% endfor %}
+          {% endif %}
+
+          <form method="post" action="{% url 'academics:grade-create' %}" class="needs-validation" novalidate>
+            {% csrf_token %}
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="name" class="form-label">
+                    Grade Name <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" class="form-control" id="name" name="name"
+                    value="{{ request.POST.name|default:'' }}" placeholder="e.g., Grade 1, Grade 2, Pre-K" required>
+                  <div class="invalid-feedback">
+                    Please provide a grade name.
+                  </div>
+                  <div class="form-text">
+                    Enter a unique name for this grade
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="section" class="form-label">
+                    Section <span class="text-danger">*</span>
+                  </label>
+                  <select class="form-select" id="section" name="section" required>
+                    <option value="">Select Section</option>
+                    {% for sect in sections %}
+                    <option value="{{ sect.id }}"
+                      {% if request.POST.section|default:'' == sect.id|stringformat:'s' %}selected{% endif %}>
+                      {{ sect.name }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                  <div class="invalid-feedback">
+                    Please select a section.
+                  </div>
+                  <div class="form-text">
+                    Available sections: {{ sections.count }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label for="order_sequence" class="form-label">Display Order</label>
+                  <input type="number" class="form-control" id="order_sequence" name="order_sequence"
+                    value="{{ request.POST.order_sequence|default:'' }}" placeholder="Leave blank to auto-assign"
+                    min="1">
+                  <div class="form-text">
+                    Controls the order grades appear in lists
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label for="min_age" class="form-label">Minimum Age</label>
+                  <input type="number" class="form-control" id="min_age" name="min_age"
+                    value="{{ request.POST.min_age|default:'' }}" placeholder="e.g., 5" min="0" max="25">
+                  <div class="form-text">
+                    Minimum age for this grade (optional)
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label for="max_age" class="form-label">Maximum Age</label>
+                  <input type="number" class="form-control" id="max_age" name="max_age"
+                    value="{{ request.POST.max_age|default:'' }}" placeholder="e.g., 18" min="0" max="25">
+                  <div class="form-text">
+                    Maximum age for this grade (optional)
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-10">
+                <div class="mb-3">
+                  <label for="description" class="form-label">Description</label>
+                  <textarea class="form-control" id="description" name="description" rows="3"
+                    placeholder="Enter grade description (optional)">{{ request.POST.description|default:'' }}</textarea>
+                </div>
+              </div>
+
+              <div class="col-md-2">
+                <div class="mb-3">
+                  <div class="form-check mt-4">
+                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
+                      {% if request.POST.is_active == 'on' or not request.POST %}checked{% endif %}>
+                    <label class="form-check-label" for="is_active">
+                      Active Grade
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12">
+                <hr>
+                <div class="d-flex justify-content-between">
+                  <a href="{% url 'academics:grade-list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancel
+                  </a>
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Create Grade
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+
+          <!-- Debug section count -->
+          <div class="mt-4 p-3 bg-light rounded">
+            <small class="text-muted">
+              <strong>Debug Info:</strong>
+              Current grades in database:
+              <span class="badge bg-secondary">{{ total_grades|default:'Unknown' }}</span> |
+              Available sections:
+              <span class="badge bg-info">{{ sections.count }}</span>
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Bootstrap form validation
+  (function () {
+    'use strict';
+    window.addEventListener('load', function () {
+      var forms = document.getElementsByClassName('needs-validation');
+      var validation = Array.prototype.filter.call(forms, function (form) {
+        form.addEventListener('submit', function (event) {
+          console.log('Form submitting with data:', new FormData(form));
+          if (form.checkValidity() === false) {
+            event.preventDefault();
+            event.stopPropagation();
+            console.log('Form validation failed');
+          } else {
+            console.log('Form validation passed');
+          }
+          form.classList.add('was-validated');
+        }, false);
+      });
+    }, false);
+  })();
+
+  // Age validation
+  document.getElementById('min_age').addEventListener('change', function () {
+    const minAge = parseInt(this.value);
+    const maxAgeInput = document.getElementById('max_age');
+    const maxAge = parseInt(maxAgeInput.value);
+
+    if (minAge && maxAge && minAge >= maxAge) {
+      alert('Minimum age must be less than maximum age');
+      this.focus();
+    }
+  });
+
+  document.getElementById('max_age').addEventListener('change', function () {
+    const maxAge = parseInt(this.value);
+    const minAgeInput = document.getElementById('min_age');
+    const minAge = parseInt(minAgeInput.value);
+
+    if (minAge && maxAge && minAge >= maxAge) {
+      alert('Maximum age must be greater than minimum age');
+      this.focus();
+    }
+  });
+</script>
+{% endblock %}

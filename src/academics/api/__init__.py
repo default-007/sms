@@ -16,29 +16,8 @@ Available endpoints:
 - /api/academics/validate/ - Structure validation
 """
 
-from .serializers import (
-    AcademicYearCreateSerializer,
-    AcademicYearSerializer,
-    BulkClassCreateSerializer,
-    ClassCreateSerializer,
-    ClassSerializer,
-    DepartmentSerializer,
-    GradeSerializer,
-    SectionHierarchySerializer,
-    SectionSerializer,
-    TermSerializer,
-)
-from .views import (
-    AcademicCalendarAPIView,
-    AcademicStructureAPIView,
-    AcademicValidationAPIView,
-    AcademicYearViewSet,
-    ClassViewSet,
-    DepartmentViewSet,
-    GradeViewSet,
-    SectionViewSet,
-    TermViewSet,
-)
+from .serializers import *
+from .views import *
 
 __all__ = [
     # Serializers

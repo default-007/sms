@@ -5,6 +5,7 @@ This module provides Django views for the academics app web interface.
 These views complement the API and provide server-side rendered pages.
 """
 
+from django.db import models
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
@@ -13,6 +14,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
+from datetime import datetime
 from django.views.generic import (
     CreateView,
     DetailView,
@@ -29,6 +31,7 @@ from .services import (
     SectionService,
     TermService,
 )
+from .forms import *
 
 
 class AcademicsHomeView(LoginRequiredMixin, TemplateView):
@@ -128,6 +131,10 @@ class AcademicYearCreateView(LoginRequiredMixin, PermissionRequiredMixin, Templa
             is_current = request.POST.get("is_current") == "on"
             num_terms = int(request.POST.get("num_terms", 3))
 
+            # Convert string dates to datetime objects
+            start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+            end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+
             # Create academic year with terms
             academic_year = AcademicYearService.setup_academic_year_with_terms(
                 name=name,
@@ -186,6 +193,121 @@ class SectionHierarchyView(LoginRequiredMixin, DetailView):
         return context
 
 
+class SectionCreateView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+    """Create view for section with enhanced debugging"""
+
+    template_name = "academics/section_create.html"
+    permission_required = "academics.add_section"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["departments"] = Department.objects.filter(is_active=True)
+        context["form"] = SectionForm()
+        context["total_sections"] = Section.objects.count()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        """Handle section creation with detailed debugging"""
+        print("=" * 50)
+        print("SECTION CREATE POST REQUEST")
+        print("=" * 50)
+        print(f"POST data: {request.POST}")
+        print(f"User: {request.user}")
+        print(f"User permissions: {request.user.get_all_permissions()}")
+
+        try:
+            # Extract form data
+            name = request.POST.get("name", "").strip()
+            description = request.POST.get("description", "").strip()
+            department_id = request.POST.get("department", "")
+            order_sequence = request.POST.get("order_sequence", "")
+            is_active = request.POST.get("is_active") == "on"
+
+            print(f"Extracted data:")
+            print(f"  - Name: '{name}'")
+            print(f"  - Description: '{description}'")
+            print(f"  - Department ID: '{department_id}'")
+            print(f"  - Order Sequence: '{order_sequence}'")
+            print(f"  - Is Active: {is_active}")
+
+            # Validate required fields
+            if not name:
+                messages.error(request, "Section name is required")
+                print("ERROR: Section name is empty")
+                return self.get(request, *args, **kwargs)
+
+            # Check for existing section with same name
+            if Section.objects.filter(name__iexact=name).exists():
+                messages.error(request, f"Section with name '{name}' already exists")
+                print(f"ERROR: Section '{name}' already exists")
+                return self.get(request, *args, **kwargs)
+
+            # Get department if provided
+            department = None
+            if department_id:
+                try:
+                    department = Department.objects.get(id=int(department_id))
+                    print(f"Department found: {department}")
+                except (ValueError, Department.DoesNotExist) as e:
+                    messages.error(request, "Invalid department selected")
+                    print(f"ERROR: Department not found - {e}")
+                    return self.get(request, *args, **kwargs)
+
+            # Handle order sequence
+            if not order_sequence:
+                max_order = (
+                    Section.objects.aggregate(max_order=models.Max("order_sequence"))[
+                        "max_order"
+                    ]
+                    or 0
+                )
+                order_sequence = max_order + 1
+                print(f"Auto-assigned order sequence: {order_sequence}")
+            else:
+                try:
+                    order_sequence = int(order_sequence)
+                    print(f"Using provided order sequence: {order_sequence}")
+                except ValueError:
+                    messages.error(request, "Order sequence must be a number")
+                    print("ERROR: Invalid order sequence")
+                    return self.get(request, *args, **kwargs)
+
+            # Create section
+            print("Creating section...")
+            section = Section.objects.create(
+                name=name,
+                description=description,
+                department=department,
+                order_sequence=order_sequence,
+                is_active=is_active,
+            )
+
+            print(f"Section created successfully: {section}")
+            print(f"Section ID: {section.id}")
+            print(f"Section details: {section.__dict__}")
+
+            messages.success(request, f"Section '{section.name}' created successfully!")
+            print(f"SUCCESS: Redirecting to section detail page")
+
+            return redirect("academics:section-detail", pk=section.id)
+
+        except ValidationError as e:
+            error_msg = f"Validation error: {str(e)}"
+            messages.error(request, error_msg)
+            print(f"VALIDATION ERROR: {error_msg}")
+            return self.get(request, *args, **kwargs)
+
+        except Exception as e:
+            error_msg = f"Unexpected error creating section: {str(e)}"
+            messages.error(request, error_msg)
+            print(f"UNEXPECTED ERROR: {error_msg}")
+            print(f"Exception type: {type(e)}")
+            import traceback
+
+            traceback.print_exc()
+            return self.get(request, *args, **kwargs)
+
+
 class GradeListView(LoginRequiredMixin, ListView):
     """List view for grades"""
 
@@ -221,6 +343,169 @@ class GradeDetailView(LoginRequiredMixin, DetailView):
         except Exception:
             context["details"] = None
         return context
+
+
+class GradeCreateView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+    """Create view for grade"""
+
+    template_name = "academics/grade_create.html"
+    permission_required = "academics.add_grade"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["sections"] = Section.objects.filter(is_active=True).order_by(
+            "order_sequence"
+        )
+        context["form"] = GradeForm()
+        context["total_grades"] = Grade.objects.count()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        """Handle grade creation with detailed debugging"""
+        print("=" * 50)
+        print("GRADE CREATE POST REQUEST")
+        print("=" * 50)
+        print(f"POST data: {request.POST}")
+        print(f"User: {request.user}")
+        print(f"User permissions: {request.user.get_all_permissions()}")
+
+        try:
+            # Extract form data
+            name = request.POST.get("name", "").strip()
+            description = request.POST.get("description", "").strip()
+            section_id = request.POST.get("section", "")
+            order_sequence = request.POST.get("order_sequence", "")
+            min_age = request.POST.get("min_age", "")
+            max_age = request.POST.get("max_age", "")
+            is_active = request.POST.get("is_active") == "on"
+
+            print(f"Extracted data:")
+            print(f"  - Name: '{name}'")
+            print(f"  - Description: '{description}'")
+            print(f"  - Section ID: '{section_id}'")
+            print(f"  - Order Sequence: '{order_sequence}'")
+            print(f"  - Min Age: '{min_age}'")
+            print(f"  - Max Age: '{max_age}'")
+            print(f"  - Is Active: {is_active}")
+
+            # Validate required fields
+            if not name:
+                messages.error(request, "Grade name is required")
+                print("ERROR: Grade name is empty")
+                return self.get(request, *args, **kwargs)
+
+            if not section_id:
+                messages.error(request, "Section is required")
+                print("ERROR: Section is not selected")
+                return self.get(request, *args, **kwargs)
+
+            # Get section
+            try:
+                section = Section.objects.get(id=int(section_id))
+                print(f"Section found: {section}")
+            except (ValueError, Section.DoesNotExist) as e:
+                messages.error(request, "Invalid section selected")
+                print(f"ERROR: Section not found - {e}")
+                return self.get(request, *args, **kwargs)
+
+            # Check for existing grade with same name in section
+            if Grade.objects.filter(name__iexact=name, section=section).exists():
+                messages.error(
+                    request,
+                    f"Grade with name '{name}' already exists in section '{section.name}'",
+                )
+                print(
+                    f"ERROR: Grade '{name}' already exists in section '{section.name}'"
+                )
+                return self.get(request, *args, **kwargs)
+
+            # Handle order sequence
+            if not order_sequence:
+                max_order = (
+                    Grade.objects.filter(section=section).aggregate(
+                        max_order=models.Max("order_sequence")
+                    )["max_order"]
+                    or 0
+                )
+                order_sequence = max_order + 1
+                print(f"Auto-assigned order sequence: {order_sequence}")
+            else:
+                try:
+                    order_sequence = int(order_sequence)
+                    print(f"Using provided order sequence: {order_sequence}")
+                except ValueError:
+                    messages.error(request, "Order sequence must be a number")
+                    print("ERROR: Invalid order sequence")
+                    return self.get(request, *args, **kwargs)
+
+            # Handle age constraints
+            min_age_val = None
+            max_age_val = None
+
+            if min_age:
+                try:
+                    min_age_val = int(min_age)
+                    print(f"Min age: {min_age_val}")
+                except ValueError:
+                    messages.error(request, "Minimum age must be a number")
+                    print("ERROR: Invalid minimum age")
+                    return self.get(request, *args, **kwargs)
+
+            if max_age:
+                try:
+                    max_age_val = int(max_age)
+                    print(f"Max age: {max_age_val}")
+                except ValueError:
+                    messages.error(request, "Maximum age must be a number")
+                    print("ERROR: Invalid maximum age")
+                    return self.get(request, *args, **kwargs)
+
+            # Validate age range
+            if min_age_val is not None and max_age_val is not None:
+                if min_age_val >= max_age_val:
+                    messages.error(request, "Minimum age must be less than maximum age")
+                    print("ERROR: Invalid age range")
+                    return self.get(request, *args, **kwargs)
+
+            # Create grade
+            print("Creating grade...")
+            grade = Grade.objects.create(
+                name=name,
+                description=description,
+                section=section,
+                order_sequence=order_sequence,
+                min_age=min_age_val,
+                max_age=max_age_val,
+                is_active=is_active,
+            )
+
+            print(f"Grade created successfully: {grade}")
+            print(f"Grade ID: {grade.id}")
+            print(f"Grade details: {grade.__dict__}")
+
+            messages.success(
+                request,
+                f"Grade '{grade.name}' created successfully in section '{section.name}'!",
+            )
+            print(f"SUCCESS: Redirecting to grade detail page")
+
+            return redirect("academics:grade-detail", pk=grade.id)
+
+        except ValidationError as e:
+            error_msg = f"Validation error: {str(e)}"
+            messages.error(request, error_msg)
+            print(f"VALIDATION ERROR: {error_msg}")
+            return self.get(request, *args, **kwargs)
+
+        except Exception as e:
+            error_msg = f"Unexpected error creating grade: {str(e)}"
+            messages.error(request, error_msg)
+            print(f"UNEXPECTED ERROR: {error_msg}")
+            print(f"Exception type: {type(e)}")
+            import traceback
+
+            traceback.print_exc()
+            return self.get(request, *args, **kwargs)
 
 
 class ClassListView(LoginRequiredMixin, ListView):

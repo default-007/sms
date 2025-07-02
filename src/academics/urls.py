@@ -41,6 +41,7 @@ urlpatterns = [
     ),
     # Section URLs
     path("sections/", views.SectionListView.as_view(), name="section-list"),
+    path("sections/create/", views.SectionCreateView.as_view(), name="section-create"),
     path(
         "sections/<int:pk>/", views.SectionDetailView.as_view(), name="section-detail"
     ),
@@ -51,6 +52,7 @@ urlpatterns = [
     ),
     # Grade URLs
     path("grades/", views.GradeListView.as_view(), name="grade-list"),
+    path("grades/create/", views.GradeCreateView.as_view(), name="grade-create"),
     path("grades/<int:pk>/", views.GradeDetailView.as_view(), name="grade-detail"),
     # Class URLs
     path("classes/", views.ClassListView.as_view(), name="class-list"),

@@ -215,7 +215,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         super().clean()
 
         # Normalize email
-        if not self.is_student() and not self.email:
+        if not self.is_student and not self.email:
             # Only require email for non-students
             roles_requiring_email = ["teacher", "parent", "staff", "admin"]
             user_roles = self.get_user_roles()
@@ -303,14 +303,6 @@ class User(AbstractBaseUser, PermissionsMixin):
                 f"Could not resize profile picture for user {self.username}: {e}"
             )
 
-    def is_student(self):
-        """Check if user is a student"""
-        try:
-            # Check if user has student profile
-            return hasattr(self, "student_profile")
-        except:
-            return False
-
     def get_user_roles(self):
         """Get user roles for validation"""
         try:
@@ -335,7 +327,7 @@ class User(AbstractBaseUser, PermissionsMixin):
             return self.email
 
         # For students without email, try to get parent's email
-        if self.is_student():
+        if self.is_student:
             try:
                 student = self.student_profile
                 primary_parent = student.get_primary_parent()
@@ -445,7 +437,15 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @property
     def is_student(self):
-        return self.has_role("STUDENT")
+        try:
+            return hasattr(self, "student_profile") and self.student_profile is not None
+        except:
+            try:
+                from students.models import Student
+
+                return Student.objects.filter(user=self).exists()
+            except:
+                return False
 
     @property
     def is_parent(self):

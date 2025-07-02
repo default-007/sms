@@ -12,18 +12,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Q
-
-from .views import (
-    AcademicCalendarAPIView,
-    AcademicStructureAPIView,
-    AcademicValidationAPIView,
-    AcademicYearViewSet,
-    ClassViewSet,
-    DepartmentViewSet,
-    GradeViewSet,
-    SectionViewSet,
-    TermViewSet,
-)
+from . import views
+from .views import *
 from ..models import Section, Grade, Class, Department
 
 
@@ -201,27 +191,59 @@ class SearchAPIView(APIView):
         return Response(results)
 
 
-# Create router and register ViewSets
+# Create a router and register our viewsets with it
 router = DefaultRouter()
-router.register(r"departments", DepartmentViewSet, basename="department")
-router.register(r"academic-years", AcademicYearViewSet, basename="academicyear")
-router.register(r"terms", TermViewSet, basename="term")
-router.register(r"sections", SectionViewSet, basename="section")
-router.register(r"grades", GradeViewSet, basename="grade")
-router.register(r"classes", ClassViewSet, basename="class")
+router.register("academic-years", views.AcademicYearViewSet, basename="academicyear")
+router.register("sections", views.SectionViewSet, basename="section")
+router.register("grades", views.GradeViewSet, basename="grade")
+router.register("classes", views.ClassViewSet, basename="class")
+router.register("terms", views.TermViewSet, basename="term")
+router.register("departments", views.DepartmentViewSet, basename="department")
 
-app_name = "academics_api"
-
+# The API URLs are now determined automatically by the router
 urlpatterns = [
-    # ViewSet routes
     path("", include(router.urls)),
-    # Custom API endpoints
-    path("structure/", AcademicStructureAPIView.as_view(), name="academic-structure"),
-    path("calendar/", AcademicCalendarAPIView.as_view(), name="academic-calendar"),
-    path("validate/", AcademicValidationAPIView.as_view(), name="academic-validation"),
-    # Additional utility endpoints
-    path("quick-stats/", QuickStatsAPIView.as_view(), name="quick-stats"),
-    path("search/", SearchAPIView.as_view(), name="search"),
+    # Additional custom endpoints
+    path(
+        "structure/",
+        views.AcademicStructureAPIView.as_view(),
+        name="academic-structure",
+    ),
+    path(
+        "calendar/", views.AcademicCalendarAPIView.as_view(), name="academic-calendar"
+    ),
+    path("quick-stats/", views.QuickStatsAPIView.as_view(), name="quick-stats"),
+    path(
+        "grades/by_section/",
+        views.GradesBySelectionAPIView.as_view(),
+        name="grades-by-section",
+    ),
+    path(
+        "grades/validate_student_age/",
+        views.ValidateStudentAgeAPIView.as_view(),
+        name="validate-student-age",
+    ),
+    path(
+        "classes/bulk_create/",
+        views.BulkCreateClassesAPIView.as_view(),
+        name="bulk-create-classes",
+    ),
+    path(
+        "classes/optimize_distribution/",
+        views.OptimizeClassDistributionAPIView.as_view(),
+        name="optimize-class-distribution",
+    ),
+    path("terms/current/", views.CurrentTermAPIView.as_view(), name="current-term"),
+    path(
+        "terms/auto_generate/",
+        views.AutoGenerateTermsAPIView.as_view(),
+        name="auto-generate-terms",
+    ),
+    path(
+        "academic-years/current/",
+        views.CurrentAcademicYearAPIView.as_view(),
+        name="current-academic-year",
+    ),
 ]
 
 

@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Create Section{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h4 class="card-title">Create New Section</h4>
+          <div class="breadcrumb">
+            <a href="{% url 'academics:section-list' %}" class="btn btn-outline-secondary btn-sm">
+              <i class="fas fa-arrow-left"></i> Back to Sections
+            </a>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <!-- Debug Information (remove in production) -->
+          {% if debug %}
+          <div class="alert alert-info">
+            <strong>Debug Info:</strong><br>
+            POST Data: {{ request.POST }}<br>
+            User: {{ request.user }}<br>
+            Method: {{ request.method }}
+          </div>
+          {% endif %}
+
+          <!-- Messages Display -->
+          {% if messages %}
+          {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            <strong>
+              {% if message.tags == 'error' %}
+              <i class="fas fa-exclamation-circle"></i> Error!
+              {% elif message.tags == 'success' %}
+              <i class="fas fa-check-circle"></i> Success!
+              {% elif message.tags == 'warning' %}
+              <i class="fas fa-exclamation-triangle"></i> Warning!
+              {% else %}
+              <i class="fas fa-info-circle"></i> Info!
+              {% endif %}
+            </strong>
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+          {% endfor %}
+          {% endif %}
+
+          <form method="post" action="{% url 'academics:section-create' %}" class="needs-validation" novalidate>
+            {% csrf_token %}
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="name" class="form-label">
+                    Section Name <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" class="form-control" id="name" name="name"
+                    value="{{ request.POST.name|default:'' }}" placeholder="e.g., Lower Primary, Upper Primary"
+                    required>
+                  <div class="invalid-feedback">
+                    Please provide a section name.
+                  </div>
+                  <div class="form-text">
+                    Enter a unique name for this section
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="department" class="form-label">Department</label>
+                  <select class="form-select" id="department" name="department">
+                    <option value="">Select Department (Optional)</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}"
+                      {% if request.POST.department|default:'' == dept.id|stringformat:'s' %}selected{% endif %}>
+                      {{ dept.name }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                  <div class="form-text">
+                    Total departments available: {{ departments.count }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="order_sequence" class="form-label">Display Order</label>
+                  <input type="number" class="form-control" id="order_sequence" name="order_sequence"
+                    value="{{ request.POST.order_sequence|default:'' }}" placeholder="Leave blank to auto-assign"
+                    min="1">
+                  <div class="form-text">
+                    Controls the order sections appear in lists
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <div class="form-check mt-4">
+                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
+                      {% if request.POST.is_active == 'on' or not request.POST %}checked{% endif %}>
+                    <label class="form-check-label" for="is_active">
+                      Active Section
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12">
+                <div class="mb-3">
+                  <label for="description" class="form-label">Description</label>
+                  <textarea class="form-control" id="description" name="description" rows="3"
+                    placeholder="Enter section description (optional)">{{ request.POST.description|default:'' }}</textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12">
+                <hr>
+                <div class="d-flex justify-content-between">
+                  <a href="{% url 'academics:section-list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancel
+                  </a>
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Create Section
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+
+          <!-- Debug section count -->
+          <div class="mt-4 p-3 bg-light rounded">
+            <small class="text-muted">
+              <strong>Debug Info:</strong>
+              Current sections in database:
+              <span class="badge bg-secondary">{{ total_sections|default:'Unknown' }}</span>
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Bootstrap form validation
+  (function () {
+    'use strict';
+    window.addEventListener('load', function () {
+      var forms = document.getElementsByClassName('needs-validation');
+      var validation = Array.prototype.filter.call(forms, function (form) {
+        form.addEventListener('submit', function (event) {
+          console.log('Form submitting with data:', new FormData(form));
+          if (form.checkValidity() === false) {
+            event.preventDefault();
+            event.stopPropagation();
+            console.log('Form validation failed');
+          } else {
+            console.log('Form validation passed');
+          }
+          form.classList.add('was-validated');
+        }, false);
+      });
+    }, false);
+  })();
+</script>
+{% endblock %}

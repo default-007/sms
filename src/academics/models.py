@@ -337,6 +337,22 @@ class Grade(models.Model):
         """Get display name including section"""
         return f"{self.section.name} - {self.name}"
 
+    @property
+    def min_age(self):
+        return self.minimum_age
+
+    @min_age.setter
+    def min_age(self, value):
+        self.minimum_age = value
+
+    @property
+    def max_age(self):
+        return self.maximum_age
+
+    @max_age.setter
+    def max_age(self, value):
+        self.maximum_age = value
+
 
 class Class(models.Model):
     """

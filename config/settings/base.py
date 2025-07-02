@@ -403,17 +403,44 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5MB
 # ==============================================================================
 
 # Cache configuration
+# CACHES = {
+#    "default": {
+#        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+#        "LOCATION": "redis://127.0.0.1:6379/1",
+#        "OPTIONS": {
+#            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+#        },
+#        "KEY_PREFIX": {
+#            "sms",
+#            "academics_cache",
+#        },
+#        "TIMEOUT": 300,  # 5 minutes default timeout
+#    }
+# }
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/1",
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-snowflake",
+        "KEY_PREFIX": "sms_cache",  # Simple prefix without special characters
         "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "MAX_ENTRIES": 1000,
+            "CULL_FREQUENCY": 3,
         },
-        "KEY_PREFIX": "sms",
-        "TIMEOUT": 300,  # 5 minutes default timeout
     }
 }
+
+
+# Cache key function to avoid special characters
+def make_cache_key(key, key_prefix, version):
+    """
+    Generate cache key without special characters
+    """
+    import re
+
+    # Remove special characters and replace with underscores
+    clean_key = re.sub(r"[^a-zA-Z0-9_]", "_", str(key))
+    return f"{key_prefix}:{version}:{clean_key}"
+
 
 # Cache timeouts for specific functions
 CACHE_TIMEOUTS = {

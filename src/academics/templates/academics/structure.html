@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load math_filters %}
 
 {% block title %}Academic Structure{% endblock %}
 
@@ -66,8 +67,8 @@
         </div>
         <div class="col">
           <div class="h5 mb-0 text-info">
-            {% for section in structure_data %}{% for grade in section.grades %}{{ grade.classes|length }}{% if not forloop.last %}
-            + {% endif %}{% endfor %}{% endfor %}
+            {% for section in structure_data %}{{ section.total_classes }}{% if not forloop.last %} +
+            {% endif %}{% endfor %}
           </div>
           <small>Total Classes</small>
         </div>
@@ -197,16 +198,14 @@
                               <span class="badge bg-secondary">
                                 {{ class.capacity }} Capacity
                               </span>
-                              {% with utilization=class.get_students_count|floatformat:0 capacity=class.capacity %}
+                              {% with students=class.get_students_count capacity=class.capacity %}
                               {% if capacity > 0 %}
-                              {% with percentage=utilization|div:capacity|mul:100 %}
                               <span class="badge 
-                                                                    {% if percentage > 100 %}bg-danger
-                                                                    {% elif percentage > 80 %}bg-warning text-dark
-                                                                    {% else %}bg-success{% endif %}">
-                                {{ percentage|floatformat:0 }}%
+                                {% if students > capacity %}bg-danger
+                                {% elif students|floatformat:0 > capacity|floatformat:0|mul:0.8 %}bg-warning text-dark
+                                {% else %}bg-success{% endif %}">
+                                {{ students }}/{{ capacity }}
                               </span>
-                              {% endwith %}
                               {% endif %}
                               {% endwith %}
                             </div>

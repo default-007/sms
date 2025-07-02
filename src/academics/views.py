@@ -705,9 +705,51 @@ class AcademicStructureView(LoginRequiredMixin, TemplateView):
 
                 structure_data.append(section_data)
 
-            context["structure_data"] = structure_data
+            for section_data in structure_data:
+                section_total_students = 0
+                section_total_capacity = 0
+                section_total_classes = 0
 
-        return context
+                for grade_data in section_data["grades"]:
+                    grade_total_students = 0
+                    grade_total_capacity = 0
+
+                    for class_obj in grade_data["classes"]:
+                        students_count = class_obj.get_students_count()
+                        grade_total_students += students_count
+                        grade_total_capacity += class_obj.capacity
+
+                        # Add percentage calculation to class
+                        if class_obj.capacity > 0:
+                            class_obj.utilization_percentage = round(
+                                (students_count / class_obj.capacity) * 100, 1
+                            )
+                            if class_obj.utilization_percentage > 100:
+                                class_obj.status_class = "bg-danger"
+                            elif class_obj.utilization_percentage > 80:
+                                class_obj.status_class = "bg-warning text-dark"
+                            else:
+                                class_obj.status_class = "bg-success"
+                        else:
+                            class_obj.utilization_percentage = 0
+                            class_obj.status_class = "bg-secondary"
+
+                    # Add totals to grade_data
+                    grade_data["total_students"] = grade_total_students
+                    grade_data["total_capacity"] = grade_total_capacity
+                    grade_data["total_classes"] = len(grade_data["classes"])
+
+                    section_total_students += grade_total_students
+                    section_total_capacity += grade_total_capacity
+                    section_total_classes += len(grade_data["classes"])
+
+                # Add totals to section_data
+                section_data["total_students"] = section_total_students
+                section_data["total_capacity"] = section_total_capacity
+                section_data["total_classes"] = section_total_classes
+
+            context["structure_data"] = structure_data
+            return context
 
 
 class AcademicCalendarView(LoginRequiredMixin, TemplateView):

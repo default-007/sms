@@ -1,353 +1,430 @@
-{% extends 'base.html' %}
-{% load crispy_forms_tags %}
+<!-- teachers/templates/teachers/teacher_form.html - ENHANCED VERSION -->
+
+{% extends "base.html" %}
 {% load static %}
 
-{% block title %}
-{% if form.instance.pk %}Edit Teacher{% else %}Add New Teacher{% endif %} - School Management System
-{% endblock %}
+{% block title %}{{ title|default:"Teacher Form" }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
-<link rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
+<style>
+  .auto-gen-info {
+    background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+    border-left: 4px solid #2196f3;
+  }
+
+  .credential-preview {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+  }
+
+  .form-section {
+    border: 1px solid #e9ecef;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .form-section-header {
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    padding: 1rem;
+    border-radius: 0.5rem 0.5rem 0 0;
+  }
+
+  .form-section-body {
+    padding: 1.5rem;
+  }
+
+  .required-field::after {
+    content: " *";
+    color: #dc3545;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-  <!-- Page Header -->
-  <div class="row mb-4">
-    <div class="col-12">
-      <div class="d-flex justify-content-between align-items-center">
-        <div>
-          <h1 class="h3 mb-0">
-            {% if form.instance.pk %}
-            <i class="fas fa-edit me-2"></i>Edit Teacher
-            {% else %}
-            <i class="fas fa-plus me-2"></i>Add New Teacher
-            {% endif %}
-          </h1>
-          <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-              <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
-              <li class="breadcrumb-item"><a href="{% url 'teachers:teacher-list' %}">Teachers</a></li>
-              <li class="breadcrumb-item active">
-                {% if form.instance.pk %}Edit{% else %}Add{% endif %}
-              </li>
-            </ol>
-          </nav>
+  <div class="row">
+    <div class="col-lg-10 col-md-12 mx-auto">
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0">
+            <i class="fas fa-chalkboard-teacher me-2"></i>
+            {{ title|default:"Teacher Form" }}
+          </h4>
+          {% if subtitle %}
+          <p class="mb-0 mt-2 opacity-75">{{ subtitle }}</p>
+          {% endif %}
         </div>
-        <div>
-          <a href="{% url 'teachers:teacher-list' %}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-2"></i>Back to List
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <div class="row justify-content-center">
-    <div class="col-lg-10">
-      <div class="card">
-        <div class="card-header">
-          <h6 class="card-title mb-0">
-            <i class="fas fa-user me-2"></i>Teacher Information
-          </h6>
-        </div>
         <div class="card-body">
+          <!-- Auto-generation Info Alert (only for creation) -->
+          {% if not form.instance.pk %}
+          <div class="alert auto-gen-info d-flex align-items-center mb-4" role="alert">
+            <i class="fas fa-magic me-3 fs-5"></i>
+            <div>
+              <strong>Auto-Generation Available:</strong> Leave username, password, and employee ID fields blank
+              to automatically generate secure credentials. The teacher will receive an email with their login details.
+            </div>
+          </div>
+          {% endif %}
+
           <form method="post" enctype="multipart/form-data" id="teacherForm">
             {% csrf_token %}
 
-            <!-- Personal Information Section -->
-            <div class="row mb-4">
-              <div class="col-12">
-                <h5 class="border-bottom pb-2 mb-3">
-                  <i class="fas fa-user-circle me-2"></i>Personal Information
+            <!-- User Information Section -->
+            <div class="form-section">
+              <div class="form-section-header">
+                <h5 class="mb-0">
+                  <i class="fas fa-user me-2"></i>Personal Information
                 </h5>
               </div>
+              <div class="form-section-body">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.first_name.id_for_label }}" class="form-label required-field">
+                      First Name
+                    </label>
+                    {{ form.first_name }}
+                    {% if form.first_name.help_text %}
+                    <div class="form-text">{{ form.first_name.help_text }}</div>
+                    {% endif %}
+                    {% if form.first_name.errors %}
+                    <div class="text-danger small">{{ form.first_name.errors.0 }}</div>
+                    {% endif %}
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.last_name.id_for_label }}" class="form-label required-field">
+                      Last Name
+                    </label>
+                    {{ form.last_name }}
+                    {% if form.last_name.help_text %}
+                    <div class="form-text">{{ form.last_name.help_text }}</div>
+                    {% endif %}
+                    {% if form.last_name.errors %}
+                    <div class="text-danger small">{{ form.last_name.errors.0 }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.email.id_for_label }}" class="form-label required-field">
+                      Email Address
+                    </label>
+                    {{ form.email }}
+                    {% if form.email.help_text %}
+                    <div class="form-text">{{ form.email.help_text }}</div>
+                    {% endif %}
+                    {% if form.email.errors %}
+                    <div class="text-danger small">{{ form.email.errors.0 }}</div>
+                    {% endif %}
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.phone_number.id_for_label }}" class="form-label">
+                      Phone Number
+                    </label>
+                    {{ form.phone_number }}
+                    {% if form.phone_number.help_text %}
+                    <div class="form-text">{{ form.phone_number.help_text }}</div>
+                    {% endif %}
+                    {% if form.phone_number.errors %}
+                    <div class="text-danger small">{{ form.phone_number.errors.0 }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-12 mb-3">
+                    <label for="{{ form.profile_picture.id_for_label }}" class="form-label">
+                      Profile Picture
+                    </label>
+                    {{ form.profile_picture }}
+                    {% if form.profile_picture.help_text %}
+                    <div class="form-text">{{ form.profile_picture.help_text }}</div>
+                    {% endif %}
+                    {% if form.profile_picture.errors %}
+                    <div class="text-danger small">{{ form.profile_picture.errors.0 }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <label for="{{ form.first_name.id_for_label }}" class="form-label">
-                  First Name <span class="text-danger">*</span>
-                </label>
-                {{ form.first_name }}
-                {% if form.first_name.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ form.first_name.errors.0 }}
-                </div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <label for="{{ form.last_name.id_for_label }}" class="form-label">
-                  Last Name <span class="text-danger">*</span>
-                </label>
-                {{ form.last_name }}
-                {% if form.last_name.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ form.last_name.errors.0 }}
-                </div>
-                {% endif %}
-              </div>
-            </div>
-
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <label for="{{ form.email.id_for_label }}" class="form-label">
-                  Email <span class="text-danger">*</span>
-                </label>
-                {{ form.email }}
-                {% if form.email.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ form.email.errors.0 }}
-                </div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <label for="{{ form.phone_number.id_for_label }}" class="form-label">
-                  Phone Number
-                </label>
-                {{ form.phone_number }}
-                {% if form.phone_number.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ form.phone_number.errors.0 }}
-                </div>
-                {% endif %}
-              </div>
-            </div>
-
-            <div class="row mb-4">
-              <div class="col-md-6">
-                <label for="{{ form.profile_picture.id_for_label }}" class="form-label">
-                  Profile Picture
-                </label>
-                {{ form.profile_picture }}
-                <div class="form-text">Upload a profile picture (JPG, PNG, max 2MB)</div>
-                {% if form.profile_picture.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ form.profile_picture.errors.0 }}
-                </div>
-                {% endif %}
-              </div>
-            </div>
-
-            <!-- Employment Information Section -->
-            <div class="row mb-4">
-              <div class="col-12">
-                <hr>
-                <h5 class="border-bottom pb-2 mb-3">
-                  <i class="fas fa-briefcase me-2"></i>Employment Information
+            <!-- Account Credentials Section (only for creation) -->
+            {% if not form.instance.pk %}
+            <div class="form-section">
+              <div class="form-section-header">
+                <h5 class="mb-0">
+                  <i class="fas fa-key me-2"></i>Account Credentials
+                  <button type="button" class="btn btn-outline-info btn-sm ms-2" id="previewBtn">
+                    <i class="fas fa-eye me-1"></i>Preview Auto-Generated
+                  </button>
                 </h5>
               </div>
-            </div>
+              <div class="form-section-body">
+                <div class="alert alert-info" role="alert">
+                  <i class="fas fa-info-circle me-2"></i>
+                  <strong>Recommended:</strong> Leave these fields blank for automatic generation of secure credentials.
+                </div>
 
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <label for="{{ form.employee_id.id_for_label }}" class="form-label">
-                  Employee ID <span class="text-danger">*</span>
-                </label>
-                {{ form.employee_id }}
-                <div class="form-text">Format: T followed by 6 digits (e.g., T123456)</div>
-                {% if form.employee_id.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ form.employee_id.errors.0 }}
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.username.id_for_label }}" class="form-label">
+                      Username
+                      <i class="fas fa-question-circle text-muted ms-1" title="Auto-generated from name if left blank"
+                        data-bs-toggle="tooltip"></i>
+                    </label>
+                    {{ form.username }}
+                    {% if form.username.help_text %}
+                    <div class="form-text">{{ form.username.help_text }}</div>
+                    {% endif %}
+                    {% if form.username.errors %}
+                    <div class="text-danger small">{{ form.username.errors.0 }}</div>
+                    {% endif %}
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.employee_id.id_for_label }}" class="form-label">
+                      Employee ID
+                      <i class="fas fa-question-circle text-muted ms-1"
+                        title="Auto-generated in format TCH2025XXXX if left blank" data-bs-toggle="tooltip"></i>
+                    </label>
+                    {{ form.employee_id }}
+                    {% if form.employee_id.help_text %}
+                    <div class="form-text">{{ form.employee_id.help_text }}</div>
+                    {% endif %}
+                    {% if form.employee_id.errors %}
+                    <div class="text-danger small">{{ form.employee_id.errors.0 }}</div>
+                    {% endif %}
+                  </div>
                 </div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <label for="{{ form.joining_date.id_for_label }}" class="form-label">
-                  Joining Date <span class="text-danger">*</span>
-                </label>
-                {{ form.joining_date }}
-                {% if form.joining_date.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ form.joining_date.errors.0 }}
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.password.id_for_label }}" class="form-label">
+                      Password
+                      <i class="fas fa-question-circle text-muted ms-1"
+                        title="Auto-generated secure password if left blank" data-bs-toggle="tooltip"></i>
+                    </label>
+                    {{ form.password }}
+                    {% if form.password.help_text %}
+                    <div class="form-text">{{ form.password.help_text }}</div>
+                    {% endif %}
+                    {% if form.password.errors %}
+                    <div class="text-danger small">{{ form.password.errors.0 }}</div>
+                    {% endif %}
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.confirm_password.id_for_label }}" class="form-label">
+                      Confirm Password
+                    </label>
+                    {{ form.confirm_password }}
+                    {% if form.confirm_password.errors %}
+                    <div class="text-danger small">{{ form.confirm_password.errors.0 }}</div>
+                    {% endif %}
+                  </div>
                 </div>
-                {% endif %}
+
+                <!-- Credential Preview Box -->
+                <div class="row">
+                  <div class="col-12 mb-3">
+                    <div id="credentialPreview" class="credential-preview p-3" style="display: none;">
+                      <h6><i class="fas fa-eye me-2"></i>Auto-Generated Credentials Preview</h6>
+                      <div id="previewContent">
+                        <!-- Populated by JavaScript -->
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-12 mb-3">
+                    <div class="form-check">
+                      {{ form.send_welcome_email }}
+                      <label class="form-check-label" for="{{ form.send_welcome_email.id_for_label }}">
+                        {{ form.send_welcome_email.label }}
+                      </label>
+                      <div class="form-text">{{ form.send_welcome_email.help_text }}</div>
+                      {% if form.send_welcome_email.errors %}
+                      <div class="text-danger small">{{ form.send_welcome_email.errors.0 }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
+            {% endif %}
 
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <label for="{{ form.department.id_for_label }}" class="form-label">
-                  Department
-                </label>
-                {{ form.department }}
-                {% if form.department.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ form.department.errors.0 }}
-                </div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <label for="{{ form.position.id_for_label }}" class="form-label">
-                  Position <span class="text-danger">*</span>
-                </label>
-                {{ form.position }}
-                {% if form.position.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ form.position.errors.0 }}
-                </div>
-                {% endif %}
-              </div>
-            </div>
-
-            <div class="row mb-3">
-              <div class="col-md-4">
-                <label for="{{ form.salary.id_for_label }}" class="form-label">
-                  Salary <span class="text-danger">*</span>
-                </label>
-                <div class="input-group">
-                  <span class="input-group-text">$</span>
-                  {{ form.salary }}
-                </div>
-                {% if form.salary.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ form.salary.errors.0 }}
-                </div>
-                {% endif %}
-              </div>
-              <div class="col-md-4">
-                <label for="{{ form.contract_type.id_for_label }}" class="form-label">
-                  Contract Type <span class="text-danger">*</span>
-                </label>
-                {{ form.contract_type }}
-                {% if form.contract_type.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ form.contract_type.errors.0 }}
-                </div>
-                {% endif %}
-              </div>
-              <div class="col-md-4">
-                <label for="{{ form.status.id_for_label }}" class="form-label">
-                  Status <span class="text-danger">*</span>
-                </label>
-                {{ form.status }}
-                {% if form.status.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ form.status.errors.0 }}
-                </div>
-                {% endif %}
-              </div>
-            </div>
-
-            <!-- Qualifications Section -->
-            <div class="row mb-4">
-              <div class="col-12">
-                <hr>
-                <h5 class="border-bottom pb-2 mb-3">
-                  <i class="fas fa-graduation-cap me-2"></i>Qualifications & Expertise
+            <!-- Professional Information Section -->
+            <div class="form-section">
+              <div class="form-section-header">
+                <h5 class="mb-0">
+                  <i class="fas fa-briefcase me-2"></i>Professional Information
                 </h5>
               </div>
+              <div class="form-section-body">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.joining_date.id_for_label }}" class="form-label required-field">
+                      Joining Date
+                    </label>
+                    {{ form.joining_date }}
+                    {% if form.joining_date.errors %}
+                    <div class="text-danger small">{{ form.joining_date.errors.0 }}</div>
+                    {% endif %}
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.department.id_for_label }}" class="form-label">
+                      Department
+                    </label>
+                    {{ form.department }}
+                    {% if form.department.errors %}
+                    <div class="text-danger small">{{ form.department.errors.0 }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.position.id_for_label }}" class="form-label">
+                      Position
+                    </label>
+                    {{ form.position }}
+                    {% if form.position.errors %}
+                    <div class="text-danger small">{{ form.position.errors.0 }}</div>
+                    {% endif %}
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.experience_years.id_for_label }}" class="form-label">
+                      Experience (Years)
+                    </label>
+                    {{ form.experience_years }}
+                    {% if form.experience_years.errors %}
+                    <div class="text-danger small">{{ form.experience_years.errors.0 }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.qualification.id_for_label }}" class="form-label">
+                      Qualification
+                    </label>
+                    {{ form.qualification }}
+                    {% if form.qualification.errors %}
+                    <div class="text-danger small">{{ form.qualification.errors.0 }}</div>
+                    {% endif %}
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.salary.id_for_label }}" class="form-label">
+                      Salary
+                    </label>
+                    {{ form.salary }}
+                    {% if form.salary.errors %}
+                    <div class="text-danger small">{{ form.salary.errors.0 }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.contract_type.id_for_label }}" class="form-label">
+                      Contract Type
+                    </label>
+                    {{ form.contract_type }}
+                    {% if form.contract_type.errors %}
+                    <div class="text-danger small">{{ form.contract_type.errors.0 }}</div>
+                    {% endif %}
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.status.id_for_label }}" class="form-label">
+                      Status
+                    </label>
+                    {{ form.status }}
+                    {% if form.status.errors %}
+                    <div class="text-danger small">{{ form.status.errors.0 }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-12 mb-3">
+                    <label for="{{ form.specialization.id_for_label }}" class="form-label">
+                      Specialization
+                    </label>
+                    {{ form.specialization }}
+                    {% if form.specialization.errors %}
+                    <div class="text-danger small">{{ form.specialization.errors.0 }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-12 mb-3">
+                    <label for="{{ form.bio.id_for_label }}" class="form-label">
+                      Bio
+                    </label>
+                    {{ form.bio }}
+                    {% if form.bio.errors %}
+                    <div class="text-danger small">{{ form.bio.errors.0 }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <label for="{{ form.qualification.id_for_label }}" class="form-label">
-                  Qualification <span class="text-danger">*</span>
-                </label>
-                {{ form.qualification }}
-                <div class="form-text">Educational qualifications and degrees</div>
-                {% if form.qualification.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ form.qualification.errors.0 }}
-                </div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <label for="{{ form.experience_years.id_for_label }}" class="form-label">
-                  Experience (Years) <span class="text-danger">*</span>
-                </label>
-                {{ form.experience_years }}
-                <div class="form-text">Total years of teaching experience</div>
-                {% if form.experience_years.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ form.experience_years.errors.0 }}
-                </div>
-                {% endif %}
-              </div>
-            </div>
-
-            <div class="row mb-3">
-              <div class="col-12">
-                <label for="{{ form.specialization.id_for_label }}" class="form-label">
-                  Specialization <span class="text-danger">*</span>
-                </label>
-                {{ form.specialization }}
-                <div class="form-text">Subject areas of expertise</div>
-                {% if form.specialization.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ form.specialization.errors.0 }}
-                </div>
-                {% endif %}
-              </div>
-            </div>
-
-            <!-- Additional Information Section -->
-            <div class="row mb-4">
-              <div class="col-12">
-                <hr>
-                <h5 class="border-bottom pb-2 mb-3">
-                  <i class="fas fa-info-circle me-2"></i>Additional Information
+            <!-- Emergency Contact Section -->
+            <div class="form-section">
+              <div class="form-section-header">
+                <h5 class="mb-0">
+                  <i class="fas fa-phone me-2"></i>Emergency Contact
                 </h5>
               </div>
-            </div>
+              <div class="form-section-body">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.emergency_contact.id_for_label }}" class="form-label">
+                      Emergency Contact Name
+                    </label>
+                    {{ form.emergency_contact }}
+                    {% if form.emergency_contact.errors %}
+                    <div class="text-danger small">{{ form.emergency_contact.errors.0 }}</div>
+                    {% endif %}
+                  </div>
 
-            <div class="row mb-3">
-              <div class="col-12">
-                <label for="{{ form.bio.id_for_label }}" class="form-label">
-                  Biography
-                </label>
-                {{ form.bio }}
-                <div class="form-text">Brief description about the teacher</div>
-                {% if form.bio.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ form.bio.errors.0 }}
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.emergency_phone.id_for_label }}" class="form-label">
+                      Emergency Phone
+                    </label>
+                    {{ form.emergency_phone }}
+                    {% if form.emergency_phone.errors %}
+                    <div class="text-danger small">{{ form.emergency_phone.errors.0 }}</div>
+                    {% endif %}
+                  </div>
                 </div>
-                {% endif %}
               </div>
             </div>
 
-            <div class="row mb-4">
-              <div class="col-md-6">
-                <label for="{{ form.emergency_contact.id_for_label }}" class="form-label">
-                  Emergency Contact Name
-                </label>
-                {{ form.emergency_contact }}
-                {% if form.emergency_contact.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ form.emergency_contact.errors.0 }}
-                </div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <label for="{{ form.emergency_phone.id_for_label }}" class="form-label">
-                  Emergency Contact Phone
-                </label>
-                {{ form.emergency_phone }}
-                {% if form.emergency_phone.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ form.emergency_phone.errors.0 }}
-                </div>
-                {% endif %}
-              </div>
-            </div>
-
-            <!-- Form Actions -->
+            <!-- Submit Buttons -->
             <div class="row">
               <div class="col-12">
-                <hr>
-                <div class="d-flex justify-content-end gap-2">
-                  <a href="{% url 'teachers:teacher-list' %}" class="btn btn-outline-secondary">
-                    <i class="fas fa-times me-2"></i>Cancel
-                  </a>
-                  <button type="button" class="btn btn-outline-primary" id="previewBtn">
-                    <i class="fas fa-eye me-2"></i>Preview
-                  </button>
-                  <button type="submit" class="btn btn-primary">
+                <div class="d-flex gap-2">
+                  <button type="submit" class="btn btn-primary btn-lg">
                     <i class="fas fa-save me-2"></i>
-                    {% if form.instance.pk %}Update Teacher{% else %}Add Teacher{% endif %}
+                    {% if form.instance.pk %}Update Teacher{% else %}Create Teacher{% endif %}
                   </button>
+                  <a href="{% url 'teachers:teacher-list' %}" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-times me-2"></i>
+                    Cancel
+                  </a>
                 </div>
               </div>
             </div>
@@ -357,195 +434,156 @@
     </div>
   </div>
 </div>
-
-<!-- Preview Modal -->
-<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="previewModalLabel">
-          <i class="fas fa-eye me-2"></i>Teacher Information Preview
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body" id="previewContent">
-        <!-- Preview content will be populated by JavaScript -->
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary" onclick="$('#teacherForm').submit();">
-          <i class="fas fa-save me-2"></i>Save Teacher
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
 <script>
-  $(document).ready(function () {
-    // Initialize Select2 for dropdowns
-    $('.select2').select2({
-      theme: 'bootstrap-5',
-      width: '100%'
+  document.addEventListener('DOMContentLoaded', function () {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 
-    // Form validation
-    $('#teacherForm').on('submit', function (e) {
-      var isValid = true;
-      var firstError = null;
+    // Form validation and preview functionality
+    const form = document.getElementById('teacherForm');
+    const firstNameField = document.getElementById('{{ form.first_name.id_for_label }}');
+    const lastNameField = document.getElementById('{{ form.last_name.id_for_label }}');
+    const emailField = document.getElementById('{{ form.email.id_for_label }}');
+    const previewBtn = document.getElementById('previewBtn');
+    const credentialPreview = document.getElementById('credentialPreview');
+    const previewContent = document.getElementById('previewContent');
 
-      // Remove previous validation classes
-      $('.is-invalid').removeClass('is-invalid');
+    // Preview functionality (only for creation)
+    {% if not form.instance.pk %}
+    if (previewBtn) {
+      previewBtn.addEventListener('click', function () {
+        const firstName = firstNameField.value.trim();
+        const lastName = lastNameField.value.trim();
+        const email = emailField.value.trim();
 
-      // Required field validation
-      $(this).find('input[required], select[required], textarea[required]').each(function () {
-        if (!$(this).val()) {
-          $(this).addClass('is-invalid');
-          isValid = false;
-          if (!firstError) {
-            firstError = $(this);
+        if (!firstName || !lastName) {
+          alert('Please enter first name and last name to preview credentials.');
+          return;
+        }
+
+        // Show loading
+        previewContent.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating preview...';
+        credentialPreview.style.display = 'block';
+
+        // Make AJAX request to get preview
+        fetch('{% url "teachers:credential-preview" %}', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          },
+          body: new URLSearchParams({
+            'first_name': firstName,
+            'last_name': lastName,
+            'email': email
+          })
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.error) {
+              previewContent.innerHTML = `<div class="text-danger">${data.error}</div>`;
+            } else {
+              previewContent.innerHTML = `
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>Username:</strong><br>
+                                <code>${data.username}</code>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Employee ID:</strong><br>
+                                <code>${data.employee_id}</code>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Password:</strong><br>
+                                <small class="text-muted">${data.password_info}</small>
+                            </div>
+                        </div>
+                    `;
+            }
+          })
+          .catch(error => {
+            previewContent.innerHTML = '<div class="text-danger">Error loading preview</div>';
+            console.error('Preview error:', error);
+          });
+      });
+    }
+
+    // Form submission confirmation for auto-generation
+    form.addEventListener('submit', function (e) {
+      const username = document.getElementById('{{ form.username.id_for_label }}');
+      const password = document.getElementById('{{ form.password.id_for_label }}');
+      const employeeId = document.getElementById('{{ form.employee_id.id_for_label }}');
+
+      if (username && password && employeeId &&
+        !username.value && !password.value && !employeeId.value) {
+        const confirmed = confirm(
+          'Username, password, and employee ID will be auto-generated. The teacher will receive an email with their login credentials. Continue?'
+        );
+        if (!confirmed) {
+          e.preventDefault();
+        }
+      }
+    });
+
+    // Password confirmation logic
+    const passwordField = document.getElementById('{{ form.password.id_for_label }}');
+    const confirmPasswordField = document.getElementById('{{ form.confirm_password.id_for_label }}');
+    const emailCheckbox = document.getElementById('{{ form.send_welcome_email.id_for_label }}');
+
+    if (passwordField && confirmPasswordField) {
+      const validatePasswords = () => {
+        if (passwordField.value && confirmPasswordField.value) {
+          if (passwordField.value !== confirmPasswordField.value) {
+            confirmPasswordField.setCustomValidity('Passwords do not match');
+          } else {
+            confirmPasswordField.setCustomValidity('');
+          }
+        } else {
+          confirmPasswordField.setCustomValidity('');
+        }
+      };
+
+      passwordField.addEventListener('input', validatePasswords);
+      confirmPasswordField.addEventListener('input', validatePasswords);
+
+      // Toggle email notification based on manual password setting
+      passwordField.addEventListener('input', function () {
+        if (emailCheckbox) {
+          if (this.value.trim()) {
+            emailCheckbox.checked = false;
+            showPasswordWarning();
+          } else {
+            emailCheckbox.checked = true;
+            hidePasswordWarning();
           }
         }
       });
+    }
 
-      // Email validation
-      var email = $('#id_email').val();
-      if (email && !isValidEmail(email)) {
-        $('#id_email').addClass('is-invalid');
-        isValid = false;
-        if (!firstError) firstError = $('#id_email');
+    function showPasswordWarning() {
+      let warning = document.getElementById('password-warning');
+      if (!warning) {
+        warning = document.createElement('div');
+        warning.id = 'password-warning';
+        warning.className = 'alert alert-warning mt-2';
+        warning.innerHTML = '<i class="fas fa-exclamation-triangle"></i> You\'ve set a manual password. Consider providing the credentials to the teacher separately.';
+        passwordField.parentNode.appendChild(warning);
       }
+    }
 
-      // Employee ID validation
-      var employeeId = $('#id_employee_id').val();
-      if (employeeId && !employeeId.match(/^T\d{6}$/)) {
-        $('#id_employee_id').addClass('is-invalid');
-        isValid = false;
-        if (!firstError) firstError = $('#id_employee_id');
+    function hidePasswordWarning() {
+      const warning = document.getElementById('password-warning');
+      if (warning) {
+        warning.remove();
       }
-
-      // Experience validation
-      var experience = $('#id_experience_years').val();
-      if (experience && (isNaN(experience) || experience < 0 || experience > 50)) {
-        $('#id_experience_years').addClass('is-invalid');
-        isValid = false;
-        if (!firstError) firstError = $('#id_experience_years');
-      }
-
-      if (!isValid) {
-        e.preventDefault();
-        if (firstError) {
-          firstError.focus();
-          firstError[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-
-        // Show error toast
-        showToast('Please correct the highlighted fields', 'error');
-      }
-    });
-
-    // Preview functionality
-    $('#previewBtn').click(function () {
-      generatePreview();
-      $('#previewModal').modal('show');
-    });
-
-    // Auto-generate Employee ID if empty
-    $('#id_first_name, #id_last_name').on('blur', function () {
-      if (!$('#id_employee_id').val()) {
-        generateEmployeeId();
-      }
-    });
+    }
+    {% endif %}
   });
-
-  function isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  }
-
-  function generateEmployeeId() {
-    // Simple employee ID generation (should be replaced with backend logic)
-    var timestamp = Date.now().toString().slice(-6);
-    $('#id_employee_id').val('T' + timestamp);
-  }
-
-  function generatePreview() {
-    var firstName = $('#id_first_name').val();
-    var lastName = $('#id_last_name').val();
-    var email = $('#id_email').val();
-    var phone = $('#id_phone_number').val();
-    var employeeId = $('#id_employee_id').val();
-    var department = $('#id_department option:selected').text();
-    var position = $('#id_position').val();
-    var status = $('#id_status option:selected').text();
-    var contractType = $('#id_contract_type option:selected').text();
-    var salary = $('#id_salary').val();
-    var qualification = $('#id_qualification').val();
-    var specialization = $('#id_specialization').val();
-    var experience = $('#id_experience_years').val();
-    var bio = $('#id_bio').val();
-
-    var previewHtml = `
-        <div class="row">
-            <div class="col-md-6">
-                <h6>Personal Information</h6>
-                <table class="table table-sm">
-                    <tr><td><strong>Name:</strong></td><td>${firstName} ${lastName}</td></tr>
-                    <tr><td><strong>Email:</strong></td><td>${email}</td></tr>
-                    <tr><td><strong>Phone:</strong></td><td>${phone || 'Not provided'}</td></tr>
-                </table>
-            </div>
-            <div class="col-md-6">
-                <h6>Employment Details</h6>
-                <table class="table table-sm">
-                    <tr><td><strong>Employee ID:</strong></td><td>${employeeId}</td></tr>
-                    <tr><td><strong>Department:</strong></td><td>${department}</td></tr>
-                    <tr><td><strong>Position:</strong></td><td>${position}</td></tr>
-                    <tr><td><strong>Status:</strong></td><td>${status}</td></tr>
-                    <tr><td><strong>Contract:</strong></td><td>${contractType}</td></tr>
-                    <tr><td><strong>Salary:</strong></td><td>$${salary}</td></tr>
-                </table>
-            </div>
-        </div>
-        <div class="row mt-3">
-            <div class="col-12">
-                <h6>Qualifications</h6>
-                <table class="table table-sm">
-                    <tr><td><strong>Qualification:</strong></td><td>${qualification}</td></tr>
-                    <tr><td><strong>Specialization:</strong></td><td>${specialization}</td></tr>
-                    <tr><td><strong>Experience:</strong></td><td>${experience} years</td></tr>
-                </table>
-            </div>
-        </div>
-        ${bio ? `<div class="row mt-3"><div class="col-12"><h6>Biography</h6><p>${bio}</p></div></div>` : ''}
-    `;
-
-    $('#previewContent').html(previewHtml);
-  }
-
-  function showToast(message, type = 'info') {
-    // Simple toast notification
-    var toastClass = type === 'error' ? 'bg-danger' : 'bg-success';
-    var toastHtml = `
-        <div class="toast ${toastClass} text-white" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-body">
-                ${message}
-            </div>
-        </div>
-    `;
-
-    // Append to body and show
-    var $toast = $(toastHtml).appendTo('body');
-    var toast = new bootstrap.Toast($toast[0]);
-    toast.show();
-
-    // Remove after hiding
-    $toast.on('hidden.bs.toast', function () {
-      $(this).remove();
-    });
-  }
 </script>
 {% endblock %}

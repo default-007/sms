@@ -1,12 +1,15 @@
 import csv
 import json
+import re
 from datetime import datetime, timedelta
+from django.contrib.auth import get_user_model
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Avg, Case, Count, F, IntegerField, Q, Sum, Value, When
+from django.db import transaction
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
@@ -23,7 +26,7 @@ from django.views.generic import (
 from django.views.generic.edit import FormView
 
 from src.academics.models import AcademicYear, Department
-
+from src.accounts.services import AuthenticationService
 
 from .forms import (
     TeacherClassAssignmentForm,
@@ -33,6 +36,8 @@ from .forms import (
 )
 from .models import Teacher, TeacherClassAssignment, TeacherEvaluation
 from .services import EvaluationService, TeacherService, TimetableService
+
+User = get_user_model()
 
 
 class TeacherListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
@@ -215,29 +220,114 @@ class TeacherDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView)
 
 
 class TeacherCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    """Enhanced teacher creation with auto-generation"""
+
     model = Teacher
     permission_required = "teachers.add_teacher"
     form_class = TeacherForm
     template_name = "teachers/teacher_form.html"
     success_url = reverse_lazy("teachers:teacher-list")
 
+    def get_form_kwargs(self):
+        """Pass current user to form for auto-generation"""
+        kwargs = super().get_form_kwargs()
+        kwargs["created_by"] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
-        messages.success(self.request, "Teacher created successfully.")
-        return super().form_valid(form)
+        """Handle successful form submission with enhanced messaging"""
+        try:
+            with transaction.atomic():
+                teacher = form.save()
+
+                # Create comprehensive success message
+                success_parts = [
+                    f'Teacher "{teacher.user.get_full_name()}" created successfully!'
+                ]
+
+                # Add information about auto-generated credentials
+                form_data = form.cleaned_data
+
+                if not form_data.get("username"):
+                    success_parts.append(f"Generated username: {teacher.user.username}")
+
+                if not form_data.get("employee_id"):
+                    success_parts.append(
+                        f"Generated employee ID: {teacher.employee_id}"
+                    )
+
+                if not form_data.get("password"):
+                    success_parts.append("Generated secure password")
+
+                if form_data.get("send_welcome_email", True):
+                    success_parts.append("Welcome email sent with login credentials")
+
+                messages.success(self.request, " | ".join(success_parts))
+                return redirect(self.success_url)
+
+        except Exception as e:
+            messages.error(self.request, f"Error creating teacher: {e}")
+            return self.form_invalid(form)
+
+    def form_invalid(self, form):
+        """Handle form validation errors with detailed messages"""
+        for field, errors in form.errors.items():
+            for error in errors:
+                if field == "__all__":
+                    messages.error(self.request, f"Form Error: {error}")
+                else:
+                    field_name = field.replace("_", " ").title()
+                    messages.error(self.request, f"{field_name}: {error}")
+        return super().form_invalid(form)
+
+    def get_context_data(self, **kwargs):
+        """Add extra context for template"""
+        context = super().get_context_data(**kwargs)
+        context["title"] = "Create New Teacher"
+        context["subtitle"] = (
+            "Username, password, and employee ID will be auto-generated if not provided"
+        )
+        return context
 
 
 class TeacherUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    """Enhanced teacher update"""
+
     model = Teacher
     permission_required = "teachers.change_teacher"
     form_class = TeacherForm
     template_name = "teachers/teacher_form.html"
 
+    def get_form_kwargs(self):
+        """Pass current user to form"""
+        kwargs = super().get_form_kwargs()
+        kwargs["created_by"] = self.request.user
+        return kwargs
+
     def get_success_url(self):
         return reverse_lazy("teachers:teacher-detail", kwargs={"pk": self.object.pk})
 
     def form_valid(self, form):
-        messages.success(self.request, "Teacher updated successfully.")
-        return super().form_valid(form)
+        """Enhanced success messaging"""
+        try:
+            with transaction.atomic():
+                teacher = form.save()
+                messages.success(
+                    self.request,
+                    f'Teacher "{teacher.user.get_full_name()}" updated successfully.',
+                )
+                return redirect(self.get_success_url())
+
+        except Exception as e:
+            messages.error(self.request, f"Error updating teacher: {e}")
+            return self.form_invalid(form)
+
+    def get_context_data(self, **kwargs):
+        """Add extra context for template"""
+        context = super().get_context_data(**kwargs)
+        context["title"] = f"Edit Teacher: {self.object.user.get_full_name()}"
+        context["subtitle"] = "Update teacher information"
+        return context
 
 
 class TeacherDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
@@ -249,6 +339,333 @@ class TeacherDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView)
     def delete(self, request, *args, **kwargs):
         messages.success(request, "Teacher deleted successfully.")
         return super().delete(request, *args, **kwargs)
+
+
+class TeacherCredentialPreviewView(LoginRequiredMixin, View):
+    """AJAX endpoint to preview auto-generated credentials"""
+
+    def post(self, request):
+        first_name = request.POST.get("first_name", "").strip()
+        last_name = request.POST.get("last_name", "").strip()
+        email = request.POST.get("email", "").strip()
+
+        if not (first_name and last_name):
+            return JsonResponse({"error": "First name and last name required"})
+
+        try:
+            # Generate preview username (same logic as AuthenticationService)
+            if first_name and last_name:
+                base_username = f"{first_name.lower()}.{last_name.lower()}"
+            else:
+                base_username = email.split("@")[0].lower() if email else "teacher"
+
+            # Clean username
+            base_username = re.sub(r"[^a-zA-Z0-9_]", "", base_username)
+
+            # Check if username would be unique
+            username_preview = base_username
+            counter = 1
+            while User.objects.filter(username=username_preview).exists():
+                username_preview = f"{base_username}{counter}"
+                counter += 1
+
+            # Generate preview employee ID
+            current_year = timezone.now().year
+            prefix = f"TCH{current_year}"
+
+            last_teacher = (
+                Teacher.objects.filter(employee_id__startswith=prefix)
+                .order_by("employee_id")
+                .last()
+            )
+
+            if last_teacher:
+                try:
+                    last_number = int(last_teacher.employee_id.replace(prefix, ""))
+                    new_number = last_number + 1
+                except ValueError:
+                    new_number = 1
+            else:
+                new_number = 1
+
+            employee_id_preview = f"{prefix}{new_number:04d}"
+
+            return JsonResponse(
+                {
+                    "username": username_preview,
+                    "employee_id": employee_id_preview,
+                    "password_info": "Secure 12-character password with uppercase, lowercase, numbers, and symbols",
+                }
+            )
+
+        except Exception as e:
+            return JsonResponse({"error": f"Error generating preview: {str(e)}"})
+
+
+# Utility function for programmatic teacher creation
+def create_teacher_with_defaults(
+    first_name, last_name, email, phone_number=None, created_by=None, **kwargs
+):
+    """
+    Utility function to create a teacher with auto-generated credentials
+
+    Args:
+        first_name: Teacher's first name
+        last_name: Teacher's last name
+        email: Teacher's email address
+        phone_number: Teacher's phone number (optional)
+        created_by: User creating the teacher (optional)
+        **kwargs: Additional teacher fields
+
+    Returns:
+        Teacher instance with auto-generated username and password
+    """
+
+    # Prepare user data
+    user_data = {
+        "first_name": first_name,
+        "last_name": last_name,
+        "email": email,
+        "is_active": True,
+    }
+
+    if phone_number:
+        user_data["phone_number"] = phone_number
+
+    try:
+        # Create user with auto-generated credentials
+        user = AuthenticationService.register_user(
+            user_data=user_data,
+            role_names=["Teacher"],
+            created_by=created_by,
+            send_email=kwargs.pop("send_welcome_email", True),
+        )
+
+        # Generate employee ID
+        current_year = timezone.now().year
+        prefix = f"TCH{current_year}"
+        last_teacher = (
+            Teacher.objects.filter(employee_id__startswith=prefix)
+            .order_by("employee_id")
+            .last()
+        )
+
+        if last_teacher:
+            try:
+                last_number = int(last_teacher.employee_id.replace(prefix, ""))
+                new_number = last_number + 1
+            except ValueError:
+                new_number = 1
+        else:
+            new_number = 1
+
+        employee_id = f"{prefix}{new_number:04d}"
+
+        # Prepare teacher data with defaults
+        teacher_data = {
+            "user": user,
+            "employee_id": employee_id,
+            "joining_date": kwargs.pop("joining_date", timezone.now().date()),
+            "qualification": kwargs.pop("qualification", ""),
+            "experience_years": kwargs.pop("experience_years", 0),
+            "specialization": kwargs.pop("specialization", ""),
+            "position": kwargs.pop("position", "Teacher"),
+            "salary": kwargs.pop("salary", 0),
+            "contract_type": kwargs.pop("contract_type", "Permanent"),
+            "status": kwargs.pop("status", "Active"),
+            **kwargs,  # Any additional teacher fields
+        }
+
+        # Create teacher
+        teacher = Teacher.objects.create(**teacher_data)
+
+        return teacher
+
+    except Exception as e:
+        raise Exception(f"Failed to create teacher: {str(e)}")
+
+
+# API endpoint for external systems
+def create_teacher_api_endpoint(request):
+    """
+    API endpoint for creating teachers with defaults (for external systems)
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST method allowed"}, status=405)
+
+    if not request.user.has_perm("teachers.add_teacher"):
+        return JsonResponse({"error": "Permission denied"}, status=403)
+
+    try:
+        data = json.loads(request.body)
+
+        required_fields = ["first_name", "last_name", "email"]
+        if not all(field in data for field in required_fields):
+            return JsonResponse(
+                {"error": f"Missing required fields: {required_fields}"}, status=400
+            )
+
+        teacher = create_teacher_with_defaults(
+            first_name=data["first_name"],
+            last_name=data["last_name"],
+            email=data["email"],
+            phone_number=data.get("phone_number"),
+            qualification=data.get("qualification", ""),
+            specialization=data.get("specialization", ""),
+            created_by=request.user,
+            send_welcome_email=data.get("send_welcome_email", True),
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "teacher_id": teacher.id,
+                "employee_id": teacher.employee_id,
+                "username": teacher.user.username,
+                "email": teacher.user.email,
+                "full_name": teacher.user.get_full_name(),
+                "message": "Teacher created successfully with auto-generated credentials",
+            }
+        )
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+# NEW: Add bulk creation view (optional enhancement)
+class TeacherBulkCreateView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+    """Bulk create teachers from CSV data"""
+
+    template_name = "teachers/teacher_bulk_create.html"
+    permission_required = "teachers.add_teacher"
+
+    def post(self, request):
+        """Handle CSV upload and process teachers"""
+        if "csv_data" not in request.POST:
+            messages.error(request, "No CSV data provided")
+            return self.render_to_response(self.get_context_data())
+
+        csv_data = request.POST["csv_data"].strip()
+        send_emails = request.POST.get("send_emails") == "on"
+
+        if not csv_data:
+            messages.error(request, "CSV data is empty")
+            return self.render_to_response(self.get_context_data())
+
+        # Process CSV data
+        lines = csv_data.split("\n")
+        if len(lines) < 2:
+            messages.error(request, "CSV must have at least a header and one data row")
+            return self.render_to_response(self.get_context_data())
+
+        headers = [h.strip().lower() for h in lines[0].split(",")]
+        required_headers = ["first_name", "last_name", "email"]
+
+        if not all(header in headers for header in required_headers):
+            messages.error(
+                request, f'CSV must contain headers: {", ".join(required_headers)}'
+            )
+            return self.render_to_response(self.get_context_data())
+
+        created_count = 0
+        errors = []
+
+        try:
+            with transaction.atomic():
+                for line_num, line in enumerate(lines[1:], start=2):
+                    if not line.strip():
+                        continue
+
+                    try:
+                        values = [v.strip() for v in line.split(",")]
+                        if len(values) != len(headers):
+                            errors.append(f"Line {line_num}: Column count mismatch")
+                            continue
+
+                        row_data = dict(zip(headers, values))
+
+                        # Create teacher using utility function
+                        teacher = create_teacher_with_defaults(
+                            first_name=row_data["first_name"],
+                            last_name=row_data["last_name"],
+                            email=row_data["email"],
+                            phone_number=row_data.get("phone_number", ""),
+                            qualification=row_data.get("qualification", ""),
+                            specialization=row_data.get("specialization", ""),
+                            created_by=request.user,
+                            send_welcome_email=send_emails,
+                        )
+                        created_count += 1
+
+                    except Exception as e:
+                        errors.append(f"Line {line_num}: {str(e)}")
+                        continue
+
+            # Show results
+            if created_count > 0:
+                messages.success(
+                    request,
+                    f"Successfully created {created_count} teacher(s) with auto-generated credentials.",
+                )
+
+            if errors:
+                for error in errors[:5]:  # Show first 5 errors
+                    messages.warning(request, error)
+
+                if len(errors) > 5:
+                    messages.warning(request, f"... and {len(errors) - 5} more errors.")
+
+        except Exception as e:
+            messages.error(request, f"Error processing CSV: {e}")
+
+        return self.render_to_response(self.get_context_data())
+
+
+def create_teacher_with_defaults_endpoint(request):
+    """
+    API endpoint for creating teachers with defaults (for external systems)
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST method allowed"}, status=405)
+
+    if not request.user.has_perm("teachers.add_teacher"):
+        return JsonResponse({"error": "Permission denied"}, status=403)
+
+    try:
+        import json
+
+        data = json.loads(request.body)
+
+        required_fields = ["first_name", "last_name", "email"]
+        if not all(field in data for field in required_fields):
+            return JsonResponse(
+                {"error": f"Missing required fields: {required_fields}"}, status=400
+            )
+
+        teacher = create_teacher_with_defaults(
+            first_name=data["first_name"],
+            last_name=data["last_name"],
+            email=data["email"],
+            phone_number=data.get("phone_number"),
+            qualification=data.get("qualification", ""),
+            specialization=data.get("specialization", ""),
+            created_by=request.user,
+            send_welcome_email=data.get("send_welcome_email", True),
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "teacher_id": teacher.id,
+                "employee_id": teacher.employee_id,
+                "username": teacher.user.username,
+                "email": teacher.user.email,
+                "full_name": teacher.user.get_full_name(),
+            }
+        )
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
 
 class TeacherClassAssignmentCreateView(

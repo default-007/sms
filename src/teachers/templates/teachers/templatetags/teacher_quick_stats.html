@@ -1,0 +1,46 @@
+<!-- teachers/templates/teachers/templatetags/teacher_quick_stats.html -->
+{% load teacher_tags %}
+
+<div class="row g-2">
+  <div class="col-6 col-md-3">
+    <div class="text-center p-2 bg-light rounded">
+      <div class="h5 mb-1 text-primary">{{ class_count }}</div>
+      <small class="text-muted">Classes</small>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="text-center p-2 bg-light rounded">
+      <div class="h5 mb-1 text-success">{{ student_count }}</div>
+      <small class="text-muted">Students</small>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="text-center p-2 bg-light rounded">
+      <div class="h5 mb-1 text-info">
+        {% if recent_score %}
+        {{ recent_score|floatformat:1 }}%
+        {% else %}
+        --
+        {% endif %}
+      </div>
+      <small class="text-muted">Last Score</small>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="text-center p-2 bg-light rounded">
+      <div class="h5 mb-1 text-warning">{{ teacher.experience_years|floatformat:1 }}</div>
+      <small class="text-muted">Years Exp</small>
+    </div>
+  </div>
+</div>
+
+{% if subjects %}
+<div class="mt-2">
+  <small class="text-muted">
+    <strong>Subjects:</strong> {{ subjects }}
+  </small>
+</div>
+{% endif %}

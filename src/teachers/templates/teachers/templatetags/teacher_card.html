@@ -1,0 +1,61 @@
+<!-- teachers/templates/teachers/templatetags/teacher_card.html -->
+{% load teacher_tags %}
+
+<div class="card h-100">
+  <div class="card-body">
+    <div class="d-flex align-items-center mb-3">
+      {% teacher_avatar teacher 48 %}
+      <div class="ms-3">
+        <h6 class="card-title mb-1">{{ teacher.get_full_name }}</h6>
+        <small class="text-muted">{{ teacher.employee_id }}</small>
+      </div>
+    </div>
+
+    <div class="mb-2">
+      {{ teacher.status|teacher_status_badge }}
+      {{ teacher.contract_type|contract_type_badge }}
+    </div>
+
+    <div class="mb-2">
+      <small class="text-muted">
+        <i class="fas fa-briefcase me-1"></i>{{ teacher.position }}
+      </small>
+      {% if teacher.department %}
+      <br><small class="text-muted">
+        <i class="fas fa-building me-1"></i>{{ teacher.department.name }}
+      </small>
+      {% endif %}
+    </div>
+
+    <div class="row text-center small">
+      <div class="col-4">
+        <div class="fw-bold">{{ class_count }}</div>
+        <div class="text-muted">Classes</div>
+      </div>
+      <div class="col-4">
+        <div class="fw-bold">{{ student_count }}</div>
+        <div class="text-muted">Students</div>
+      </div>
+      <div class="col-4">
+        <div class="fw-bold">{{ teacher.experience_years|floatformat:1 }}</div>
+        <div class="text-muted">Years</div>
+      </div>
+    </div>
+  </div>
+
+  {% if show_actions %}
+  <div class="card-footer">
+    <div class="btn-group w-100" role="group">
+      <a href="{% url 'teachers:teacher-detail' teacher.pk %}" class="btn btn-outline-primary btn-sm">
+        <i class="fas fa-eye"></i>
+      </a>
+      <a href="{% url 'teachers:teacher-update' teacher.pk %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-edit"></i>
+      </a>
+      <a href="{% url 'teachers:teacher-assignment-create' teacher.pk %}" class="btn btn-outline-info btn-sm">
+        <i class="fas fa-chalkboard"></i>
+      </a>
+    </div>
+  </div>
+  {% endif %}
+</div>

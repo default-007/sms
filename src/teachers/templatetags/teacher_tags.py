@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Union
 from django import template
 from django.conf import settings
 from django.core.cache import cache
+from django.db import models
 from django.db.models import Avg, Count, Max, Min, Q, Sum
 from django.urls import reverse
 from django.utils import timezone
@@ -29,71 +30,164 @@ register = template.Library()
 # =============================================================================
 # TEACHER INFORMATION DISPLAY TAGS
 # =============================================================================
+@register.simple_tag
+def teacher_avatar(teacher, size=40):
+    """
+    Display teacher avatar with fallback to initials or gravatar
+    """
+    if not teacher:
+        return format_html(
+            '<div class="avatar-placeholder" style="width: {}px; height: {}px; background: #6c757d; color: white; '
+            'display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: {}px;">'
+            "??</div>",
+            size,
+            size,
+            size // 2,
+        )
+
+    # Check if teacher has profile picture
+    if hasattr(teacher.user, "profile_picture") and teacher.user.profile_picture:
+        return format_html(
+            '<img src="{}" alt="{}" class="rounded-circle" width="{}" height="{}" style="object-fit: cover;">',
+            teacher.user.profile_picture.url,
+            teacher.get_full_name(),
+            size,
+            size,
+        )
+
+    # Fallback to gravatar or initials
+    email_hash = hashlib.md5(teacher.user.email.lower().encode()).hexdigest()
+    initials = teacher.get_short_name()[:2].upper()
+
+    return format_html(
+        '<div class="position-relative">'
+        '<img src="https://www.gravatar.com/avatar/{}?s={}&d=404" '
+        'alt="{}" class="rounded-circle gravatar-img" width="{}" height="{}" '
+        "style=\"object-fit: cover;\" onerror=\"this.style.display='none'; this.nextElementSibling.style.display='flex';\">"
+        '<div class="avatar-placeholder rounded-circle position-absolute top-0 start-0" '
+        'style="width: {}px; height: {}px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); '
+        'color: white; display: none; align-items: center; justify-content: center; font-size: {}px; font-weight: 600;">'
+        "{}</div></div>",
+        email_hash,
+        size,
+        teacher.get_full_name(),
+        size,
+        size,
+        size,
+        size,
+        size // 2,
+        initials,
+    )
 
 
 @register.filter
 def teacher_status_badge(status):
-    """Return a Bootstrap badge for teacher status with appropriate styling."""
-    badges = {
-        "Active": '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Active</span>',
-        "On Leave": '<span class="badge bg-warning"><i class="fas fa-clock me-1"></i>On Leave</span>',
-        "Terminated": '<span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>Terminated</span>',
-        "Suspended": '<span class="badge bg-dark"><i class="fas fa-pause-circle me-1"></i>Suspended</span>',
-        "Resigned": '<span class="badge bg-secondary"><i class="fas fa-sign-out-alt me-1"></i>Resigned</span>',
+    """
+    Display teacher status as a colored badge
+    """
+    status_colors = {
+        "Active": "success",
+        "On Leave": "warning",
+        "Terminated": "danger",
+        "Inactive": "secondary",
     }
-    return mark_safe(
-        badges.get(status, f'<span class="badge bg-light text-dark">{status}</span>')
-    )
+
+    color = status_colors.get(status, "secondary")
+
+    return format_html('<span class="badge bg-{}">{}</span>', color, status)
 
 
 @register.filter
 def contract_type_badge(contract_type):
-    """Return a Bootstrap badge for contract type."""
-    badges = {
-        "Permanent": '<span class="badge bg-primary"><i class="fas fa-user-shield me-1"></i>Permanent</span>',
-        "Temporary": '<span class="badge bg-info"><i class="fas fa-user-clock me-1"></i>Temporary</span>',
-        "Contract": '<span class="badge bg-secondary"><i class="fas fa-file-contract me-1"></i>Contract</span>',
-        "Substitute": '<span class="badge bg-warning text-dark"><i class="fas fa-user-plus me-1"></i>Substitute</span>',
-        "Part-time": '<span class="badge bg-light text-dark"><i class="fas fa-user-minus me-1"></i>Part-time</span>',
+    """
+    Display contract type as a colored badge
+    """
+    contract_colors = {
+        "Permanent": "primary",
+        "Temporary": "info",
+        "Contract": "warning",
     }
-    return mark_safe(
-        badges.get(
-            contract_type,
-            f'<span class="badge bg-light text-dark">{contract_type}</span>',
-        )
-    )
+
+    color = contract_colors.get(contract_type, "secondary")
+
+    return format_html('<span class="badge bg-{}">{}</span>', color, contract_type)
 
 
 @register.filter
 def performance_badge(score):
-    """Return a performance badge based on evaluation score."""
+    """
+    Display performance score as a colored badge
+    """
     if score is None:
-        return mark_safe('<span class="badge bg-light text-dark">Not Evaluated</span>')
+        return format_html('<span class="badge bg-light text-dark">No Data</span>')
 
     try:
-        score = float(score)
-        if score >= 90:
-            return mark_safe(
-                f'<span class="badge bg-success"><i class="fas fa-star me-1"></i>Excellent ({score:.1f}%)</span>'
+        score_float = float(score)
+
+        if score_float >= 90:
+            color = "success"
+            level = "Excellent"
+        elif score_float >= 80:
+            color = "primary"
+            level = "Good"
+        elif score_float >= 70:
+            color = "info"
+            level = "Average"
+        elif score_float >= 60:
+            color = "warning"
+            level = "Fair"
+        else:
+            color = "danger"
+            level = "Poor"
+
+        return format_html(
+            '<span class="badge bg-{}" title="Score: {:.1f}%">{}</span>',
+            color,
+            score_float,
+            level,
+        )
+    except (ValueError, TypeError):
+        return format_html('<span class="badge bg-light text-dark">Invalid</span>')
+
+
+@register.simple_tag
+def evaluation_trend_icon(teacher, months=6):
+    """
+    Display evaluation trend icon based on recent evaluations
+    """
+    try:
+        # Get evaluations from the last specified months
+        cutoff_date = timezone.now() - timedelta(days=months * 30)
+        evaluations = TeacherEvaluation.objects.filter(
+            teacher=teacher, evaluation_date__gte=cutoff_date
+        ).order_by("evaluation_date")
+
+        if evaluations.count() < 2:
+            return format_html(
+                '<i class="fas fa-minus text-muted" title="Insufficient data"></i>'
             )
-        elif score >= 80:
-            return mark_safe(
-                f'<span class="badge bg-info"><i class="fas fa-thumbs-up me-1"></i>Good ({score:.1f}%)</span>'
+
+        # Calculate trend
+        first_score = evaluations.first().score
+        last_score = evaluations.last().score
+
+        if last_score > first_score + 5:
+            return format_html(
+                '<i class="fas fa-arrow-up text-success" title="Improving performance"></i>'
             )
-        elif score >= 70:
-            return mark_safe(
-                f'<span class="badge bg-primary"><i class="fas fa-check me-1"></i>Satisfactory ({score:.1f}%)</span>'
-            )
-        elif score >= 60:
-            return mark_safe(
-                f'<span class="badge bg-warning"><i class="fas fa-exclamation-triangle me-1"></i>Needs Improvement ({score:.1f}%)</span>'
+        elif last_score < first_score - 5:
+            return format_html(
+                '<i class="fas fa-arrow-down text-danger" title="Declining performance"></i>'
             )
         else:
-            return mark_safe(
-                f'<span class="badge bg-danger"><i class="fas fa-times me-1"></i>Poor ({score:.1f}%)</span>'
+            return format_html(
+                '<i class="fas fa-arrow-right text-info" title="Stable performance"></i>'
             )
-    except (ValueError, TypeError):
-        return mark_safe('<span class="badge bg-secondary">Invalid Score</span>')
+
+    except Exception:
+        return format_html(
+            '<i class="fas fa-question text-muted" title="Error calculating trend"></i>'
+        )
 
 
 @register.filter
@@ -225,42 +319,6 @@ def teacher_avatar(teacher, size=40):
 # =============================================================================
 # EVALUATION AND PERFORMANCE TAGS
 # =============================================================================
-
-
-@register.filter
-def evaluation_trend_icon(teacher, months=6):
-    """Show trend icon based on recent evaluations."""
-    evaluations = teacher.evaluations.filter(
-        evaluation_date__gte=timezone.now().date() - timedelta(days=30 * months)
-    ).order_by("-evaluation_date")
-
-    if evaluations.count() < 2:
-        return mark_safe(
-            '<i class="fas fa-minus text-muted" title="Insufficient data for trend analysis"></i>'
-        )
-
-    recent_scores = list(evaluations[:3].values_list("score", flat=True))
-
-    if len(recent_scores) >= 2:
-        latest_score = float(recent_scores[0])
-        previous_score = float(recent_scores[1])
-
-        if latest_score > previous_score + 5:
-            return mark_safe(
-                '<i class="fas fa-arrow-up text-success" title="Performance improving"></i>'
-            )
-        elif latest_score < previous_score - 5:
-            return mark_safe(
-                '<i class="fas fa-arrow-down text-danger" title="Performance declining"></i>'
-            )
-        else:
-            return mark_safe(
-                '<i class="fas fa-arrows-alt-h text-info" title="Performance stable"></i>'
-            )
-
-    return mark_safe(
-        '<i class="fas fa-minus text-muted" title="No trend data available"></i>'
-    )
 
 
 @register.filter

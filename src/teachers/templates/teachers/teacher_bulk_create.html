@@ -1,0 +1,356 @@
+<!-- teachers/templates/teachers/teacher_bulk_create.html -->
+
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Bulk Create Teachers{% endblock %}
+
+{% block extra_css %}
+<style>
+  .csv-example {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+  }
+
+  .upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 0.5rem;
+    transition: all 0.3s;
+  }
+
+  .upload-area:hover {
+    border-color: #0d6efd;
+    background-color: #f8f9ff;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-10 col-md-12 mx-auto">
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0">
+            <i class="fas fa-users me-2"></i>
+            Bulk Create Teachers
+          </h4>
+          <p class="mb-0 mt-2 opacity-75">
+            Create multiple teachers at once with auto-generated credentials
+          </p>
+        </div>
+
+        <div class="card-body">
+          <!-- Info Alert -->
+          <div class="alert alert-info d-flex align-items-start" role="alert">
+            <i class="fas fa-info-circle me-3 mt-1"></i>
+            <div>
+              <strong>Auto-Generation:</strong> Username, password, and employee ID will be automatically
+              generated for each teacher. All teachers will receive welcome emails with their login credentials.
+              <br><small class="mt-2 d-block">Required columns: first_name, last_name, email</small>
+            </div>
+          </div>
+
+          <!-- CSV Format Instructions -->
+          <div class="row mb-4">
+            <div class="col-12">
+              <h5 class="border-bottom pb-2 mb-3">
+                <i class="fas fa-file-csv me-2"></i>CSV Format
+              </h5>
+
+              <p>Your CSV file should include the following columns (required columns marked with *):</p>
+
+              <div class="row">
+                <div class="col-md-6">
+                  <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                      <span>first_name</span>
+                      <badge class="badge bg-danger">Required</badge>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                      <span>last_name</span>
+                      <badge class="badge bg-danger">Required</badge>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                      <span>email</span>
+                      <badge class="badge bg-danger">Required</badge>
+                    </li>
+                    <li class="list-group-item">phone_number</li>
+                    <li class="list-group-item">qualification</li>
+                    <li class="list-group-item">experience_years</li>
+                  </ul>
+                </div>
+                <div class="col-md-6">
+                  <ul class="list-group list-group-flush">
+                    <li class="list-group-item">specialization</li>
+                    <li class="list-group-item">position</li>
+                    <li class="list-group-item">salary</li>
+                    <li class="list-group-item">contract_type</li>
+                    <li class="list-group-item">department</li>
+                    <li class="list-group-item">emergency_contact</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CSV Example -->
+          <div class="row mb-4">
+            <div class="col-12">
+              <h6>Example CSV Format:</h6>
+              <div class="csv-example p-3">
+                <pre>first_name,last_name,email,phone_number,qualification,experience_years,specialization
+                  John,Smith,john.smith@school.edu,+1234567890,B.Ed Science,3,Physics
+                  Jane,Doe,jane.doe@school.edu,+1987654321,M.Ed Mathematics,5,Mathematics
+                  Bob,Wilson,bob.wilson@school.edu,+1122334455,B.A English,2,English Literature</pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upload Form -->
+          <form method="post" id="bulkForm">
+            {% csrf_token %}
+
+            <div class="row mb-4">
+              <div class="col-12">
+                <h5 class="border-bottom pb-2 mb-3">
+                  <i class="fas fa-upload me-2"></i>Upload CSV Data
+                </h5>
+              </div>
+
+              <div class="col-12 mb-3">
+                <label for="csvData" class="form-label">CSV Data</label>
+                <div class="upload-area p-4 text-center">
+                  <textarea id="csvData" name="csv_data" class="form-control" rows="10"
+                    placeholder="Paste your CSV data here or use the file upload button below..."
+                    style="border: none; background: transparent; resize: vertical;"></textarea>
+
+                  <div class="mt-3">
+                    <input type="file" id="csvFile" accept=".csv" style="display: none;">
+                    <button type="button" class="btn btn-outline-primary"
+                      onclick="document.getElementById('csvFile').click();">
+                      <i class="fas fa-file-upload me-2"></i>
+                      Choose CSV File
+                    </button>
+                    <small class="text-muted d-block mt-2">
+                      You can either paste CSV data directly or upload a .csv file
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Options -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h5 class="border-bottom pb-2 mb-3">
+                  <i class="fas fa-cog me-2"></i>Options
+                </h5>
+              </div>
+
+              <div class="col-12 mb-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="sendEmails" name="send_emails" checked>
+                  <label class="form-check-label" for="sendEmails">
+                    Send welcome emails with login credentials
+                  </label>
+                </div>
+                <small class="text-muted">
+                  If unchecked, teachers will need to be provided with their credentials manually
+                </small>
+              </div>
+            </div>
+
+            <!-- Preview Section -->
+            <div id="previewSection" class="row mb-4" style="display: none;">
+              <div class="col-12">
+                <h5 class="border-bottom pb-2 mb-3">
+                  <i class="fas fa-eye me-2"></i>Preview
+                </h5>
+                <div id="previewContent" class="alert alert-light">
+                  <!-- Preview content will be populated by JavaScript -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="row">
+              <div class="col-12">
+                <div class="d-flex gap-2">
+                  <button type="button" class="btn btn-outline-primary" id="previewBtn">
+                    <i class="fas fa-eye me-2"></i>
+                    Preview Teachers
+                  </button>
+                  <button type="submit" class="btn btn-primary" id="createBtn" disabled>
+                    <i class="fas fa-users me-2"></i>
+                    Create Teachers
+                  </button>
+                  <a href="{% url 'teachers:teacher-list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times me-2"></i>
+                    Cancel
+                  </a>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const csvData = document.getElementById('csvData');
+    const csvFile = document.getElementById('csvFile');
+    const previewBtn = document.getElementById('previewBtn');
+    const createBtn = document.getElementById('createBtn');
+    const previewSection = document.getElementById('previewSection');
+    const previewContent = document.getElementById('previewContent');
+    const form = document.getElementById('bulkForm');
+
+    // Handle file upload
+    csvFile.addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (file && file.type === 'text/csv') {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          csvData.value = e.target.result;
+          validateCsvData();
+        };
+        reader.readAsText(file);
+      } else if (file) {
+        alert('Please select a valid CSV file');
+      }
+    });
+
+    // Validate CSV data
+    function validateCsvData() {
+      const data = csvData.value.trim();
+      if (!data) {
+        previewBtn.disabled = true;
+        createBtn.disabled = true;
+        return;
+      }
+
+      const lines = data.split('\n');
+      if (lines.length < 2) {
+        previewBtn.disabled = true;
+        createBtn.disabled = true;
+        return;
+      }
+
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const requiredHeaders = ['first_name', 'last_name', 'email'];
+      const hasRequiredHeaders = requiredHeaders.every(h => headers.includes(h));
+
+      previewBtn.disabled = !hasRequiredHeaders;
+
+      if (!hasRequiredHeaders) {
+        alert(`CSV must contain required headers: ${requiredHeaders.join(', ')}`);
+      }
+    }
+
+    // Preview functionality
+    previewBtn.addEventListener('click', function () {
+      const data = csvData.value.trim();
+      if (!data) return;
+
+      const lines = data.split('\n');
+      const headers = lines[0].split(',').map(h => h.trim());
+      const dataRows = lines.slice(1).filter(line => line.trim());
+
+      let previewHtml = `
+            <h6>Will create ${dataRows.length} teacher(s):</h6>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Generated Username</th>
+                            <th>Generated Employee ID</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+      const currentYear = new Date().getFullYear();
+      let empIdCounter = 1;
+
+      dataRows.forEach((line, index) => {
+        const values = line.split(',').map(v => v.trim());
+        const rowData = {};
+        headers.forEach((header, i) => {
+          rowData[header.toLowerCase()] = values[i] || '';
+        });
+
+        const firstName = rowData.first_name || '';
+        const lastName = rowData.last_name || '';
+        const email = rowData.email || '';
+
+        // Generate preview username
+        let username = '';
+        if (firstName && lastName) {
+          username = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`;
+          username = username.replace(/[^a-zA-Z0-9_]/g, '');
+        } else if (email) {
+          username = email.split('@')[0].toLowerCase();
+        }
+
+        // Generate preview employee ID
+        const employeeId = `TCH${currentYear}${String(empIdCounter).padStart(4, '0')}`;
+        empIdCounter++;
+
+        previewHtml += `
+                <tr>
+                    <td>${firstName} ${lastName}</td>
+                    <td>${email}</td>
+                    <td><code>${username}</code></td>
+                    <td><code>${employeeId}</code></td>
+                </tr>
+            `;
+      });
+
+      previewHtml += `
+                    </tbody>
+                </table>
+            </div>
+            <div class="alert alert-warning mt-3">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Note:</strong> Actual usernames and employee IDs may differ slightly to ensure uniqueness.
+            </div>
+        `;
+
+      previewContent.innerHTML = previewHtml;
+      previewSection.style.display = 'block';
+      createBtn.disabled = false;
+    });
+
+    // Validate on input
+    csvData.addEventListener('input', validateCsvData);
+
+    // Form submission confirmation
+    form.addEventListener('submit', function (e) {
+      const data = csvData.value.trim();
+      const lines = data.split('\n');
+      const dataRows = lines.slice(1).filter(line => line.trim());
+
+      const confirmed = confirm(
+        `This will create ${dataRows.length} teacher(s) with auto-generated credentials. ` +
+        `${document.getElementById('sendEmails').checked ? 'Welcome emails will be sent.' : 'No emails will be sent.'} ` +
+        `Continue?`
+      );
+
+      if (!confirmed) {
+        e.preventDefault();
+      }
+    });
+  });
+</script>
+{% endblock %>

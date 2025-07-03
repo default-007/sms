@@ -1,35 +1,75 @@
+import re
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, Column, Div, Layout, Row, Submit
 from django import forms
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.utils import timezone
-
+from django.utils.translation import gettext_lazy as _
+from django.db import transaction
+from src.accounts.services.authentication_service import AuthenticationService
+from src.accounts.services.role_service import RoleService
 from .models import Teacher, TeacherClassAssignment, TeacherEvaluation
 
 User = get_user_model()
 
 
 class TeacherForm(forms.ModelForm):
+    # User account fields
     first_name = forms.CharField(
         max_length=100,
         widget=forms.TextInput(attrs={"class": "form-control"}),
         required=True,
+        help_text="Teacher's first name",
     )
     last_name = forms.CharField(
         max_length=100,
         widget=forms.TextInput(attrs={"class": "form-control"}),
         required=True,
+        help_text="Teacher's last name",
     )
     email = forms.EmailField(
-        widget=forms.EmailInput(attrs={"class": "form-control"}), required=True
+        widget=forms.EmailInput(attrs={"class": "form-control"}),
+        required=True,
+        help_text="Valid email address for account access",
     )
     phone_number = forms.CharField(
         max_length=20,
         required=False,
         widget=forms.TextInput(attrs={"class": "form-control"}),
+        help_text="Contact phone number",
     )
     profile_picture = forms.ImageField(
-        required=False, widget=forms.FileInput(attrs={"class": "form-control"})
+        required=False,
+        widget=forms.FileInput(attrs={"class": "form-control"}),
+        help_text="Optional profile picture",
+    )
+
+    # Optional credential fields for manual entry
+    username = forms.CharField(
+        max_length=150,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+        help_text="Auto-generated from name if left blank",
+    )
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+        required=False,
+        help_text="Auto-generated secure password if left blank",
+    )
+    confirm_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+        required=False,
+        help_text="Confirm the password if you set one manually",
+    )
+
+    # Email notification option
+    send_welcome_email = forms.BooleanField(
+        initial=True,
+        required=False,
+        help_text="Send welcome email with login credentials to the teacher",
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        label="Send welcome email with login credentials",
     )
 
     class Meta:
@@ -51,128 +91,75 @@ class TeacherForm(forms.ModelForm):
         )
         widgets = {
             "employee_id": forms.TextInput(
-                attrs={"class": "form-control", "required": True}
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Auto-generated if left blank",
+                }
             ),
             "joining_date": forms.DateInput(
                 attrs={"class": "form-control", "type": "date", "required": True}
             ),
-            "qualification": forms.TextInput(
-                attrs={"class": "form-control", "required": True}
-            ),
+            "qualification": forms.TextInput(attrs={"class": "form-control"}),
             "experience_years": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "step": "0.1",
-                    "min": "0",
-                    "required": True,
-                }
+                attrs={"class": "form-control", "min": "0", "max": "50"}
             ),
-            "specialization": forms.TextInput(
-                attrs={"class": "form-control", "required": True}
+            "specialization": forms.Textarea(
+                attrs={"class": "form-control", "rows": 3}
             ),
-            "department": forms.Select(attrs={"class": "form-select select2"}),
-            "position": forms.TextInput(
-                attrs={"class": "form-control", "required": True}
-            ),
+            "department": forms.Select(attrs={"class": "form-control"}),
+            "position": forms.Select(attrs={"class": "form-control"}),
             "salary": forms.NumberInput(
-                attrs={"class": "form-control", "min": "0", "required": True}
+                attrs={"class": "form-control", "min": "0", "step": "0.01"}
             ),
-            "contract_type": forms.Select(
-                attrs={"class": "form-select", "required": True}
-            ),
-            "status": forms.Select(attrs={"class": "form-select", "required": True}),
-            "bio": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "contract_type": forms.Select(attrs={"class": "form-control"}),
+            "status": forms.Select(attrs={"class": "form-control"}),
+            "bio": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
             "emergency_contact": forms.TextInput(attrs={"class": "form-control"}),
             "emergency_phone": forms.TextInput(attrs={"class": "form-control"}),
         }
 
     def __init__(self, *args, **kwargs):
+        # Extract created_by from kwargs if available
+        self.created_by = kwargs.pop("created_by", None)
         super().__init__(*args, **kwargs)
-        if self.instance and self.instance.pk:
-            self.fields["first_name"].initial = self.instance.user.first_name
-            self.fields["last_name"].initial = self.instance.user.last_name
-            self.fields["email"].initial = self.instance.user.email
-            self.fields["phone_number"].initial = self.instance.user.phone_number
-            if hasattr(self.instance.user, "profile_picture"):
-                self.fields["profile_picture"].initial = (
-                    self.instance.user.profile_picture
-                )
 
-        # Setup crispy forms helper
-        self.helper = FormHelper()
-        self.helper.form_tag = True
-        self.helper.form_class = "form-horizontal"
-        self.helper.label_class = "col-md-3"
-        self.helper.field_class = "col-md-9"
-        self.helper.layout = Layout(
-            HTML('<h5 class="mb-4">Personal Information</h5>'),
-            Row(
-                Column("first_name", css_class="form-group col-md-6 mb-3"),
-                Column("last_name", css_class="form-group col-md-6 mb-3"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("email", css_class="form-group col-md-6 mb-3"),
-                Column("phone_number", css_class="form-group col-md-6 mb-3"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("profile_picture", css_class="form-group col-md-6 mb-3"),
-                css_class="form-row",
-            ),
-            HTML('<hr><h5 class="mb-4">Employment Information</h5>'),
-            Row(
-                Column("employee_id", css_class="form-group col-md-6 mb-3"),
-                Column("joining_date", css_class="form-group col-md-6 mb-3"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("department", css_class="form-group col-md-6 mb-3"),
-                Column("position", css_class="form-group col-md-6 mb-3"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("salary", css_class="form-group col-md-4 mb-3"),
-                Column("contract_type", css_class="form-group col-md-4 mb-3"),
-                Column("status", css_class="form-group col-md-4 mb-3"),
-                css_class="form-row",
-            ),
-            HTML('<hr><h5 class="mb-4">Qualifications & Expertise</h5>'),
-            Row(
-                Column("qualification", css_class="form-group col-md-6 mb-3"),
-                Column("experience_years", css_class="form-group col-md-6 mb-3"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("specialization", css_class="form-group col-md-12 mb-3"),
-                css_class="form-row",
-            ),
-            HTML('<hr><h5 class="mb-4">Additional Information</h5>'),
-            Row(
-                Column("bio", css_class="form-group col-md-12 mb-3"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("emergency_contact", css_class="form-group col-md-6 mb-3"),
-                Column("emergency_phone", css_class="form-group col-md-6 mb-3"),
-                css_class="form-row",
-            ),
-            Div(
-                Submit("submit", "Save", css_class="btn btn-primary"),
-                HTML(
-                    '<a href="{% url "teachers:teacher-list" %}" class="btn btn-secondary ms-2">Cancel</a>'
-                ),
-                css_class="text-end",
-            ),
-        )
+        # If editing existing teacher, populate user fields and hide credential fields
+        if self.instance and self.instance.pk and self.instance.user:
+            user = self.instance.user
+            self.fields["first_name"].initial = user.first_name
+            self.fields["last_name"].initial = user.last_name
+            self.fields["email"].initial = user.email
+            if hasattr(user, "phone_number"):
+                self.fields["phone_number"].initial = user.phone_number
+
+            # Hide credential fields for existing teachers
+            del self.fields["username"]
+            del self.fields["password"]
+            del self.fields["confirm_password"]
+            del self.fields["send_welcome_email"]
+
+        # Set default joining date if creating new teacher
+        if not self.instance.pk:
+            self.fields["joining_date"].initial = timezone.now().date()
 
     def clean_email(self):
         email = self.cleaned_data.get("email")
-        user_id = self.instance.user.id if self.instance and self.instance.pk else None
+        instance_id = self.instance.id if self.instance and self.instance.pk else None
 
-        # Check if email already exists
-        if User.objects.filter(email=email).exclude(id=user_id).exists():
-            raise forms.ValidationError("This email is already in use by another user.")
+        # Check if email already exists for a different teacher
+        existing_user = User.objects.filter(email=email).first()
+        if existing_user:
+            # If this is an update and the email belongs to the same teacher, it's OK
+            if (
+                instance_id
+                and hasattr(existing_user, "teacher")
+                and existing_user.teacher.id == instance_id
+            ):
+                pass  # Same teacher, email is OK
+            else:
+                raise forms.ValidationError(
+                    "This email is already in use by another user."
+                )
 
         return email
 
@@ -180,53 +167,162 @@ class TeacherForm(forms.ModelForm):
         employee_id = self.cleaned_data.get("employee_id")
         instance_id = self.instance.id if self.instance and self.instance.pk else None
 
+        # Auto-generate employee ID if not provided for new teachers
+        if not employee_id and not instance_id:
+            employee_id = self._generate_employee_id()
+
         # Check if employee_id already exists
         if (
-            Teacher.objects.filter(employee_id=employee_id)
+            employee_id
+            and Teacher.objects.filter(employee_id=employee_id)
             .exclude(id=instance_id)
             .exists()
         ):
-            raise forms.ValidationError("This employee ID is already in use.")
+            # If auto-generated ID conflicts, try again
+            if not self.cleaned_data.get("employee_id"):
+                employee_id = self._generate_employee_id()
+                # Double-check the new ID
+                if (
+                    Teacher.objects.filter(employee_id=employee_id)
+                    .exclude(id=instance_id)
+                    .exists()
+                ):
+                    raise forms.ValidationError(
+                        "Unable to generate unique employee ID. Please provide one manually."
+                    )
+            else:
+                raise forms.ValidationError("This employee ID is already in use.")
 
         return employee_id
 
+    def clean_username(self):
+        username = self.cleaned_data.get("username")
+
+        # Only validate username for new teachers
+        if self.instance and self.instance.pk:
+            return username
+
+        # If username provided, validate it
+        if username:
+            # Check for valid characters
+            if not re.match(r"^[a-zA-Z0-9._]+$", username):
+                raise forms.ValidationError(
+                    "Username can only contain letters, numbers, periods, and underscores."
+                )
+
+            # Check uniqueness
+            if User.objects.filter(username=username).exists():
+                raise forms.ValidationError("This username is already taken.")
+
+        return username
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        # Only validate passwords for new teachers
+        if self.instance and self.instance.pk:
+            return cleaned_data
+
+        password = cleaned_data.get("password")
+        confirm_password = cleaned_data.get("confirm_password")
+
+        # If password is provided, confirm password must match
+        if password and password != confirm_password:
+            raise forms.ValidationError({"confirm_password": "Passwords do not match."})
+
+        return cleaned_data
+
+    def _generate_employee_id(self):
+        """Generate a unique employee ID in format TCH{YEAR}{NNNN}"""
+        current_year = timezone.now().year
+        prefix = f"TCH{current_year}"
+
+        # Find the last employee ID with this prefix
+        last_teacher = (
+            Teacher.objects.filter(employee_id__startswith=prefix)
+            .order_by("employee_id")
+            .last()
+        )
+
+        if last_teacher:
+            try:
+                # Extract the number part and increment
+                last_number = int(last_teacher.employee_id.replace(prefix, ""))
+                new_number = last_number + 1
+            except ValueError:
+                new_number = 1
+        else:
+            new_number = 1
+
+        return f"{prefix}{new_number:04d}"
+
+    @transaction.atomic
     def save(self, commit=True):
         teacher = super().save(commit=False)
 
-        # Get or create user
         if teacher.pk:
+            # Updating existing teacher - only update user fields
             user = teacher.user
+            user.first_name = self.cleaned_data["first_name"]
+            user.last_name = self.cleaned_data["last_name"]
+            user.email = self.cleaned_data["email"]
+
+            if hasattr(user, "phone_number"):
+                user.phone_number = self.cleaned_data.get("phone_number", "")
+
+            # Handle profile picture if present
+            if self.cleaned_data.get("profile_picture"):
+                if hasattr(user, "profile_picture"):
+                    user.profile_picture = self.cleaned_data["profile_picture"]
+
+            if commit:
+                user.save()
         else:
-            user = User.objects.filter(email=self.cleaned_data["email"]).first()
-            if not user:
-                user = User(
-                    username=self.cleaned_data["email"],
-                    email=self.cleaned_data["email"],
-                    is_active=True,
+            # Creating new teacher - use AuthenticationService
+            user_data = {
+                "first_name": self.cleaned_data["first_name"],
+                "last_name": self.cleaned_data["last_name"],
+                "email": self.cleaned_data["email"],
+                "is_active": True,
+            }
+
+            # Add optional fields
+            if self.cleaned_data.get("phone_number"):
+                user_data["phone_number"] = self.cleaned_data["phone_number"]
+
+            # Add username if provided, otherwise let service generate it
+            if self.cleaned_data.get("username"):
+                user_data["username"] = self.cleaned_data["username"]
+
+            # Add password if provided, otherwise let service generate it
+            if self.cleaned_data.get("password"):
+                user_data["password"] = self.cleaned_data["password"]
+
+            try:
+                # Use AuthenticationService to create user with proper setup
+                user = AuthenticationService.register_user(
+                    user_data=user_data,
+                    role_names=["Teacher"],  # Assign Teacher role
+                    created_by=self.created_by,
+                    send_email=self.cleaned_data.get("send_welcome_email", True),
                 )
 
-        # Update user fields
-        user.first_name = self.cleaned_data["first_name"]
-        user.last_name = self.cleaned_data["last_name"]
-        user.email = self.cleaned_data["email"]
-        user.username = self.cleaned_data["email"]  # Ensure username matches email
+                # Handle profile picture if present
+                if self.cleaned_data.get("profile_picture"):
+                    if hasattr(user, "profile_picture"):
+                        user.profile_picture = self.cleaned_data["profile_picture"]
+                        user.save()
 
-        if hasattr(user, "phone_number"):  # Check if User model has phone_number field
-            user.phone_number = self.cleaned_data.get("phone_number", "")
-
-        # Handle profile picture if present
-        if (
-            "profile_picture" in self.cleaned_data
-            and self.cleaned_data["profile_picture"]
-        ):
-            if hasattr(
-                user, "profile_picture"
-            ):  # Check if User model has profile_picture field
-                user.profile_picture = self.cleaned_data["profile_picture"]
+            except Exception as e:
+                raise forms.ValidationError(f"Error creating user account: {str(e)}")
 
         if commit:
-            user.save()
             teacher.user = user
+            # Ensure employee_id is set
+            if not teacher.employee_id:
+                teacher.employee_id = (
+                    self.cleaned_data.get("employee_id") or self._generate_employee_id()
+                )
             teacher.save()
 
         return teacher
@@ -241,17 +337,15 @@ class TeacherClassAssignmentForm(forms.ModelForm):
             "subject",
             "academic_year",
             "is_class_teacher",
-            "notes",
         )
         widgets = {
-            "teacher": forms.HiddenInput(),
-            "class_instance": forms.Select(attrs={"class": "form-select select2"}),
-            "subject": forms.Select(attrs={"class": "form-select select2"}),
-            "academic_year": forms.Select(attrs={"class": "form-select"}),
+            "teacher": forms.Select(attrs={"class": "form-control"}),
+            "class_instance": forms.Select(attrs={"class": "form-control"}),
+            "subject": forms.Select(attrs={"class": "form-control"}),
+            "academic_year": forms.Select(attrs={"class": "form-control"}),
             "is_class_teacher": forms.CheckboxInput(
                 attrs={"class": "form-check-input"}
             ),
-            "notes": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
         }
 
     def __init__(self, *args, **kwargs):

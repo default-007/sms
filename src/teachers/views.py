@@ -263,14 +263,56 @@ class TeacherCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView)
                     success_parts.append("Welcome email sent with login credentials")
 
                 messages.success(self.request, " | ".join(success_parts))
+                # Log successful creation
+                logger.info(
+                    f"Teacher created successfully: {teacher.employee_id} by user {self.request.user.username}"
+                )
+
                 return redirect(self.success_url)
 
+        except ValidationError as e:
+            # Handle validation errors
+            if hasattr(e, "error_dict"):
+                for field, errors in e.error_dict.items():
+                    for error in errors:
+                        messages.error(
+                            self.request, f"{field.replace('_', ' ').title()}: {error}"
+                        )
+            else:
+                messages.error(self.request, f"Validation Error: {e}")
+
+            logger.warning(
+                f"Teacher creation validation error: {e} by user {self.request.user.username}"
+            )
+            return self.form_invalid(form)
+
         except Exception as e:
-            messages.error(self.request, f"Error creating teacher: {e}")
+            # Log the full error for debugging
+            logger.error(
+                f"Teacher creation failed: {str(e)} by user {self.request.user.username}",
+                exc_info=True,
+            )
+
+            # Provide user-friendly error message
+            error_msg = "An error occurred while creating the teacher account."
+            if "email" in str(e).lower():
+                error_msg = "The email address is already registered."
+            elif "username" in str(e).lower():
+                error_msg = "The username is already taken."
+            elif "phone" in str(e).lower():
+                error_msg = "The phone number is already registered."
+
+            messages.error(self.request, error_msg)
             return self.form_invalid(form)
 
     def form_invalid(self, form):
         """Handle form validation errors with detailed messages"""
+        # Log form errors for debugging
+        logger.warning(
+            f"Form validation errors: {form.errors} by user {self.request.user.username}"
+        )
+
+        # Display form errors to user
         for field, errors in form.errors.items():
             for error in errors:
                 if field == "__all__":
@@ -278,6 +320,12 @@ class TeacherCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView)
                 else:
                     field_name = field.replace("_", " ").title()
                     messages.error(self.request, f"{field_name}: {error}")
+
+        # Display non-field errors
+        if form.non_field_errors():
+            for error in form.non_field_errors():
+                messages.error(self.request, f"Error: {error}")
+
         return super().form_invalid(form)
 
     def get_context_data(self, **kwargs):
@@ -287,6 +335,9 @@ class TeacherCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView)
         context["subtitle"] = (
             "Username, password, and employee ID will be auto-generated if not provided"
         )
+        # Add debug information in development
+        if hasattr(self.request, "user") and self.request.user.is_superuser:
+            context["debug_mode"] = True
         return context
 
 
@@ -316,11 +367,34 @@ class TeacherUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView)
                     self.request,
                     f'Teacher "{teacher.user.get_full_name()}" updated successfully.',
                 )
+                logger.info(
+                    f"Teacher updated successfully: {teacher.employee_id} by user {self.request.user.username}"
+                )
                 return redirect(self.get_success_url())
 
         except Exception as e:
+            logger.error(
+                f"Teacher update failed: {str(e)} by user {self.request.user.username}",
+                exc_info=True,
+            )
             messages.error(self.request, f"Error updating teacher: {e}")
             return self.form_invalid(form)
+
+    def form_invalid(self, form):
+        """Handle form validation errors"""
+        logger.warning(
+            f"Teacher update form errors: {form.errors} by user {self.request.user.username}"
+        )
+
+        for field, errors in form.errors.items():
+            for error in errors:
+                if field == "__all__":
+                    messages.error(self.request, f"Form Error: {error}")
+                else:
+                    field_name = field.replace("_", " ").title()
+                    messages.error(self.request, f"{field_name}: {error}")
+
+        return super().form_invalid(form)
 
     def get_context_data(self, **kwargs):
         """Add extra context for template"""

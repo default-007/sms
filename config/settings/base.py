@@ -77,14 +77,18 @@ from csp.constants import SELF, UNSAFE_INLINE
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "src.core.middleware.StaticFileOptimizationMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "csp.middleware.CSPMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "src.core.middleware.OptimizedUserSessionMiddleware",  # Add after auth
+    "src.core.middleware.AnalyticsOptimizationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "src.core.middleware.QueryOptimizationMiddleware",
     "src.assignments.middleware.AssignmentDeadlineNotificationMiddleware",
     "src.accounts.middleware.SecurityMiddleware",
     "src.accounts.middleware.RateLimitMiddleware",
@@ -249,6 +253,11 @@ STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 
+STATICFILES_FINDERS = [
+    "django.contrib.staticfiles.finders.FileSystemFinder",
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+]
+
 # Media files
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
@@ -262,6 +271,14 @@ AUTHENTICATION_BACKENDS = [
     "src.accounts.authentication.UnifiedAuthenticationBackend",
     "django.contrib.auth.backends.ModelBackend",
 ]
+
+# ==============================================================================
+# ANALYTICS OPTIMIZATION
+# ==============================================================================
+
+# Cache analytics settings to avoid repeated DB queries
+ANALYTICS_CACHE_TIMEOUT = 300  # 5 minutes
+ANALYTICS_AUTO_CALCULATION_ENABLED = True  # Set directly instead of DB lookup
 
 
 # ==============================================================================
@@ -323,9 +340,13 @@ ACCOUNT_LOCKOUT_DURATION = 30  # minutes
 # Session Settings
 SESSION_TIMEOUT = 30  # minutes
 MAX_CONCURRENT_SESSIONS = 5
-SESSION_COOKIE_AGE = 1800  # 30 minutes
-SESSION_SAVE_EVERY_REQUEST = True
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+# Reduce session saves
+SESSION_SAVE_EVERY_REQUEST = False  # Only save when session is modified
+SESSION_COOKIE_AGE = 7600  # 1 hour
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+# Use cache for sessions (better performance)
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_CACHE_ALIAS = "default"
 
 # Password Policy
 PASSWORD_EXPIRY_DAYS = 90
@@ -421,10 +442,9 @@ CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
         "LOCATION": "unique-snowflake",
-        "KEY_PREFIX": "sms_cache",  # Simple prefix without special characters
+        "TIMEOUT": 300,
         "OPTIONS": {
             "MAX_ENTRIES": 1000,
-            "CULL_FREQUENCY": 3,
         },
     }
 }
@@ -485,7 +505,8 @@ REST_FRAMEWORK = {
 # LOGGING SETTINGS
 # ==============================================================================
 
-""" LOGGING = {
+
+LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
@@ -502,78 +523,53 @@ REST_FRAMEWORK = {
         "require_debug_false": {
             "()": "django.utils.log.RequireDebugFalse",
         },
+        "require_debug_true": {
+            "()": "django.utils.log.RequireDebugTrue",
+        },
     },
     "handlers": {
         "console": {
             "level": "INFO",
+            "filters": ["require_debug_true"],
             "class": "logging.StreamHandler",
             "formatter": "simple",
         },
         "file": {
-            "level": "INFO",
-            "class": "logging.FileHandler",
-            "filename": "logs/accounts.log",
-            "formatter": "verbose",
-        },
-        "security_file": {
-            "level": "WARNING",
-            "class": "logging.FileHandler",
-            "filename": "logs/security.log",
-            "formatter": "verbose",
-        },
-        "mail_admins": {
             "level": "ERROR",
-            "class": "django.utils.log.AdminEmailHandler",
-            "filters": ["require_debug_false"],
+            "class": "logging.FileHandler",
+            "filename": "django_errors.log",
             "formatter": "verbose",
         },
     },
+    "root": {
+        "handlers": ["console"],
+    },
     "loggers": {
-        "accounts": {
+        "django": {
             "handlers": ["console", "file"],
             "level": "INFO",
-            "propagate": True,
-        },
-        "accounts.security": {
-            "handlers": ["security_file", "mail_admins"],
-            "level": "WARNING",
             "propagate": False,
         },
-        "accounts.tasks": {
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": "ERROR",  # Changed from DEBUG to ERROR to reduce SQL noise
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["file"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        # Add your app logging
+        "teachers": {
             "handlers": ["console", "file"],
             "level": "INFO",
-            "propagate": True,
-        },
-        "csp": {
-            "handlers": ["console", "file"],
-            "level": "WARNING",
-            "propagate": True,
-        },
-        "django.security": {
-            "handlers": ["console", "file"],
-            "level": "WARNING",
-            "propagate": True,
-        },
-    },
-} """
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-        },
-    },
-    "loggers": {
-        "django.contrib.auth": {
-            "handlers": ["console"],
-            "level": "DEBUG",
-            "propagate": True,
+            "propagate": False,
         },
         "accounts": {
-            "handlers": ["console"],
-            "level": "DEBUG",
-            "propagate": True,
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
         },
     },
 }

@@ -3,6 +3,9 @@ from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 from django.core.cache import cache
+from django.utils.deprecation import MiddlewareMixin
+from django.conf import settings
+from django.db import connection
 import time
 import logging
 
@@ -101,6 +104,243 @@ class AuditMiddleware:
             )
         except Exception as e:
             logger.error(f"Error logging audit trail: {str(e)}")
+
+
+class OptimizedUserSessionMiddleware(MiddlewareMixin):
+    """
+    Middleware to reduce unnecessary session updates and user queries
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        super().__init__(get_response)
+
+        # Paths that don't need session updates
+        self.skip_session_paths = [
+            "/static/",
+            "/media/",
+            "/favicon.ico",
+            ".css",
+            ".js",
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".gif",
+            ".svg",
+            ".ico",
+            ".woff",
+            ".woff2",
+            ".ttf",
+            ".eot",
+        ]
+
+        # Cache timeout for user data
+        self.user_cache_timeout = getattr(settings, "USER_CACHE_TIMEOUT", 300)
+
+    def process_request(self, request):
+        """Process the request before it reaches the view"""
+
+        # Skip processing for static files and assets
+        if self._should_skip_processing(request):
+            return None
+
+        # Cache user data to avoid repeated queries
+        self._cache_user_data(request)
+
+        # Optimize session handling
+        self._optimize_session(request)
+
+        return None
+
+    def process_response(self, request, response):
+        """Process the response before sending to client"""
+
+        # Skip session updates for static files
+        if self._should_skip_processing(request):
+            return response
+
+        # Only update session activity if it's been more than 60 seconds
+        if hasattr(request, "user") and request.user.is_authenticated:
+            self._conditional_session_update(request)
+
+        return response
+
+    def _should_skip_processing(self, request):
+        """Check if we should skip processing for this request"""
+        path = request.path_info.lower()
+
+        # Skip static files and assets
+        for skip_path in self.skip_session_paths:
+            if skip_path in path:
+                return True
+
+        return False
+
+    def _cache_user_data(self, request):
+        """Cache user data to avoid repeated database queries"""
+        if hasattr(request, "user") and request.user.is_authenticated:
+            cache_key = f"user_data_{request.user.id}"
+            cached_user = cache.get(cache_key)
+
+            if not cached_user:
+                # Cache basic user data
+                user_data = {
+                    "id": request.user.id,
+                    "username": request.user.username,
+                    "email": request.user.email,
+                    "first_name": request.user.first_name,
+                    "last_name": request.user.last_name,
+                    "is_staff": request.user.is_staff,
+                    "is_superuser": request.user.is_superuser,
+                }
+                cache.set(cache_key, user_data, self.user_cache_timeout)
+
+    def _optimize_session(self, request):
+        """Optimize session handling"""
+        if hasattr(request, "session"):
+            # Mark when we last updated session activity
+            last_activity_update = request.session.get("_last_activity_update", 0)
+            current_time = time.time()
+
+            # Only update if it's been more than 60 seconds
+            if current_time - last_activity_update > 60:
+                request.session["_last_activity_update"] = current_time
+                request.session.modified = True
+
+    def _conditional_session_update(self, request):
+        """Conditionally update session activity"""
+        try:
+            if hasattr(request.user, "usersession_set"):
+                # Only update if session needs it
+                last_update = getattr(request, "_session_last_updated", 0)
+                current_time = time.time()
+
+                if current_time - last_update > 60:  # 1 minute threshold
+                    # Update session activity (but limit frequency)
+                    from accounts.models import UserSession
+                    from django.utils import timezone
+
+                    UserSession.objects.filter(
+                        user=request.user, session_key=request.session.session_key
+                    ).update(last_activity=timezone.now())
+
+                    request._session_last_updated = current_time
+
+        except Exception as e:
+            # Don't let session update errors break the request
+            logger.warning(f"Session update error: {e}")
+
+
+class AnalyticsOptimizationMiddleware(MiddlewareMixin):
+    """
+    Middleware to cache analytics settings and reduce DB queries
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        super().__init__(get_response)
+
+        # Cache timeout for settings
+        self.settings_cache_timeout = getattr(settings, "ANALYTICS_CACHE_TIMEOUT", 300)
+
+    def process_request(self, request):
+        """Cache analytics settings to avoid repeated DB queries"""
+
+        # Cache analytics auto-calculation setting
+        cache_key = "analytics_auto_calculation_enabled"
+        setting_value = cache.get(cache_key)
+
+        if setting_value is None:
+            try:
+                from core.models import SystemSetting
+
+                setting = SystemSetting.objects.filter(
+                    setting_key="analytics.auto_calculation_enabled"
+                ).first()
+
+                setting_value = setting.setting_value if setting else "true"
+                cache.set(cache_key, setting_value, self.settings_cache_timeout)
+
+            except Exception:
+                setting_value = "true"  # Default value
+                cache.set(cache_key, setting_value, 60)  # Short cache on error
+
+        # Add to request for easy access
+        request.analytics_auto_calculation = setting_value.lower() == "true"
+
+        return None
+
+
+class StaticFileOptimizationMiddleware(MiddlewareMixin):
+    """
+    Middleware to handle static file requests more efficiently
+    """
+
+    def process_request(self, request):
+        """Skip unnecessary processing for static files"""
+        path = request.path_info.lower()
+
+        static_extensions = [
+            ".css",
+            ".js",
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".gif",
+            ".svg",
+            ".ico",
+            ".woff",
+            ".woff2",
+            ".ttf",
+            ".eot",
+        ]
+
+        # If this is a static file request
+        if any(path.endswith(ext) for ext in static_extensions) or "/static/" in path:
+            # Skip authentication and session middleware for static files
+            request._skip_auth = True
+
+        return None
+
+    def process_response(self, request, response):
+        """Add caching headers for static files"""
+        path = request.path_info.lower()
+
+        if "/static/" in path or any(
+            path.endswith(ext) for ext in [".css", ".js", ".png", ".jpg"]
+        ):
+            # Add cache headers for static files
+            response["Cache-Control"] = "public, max-age=31536000"  # 1 year
+
+        return response
+
+
+class QueryOptimizationMiddleware(MiddlewareMixin):
+    """
+    Middleware to optimize database queries
+    """
+
+    def process_request(self, request):
+        """Initialize query optimization"""
+        request._query_count_start = len(connection.queries) if settings.DEBUG else 0
+        return None
+
+    def process_response(self, request, response):
+        """Log excessive queries in development"""
+        if settings.DEBUG:
+            from django.db import connection
+
+            query_count = len(connection.queries) - getattr(
+                request, "_query_count_start", 0
+            )
+
+            # Log if too many queries
+            if query_count > 20:
+                logger.warning(
+                    f"High query count: {query_count} queries for {request.path}"
+                )
+
+        return response
 
 
 class MaintenanceModeMiddleware:

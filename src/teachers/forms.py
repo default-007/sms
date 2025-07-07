@@ -94,20 +94,35 @@ class TeacherForm(forms.ModelForm):
                 attrs={
                     "class": "form-control",
                     "placeholder": "Auto-generated if left blank",
+                    # Note: NO required=True here
                 }
             ),
             "joining_date": forms.DateInput(
                 attrs={"class": "form-control", "type": "date", "required": True}
             ),
-            "qualification": forms.TextInput(attrs={"class": "form-control"}),
+            "qualification": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "e.g., Bachelor of Science in Mathematics",
+                }
+            ),
             "experience_years": forms.NumberInput(
                 attrs={"class": "form-control", "min": "0", "max": "50"}
             ),
             "specialization": forms.Textarea(
-                attrs={"class": "form-control", "rows": 3}
+                attrs={
+                    "class": "form-control",
+                    "rows": 3,
+                    "placeholder": "e.g., Advanced Mathematics, Calculus, Statistics",
+                }
             ),
             "department": forms.Select(attrs={"class": "form-control"}),
-            "position": forms.Select(attrs={"class": "form-control"}),
+            "position": forms.TextInput(  # FIXED: Changed from Select to TextInput
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "e.g., Mathematics Teacher, Head of Department",
+                }
+            ),
             "salary": forms.NumberInput(
                 attrs={"class": "form-control", "min": "0", "step": "0.01"}
             ),
@@ -123,6 +138,11 @@ class TeacherForm(forms.ModelForm):
         self.created_by = kwargs.pop("created_by", None)
         super().__init__(*args, **kwargs)
 
+        # FIXED: Make these fields optional for auto-generation
+        self.fields["employee_id"].required = False
+        self.fields["qualification"].required = False  # Make optional with default
+        self.fields["specialization"].required = False  # Make optional with default
+
         # If editing existing teacher, populate user fields and hide credential fields
         if self.instance and self.instance.pk and self.instance.user:
             user = self.instance.user
@@ -133,10 +153,14 @@ class TeacherForm(forms.ModelForm):
                 self.fields["phone_number"].initial = user.phone_number
 
             # Hide credential fields for existing teachers
-            del self.fields["username"]
-            del self.fields["password"]
-            del self.fields["confirm_password"]
-            del self.fields["send_welcome_email"]
+            if "username" in self.fields:
+                del self.fields["username"]
+            if "password" in self.fields:
+                del self.fields["password"]
+            if "confirm_password" in self.fields:
+                del self.fields["confirm_password"]
+            if "send_welcome_email" in self.fields:
+                del self.fields["send_welcome_email"]
 
         # Set default joining date if creating new teacher
         if not self.instance.pk:
@@ -153,7 +177,7 @@ class TeacherForm(forms.ModelForm):
             if (
                 instance_id
                 and hasattr(existing_user, "teacher")
-                and existing_user.teacher.id == instance_id
+                and existing_user.teacher_profile.id == instance_id
             ):
                 pass  # Same teacher, email is OK
             else:
@@ -162,6 +186,28 @@ class TeacherForm(forms.ModelForm):
                 )
 
         return email
+
+    def clean_phone_number(self):
+        phone_number = self.cleaned_data.get("phone_number")
+        instance_id = self.instance.id if self.instance and self.instance.pk else None
+
+        if phone_number:
+            # Check if phone number already exists for a different user
+            existing_user = User.objects.filter(phone_number=phone_number).first()
+            if existing_user:
+                # If this is an update and the phone belongs to the same teacher, it's OK
+                if (
+                    instance_id
+                    and hasattr(existing_user, "teacher")
+                    and existing_user.teacher.id == instance_id
+                ):
+                    pass  # Same teacher, phone is OK
+                else:
+                    raise forms.ValidationError(
+                        "This phone number is already registered to another user."
+                    )
+
+        return phone_number
 
     def clean_employee_id(self):
         employee_id = self.cleaned_data.get("employee_id")
@@ -194,6 +240,20 @@ class TeacherForm(forms.ModelForm):
                 raise forms.ValidationError("This employee ID is already in use.")
 
         return employee_id
+
+    def clean_qualification(self):
+        qualification = self.cleaned_data.get("qualification")
+        # Provide default if empty
+        if not qualification:
+            qualification = "To be updated"
+        return qualification
+
+    def clean_specialization(self):
+        specialization = self.cleaned_data.get("specialization")
+        # Provide default if empty
+        if not specialization:
+            specialization = "General Teaching"
+        return specialization
 
     def clean_username(self):
         username = self.cleaned_data.get("username")
@@ -293,8 +353,14 @@ class TeacherForm(forms.ModelForm):
             # Add username if provided, otherwise let service generate it
             if self.cleaned_data.get("username"):
                 user_data["username"] = self.cleaned_data["username"]
+            else:
+                user_data["username"] = self._generate_username(
+                    self.cleaned_data["first_name"],
+                    self.cleaned_data["last_name"],
+                    self.cleaned_data["email"],
+                )
 
-            # Add password if provided, otherwise let service generate it
+            # Add password if provided
             if self.cleaned_data.get("password"):
                 user_data["password"] = self.cleaned_data["password"]
 
@@ -314,7 +380,24 @@ class TeacherForm(forms.ModelForm):
                         user.save()
 
             except Exception as e:
-                raise forms.ValidationError(f"Error creating user account: {str(e)}")
+                # More detailed error handling
+                error_msg = str(e)
+                if "username" in error_msg.lower():
+                    raise forms.ValidationError(
+                        {"username": "Username already exists or is invalid."}
+                    )
+                elif "email" in error_msg.lower():
+                    raise forms.ValidationError(
+                        {"email": "Email address is already registered."}
+                    )
+                elif "phone" in error_msg.lower():
+                    raise forms.ValidationError(
+                        {"phone_number": "Phone number is already registered."}
+                    )
+                else:
+                    raise forms.ValidationError(
+                        f"Error creating user account: {error_msg}"
+                    )
 
         if commit:
             teacher.user = user

@@ -1,9 +1,10 @@
 import csv
 import json
 import re
+import logging
 from datetime import datetime, timedelta
 from django.contrib.auth import get_user_model
-
+from django.core.exceptions import ValidationError
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.exceptions import PermissionDenied
@@ -37,6 +38,7 @@ from .forms import (
 from .models import Teacher, TeacherClassAssignment, TeacherEvaluation
 from .services import EvaluationService, TeacherService, TimetableService
 
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
 

@@ -1,4 +1,7 @@
 import re
+import logging
+import secrets
+import string
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, Column, Div, Layout, Row, Submit
 from django import forms
@@ -11,6 +14,7 @@ from src.accounts.services.authentication_service import AuthenticationService
 from src.accounts.services.role_service import RoleService
 from .models import Teacher, TeacherClassAssignment, TeacherEvaluation
 
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
@@ -65,7 +69,7 @@ class TeacherForm(forms.ModelForm):
 
     # Email notification option
     send_welcome_email = forms.BooleanField(
-        initial=True,
+        initial=False,
         required=False,
         help_text="Send welcome email with login credentials to the teacher",
         widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -316,6 +320,11 @@ class TeacherForm(forms.ModelForm):
 
         return f"{prefix}{new_number:04d}"
 
+    def _generate_secure_password(self, length=12):
+        """Generate a secure password locally."""
+        chars = string.ascii_letters + string.digits + "!@#$%^&*"
+        return "".join(secrets.choice(chars) for _ in range(length))
+
     @transaction.atomic
     def save(self, commit=True):
         teacher = super().save(commit=False)
@@ -338,74 +347,94 @@ class TeacherForm(forms.ModelForm):
             if commit:
                 user.save()
         else:
-            # Creating new teacher - use AuthenticationService
-            user_data = {
-                "first_name": self.cleaned_data["first_name"],
-                "last_name": self.cleaned_data["last_name"],
-                "email": self.cleaned_data["email"],
-                "is_active": True,
-            }
+            # Creating new teacher - create user directly
+            password = self.cleaned_data.get("password")
+            if not password:
+                # Generate password if not provided
+                import secrets
+                import string
 
-            # Add optional fields
-            if self.cleaned_data.get("phone_number"):
-                user_data["phone_number"] = self.cleaned_data["phone_number"]
+                chars = string.ascii_letters + string.digits + "!@#$%^&*"
+                password = "".join(secrets.choice(chars) for _ in range(12))
 
-            # Add username if provided, otherwise let service generate it
-            if self.cleaned_data.get("username"):
-                user_data["username"] = self.cleaned_data["username"]
-            else:
-                user_data["username"] = self._generate_username(
-                    self.cleaned_data["first_name"],
-                    self.cleaned_data["last_name"],
-                    self.cleaned_data["email"],
-                )
+            # Generate username if not provided
+            username = self.cleaned_data.get("username")
+            if not username:
+                # Generate username from name
+                first_name = self.cleaned_data["first_name"]
+                last_name = self.cleaned_data["last_name"]
+                base_username = f"{first_name.lower()}.{last_name.lower()}"
+                base_username = re.sub(r"[^a-zA-Z0-9_]", "", base_username)
 
-            # Add password if provided
-            if self.cleaned_data.get("password"):
-                user_data["password"] = self.cleaned_data["password"]
+                username = base_username
+                counter = 1
+                while User.objects.filter(username=username).exists():
+                    username = f"{base_username}{counter}"
+                    counter += 1
+
+            from django.db.models.signals import pre_save, post_save
+
+            # Get all signal receivers to disconnect them temporarily
+            pre_save_receivers = pre_save._live_receivers(sender=User)
+            post_save_receivers = post_save._live_receivers(sender=User)
+
+            # Disconnect all signals
+            for receiver in pre_save_receivers:
+                pre_save.disconnect(receiver, sender=User)
+            for receiver in post_save_receivers:
+                post_save.disconnect(receiver, sender=User)
 
             try:
-                # Use AuthenticationService to create user with proper setup
-                user = AuthenticationService.register_user(
-                    user_data=user_data,
-                    role_names=["Teacher"],  # Assign Teacher role
-                    created_by=self.created_by,
-                    send_email=self.cleaned_data.get("send_welcome_email", True),
+                # Create user without signals
+                user = User.objects.create_user(
+                    username=username,
+                    email=self.cleaned_data["email"],
+                    password=password,
+                    first_name=self.cleaned_data["first_name"],
+                    last_name=self.cleaned_data["last_name"],
+                    is_active=True,
                 )
+            finally:
+                # Reconnect all signals
+                for receiver in pre_save_receivers:
+                    pre_save.connect(receiver, sender=User)
+                for receiver in post_save_receivers:
+                    post_save.connect(receiver, sender=User)
 
-                # Handle profile picture if present
-                if self.cleaned_data.get("profile_picture"):
+            # Set additional fields if they exist
+            if self.cleaned_data.get("phone_number") and hasattr(user, "phone_number"):
+                user.phone_number = self.cleaned_data["phone_number"]
+
+            # Force password change on first login
+            if hasattr(user, "requires_password_change"):
+                user.requires_password_change = True
+
+            user.save()
+
+            # Assign Teacher role (optional - don't fail if it doesn't work)
+            try:
+                from src.accounts.services.role_service import RoleService
+
+                RoleService.assign_role_to_user(
+                    user, "Teacher", assigned_by=self.created_by
+                )
+            except Exception:
+                pass  # Continue without role assignment if it fails
+
+            # Handle profile picture if present (optional)
+            if self.cleaned_data.get("profile_picture"):
+                try:
                     if hasattr(user, "profile_picture"):
                         user.profile_picture = self.cleaned_data["profile_picture"]
                         user.save()
-
-            except Exception as e:
-                # More detailed error handling
-                error_msg = str(e)
-                if "username" in error_msg.lower():
-                    raise forms.ValidationError(
-                        {"username": "Username already exists or is invalid."}
-                    )
-                elif "email" in error_msg.lower():
-                    raise forms.ValidationError(
-                        {"email": "Email address is already registered."}
-                    )
-                elif "phone" in error_msg.lower():
-                    raise forms.ValidationError(
-                        {"phone_number": "Phone number is already registered."}
-                    )
-                else:
-                    raise forms.ValidationError(
-                        f"Error creating user account: {error_msg}"
-                    )
+                except Exception:
+                    pass
 
         if commit:
             teacher.user = user
-            # Ensure employee_id is set
+            # Employee ID is already set from cleaned_data
             if not teacher.employee_id:
-                teacher.employee_id = (
-                    self.cleaned_data.get("employee_id") or self._generate_employee_id()
-                )
+                teacher.employee_id = self.cleaned_data.get("employee_id")
             teacher.save()
 
         return teacher

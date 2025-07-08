@@ -33,11 +33,29 @@ def handle_user_post_save(sender, instance, created, **kwargs):
 
         # Send welcome email (async)
         if instance.email and instance.is_active:
-            send_welcome_email.delay(instance.id)
+            try:
+                send_welcome_email.delay(instance.id)
+            except Exception as e:
+                # Log the error but don't fail user creation
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.warning(
+                    f"Failed to queue welcome email for user {instance.id}: {e}"
+                )
 
         # Send email verification (async)
         if instance.email and not instance.email_verified:
-            send_verification_email.delay(instance.id, "email")
+            try:
+                send_verification_email.delay(instance.id, "email")
+            except Exception as e:
+                # Log the error but don't fail user creation
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.warning(
+                    f"Failed to verification welcome email for user {instance.id}: {e}"
+                )
 
         # Log user creation
         UserAuditLog.objects.create(

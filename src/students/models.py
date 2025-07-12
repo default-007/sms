@@ -39,16 +39,13 @@ class StudentQuerySet(models.QuerySet):
     def with_parents(self):
         return self.prefetch_related("student_parent_relations__parent__user")
 
-    def search(self, query):
-        if not query:
-            return self
-        return self.filter(
-            Q(admission_number__icontains=query)
-            | Q(user__first_name__icontains=query)
-            | Q(user__last_name__icontains=query)
-            | Q(user__email__icontains=query)
-            | Q(roll_number__icontains=query)
-        )
+    return self.filter(
+        Q(admission_number__icontains=query)
+        | Q(first_name__icontains=query)
+        | Q(last_name__icontains=query)
+        | Q(email__icontains=query)
+        | Q(roll_number__icontains=query)
+    )
 
 
 class Student(models.Model):
@@ -76,13 +73,43 @@ class Student(models.Model):
     # Use UUID as primary key for better security
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="student_profile",
+    # Personal Information (previously from User model)
+    first_name = models.CharField(max_length=50, db_index=True)
+    last_name = models.CharField(max_length=50, db_index=True)
+    email = models.EmailField(blank=True, null=True, db_index=True)
+    phone_number = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        validators=[
+            RegexValidator(
+                regex=r"^\+?1?\d{9,15}$",
+                message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.",
+            )
+        ],
     )
+    date_of_birth = models.DateField(blank=True, null=True, db_index=True)
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True)
+    address = models.TextField(blank=True)
+    profile_picture = models.ImageField(
+        upload_to="student_photos/%Y/%m/", blank=True, null=True
+    )
+
+    # Academic Information
     admission_number = models.CharField(
-        max_length=20, unique=True, validators=[MinLengthValidator(3)], db_index=True
+        max_length=20,
+        unique=True,
+        db_index=True,
+        validators=[
+            MinLengthValidator(3),
+            RegexValidator(
+                regex=r"^[A-Z0-9\-/]+$",
+                message="Admission number must contain only uppercase letters, numbers, hyphens, and slashes.",
+            ),
+        ],
+    )
+    registration_number = models.CharField(
+        max_length=50, unique=True, blank=True, null=True, db_index=True
     )
     admission_date = models.DateField(db_index=True)
     current_class = models.ForeignKey(
@@ -93,40 +120,36 @@ class Student(models.Model):
         related_name="students",
         db_index=True,
     )
-    roll_number = models.CharField(max_length=20, blank=True, null=True, db_index=True)
+    roll_number = models.CharField(max_length=10, blank=True, db_index=True)
+
+    # Health and Emergency Information
     blood_group = models.CharField(
         max_length=10, choices=BLOOD_GROUP_CHOICES, default="Unknown", db_index=True
     )
-    medical_conditions = models.TextField(blank=True, null=True)
+    medical_conditions = models.TextField(blank=True)
     emergency_contact_name = models.CharField(max_length=100)
     emergency_contact_number = models.CharField(
         max_length=20,
         validators=[
             RegexValidator(
                 regex=r"^\+?1?\d{9,15}$",
-                message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.",
+                message="Emergency contact number must be entered in the format: '+999999999'. Up to 15 digits allowed.",
             )
         ],
     )
-    previous_school = models.CharField(max_length=200, blank=True, null=True)
+    emergency_contact_relationship = models.CharField(max_length=50, blank=True)
+
+    # Academic History
+    previous_school = models.CharField(max_length=200, blank=True)
+    transfer_certificate_number = models.CharField(max_length=100, blank=True)
+
+    # Status and Metadata
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default="Active", db_index=True
     )
-    registration_number = models.CharField(
-        max_length=30, blank=True, null=True, unique=True, db_index=True
-    )
-    nationality = models.CharField(max_length=50, blank=True, null=True)
-    religion = models.CharField(max_length=50, blank=True, null=True)
-    address = models.TextField(blank=True, null=True)
-    city = models.CharField(max_length=100, blank=True, null=True)
-    state = models.CharField(max_length=100, blank=True, null=True)
-    postal_code = models.CharField(max_length=20, blank=True, null=True)
-    country = models.CharField(max_length=100, blank=True, null=True, default="India")
-    photo = models.ImageField(upload_to="student_photos/%Y/%m/", blank=True, null=True)
-
-    # Metadata fields
-    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    date_joined = models.DateTimeField(auto_now_add=True, db_index=True)
+    last_updated = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -142,7 +165,8 @@ class Student(models.Model):
         indexes = [
             models.Index(fields=["admission_date", "status"]),
             models.Index(fields=["current_class", "status"]),
-            models.Index(fields=["user", "status"]),
+            models.Index(fields=["first_name", "last_name"]),
+            models.Index(fields=["email"]),
         ]
         permissions = [
             ("view_student_details", "Can view detailed student information"),
@@ -154,14 +178,9 @@ class Student(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.user.first_name} {self.user.last_name} ({self.admission_number})"
+        return f"{self.first_name} {self.last_name} ({self.admission_number})"
 
     def save(self, *args, **kwargs):
-        # Set username as admission_number for the associated user
-        if self.user and self.admission_number:
-            self.user.username = self.admission_number
-            self.user.save()
-
         if not self.registration_number:
             admission_year = self.admission_date.year
             self.registration_number = f"STU-{admission_year}-{generate_unique_id(6)}"
@@ -190,119 +209,97 @@ class Student(models.Model):
 
     @property
     def full_name(self):
-        return f"{self.user.first_name} {self.user.last_name}"
+        return f"{self.first_name} {self.last_name}".strip()
 
     @property
     def age(self):
-        if self.user.date_of_birth:
-            today = timezone.now().date()
-            return (
-                today.year
-                - self.user.date_of_birth.year
-                - (
-                    (today.month, today.day)
-                    < (self.user.date_of_birth.month, self.user.date_of_birth.day)
-                )
+        """Calculate age from date of birth"""
+        if not self.date_of_birth:
+            return None
+        today = timezone.now().date()
+        return (
+            today.year
+            - self.date_of_birth.year
+            - (
+                (today.month, today.day)
+                < (self.date_of_birth.month, self.date_of_birth.day)
             )
-        return None
-
-    def is_active(self):
-        return self.status == "Active"
-
-    def get_full_name(self):
-        return self.full_name
-
-    def get_full_address(self):
-        """Return the complete address with city, state, and country"""
-        address_parts = [
-            part
-            for part in [
-                self.address,
-                self.city,
-                self.state,
-                self.postal_code,
-                self.country,
-            ]
-            if part
-        ]
-        return ", ".join(address_parts) if address_parts else "No address provided"
+        )
 
     def get_parents(self):
-        """Get all parents of the student - cached"""
-        cache_key = f"student_parents_{self.id}"
-        parents = cache.get(cache_key)
-
-        if parents is None:
-            parents = list(
-                self.student_parent_relations.select_related(
-                    "parent__user"
-                ).values_list("parent", flat=True)
-            )
-            cache.set(cache_key, parents, 3600)  # Cache for 1 hour
-
-        return Parent.objects.filter(id__in=parents)
+        """Get all parents related to this student"""
+        return Parent.objects.filter(
+            parent_student_relations__student=self
+        ).select_related("user")
 
     def get_primary_parent(self):
-        """Get the primary parent of the student"""
-        primary_relation = (
-            self.student_parent_relations.filter(is_primary_contact=True)
-            .select_related("parent__user")
-            .first()
-        )
-        return primary_relation.parent if primary_relation else None
+        """Get the primary contact parent"""
+        try:
+            relation = (
+                self.student_parent_relations.filter(is_primary_contact=True)
+                .select_related("parent__user")
+                .first()
+            )
+            return relation.parent if relation else None
+        except Exception:
+            return None
 
     def get_siblings(self):
-        """Get all siblings of the student - cached"""
+        """Get siblings through shared parents"""
         cache_key = f"student_siblings_{self.id}"
         siblings = cache.get(cache_key)
 
         if siblings is None:
-            parents = self.get_parents()
-            if not parents:
-                return Student.objects.none()
+            parent_ids = self.student_parent_relations.values_list(
+                "parent_id", flat=True
+            )
+            if parent_ids:
+                siblings = (
+                    Student.objects.filter(
+                        student_parent_relations__parent_id__in=parent_ids
+                    )
+                    .exclude(id=self.id)
+                    .distinct()
+                    .select_related("current_class")
+                )
+                siblings = list(siblings)  # Convert to list for caching
+            else:
+                siblings = []
 
-            sibling_ids = set()
-            for parent in parents:
-                for relation in parent.parent_student_relations.exclude(student=self):
-                    sibling_ids.add(relation.student.id)
-
-            siblings = list(sibling_ids)
             cache.set(cache_key, siblings, 3600)  # Cache for 1 hour
 
-        return Student.objects.filter(id__in=siblings).with_related()
+        return siblings
 
-    def get_attendance_percentage(self, academic_year=None, month=None):
-        """Get the attendance percentage for a specific period - cached"""
-        cache_key = f"student_attendance_percentage_{self.id}_{academic_year}_{month}"
+    def get_attendance_percentage(self, academic_year=None, term=None):
+        """Calculate attendance percentage"""
+        cache_key = f"student_attendance_percentage_{self.id}_{academic_year}_{term}"
         percentage = cache.get(cache_key)
 
         if percentage is None:
-            try:
-                from attendance.models import Attendance
+            from src.attendance.models import StudentAttendance
 
-                query = Attendance.objects.filter(student=self)
+            attendance_qs = StudentAttendance.objects.filter(student=self)
 
-                if academic_year:
-                    query = query.filter(academic_year=academic_year)
-                else:
-                    current_year = AcademicYear.objects.filter(is_current=True).first()
-                    if current_year:
-                        query = query.filter(academic_year=current_year)
+            if academic_year:
+                attendance_qs = attendance_qs.filter(date__year=academic_year)
+            if term:
+                attendance_qs = attendance_qs.filter(term=term)
 
-                if month:
-                    query = query.filter(date__month=month)
+            total_days = attendance_qs.count()
+            present_days = attendance_qs.filter(status="present").count()
 
-                total_days = query.count()
-                present_days = query.filter(status="Present").count()
+            percentage = (present_days / total_days * 100) if total_days > 0 else 0
+            cache.set(cache_key, percentage, 1800)  # Cache for 30 minutes
 
-                percentage = (
-                    round((present_days / total_days) * 100, 2) if total_days > 0 else 0
-                )
-                cache.set(cache_key, percentage, 1800)  # Cache for 30 minutes
-            except:
-                percentage = 0
+        return round(percentage, 2)
 
-        return percentage
+    def get_current_academic_year(self):
+        """Get current academic year"""
+        return AcademicYear.objects.filter(is_current=True).first()
+
+    def is_eligible_for_promotion(self):
+        """Check if student is eligible for promotion"""
+        return self.status == "Active" and self.current_class is not None
 
     def promote_to_next_class(self, new_class):
         """Promote student to next class"""

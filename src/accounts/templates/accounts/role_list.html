@@ -1,735 +1,293 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% load static %}
-{% load accounts_tags %}
 
-{% block title %}Role Management - {{ block.super }}{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
-<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-<style>
-  .role-card {
-    border: none;
-    border-radius: 15px;
-    transition: all 0.3s ease;
-    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-    border: 1px solid #e9ecef;
-    overflow: hidden;
-    position: relative;
-  }
-
-  .role-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-    border-color: #667eea;
-  }
-
-  .role-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--role-color, #667eea) 0%, var(--role-color-light, #764ba2) 100%);
-  }
-
-  .role-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .role-icon::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--role-color, #667eea);
-    opacity: 0.1;
-  }
-
-  .role-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin-top: 1rem;
-  }
-
-  .role-stat {
-    text-align: center;
-    padding: 0.75rem;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 10px;
-    border: 1px solid #f0f0f0;
-  }
-
-  .role-stat-value {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #2c3e50;
-  }
-
-  .role-stat-label {
-    font-size: 0.75rem;
-    color: #6c757d;
-    text-transform: uppercase;
-    margin-top: 0.25rem;
-  }
-
-  .permission-badge {
-    display: inline-block;
-    padding: 0.25rem 0.5rem;
-    margin: 0.125rem;
-    background: #e9ecef;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: #495057;
-  }
-
-  .system-role-badge {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 0.25rem 0.75rem;
-    border-radius: 15px;
-    font-size: 0.75rem;
-    font-weight: 600;
-  }
-
-  .stats-overview {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 15px;
-    padding: 2rem;
-    margin-bottom: 2rem;
-  }
-
-  .overview-stat {
-    text-align: center;
-    padding: 1rem;
-  }
-
-  .overview-stat-value {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-  }
-
-  .overview-stat-label {
-    font-size: 0.875rem;
-    opacity: 0.8;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .chart-container {
-    background: white;
-    border-radius: 15px;
-    padding: 1.5rem;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-    margin-bottom: 2rem;
-  }
-
-  .role-actions {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 1rem;
-  }
-
-  .btn-role-action {
-    flex: 1;
-    border-radius: 8px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-  }
-
-  .btn-role-action:hover {
-    transform: translateY(-1px);
-  }
-
-  .permissions-preview {
-    max-height: 100px;
-    overflow: hidden;
-    position: relative;
-    margin: 0.75rem 0;
-  }
-
-  .permissions-preview::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 20px;
-    background: linear-gradient(transparent, white);
-  }
-
-  .role-hierarchy {
-    padding-left: 1rem;
-    border-left: 2px solid #e9ecef;
-    margin-top: 0.5rem;
-  }
-
-  .parent-role {
-    font-size: 0.875rem;
-    color: #6c757d;
-    margin-bottom: 0.25rem;
-  }
-
-  .filter-section {
-    background: white;
-    border-radius: 15px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-  }
-</style>
-{% endblock %}
+{% block title %}Role Management | School Management System{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-  <!-- Page Header -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <h1 class="h3 mb-0">Role Management</h1>
-      <p class="text-muted">Manage user roles and permissions</p>
-    </div>
-    <div>
-      {% if user|can_do:"roles:add" %}
-      <a href="{% url 'accounts:role_create' %}" class="btn btn-primary">
-        <i class="fas fa-plus me-2"></i>Create Role
-      </a>
-      {% endif %}
-    </div>
-  </div>
-
-  <!-- Statistics Overview -->
-  <div class="stats-overview">
-    <div class="row">
-      <div class="col-md-3">
-        <div class="overview-stat">
-          <div class="overview-stat-value">{{ role_stats.total_roles|default:0 }}</div>
-          <div class="overview-stat-label">Total Roles</div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="overview-stat">
-          <div class="overview-stat-value">{{ role_stats.system_roles_count|default:0 }}</div>
-          <div class="overview-stat-label">System Roles</div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="overview-stat">
-          <div class="overview-stat-value">{{ role_stats.custom_roles_count|default:0 }}</div>
-          <div class="overview-stat-label">Custom Roles</div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="overview-stat">
-          <div class="overview-stat-value">{{ role_stats.total_active_assignments|default:0 }}</div>
-          <div class="overview-stat-label">Active Assignments</div>
+<div class="body-wrapper">
+  <div class="container-fluid">
+    <!-- Breadcrumb -->
+    <div class="card card-body">
+      <div class="row align-items-center">
+        <div class="col-12">
+          <div class="d-sm-flex align-items-center justify-space-between">
+            <h4 class="fw-semibold fs-4 mb-4 mb-md-0 card-title">Role Management</h4>
+            <nav aria-label="breadcrumb" class="ms-auto">
+              <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                  <a class="text-muted text-decoration-none" href="{% url 'core:dashboard' %}">
+                    <iconify-icon icon="solar:home-2-line-duotone" class="fs-6"></iconify-icon>
+                  </a>
+                </li>
+                <li class="breadcrumb-item" aria-current="page">
+                  <span class="badge fw-medium fs-2 bg-primary-subtle text-primary">
+                    Roles
+                  </span>
+                </li>
+              </ol>
+            </nav>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="row">
-    <!-- Role Distribution Chart -->
-    <div class="col-lg-6">
-      <div class="chart-container">
-        <h5 class="mb-3">
-          <i class="fas fa-chart-pie me-2 text-primary"></i>
-          Role Distribution
-        </h5>
-        <div id="roleDistributionChart" style="height: 300px;"></div>
-      </div>
-    </div>
-
-    <!-- Role Assignment Trends -->
-    <div class="col-lg-6">
-      <div class="chart-container">
-        <h5 class="mb-3">
-          <i class="fas fa-chart-line me-2 text-success"></i>
-          Assignment Trends
-        </h5>
-        <div id="assignmentTrendsChart" style="height: 300px;"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Filters -->
-  <div class="filter-section">
-    <form method="get" class="row g-3" id="filterForm">
-      <div class="col-md-4">
-        <label class="form-label">Search Roles</label>
-        <input type="text" class="form-control" name="search" placeholder="Search by name or description..."
-          value="{{ request.GET.search }}">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Role Type</label>
-        <select class="form-select" name="role_type">
-          <option value="">All Types</option>
-          <option value="system" {% if request.GET.role_type == 'system' %}selected{% endif %}>System Roles</option>
-          <option value="custom" {% if request.GET.role_type == 'custom' %}selected{% endif %}>Custom Roles</option>
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Status</label>
-        <select class="form-select" name="status">
-          <option value="">All Status</option>
-          <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
-          <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
-        </select>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">&nbsp;</label>
-        <div class="d-grid">
-          <button type="submit" class="btn btn-outline-primary">
-            <i class="fas fa-search"></i> Filter
-          </button>
-        </div>
-      </div>
-    </form>
-  </div>
-
-  <!-- Role Cards Grid -->
-  <div class="row" id="rolesGrid">
-    {% for role in roles %}
-    <div class="col-lg-4 col-md-6 mb-4 role-card-item"
-      data-role-type="{% if role.is_system_role %}system{% else %}custom{% endif %}"
-      data-status="{% if role.is_active %}active{% else %}inactive{% endif %}">
-      <div class="card role-card h-100" style="--role-color: {{ role.color_code|default:'#667eea' }};">
-        {% if role.is_system_role %}
-        <div class="system-role-badge">
-          <i class="fas fa-shield-alt me-1"></i>System
-        </div>
-        {% endif %}
-
-        <div class="card-body">
-          <div class="d-flex align-items-start">
-            <div class="role-icon" style="color: {{ role.color_code|default:'#667eea' }};">
-              <i
-                class="fas fa-{% if role.name == 'Admin' %}crown{% elif role.name == 'Teacher' %}chalkboard-teacher{% elif role.name == 'Student' %}graduation-cap{% elif role.name == 'Parent' %}users{% else %}user-cog{% endif %}"></i>
-            </div>
-            <div class="flex-grow-1 ms-3">
-              <h5 class="card-title mb-1">{{ role.name }}</h5>
-              <p class="card-text text-muted">{{ role.description|default:"No description provided"|truncatechars:80 }}
-              </p>
-
-              {% if role.parent_role %}
-              <div class="parent-role">
-                <i class="fas fa-level-up-alt me-1"></i>
-                Inherits from: <strong>{{ role.parent_role.name }}</strong>
+    <!-- Action Bar -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="mb-1">Manage System Roles</h6>
+                <p class="text-muted mb-0">Create and configure roles with specific permissions</p>
               </div>
+              <div>
+                {% if perms.accounts.add_userrole %}
+                <a href="{% url 'accounts:role_create' %}" class="btn btn-primary">
+                  <iconify-icon icon="solar:user-id-bold-duotone" class="me-2"></iconify-icon>
+                  Add New Role
+                </a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Role Cards -->
+    <div class="row">
+      {% for role in roles %}
+      <div class="col-lg-6 col-xl-4">
+        <div class="card h-100">
+          <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">
+                <iconify-icon icon="solar:user-id-bold-duotone" class="me-2 text-primary"></iconify-icon>
+                {{ role.name }}
+              </h5>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                  aria-expanded="false">
+                  <iconify-icon icon="solar:menu-dots-bold-duotone"></iconify-icon>
+                </button>
+                <ul class="dropdown-menu">
+                  <li>
+                    <a class="dropdown-item" href="{% url 'accounts:role_detail' role.pk %}">
+                      <iconify-icon icon="solar:eye-line-duotone" class="me-2"></iconify-icon>
+                      View Details
+                    </a>
+                  </li>
+                  {% if perms.accounts.change_userrole %}
+                  <li>
+                    <a class="dropdown-item" href="{% url 'accounts:role_update' role.pk %}">
+                      <iconify-icon icon="solar:pen-line-duotone" class="me-2"></iconify-icon>
+                      Edit Role
+                    </a>
+                  </li>
+                  {% endif %}
+                  {% if perms.accounts.delete_userrole and not role.is_system_role %}
+                  <li>
+                    <hr class="dropdown-divider">
+                  </li>
+                  <li>
+                    <a class="dropdown-item text-danger" href="{% url 'accounts:role_delete' role.pk %}">
+                      <iconify-icon icon="solar:trash-bin-line-duotone" class="me-2"></iconify-icon>
+                      Delete Role
+                    </a>
+                  </li>
+                  {% endif %}
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="text-muted mb-3">
+              {{ role.description|default:"No description provided" }}
+            </p>
+
+            <!-- Role Statistics -->
+            <div class="row text-center mb-3">
+              <div class="col-6">
+                <div class="border-end">
+                  <h4 class="mb-0 text-primary">{{ role.user_assignments.count }}</h4>
+                  <small class="text-muted">Users</small>
+                </div>
+              </div>
+              <div class="col-6">
+                <h4 class="mb-0 text-info">{{ role.get_permission_count }}</h4>
+                <small class="text-muted">Permissions</small>
+              </div>
+            </div>
+
+            <!-- Role Badges -->
+            <div class="mb-3">
+              {% if role.is_system_role %}
+              <span class="badge bg-warning-subtle text-warning">
+                <iconify-icon icon="solar:shield-check-bold-duotone" class="me-1"></iconify-icon>
+                System Role
+              </span>
+              {% else %}
+              <span class="badge bg-info-subtle text-info">
+                <iconify-icon icon="solar:user-bold-duotone" class="me-1"></iconify-icon>
+                Custom Role
+              </span>
+              {% endif %}
+            </div>
+
+            <!-- Recent Assignments -->
+            <div class="mb-3">
+              <h6 class="mb-2">Recent Assignments</h6>
+              {% with recent_assignments=role.user_assignments.all|slice:":3" %}
+              {% if recent_assignments %}
+              <div class="avatar-group">
+                {% for assignment in recent_assignments %}
+                <div class="avatar avatar-sm" title="{{ assignment.user.get_full_name }}">
+                  {% if assignment.user.profile_picture %}
+                  <img src="{{ assignment.user.profile_picture.url }}" alt="{{ assignment.user.get_full_name }}"
+                    class="rounded-circle">
+                  {% else %}
+                  <div class="avatar-initial rounded-circle bg-primary">
+                    {{ assignment.user.get_initials }}
+                  </div>
+                  {% endif %}
+                </div>
+                {% endfor %}
+                {% if role.user_assignments.count > 3 %}
+                <div class="avatar avatar-sm">
+                  <div class="avatar-initial rounded-circle bg-secondary">
+                    +{{ role.user_assignments.count|add:"-3" }}
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+              {% else %}
+              <p class="text-muted small mb-0">No users assigned</p>
+              {% endif %}
+              {% endwith %}
+            </div>
+          </div>
+          <div class="card-footer bg-transparent">
+            <div class="d-flex gap-2">
+              <a href="{% url 'accounts:role_detail' role.pk %}" class="btn btn-outline-primary btn-sm flex-fill">
+                <iconify-icon icon="solar:eye-line-duotone" class="me-1"></iconify-icon>
+                View
+              </a>
+              {% if perms.accounts.change_userrole %}
+              <a href="{% url 'accounts:role_update' role.pk %}" class="btn btn-primary btn-sm flex-fill">
+                <iconify-icon icon="solar:pen-line-duotone" class="me-1"></iconify-icon>
+                Edit
+              </a>
               {% endif %}
             </div>
           </div>
-
-          <!-- Permissions Preview -->
-          <div class="permissions-preview">
-            {% for resource, actions in role.permissions.items %}
-            {% for action in actions %}
-            <span class="permission-badge">{{ resource }}.{{ action }}</span>
-            {% endfor %}
-            {% empty %}
-            <span class="text-muted fst-italic">No permissions assigned</span>
-            {% endfor %}
-          </div>
-
-          <!-- Role Statistics -->
-          <div class="role-stats">
-            <div class="role-stat">
-              <div class="role-stat-value">{{ role.user_count|default:0 }}</div>
-              <div class="role-stat-label">Users</div>
-            </div>
-            <div class="role-stat">
-              <div class="role-stat-value">{{ role.permissions|length|default:0 }}</div>
-              <div class="role-stat-label">Resources</div>
-            </div>
-            <div class="role-stat">
-              <div class="role-stat-value">
-                {% widthratio role.permissions.values|join:"|"|length 1 1 %}
-              </div>
-              <div class="role-stat-label">Permissions</div>
-            </div>
-          </div>
-
-          <!-- Actions -->
-          <div class="role-actions">
-            <a href="{% url 'accounts:role_detail' role.pk %}" class="btn btn-outline-primary btn-sm btn-role-action">
-              <i class="fas fa-eye me-1"></i>View
+        </div>
+      </div>
+      {% empty %}
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body text-center py-5">
+            <iconify-icon icon="solar:user-id-line-duotone" class="fs-1 text-muted"></iconify-icon>
+            <h4 class="mt-3 text-muted">No Roles Found</h4>
+            <p class="text-muted mb-4">Get started by creating your first role with specific permissions.</p>
+            {% if perms.accounts.add_userrole %}
+            <a href="{% url 'accounts:role_create' %}" class="btn btn-primary">
+              <iconify-icon icon="solar:user-id-bold-duotone" class="me-2"></iconify-icon>
+              Create First Role
             </a>
-
-            {% if user|can_do:"roles:change" %}
-            <a href="{% url 'accounts:role_update' role.pk %}" class="btn btn-outline-secondary btn-sm btn-role-action">
-              <i class="fas fa-edit me-1"></i>Edit
-            </a>
-            {% endif %}
-
-            {% if user|can_do:"roles:delete" and not role.is_system_role %}
-            <button type="button" class="btn btn-outline-danger btn-sm btn-role-action"
-              onclick="deleteRole({{ role.pk }}, '{{ role.name }}')">
-              <i class="fas fa-trash me-1"></i>Delete
-            </button>
             {% endif %}
           </div>
         </div>
       </div>
+      {% endfor %}
     </div>
-    {% empty %}
-    <div class="col-12">
-      <div class="text-center py-5">
-        <i class="fas fa-users-cog fa-4x text-muted mb-3"></i>
-        <h4 class="text-muted">No roles found</h4>
-        <p class="text-muted">No roles match your current filters.</p>
-        {% if user|can_do:"roles:add" %}
-        <a href="{% url 'accounts:role_create' %}" class="btn btn-primary">
-          <i class="fas fa-plus me-2"></i>Create First Role
-        </a>
-        {% endif %}
-      </div>
-    </div>
-    {% endfor %}
-  </div>
 
-  <!-- Detailed Table View Toggle -->
-  <div class="d-flex justify-content-end mb-3">
-    <div class="btn-group" role="group">
-      <button type="button" class="btn btn-outline-secondary active" id="gridViewBtn" onclick="toggleView('grid')">
-        <i class="fas fa-th-large me-1"></i>Grid
-      </button>
-      <button type="button" class="btn btn-outline-secondary" id="tableViewBtn" onclick="toggleView('table')">
-        <i class="fas fa-table me-1"></i>Table
-      </button>
-    </div>
-  </div>
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <nav aria-label="Roles pagination" class="mt-4">
+      <div class="d-flex justify-content-center">
+        <ul class="pagination">
+          {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+              <iconify-icon icon="solar:arrow-left-line-duotone"></iconify-icon>
+            </a>
+          </li>
+          {% endif %}
 
-  <!-- Table View (Hidden by default) -->
-  <div id="tableView" style="display: none;">
-    <div class="card">
-      <div class="card-body">
-        <table id="rolesTable" class="table table-striped table-hover" width="100%">
-          <thead>
-            <tr>
-              <th>Role</th>
-              <th>Type</th>
-              <th>Users</th>
-              <th>Permissions</th>
-              <th>Status</th>
-              <th>Created</th>
-              <th width="120">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for role in roles %}
-            <tr>
-              <td>
-                <div class="d-flex align-items-center">
-                  <div class="role-icon me-2" style="width: 32px; height: 32px; font-size: 1rem;">
-                    <i class="fas fa-{% if role.name == 'Admin' %}crown{% elif role.name == 'Teacher' %}chalkboard-teacher{% elif role.name == 'Student' %}graduation-cap{% elif role.name == 'Parent' %}users{% else %}user-cog{% endif %}"
-                      style="color: {{ role.color_code|default:'#667eea' }};"></i>
-                  </div>
-                  <div>
-                    <div class="fw-bold">{{ role.name }}</div>
-                    <small class="text-muted">{{ role.description|truncatechars:50 }}</small>
-                  </div>
-                </div>
-              </td>
-              <td>
-                {% if role.is_system_role %}
-                <span class="badge bg-info">System</span>
-                {% else %}
-                <span class="badge bg-secondary">Custom</span>
-                {% endif %}
-              </td>
-              <td>
-                <span class="badge bg-primary">{{ role.user_count|default:0 }}</span>
-              </td>
-              <td>
-                <span class="badge bg-success">{{ role.permissions|length|default:0 }} resources</span>
-              </td>
-              <td>
-                {% if role.is_active %}
-                <span class="badge bg-success">Active</span>
-                {% else %}
-                <span class="badge bg-danger">Inactive</span>
-                {% endif %}
-              </td>
-              <td>{{ role.created_at|date:"M d, Y" }}</td>
-              <td>
-                <div class="btn-group" role="group">
-                  <a href="{% url 'accounts:role_detail' role.pk %}" class="btn btn-sm btn-outline-primary"
-                    title="View">
-                    <i class="fas fa-eye"></i>
-                  </a>
-                  {% if user|can_do:"roles:change" %}
-                  <a href="{% url 'accounts:role_update' role.pk %}" class="btn btn-sm btn-outline-secondary"
-                    title="Edit">
-                    <i class="fas fa-edit"></i>
-                  </a>
-                  {% endif %}
-                  {% if user|can_do:"roles:delete" and not role.is_system_role %}
-                  <button type="button" class="btn btn-sm btn-outline-danger"
-                    onclick="deleteRole({{ role.pk }}, '{{ role.name }}')" title="Delete">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                  {% endif %}
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+          {% for num in page_obj.paginator.page_range %}
+          {% if page_obj.number == num %}
+          <li class="page-item active">
+            <span class="page-link">{{ num }}</span>
+          </li>
+          {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+          </li>
+          {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+              <iconify-icon icon="solar:arrow-right-line-duotone"></iconify-icon>
+            </a>
+          </li>
+          {% endif %}
+        </ul>
       </div>
-    </div>
+    </nav>
+    {% endif %}
   </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
-<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
-
-<script>
-  $(document).ready(function () {
-    // Initialize charts
-    initRoleDistributionChart();
-    initAssignmentTrendsChart();
-
-    // Initialize DataTable
-    $('#rolesTable').DataTable({
-      responsive: true,
-      order: [[0, 'asc']],
-      pageLength: 25,
-      dom: 'Bfrtip',
-      buttons: [
-        {
-          extend: 'pageLength',
-          className: 'btn-outline-secondary'
-        },
-        {
-          extend: 'colvis',
-          text: 'Columns',
-          className: 'btn-outline-secondary'
-        }
-      ]
-    });
-
-    // Filter functionality
-    $('#filterForm').on('submit', function (e) {
-      e.preventDefault();
-      filterRoles();
-    });
-
-    // Real-time search
-    $('input[name="search"]').on('input', debounce(filterRoles, 300));
-    $('select[name="role_type"], select[name="status"]').on('change', filterRoles);
-  });
-
-  function initRoleDistributionChart() {
-    const roleData = {{ role_distribution| safe
-  }};
-
-  const options = {
-    chart: {
-      type: 'donut',
-      height: 300
-    },
-    series: roleData.map(item => item.active_users),
-    labels: roleData.map(item => item.role_name),
-    colors: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe'],
-    plotOptions: {
-      pie: {
-        donut: {
-          size: '60%',
-          labels: {
-            show: true,
-            total: {
-              show: true,
-              label: 'Total Users',
-              formatter: function (w) {
-                return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
-              }
-            }
-          }
-        }
-      }
-    },
-    legend: {
-      position: 'bottom'
-    },
-    responsive: [{
-      breakpoint: 480,
-      options: {
-        chart: {
-          width: 300
-        },
-        legend: {
-          position: 'bottom'
-        }
-      }
-    }]
-  };
-
-  const chart = new ApexCharts(document.querySelector("#roleDistributionChart"), options);
-  chart.render();
-}
-
-  function initAssignmentTrendsChart() {
-    // Sample data - replace with actual data from backend
-    const options = {
-      chart: {
-        type: 'line',
-        height: 300,
-        toolbar: {
-          show: false
-        }
-      },
-      series: [{
-        name: 'Role Assignments',
-        data: [31, 40, 28, 51, 42, 109, 100]
-      }],
-      xaxis: {
-        categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-      },
-      stroke: {
-        curve: 'smooth',
-        width: 3
-      },
-      colors: ['#667eea'],
-      fill: {
-        type: 'gradient',
-        gradient: {
-          shadeIntensity: 1,
-          opacityFrom: 0.7,
-          opacityTo: 0.9,
-          stops: [0, 90, 100]
-        }
-      },
-      dataLabels: {
-        enabled: false
-      },
-      grid: {
-        borderColor: '#f0f0f0'
-      }
-    };
-
-    const chart = new ApexCharts(document.querySelector("#assignmentTrendsChart"), options);
-    chart.render();
+<style>
+  .avatar-group {
+    display: flex;
+    align-items: center;
   }
 
-  function toggleView(viewType) {
-    const gridView = document.getElementById('rolesGrid');
-    const tableView = document.getElementById('tableView');
-    const gridBtn = document.getElementById('gridViewBtn');
-    const tableBtn = document.getElementById('tableViewBtn');
-
-    if (viewType === 'grid') {
-      gridView.style.display = 'flex';
-      tableView.style.display = 'none';
-      gridBtn.classList.add('active');
-      tableBtn.classList.remove('active');
-    } else {
-      gridView.style.display = 'none';
-      tableView.style.display = 'block';
-      gridBtn.classList.remove('active');
-      tableBtn.classList.add('active');
-    }
+  .avatar {
+    position: relative;
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    margin-right: -8px;
   }
 
-  function filterRoles() {
-    const search = $('input[name="search"]').val().toLowerCase();
-    const roleType = $('select[name="role_type"]').val();
-    const status = $('select[name="status"]').val();
-
-    $('.role-card-item').each(function () {
-      const card = $(this);
-      const cardText = card.text().toLowerCase();
-      const cardRoleType = card.data('role-type');
-      const cardStatus = card.data('status');
-
-      let show = true;
-
-      // Search filter
-      if (search && !cardText.includes(search)) {
-        show = false;
-      }
-
-      // Role type filter
-      if (roleType && cardRoleType !== roleType) {
-        show = false;
-      }
-
-      // Status filter
-      if (status && cardStatus !== status) {
-        show = false;
-      }
-
-      card.toggle(show);
-    });
+  .avatar:last-child {
+    margin-right: 0;
   }
 
-  function deleteRole(roleId, roleName) {
-    if (confirm(`Are you sure you want to delete the role "${roleName}"? This action cannot be undone.`)) {
-      $.ajax({
-        url: `/accounts/roles/${roleId}/delete/`,
-        type: 'POST',
-        data: {
-          'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
-        },
-        success: function (response) {
-          showAlert('success', `Role "${roleName}" deleted successfully.`);
-          location.reload();
-        },
-        error: function (xhr) {
-          const response = xhr.responseJSON;
-          showAlert('danger', response?.error || `Failed to delete role "${roleName}".`);
-        }
-      });
-    }
+  .avatar-sm {
+    width: 28px;
+    height: 28px;
   }
 
-  function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-      const later = () => {
-        clearTimeout(timeout);
-        func(...args);
-      };
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-    };
+  .avatar .rounded-circle {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
-  function showAlert(type, message) {
-    const alertHtml = `
-        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    `;
-
-    $('.container-fluid').prepend(alertHtml);
-
-    setTimeout(function () {
-      $('.alert').fadeOut();
-    }, 5000);
+  .avatar-initial {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
   }
-</script>
-{% endblock %}
+
+  .card:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease;
+  }
+
+  .border-end {
+    border-right: 1px solid #dee2e6 !important;
+  }
+</style>
+{% endblock content %}

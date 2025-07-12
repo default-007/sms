@@ -3,9 +3,6 @@
 
 {% block title %}Dashboard - School Management System{% endblock %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.css">
-{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -197,7 +194,13 @@
                 {% for log in recent_activity %}
                 <tr>
                   <td>{{ log.timestamp|date:"M d, H:i" }}</td>
-                  <td>{{ log.user.get_full_name|default:log.user.username|default:"System" }}</td>
+                  <td>
+                    {% if log.user %}
+                    {{ log.user.get_full_name|default:log.user.username }}
+                    {% else %}
+                    System
+                    {% endif %}
+                  </td>
                   <td>
                     <span class="badge badge-{{ log.action|yesno:"primary,warning,secondary" }}">
                       {{ log.get_action_display }}
@@ -490,73 +493,5 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.6/js/dataTables.bootstrap4.min.js"></script>
-
-<script>
-  $(document).ready(function () {
-    // Initialize DataTables
-    {% if recent_activity %}
-    $('#recentActivityTable').DataTable({
-      "pageLength": 5,
-      "lengthChange": false,
-      "searching": false,
-      "ordering": false,
-      "info": false
-    });
-    {% endif %}
-
-    // Financial Chart (for admin dashboard)
-    {% if financial_summary and user_role == "system_admin" or user_role == "school_admin" or user_role == "superuser" %}
-    var financialOptions = {
-      series: [{
-        name: 'Expected',
-        data: [{{ financial_summary.total_expected |default: 0 }}]
-    }, {
-      name: 'Collected',
-      data: [{{ financial_summary.total_collected|default: 0
-  }}]
-        }],
-    chart: {
-    type: 'bar',
-    height: 300
-  },
-    plotOptions: {
-    bar: {
-      horizontal: false,
-      columnWidth: '55%',
-      endingShape: 'rounded'
-    },
-  },
-    dataLabels: {
-    enabled: false
-  },
-    stroke: {
-    show: true,
-    width: 2,
-    colors: ['transparent']
-  },
-    xaxis: {
-    categories: ['Revenue'],
-  },
-    yaxis: {
-    title: {
-      text: 'Amount'
-    }
-  },
-    fill: {
-    opacity: 1
-  },
-    tooltip: {
-    y: {
-      formatter: function (val) {
-        return "$ " + val.toLocaleString()
-      }
-    }
-  }
-    };
-
-  var financialChart = new ApexCharts(document.querySelector("#financialChart"), financialOptions);
-  financialChart.render();
-  {% endif %}
-});
-</script>
+<script src="{% static 'assets/js/dashboards/scripts.js'%}"></script>
 {% endblock %}

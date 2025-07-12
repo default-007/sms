@@ -30,59 +30,55 @@ class StudentService:
     @staticmethod
     def create_student(student_data, user_data=None, created_by=None):
         """
-        Create a new student with associated user account
-        Username will be set to admission_number
+        Create a new student without associated user account
         """
         with transaction.atomic():
             try:
-                # Get admission number for username
+                # Get admission number for validation
                 admission_number = student_data.get("admission_number")
                 if not admission_number:
                     raise ValueError("Admission number is required")
 
-                # Create or get user account
-                if user_data:
-                    # Use admission number as username
-                    username = admission_number
-                    email = user_data.get("email", "")
+                # Remove user creation logic completely
+                # if user_data:
+                #     # REMOVE ALL USER CREATION CODE
+                # else:
+                #     user = student_data.get("user")  # REMOVE THIS
 
-                    if User.objects.filter(username=username).exists():
-                        user = User.objects.get(username=username)
-                        # Update existing user
-                        for key, value in user_data.items():
-                            if key not in ["password", "username"]:
-                                setattr(user, key, value)
-                    else:
-                        # Create new user with admission number as username
-                        password = user_data.pop("password", None)
-                        user_data["username"] = username
-                        user = User.objects.create(**user_data)
-                        if password:
-                            user.set_password(password)
-                        else:
-                            user.set_password(User.objects.make_random_password())
-                        user.save()
-                else:
-                    user = student_data.get("user")
+                # Create student directly with personal data
+                student_data.update(
+                    {
+                        "first_name": (
+                            user_data.get("first_name", "") if user_data else ""
+                        ),
+                        "last_name": (
+                            user_data.get("last_name", "") if user_data else ""
+                        ),
+                        "email": user_data.get("email", "") if user_data else "",
+                        "phone_number": (
+                            user_data.get("phone_number", "") if user_data else ""
+                        ),
+                        "date_of_birth": (
+                            user_data.get("date_of_birth") if user_data else None
+                        ),
+                        "gender": user_data.get("gender", "") if user_data else "",
+                    }
+                )
 
-                # Create student profile
-                student_data = {k: v for k, v in student_data.items() if k != "user"}
-                student_data["user"] = user
-                student_data["created_by"] = created_by
+                # Remove user field from student_data
+                student_data.pop("user", None)
 
                 student = Student.objects.create(**student_data)
 
-                # Assign student role
-                from src.accounts.services import RoleService
+                # Remove user role assignment
+                # if student.user:
+                #     RoleService.assign_role_to_user(student.user, "Student")  # REMOVE THIS
 
-                RoleService.assign_role_to_user(user, "Student")
-
-                logger.info(f"Created student: {student.admission_number}")
                 return student
 
             except Exception as e:
                 logger.error(f"Error creating student: {str(e)}")
-                raise
+                raise e
 
     @staticmethod
     def bulk_import_students(

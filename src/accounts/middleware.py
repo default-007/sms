@@ -21,8 +21,10 @@ class SecurityMiddleware(MiddlewareMixin):
     def __init__(self, get_response):
         self.get_response = get_response
         self.max_failed_attempts = getattr(settings, "MAX_FAILED_LOGIN_ATTEMPTS", 5)
-        self.lockout_duration = getattr(settings, "ACCOUNT_LOCKOUT_DURATION", 30)
-        self.session_timeout = getattr(settings, "SESSION_TIMEOUT", 30)
+        self.lockout_duration = getattr(
+            settings, "ACCOUNT_LOCKOUT_DURATION", 30
+        )  # minutes
+        self.session_timeout = getattr(settings, "SESSION_TIMEOUT", 30)  # minutes
         self.max_concurrent_sessions = getattr(settings, "MAX_CONCURRENT_SESSIONS", 5)
         super().__init__(get_response)
 
@@ -64,15 +66,15 @@ class SecurityMiddleware(MiddlewareMixin):
 
     def process_response(self, request, response):
         """Process response for additional security measures."""
-        # Add security headers (but NOT CSP - that's handled by django-csp)
+        # Add security headers
         response["X-Content-Type-Options"] = "nosniff"
         response["X-Frame-Options"] = "DENY"
         response["X-XSS-Protection"] = "1; mode=block"
         response["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
-        # REMOVE/COMMENT OUT this line - CSP is now handled by django-csp
+        # Add CSP header for non-API responses
         # if not request.path.startswith("/api/"):
-        #     response["Content-Security-Policy"] = self._get_csp_header()
+        # response["Content-Security-Policy"] = self._get_csp_header()
 
         return response
 
@@ -124,20 +126,20 @@ class SecurityMiddleware(MiddlewareMixin):
             ip = request.META.get("REMOTE_ADDR")
         return ip
 
-    """ def _get_csp_header(self):
-        # Generate Content Security Policy header.
+    def _get_csp_header(self):
+        """Generate Content Security Policy header."""
         return (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.jsdelivr.net; "
-            "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.jsdelivr.net cdnjs.cloudflare.com cdn.datatables.net; "
+            "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdnjs.cloudflare.com fonts.googleapis.com; "
+            "font-src 'self' cdn.jsdelivr.net cdnjs.cloudflare.com fonts.googleapis.com fonts.gstatic.com; "
+            "connect-src 'self' api.iconify.design api.simplesvg.com api.unisvg.com; "
             "img-src 'self' data: blob:; "
-            "font-src 'self' cdn.jsdelivr.net; "
-            "connect-src 'self'; "
             "media-src 'self'; "
             "object-src 'none'; "
             "base-uri 'self'; "
             "form-action 'self'"
-        ) """
+        )
 
 
 class RateLimitMiddleware(MiddlewareMixin):
@@ -406,7 +408,7 @@ class SessionSecurityMiddleware(MiddlewareMixin):
             return
 
         # Count active sessions for the user
-        active_sessions = UserSession.objects.concurrent_sessions(request.user)
+        active_sessions = UserSession.objects.get_concurrent_sessions(request.user)
 
         if active_sessions >= self.max_concurrent_sessions:
             # Terminate oldest sessions
@@ -457,462 +459,3 @@ class SessionSecurityMiddleware(MiddlewareMixin):
         else:
             ip = request.META.get("REMOTE_ADDR")
         return ip
-
-
-class AuthenticationRateLimitMiddleware:
-    """Rate limiting middleware for authentication endpoints."""
-
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-        # Get rate limiting settings
-        rate_settings = getattr(settings, "RATE_LIMITING", {})
-        login_settings = rate_settings.get("LOGIN_ATTEMPTS", {})
-
-        self.max_attempts = self._parse_rate(login_settings.get("RATE", "10/hour"))
-        self.window_seconds = self._parse_window(login_settings.get("RATE", "10/hour"))
-        self.burst_allowance = login_settings.get("BURST", 3)
-
-        # Protected endpoints
-        self.protected_paths = [
-            "/accounts/login/",
-            "/accounts/api/login/",
-            "/accounts/password-reset/",
-        ]
-
-    def __call__(self, request):
-        # Check if this is a protected endpoint
-        if any(request.path.startswith(path) for path in self.protected_paths):
-            if request.method == "POST":
-                if self._is_rate_limited(request):
-                    return self._rate_limit_response(request)
-
-                # Store the request for potential rate limiting
-                response = self.get_response(request)
-
-                # If authentication failed, increment counter
-                if self._is_auth_failure(response):
-                    self._increment_rate_limit(request)
-                else:
-                    # If successful, reset the counter
-                    self._reset_rate_limit(request)
-
-                return response
-
-        return self.get_response(request)
-
-    def _parse_rate(self, rate_string):
-        """Parse rate string like '10/hour' to get max attempts."""
-        try:
-            return int(rate_string.split("/")[0])
-        except (ValueError, IndexError):
-            return 10  # Default
-
-    def _parse_window(self, rate_string):
-        """Parse rate string like '10/hour' to get window in seconds."""
-        try:
-            unit = rate_string.split("/")[1].lower()
-            if unit == "minute":
-                return 60
-            elif unit == "hour":
-                return 3600
-            elif unit == "day":
-                return 86400
-            else:
-                return 3600  # Default to hour
-        except (ValueError, IndexError):
-            return 3600
-
-    def _get_client_key(self, request):
-        """Get unique key for client identification."""
-        client_info = get_client_info(request)
-        ip_address = client_info.get("ip_address", "unknown")
-        return f"auth_rate_limit:{ip_address}"
-
-    def _is_rate_limited(self, request):
-        """Check if client is rate limited."""
-        key = self._get_client_key(request)
-        current_attempts = cache.get(key, 0)
-        return current_attempts >= self.max_attempts
-
-    def _increment_rate_limit(self, request):
-        """Increment rate limit counter for client."""
-        key = self._get_client_key(request)
-        current_attempts = cache.get(key, 0)
-        cache.set(key, current_attempts + 1, timeout=self.window_seconds)
-
-        # Log rate limiting
-        if current_attempts + 1 >= self.max_attempts:
-            logger.warning(f"Rate limit exceeded for key: {key}")
-
-    def _reset_rate_limit(self, request):
-        """Reset rate limit counter for successful authentication."""
-        key = self._get_client_key(request)
-        cache.delete(key)
-
-    def _rate_limit_response(self, request):
-        """Return rate limit exceeded response."""
-        if request.content_type == "application/json" or request.path.startswith(
-            "/api/"
-        ):
-            return JsonResponse(
-                {
-                    "error": "Rate limit exceeded",
-                    "message": "Too many authentication attempts. Please try again later.",
-                    "retry_after": self.window_seconds,
-                },
-                status=429,
-            )
-        else:
-            return HttpResponseForbidden(
-                "Too many authentication attempts. Please try again later."
-            )
-
-    def _is_auth_failure(self, response):
-        """Check if response indicates authentication failure."""
-        if response.status_code in [400, 401, 403]:
-            return True
-
-        # Check for form errors in HTML responses
-        if hasattr(response, "content") and b"error" in response.content.lower():
-            return True
-
-        return False
-
-
-class SessionSecurityMiddleware:
-    """Middleware for session security and management."""
-
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-        # Get session settings
-        self.session_timeout = (
-            getattr(settings, "SESSION_TIMEOUT", 30) * 60
-        )  # Convert to seconds
-        self.max_concurrent_sessions = getattr(settings, "MAX_CONCURRENT_SESSIONS", 5)
-
-    def __call__(self, request):
-        if request.user.is_authenticated:
-            # Check session timeout
-            if self._is_session_expired(request):
-                self._handle_expired_session(request)
-                return self.get_response(request)
-
-            # Update session activity
-            self._update_session_activity(request)
-
-            # Check concurrent sessions
-            self._check_concurrent_sessions(request)
-
-        response = self.get_response(request)
-        return response
-
-    def _is_session_expired(self, request):
-        """Check if session has expired due to inactivity."""
-        last_activity = request.session.get("last_activity")
-        if not last_activity:
-            return False
-
-        last_activity_time = timezone.datetime.fromisoformat(last_activity)
-        inactive_duration = timezone.now() - last_activity_time
-
-        return inactive_duration.total_seconds() > self.session_timeout
-
-    def _handle_expired_session(self, request):
-        """Handle expired session."""
-        logger.info(f"Session expired for user {request.user.id}")
-
-        # Log session expiry
-        UserAuditLog.objects.create(
-            user=request.user,
-            action="session_expired",
-            description="Session expired due to inactivity",
-            ip_address=get_client_info(request).get("ip_address"),
-        )
-
-        # Logout user
-        logout(request)
-
-    def _update_session_activity(self, request):
-        """Update last activity timestamp."""
-        request.session["last_activity"] = timezone.now().isoformat()
-
-        # Update UserSession record if exists
-        session_key = request.session.session_key
-        if session_key:
-            UserSession.objects.filter(
-                user=request.user, session_key=session_key
-            ).update(last_activity=timezone.now())
-
-    def _check_concurrent_sessions(self, request):
-        """Check and manage concurrent sessions."""
-        user = request.user
-        current_session_key = request.session.session_key
-
-        # Get active sessions for user
-        active_sessions = UserSession.objects.filter(
-            user=user, is_active=True
-        ).order_by("last_activity")
-
-        # If too many sessions, deactivate oldest ones
-        if active_sessions.count() > self.max_concurrent_sessions:
-            sessions_to_deactivate = active_sessions[: -self.max_concurrent_sessions]
-
-            for session in sessions_to_deactivate:
-                session.is_active = False
-                session.save()
-
-                logger.info(
-                    f"Deactivated old session for user {user.id}: {session.session_key}"
-                )
-
-
-class SuspiciousActivityMiddleware:
-    """Middleware to detect and handle suspicious authentication activity."""
-
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-        # Suspicious activity thresholds
-        self.suspicious_threshold = getattr(
-            settings, "SUSPICIOUS_ACTIVITY_THRESHOLD", 10
-        )
-        self.check_window_hours = 1
-
-    def __call__(self, request):
-        response = self.get_response(request)
-
-        # Check for suspicious activity after authentication attempts
-        if self._is_auth_endpoint(request) and request.method == "POST":
-            self._check_suspicious_activity(request, response)
-
-        return response
-
-    def _is_auth_endpoint(self, request):
-        """Check if request is to an authentication endpoint."""
-        auth_paths = ["/accounts/login/", "/accounts/api/login/"]
-        return any(request.path.startswith(path) for path in auth_paths)
-
-    def _check_suspicious_activity(self, request, response):
-        """Check for suspicious activity patterns."""
-        client_info = get_client_info(request)
-        ip_address = client_info.get("ip_address")
-
-        if not ip_address or ip_address == "unknown":
-            return
-
-        # Check recent activity from this IP
-        since_time = timezone.now() - timedelta(hours=self.check_window_hours)
-
-        recent_attempts = UserAuditLog.objects.filter(
-            ip_address=ip_address, action="login", timestamp__gte=since_time
-        ).count()
-
-        if recent_attempts >= self.suspicious_threshold:
-            self._handle_suspicious_activity(request, ip_address, recent_attempts)
-
-    def _handle_suspicious_activity(self, request, ip_address, attempt_count):
-        """Handle detected suspicious activity."""
-        logger.warning(
-            f"Suspicious activity detected from IP {ip_address}: "
-            f"{attempt_count} login attempts in {self.check_window_hours} hour(s)"
-        )
-
-        # Log security event
-        UserAuditLog.objects.create(
-            action="suspicious_activity",
-            description=f"Suspicious login activity: {attempt_count} attempts",
-            ip_address=ip_address,
-            user_agent=get_client_info(request).get("user_agent"),
-            severity="high",
-            extra_data={
-                "attempt_count": attempt_count,
-                "time_window_hours": self.check_window_hours,
-                "threshold": self.suspicious_threshold,
-            },
-        )
-
-        # Optional: Add IP to temporary blacklist
-        if getattr(settings, "AUTO_BLACKLIST_SUSPICIOUS_IPS", False):
-            self._temporary_blacklist_ip(ip_address)
-
-    def _temporary_blacklist_ip(self, ip_address):
-        """Add IP to temporary blacklist."""
-        blacklist_key = f"blacklisted_ip:{ip_address}"
-        blacklist_duration = 3600  # 1 hour
-
-        cache.set(blacklist_key, True, timeout=blacklist_duration)
-
-        logger.info(f"Temporarily blacklisted IP: {ip_address}")
-
-
-class IPBlacklistMiddleware:
-    """Middleware to block blacklisted IP addresses."""
-
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def __call__(self, request):
-        client_info = get_client_info(request)
-        ip_address = client_info.get("ip_address")
-
-        if self._is_ip_blacklisted(ip_address):
-            logger.warning(f"Blocked request from blacklisted IP: {ip_address}")
-
-            return JsonResponse(
-                {
-                    "error": "Access denied",
-                    "message": "Your IP address has been temporarily blocked due to suspicious activity.",
-                },
-                status=403,
-            )
-
-        return self.get_response(request)
-
-    def _is_ip_blacklisted(self, ip_address):
-        """Check if IP is blacklisted."""
-        if not ip_address or ip_address == "unknown":
-            return False
-
-        # Check temporary blacklist (cache)
-        temp_blacklist_key = f"blacklisted_ip:{ip_address}"
-        if cache.get(temp_blacklist_key):
-            return True
-
-        # Check permanent blacklist (database)
-        try:
-            from .models import IpBlacklist
-
-            blacklist_entry = IpBlacklist.objects.filter(
-                ip_address=ip_address, is_active=True
-            ).first()
-
-            if blacklist_entry:
-                # Check if blacklist entry has expired
-                if (
-                    blacklist_entry.expires_at
-                    and blacklist_entry.expires_at <= timezone.now()
-                ):
-                    blacklist_entry.is_active = False
-                    blacklist_entry.save()
-                    return False
-
-                return True
-
-        except ImportError:
-            # IpBlacklist model not available
-            pass
-
-        return False
-
-
-class AuthenticationAuditMiddleware:
-    """Middleware for comprehensive authentication auditing."""
-
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-        # Audit settings
-        self.log_all_requests = getattr(settings, "LOG_ALL_AUTH_REQUESTS", False)
-        self.log_successful_auth = getattr(settings, "LOG_SUCCESSFUL_AUTH", True)
-        self.log_failed_auth = getattr(settings, "LOG_FAILED_AUTH", True)
-
-    def __call__(self, request):
-        start_time = time.time()
-
-        # Process request
-        response = self.get_response(request)
-
-        # Log authentication requests
-        if self._should_log_request(request):
-            processing_time = time.time() - start_time
-            self._log_auth_request(request, response, processing_time)
-
-        return response
-
-    def _should_log_request(self, request):
-        """Determine if request should be logged."""
-        if self.log_all_requests:
-            return True
-
-        # Log authentication-related requests
-        auth_paths = ["/accounts/", "/api/auth/"]
-        return any(request.path.startswith(path) for path in auth_paths)
-
-    def _log_auth_request(self, request, response, processing_time):
-        """Log authentication request details."""
-        client_info = get_client_info(request)
-
-        # Determine log level based on response
-        if response.status_code >= 400:
-            log_level = "warning"
-        elif response.status_code >= 300:
-            log_level = "info"
-        else:
-            log_level = "info"
-
-        # Create audit log entry
-        UserAuditLog.objects.create(
-            user=request.user if request.user.is_authenticated else None,
-            action="http_request",
-            description=f"{request.method} {request.path}",
-            ip_address=client_info.get("ip_address"),
-            user_agent=client_info.get("user_agent"),
-            extra_data={
-                "status_code": response.status_code,
-                "processing_time": round(processing_time, 3),
-                "request_method": request.method,
-                "request_path": request.path,
-                "query_params": dict(request.GET),
-                "content_type": request.content_type,
-                "is_ajax": request.headers.get("X-Requested-With") == "XMLHttpRequest",
-                "is_api": request.path.startswith("/api/"),
-            },
-            severity="low",
-        )
-
-
-class SecurityHeadersMiddleware:
-    """Middleware to add security headers to authentication responses."""
-
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def __call__(self, request):
-        response = self.get_response(request)
-
-        # Add security headers for authentication pages
-        if self._is_auth_related(request):
-            self._add_security_headers(response)
-
-        return response
-
-    def _is_auth_related(self, request):
-        """Check if request is authentication-related."""
-        auth_paths = ["/accounts/", "/api/auth/"]
-        return any(request.path.startswith(path) for path in auth_paths)
-
-    def _add_security_headers(self, response):
-        """Add security headers to response."""
-        # Prevent caching of authentication pages
-        response["Cache-Control"] = "no-cache, no-store, must-revalidate"
-        response["Pragma"] = "no-cache"
-        response["Expires"] = "0"
-
-        # Content security policy for auth pages
-        response["Content-Security-Policy"] = (
-            "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline'; "
-            "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data:; "
-            "font-src 'self'; "
-            "connect-src 'self'; "
-            "frame-ancestors 'none';"
-        )
-
-        # Additional security headers
-        response["X-Content-Type-Options"] = "nosniff"
-        response["X-Frame-Options"] = "DENY"
-        response["X-XSS-Protection"] = "1; mode=block"
-        response["Referrer-Policy"] = "strict-origin-when-cross-origin"

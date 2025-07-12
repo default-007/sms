@@ -1,5 +1,3 @@
-# src/accounts/services/__init__.py
-
 from .analytics_service import UserAnalyticsService
 from .authentication_service import AuthenticationService
 from .notification_service import NotificationService

@@ -1,20 +1,39 @@
 # src/accounts/api/serializers.py
 
-from django.contrib.auth import get_user_model
+from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from ..models import User, UserRole, UserRoleAssignment, UserProfile, UserAuditLog
-from ..services import AuthenticationService, RoleService
+from ..models import UserAuditLog, UserProfile, UserRole, UserRoleAssignment
 from ..utils import validate_password_strength
 
 User = get_user_model()
 
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    """Serializer for user profile."""
+
+    class Meta:
+        model = UserProfile
+        fields = [
+            "bio",
+            "website",
+            "location",
+            "language",
+            "timezone",
+            "email_notifications",
+            "sms_notifications",
+            "linkedin_url",
+            "twitter_url",
+            "facebook_url",
+        ]
+
+
 class UserRoleSerializer(serializers.ModelSerializer):
-    """Serializer for UserRole model."""
+    """Serializer for user roles."""
 
     user_count = serializers.IntegerField(read_only=True)
     permission_count = serializers.SerializerMethodField()
@@ -32,23 +51,15 @@ class UserRoleSerializer(serializers.ModelSerializer):
             "user_count",
             "permission_count",
         ]
-        read_only_fields = ["id", "created_at", "updated_at", "is_system_role"]
+        read_only_fields = ["created_at", "updated_at", "is_system_role"]
 
     def get_permission_count(self, obj):
-        """Get total number of permissions in this role."""
         return obj.get_permission_count()
-
-    def validate_name(self, value):
-        """Validate role name."""
-        if self.instance and self.instance.is_system_role:
-            if value != self.instance.name:
-                raise serializers.ValidationError(
-                    "Cannot change the name of a system role."
-                )
-        return value
 
     def validate_permissions(self, value):
         """Validate permissions structure."""
+        from ..services import RoleService
+
         is_valid, message = RoleService.validate_permissions(value)
         if not is_valid:
             raise serializers.ValidationError(message)
@@ -56,10 +67,9 @@ class UserRoleSerializer(serializers.ModelSerializer):
 
 
 class UserRoleAssignmentSerializer(serializers.ModelSerializer):
-    """Serializer for UserRoleAssignment model."""
+    """Serializer for user role assignments."""
 
     role_name = serializers.CharField(source="role.name", read_only=True)
-    role_description = serializers.CharField(source="role.description", read_only=True)
     assigned_by_name = serializers.CharField(
         source="assigned_by.get_full_name", read_only=True
     )
@@ -72,7 +82,6 @@ class UserRoleAssignmentSerializer(serializers.ModelSerializer):
             "id",
             "role",
             "role_name",
-            "role_description",
             "assigned_date",
             "assigned_by",
             "assigned_by_name",
@@ -82,45 +91,27 @@ class UserRoleAssignmentSerializer(serializers.ModelSerializer):
             "is_expired",
             "days_until_expiry",
         ]
-        read_only_fields = ["id", "assigned_date", "assigned_by"]
+        read_only_fields = ["assigned_date", "assigned_by"]
 
     def get_is_expired(self, obj):
-        """Check if assignment is expired."""
         return obj.is_expired()
 
     def get_days_until_expiry(self, obj):
-        """Get days until expiry."""
         return obj.days_until_expiry()
 
 
-class UserProfileSerializer(serializers.ModelSerializer):
-    """Serializer for UserProfile model."""
-
-    class Meta:
-        model = UserProfile
-        fields = [
-            "bio",
-            "website",
-            "location",
-            "birth_date",
-            "language",
-            "timezone",
-            "email_notifications",
-            "sms_notifications",
-            "linkedin_url",
-            "twitter_url",
-            "facebook_url",
-        ]
-
-
 class UserListSerializer(serializers.ModelSerializer):
-    """Serializer for User list view."""
+    """Serializer for user list view."""
 
     full_name = serializers.CharField(source="get_full_name", read_only=True)
     initials = serializers.CharField(source="get_initials", read_only=True)
     age = serializers.IntegerField(source="get_age", read_only=True)
-    roles = serializers.SerializerMethodField()
-    is_locked = serializers.SerializerMethodField()
+    roles = serializers.StringRelatedField(
+        source="get_assigned_roles", many=True, read_only=True
+    )
+    is_account_locked = serializers.BooleanField(
+        source="is_account_locked", read_only=True
+    )
 
     class Meta:
         model = User
@@ -133,37 +124,29 @@ class UserListSerializer(serializers.ModelSerializer):
             "full_name",
             "initials",
             "phone_number",
-            "age",
-            "gender",
             "is_active",
             "is_staff",
             "date_joined",
             "last_login",
+            "age",
             "roles",
-            "is_locked",
+            "failed_login_attempts",
             "requires_password_change",
+            "is_account_locked",
         ]
-
-    def get_roles(self, obj):
-        """Get user roles."""
-        return [assignment.role.name for assignment in obj.active_role_assignments]
-
-    def get_is_locked(self, obj):
-        """Check if account is locked."""
-        return obj.is_account_locked()
 
 
 class UserDetailSerializer(serializers.ModelSerializer):
-    """Serializer for User detail view."""
+    """Serializer for detailed user view."""
 
     full_name = serializers.CharField(source="get_full_name", read_only=True)
     initials = serializers.CharField(source="get_initials", read_only=True)
     age = serializers.IntegerField(source="get_age", read_only=True)
     profile = UserProfileSerializer(read_only=True)
     role_assignments = UserRoleAssignmentSerializer(many=True, read_only=True)
-    permissions = serializers.SerializerMethodField()
-    is_locked = serializers.SerializerMethodField()
-    login_statistics = serializers.SerializerMethodField()
+    is_account_locked = serializers.BooleanField(
+        source="is_account_locked", read_only=True
+    )
 
     class Meta:
         model = User
@@ -178,41 +161,26 @@ class UserDetailSerializer(serializers.ModelSerializer):
             "phone_number",
             "address",
             "date_of_birth",
-            "age",
             "gender",
             "profile_picture",
             "is_active",
             "is_staff",
             "date_joined",
             "last_login",
-            "password_changed_at",
-            "requires_password_change",
-            "failed_login_attempts",
+            "age",
             "profile",
             "role_assignments",
-            "permissions",
-            "is_locked",
-            "login_statistics",
+            "failed_login_attempts",
+            "requires_password_change",
+            "password_changed_at",
+            "is_account_locked",
         ]
         read_only_fields = [
-            "id",
             "date_joined",
             "last_login",
-            "password_changed_at",
             "failed_login_attempts",
+            "password_changed_at",
         ]
-
-    def get_permissions(self, obj):
-        """Get user permissions."""
-        return RoleService.get_user_permissions(obj)
-
-    def get_is_locked(self, obj):
-        """Check if account is locked."""
-        return obj.is_account_locked()
-
-    def get_login_statistics(self, obj):
-        """Get login statistics."""
-        return AuthenticationService.get_login_statistics(obj)
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
@@ -223,7 +191,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
     roles = serializers.ListField(
         child=serializers.CharField(), write_only=True, required=False
     )
-    send_welcome_email = serializers.BooleanField(default=True, write_only=True)
+    profile = UserProfileSerializer(required=False)
 
     class Meta:
         model = User
@@ -237,63 +205,56 @@ class UserCreateSerializer(serializers.ModelSerializer):
             "date_of_birth",
             "gender",
             "profile_picture",
+            "is_active",
             "password",
             "password_confirm",
             "roles",
-            "send_welcome_email",
+            "profile",
         ]
 
-    def validate_email(self, value):
-        """Validate email uniqueness."""
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("This email is already in use.")
-        return value
-
-    def validate_username(self, value):
-        """Validate username."""
-        if User.objects.filter(username=value).exists():
-            raise serializers.ValidationError("This username is already taken.")
-        if len(value) < 3:
-            raise serializers.ValidationError(
-                "Username must be at least 3 characters long."
-            )
-        return value
-
-    def validate_phone_number(self, value):
-        """Validate phone number uniqueness."""
-        if value and User.objects.filter(phone_number=value).exists():
-            raise serializers.ValidationError("This phone number is already in use.")
-        return value
-
     def validate(self, attrs):
-        """Validate password confirmation."""
+        """Validate password and confirmation."""
         password = attrs.get("password")
         password_confirm = attrs.get("password_confirm")
 
-        if password and password_confirm:
+        if password or password_confirm:
             if password != password_confirm:
-                raise serializers.ValidationError("Passwords do not match.")
+                raise serializers.ValidationError(
+                    {"password_confirm": _("Passwords do not match.")}
+                )
 
-            # Validate password strength
-            validation = validate_password_strength(password)
-            if not validation["is_valid"]:
-                raise serializers.ValidationError({"password": validation["feedback"]})
+            if password:
+                # Validate password strength
+                validation = validate_password_strength(password)
+                if not validation["is_valid"]:
+                    raise serializers.ValidationError(
+                        {"password": validation["feedback"]}
+                    )
 
         return attrs
 
     def create(self, validated_data):
-        """Create user with roles."""
+        """Create user with roles and profile."""
         roles = validated_data.pop("roles", [])
-        send_email = validated_data.pop("send_welcome_email", True)
+        profile_data = validated_data.pop("profile", {})
+        password = validated_data.pop("password", None)
         validated_data.pop("password_confirm", None)
 
-        # Create user using AuthenticationService
+        from ..services import AuthenticationService
+
+        if password:
+            validated_data["password"] = password
+
         user = AuthenticationService.register_user(
             validated_data,
             role_names=roles,
             created_by=self.context["request"].user,
-            send_email=send_email,
+            send_email=True,
         )
+
+        # Create profile if provided
+        if profile_data:
+            UserProfile.objects.create(user=user, **profile_data)
 
         return user
 
@@ -301,6 +262,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating users."""
 
+    profile = UserProfileSerializer(required=False)
     roles = serializers.ListField(
         child=serializers.CharField(), write_only=True, required=False
     )
@@ -318,28 +280,13 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             "profile_picture",
             "is_active",
             "requires_password_change",
+            "profile",
             "roles",
         ]
 
-    def validate_email(self, value):
-        """Validate email uniqueness."""
-        if User.objects.filter(email=value).exclude(pk=self.instance.pk).exists():
-            raise serializers.ValidationError("This email is already in use.")
-        return value
-
-    def validate_phone_number(self, value):
-        """Validate phone number uniqueness."""
-        if (
-            value
-            and User.objects.filter(phone_number=value)
-            .exclude(pk=self.instance.pk)
-            .exists()
-        ):
-            raise serializers.ValidationError("This phone number is already in use.")
-        return value
-
     def update(self, instance, validated_data):
-        """Update user and roles."""
+        """Update user with profile and roles."""
+        profile_data = validated_data.pop("profile", {})
         roles = validated_data.pop("roles", None)
 
         # Update user fields
@@ -347,21 +294,33 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
 
-        # Update roles if provided and user has permission
-        if roles is not None:
-            request_user = self.context["request"].user
-            if RoleService.check_permission(request_user, "roles", "change"):
-                # Deactivate current roles
-                instance.role_assignments.update(is_active=False)
+        # Update or create profile
+        if profile_data:
+            profile, created = UserProfile.objects.get_or_create(user=instance)
+            for attr, value in profile_data.items():
+                setattr(profile, attr, value)
+            profile.save()
 
-                # Assign new roles
-                for role_name in roles:
-                    try:
-                        RoleService.assign_role_to_user(
-                            instance, role_name, assigned_by=request_user
-                        )
-                    except ValueError:
-                        pass  # Skip invalid roles
+        # Update roles if provided and user has permission
+        request = self.context.get("request")
+        if (
+            roles is not None
+            and request
+            and request.user.has_permission("roles", "change")
+        ):
+            from ..services import RoleService
+
+            # Deactivate current roles
+            instance.role_assignments.update(is_active=False)
+
+            # Assign new roles
+            for role_name in roles:
+                try:
+                    RoleService.assign_role_to_user(
+                        instance, role_name, assigned_by=request.user
+                    )
+                except ValueError:
+                    pass
 
         return instance
 
@@ -369,80 +328,74 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 class PasswordChangeSerializer(serializers.Serializer):
     """Serializer for password change."""
 
-    old_password = serializers.CharField(write_only=True)
-    new_password = serializers.CharField(write_only=True)
-    new_password_confirm = serializers.CharField(write_only=True)
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
+    new_password_confirm = serializers.CharField(required=True)
 
     def validate(self, attrs):
         """Validate passwords."""
+        user = self.context["request"].user
         old_password = attrs.get("old_password")
         new_password = attrs.get("new_password")
         new_password_confirm = attrs.get("new_password_confirm")
 
-        # Check if new passwords match
-        if new_password != new_password_confirm:
-            raise serializers.ValidationError("New passwords do not match.")
+        # Check old password
+        if not user.check_password(old_password):
+            raise serializers.ValidationError(
+                {"old_password": _("Current password is incorrect.")}
+            )
 
-        # Validate password strength
+        # Check new password confirmation
+        if new_password != new_password_confirm:
+            raise serializers.ValidationError(
+                {"new_password_confirm": _("New passwords do not match.")}
+            )
+
+        # Validate new password strength
         validation = validate_password_strength(new_password)
         if not validation["is_valid"]:
             raise serializers.ValidationError({"new_password": validation["feedback"]})
 
-        # Check old password
-        user = self.context["request"].user
-        if not user.check_password(old_password):
-            raise serializers.ValidationError(
-                {"old_password": "Current password is incorrect."}
-            )
-
         return attrs
 
     def save(self):
-        """Change password."""
+        """Change user password."""
+        from ..services import AuthenticationService
+
         user = self.context["request"].user
         new_password = self.validated_data["new_password"]
-        request = self.context["request"]
+        old_password = self.validated_data["old_password"]
 
         success, message = AuthenticationService.change_password(
-            user, self.validated_data["old_password"], new_password, request
+            user, old_password, new_password, self.context.get("request")
         )
 
         if not success:
-            raise serializers.ValidationError(message)
+            raise serializers.ValidationError({"non_field_errors": [message]})
 
         return user
 
 
 class PasswordResetSerializer(serializers.Serializer):
-    """Serializer for password reset by admin."""
+    """Serializer for password reset."""
 
-    new_password = serializers.CharField(write_only=True, required=False)
-    generate_password = serializers.BooleanField(default=True, write_only=True)
+    new_password = serializers.CharField(required=False)
 
-    def validate(self, attrs):
-        """Validate password if provided."""
-        new_password = attrs.get("new_password")
-        generate_password = attrs.get("generate_password", True)
-
-        if not generate_password and not new_password:
-            raise serializers.ValidationError(
-                "Either provide a new password or enable password generation."
-            )
-
-        if new_password:
-            validation = validate_password_strength(new_password)
+    def validate_new_password(self, value):
+        """Validate new password strength."""
+        if value:
+            validation = validate_password_strength(value)
             if not validation["is_valid"]:
-                raise serializers.ValidationError(
-                    {"new_password": validation["feedback"]}
-                )
-
-        return attrs
+                raise serializers.ValidationError(validation["feedback"])
+        return value
 
     def save(self, user):
-        """Reset password."""
+        """Reset user password."""
+        from ..services import AuthenticationService
+
         new_password = self.validated_data.get("new_password")
         request = self.context.get("request")
-        reset_by = request.user if request else None
+        reset_by = request.user if request and request.user.is_authenticated else None
 
         return AuthenticationService.reset_password(
             user, new_password, request, reset_by
@@ -450,56 +403,58 @@ class PasswordResetSerializer(serializers.Serializer):
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    """Custom token serializer that supports email/phone login."""
-
-    username_field = "identifier"
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["identifier"] = serializers.CharField()
-        del self.fields["username"]
+    """Custom JWT token serializer with additional user info."""
 
     def validate(self, attrs):
-        """Validate credentials using email, phone, or username."""
-        identifier = attrs.get("identifier")
-        password = attrs.get("password")
+        """Validate credentials and add user info."""
+        from ..services import AuthenticationService
 
-        if identifier and password:
-            # Use our custom authentication service
-            user, result = AuthenticationService.authenticate_user(
-                identifier, password, self.context.get("request")
+        username = attrs.get("username")
+        password = attrs.get("password")
+        request = self.context.get("request")
+
+        user, result = AuthenticationService.authenticate_user(
+            username, password, request
+        )
+
+        if not user:
+            error_messages = {
+                "account_locked": _(
+                    "Account is locked due to multiple failed login attempts."
+                ),
+                "account_inactive": _("Account is inactive."),
+                "invalid_credentials": _("Invalid username or password."),
+                "user_not_found": _("Invalid username or password."),
+            }
+            raise serializers.ValidationError(
+                {
+                    "non_field_errors": [
+                        error_messages.get(result, _("Authentication failed."))
+                    ]
+                }
             )
 
-            if result == "success" and user:
-                # Generate tokens
-                refresh = self.get_token(user)
-                data = {
-                    "refresh": str(refresh),
-                    "access": str(refresh.access_token),
-                    "user": UserDetailSerializer(user).data,
-                }
+        # Generate tokens
+        data = AuthenticationService.generate_tokens_for_user(user)
 
-                return data
-            else:
-                # Handle different authentication results
-                error_messages = {
-                    "user_not_found": "No account found with this identifier.",
-                    "account_locked": "Account is locked due to multiple failed attempts.",
-                    "account_inactive": "Account is inactive.",
-                    "invalid_credentials": "Invalid credentials.",
-                }
+        # Add user info
+        data["user"] = {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.get_full_name(),
+            "roles": [role.name for role in user.get_assigned_roles()],
+            "is_admin": user.is_admin(),
+            "requires_password_change": user.requires_password_change,
+        }
 
-                raise serializers.ValidationError(
-                    error_messages.get(result, "Authentication failed.")
-                )
-
-        raise serializers.ValidationError("Must include identifier and password.")
+        return data
 
 
 class UserAuditLogSerializer(serializers.ModelSerializer):
-    """Serializer for UserAuditLog model."""
+    """Serializer for user audit logs."""
 
-    user_name = serializers.CharField(source="user.get_full_name", read_only=True)
+    user_name = serializers.CharField(source="user.username", read_only=True)
     performed_by_name = serializers.CharField(
         source="performed_by.get_full_name", read_only=True
     )
@@ -521,6 +476,7 @@ class UserAuditLogSerializer(serializers.ModelSerializer):
             "timestamp",
             "extra_data",
         ]
+        read_only_fields = ["timestamp"]
 
 
 class BulkUserActionSerializer(serializers.Serializer):
@@ -534,56 +490,26 @@ class BulkUserActionSerializer(serializers.Serializer):
             ("require_password_change", "Require Password Change"),
             ("assign_roles", "Assign Roles"),
             ("remove_roles", "Remove Roles"),
-            ("unlock_accounts", "Unlock Accounts"),
         ]
     )
     roles = serializers.ListField(child=serializers.CharField(), required=False)
 
     def validate(self, attrs):
-        """Validate bulk action data."""
+        """Validate bulk action parameters."""
         action = attrs.get("action")
         roles = attrs.get("roles", [])
 
         if action in ["assign_roles", "remove_roles"] and not roles:
             raise serializers.ValidationError(
-                f"Roles must be provided for action '{action}'"
+                {"roles": _("Roles are required for role-based actions.")}
             )
 
-        # Validate that roles exist
-        if roles:
-            existing_roles = UserRole.objects.filter(name__in=roles).values_list(
-                "name", flat=True
+        # Validate that users exist
+        user_ids = attrs.get("user_ids", [])
+        existing_users = User.objects.filter(id__in=user_ids).count()
+        if existing_users != len(user_ids):
+            raise serializers.ValidationError(
+                {"user_ids": _("Some users do not exist.")}
             )
-            invalid_roles = set(roles) - set(existing_roles)
-            if invalid_roles:
-                raise serializers.ValidationError(
-                    f"Invalid roles: {', '.join(invalid_roles)}"
-                )
 
         return attrs
-
-
-class UserStatsSerializer(serializers.Serializer):
-    """Serializer for user statistics."""
-
-    total_users = serializers.IntegerField()
-    active_users = serializers.IntegerField()
-    inactive_users = serializers.IntegerField()
-    locked_users = serializers.IntegerField()
-    recent_registrations = serializers.IntegerField()
-    users_requiring_password_change = serializers.IntegerField()
-    role_distribution = serializers.DictField()
-    login_statistics = serializers.DictField()
-
-
-class OTPSerializer(serializers.Serializer):
-    """Serializer for OTP operations."""
-
-    otp = serializers.CharField(max_length=6, min_length=6)
-    purpose = serializers.CharField(default="verification")
-
-    def validate_otp(self, value):
-        """Validate OTP format."""
-        if not value.isdigit():
-            raise serializers.ValidationError("OTP must contain only digits.")
-        return value

@@ -12,20 +12,20 @@ from .models import Parent, Student, StudentParentRelation
 
 
 class StudentResource(resources.ModelResource):
-    user__first_name = fields.Field(column_name="first_name")
-    user__last_name = fields.Field(column_name="last_name")
-    user__email = fields.Field(column_name="email")
-    user__phone_number = fields.Field(column_name="phone_number")
+    first_name = fields.Field(column_name="first_name")
+    last_name = fields.Field(column_name="last_name")
+    email = fields.Field(column_name="email")
+    phone_number = fields.Field(column_name="phone_number")
     current_class__name = fields.Field(column_name="class_name")
 
     class Meta:
         model = Student
         fields = (
             "admission_number",
-            "user__first_name",
-            "user__last_name",
-            "user__email",
-            "user__phone_number",
+            "first_name",
+            "last_name",
+            "email",
+            "phone_number",
             "current_class__name",
             "roll_number",
             "blood_group",
@@ -55,7 +55,7 @@ class StudentAdmin(ImportExportModelAdmin):
     list_display = (
         "admission_number",
         "get_full_name",
-        "get_username",  # Show username (admission number)
+        "get_phone",  # Show username (admission number)
         "get_email",
         "current_class",
         "status_badge",
@@ -72,12 +72,10 @@ class StudentAdmin(ImportExportModelAdmin):
     )
     search_fields = (
         "admission_number",
-        "user__username",  # Search by username (admission number)
-        "user__first_name",
-        "user__last_name",
-        "user__email",
+        "first_name",  # Search in student's direct fields
+        "last_name",
+        "email",
         "roll_number",
-        "registration_number",
     )
     autocomplete_fields = ["user", "current_class", "created_by"]
     readonly_fields = (
@@ -100,7 +98,6 @@ class StudentAdmin(ImportExportModelAdmin):
             {
                 "fields": (
                     "id",
-                    "user",
                     "admission_number",
                     "registration_number",
                     "admission_date",

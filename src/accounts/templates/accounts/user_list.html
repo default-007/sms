@@ -1,516 +1,194 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% load static %}
-{% load accounts_tags %}
 
-{% block title %}User Management - {{ block.super }}{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
-<link rel="stylesheet" type="text/css"
-  href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
-<style>
-  .user-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    object-fit: cover;
-  }
-
-  .status-indicator {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 5px;
-  }
-
-  .status-indicator.online {
-    background-color: #28a745;
-  }
-
-  .status-indicator.recent {
-    background-color: #ffc107;
-  }
-
-  .status-indicator.away {
-    background-color: #6c757d;
-  }
-
-  .status-indicator.offline {
-    background-color: #dc3545;
-  }
-
-  .stats-card {
-    border-left: 4px solid;
-    transition: transform 0.2s;
-  }
-
-  .stats-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  }
-
-  .bulk-actions {
-    background: #f8f9fa;
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    display: none;
-  }
-
-  .filter-section {
-    background: white;
-    border-radius: 8px;
-    border: 1px solid #dee2e6;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .table-actions {
-    display: flex;
-    gap: 0.25rem;
-  }
-
-  .btn-action {
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    border: none;
-    transition: all 0.2s;
-  }
-
-  .btn-action:hover {
-    transform: scale(1.1);
-  }
-</style>
-{% endblock %}
+{% block title %}User Management{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-  <!-- Page Header -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <h1 class="h3 mb-0">User Management</h1>
-      <p class="text-muted">Manage system users, roles, and permissions</p>
-    </div>
-    <div>
-      {% if user|can_do:"users:add" %}
-      <a href="{% url 'accounts:user_create' %}" class="btn btn-primary">
-        <i class="fas fa-plus me-2"></i>Add User
-      </a>
-      <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#bulkImportModal">
-        <i class="fas fa-upload me-2"></i>Bulk Import
-      </button>
-      {% endif %}
-      <a href="{% url 'accounts:export_users' %}" class="btn btn-outline-secondary">
-        <i class="fas fa-download me-2"></i>Export
-      </a>
-    </div>
-  </div>
-
-  <!-- Statistics Cards -->
-  <div class="row mb-4">
-    <div class="col-md-3 mb-3">
-      <div class="card stats-card border-primary">
-        <div class="card-body text-center">
-          <div class="row">
-            <div class="col">
-              <div class="h3 mb-0 text-primary">{{ user_stats.total }}</div>
-              <div class="text-muted">Total Users</div>
-            </div>
-            <div class="col-auto">
-              <i class="fas fa-users fa-2x text-primary opacity-75"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3 mb-3">
-      <div class="card stats-card border-success">
-        <div class="card-body text-center">
-          <div class="row">
-            <div class="col">
-              <div class="h3 mb-0 text-success">{{ user_stats.active }}</div>
-              <div class="text-muted">Active Users</div>
-            </div>
-            <div class="col-auto">
-              <i class="fas fa-user-check fa-2x text-success opacity-75"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3 mb-3">
-      <div class="card stats-card border-warning">
-        <div class="card-body text-center">
-          <div class="row">
-            <div class="col">
-              <div class="h3 mb-0 text-warning">{{ user_stats.requiring_password_change }}</div>
-              <div class="text-muted">Need Password Change</div>
-            </div>
-            <div class="col-auto">
-              <i class="fas fa-key fa-2x text-warning opacity-75"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3 mb-3">
-      <div class="card stats-card border-info">
-        <div class="card-body text-center">
-          <div class="row">
-            <div class="col">
-              <div class="h3 mb-0 text-info">{{ user_stats.recent_registrations }}</div>
-              <div class="text-muted">New This Month</div>
-            </div>
-            <div class="col-auto">
-              <i class="fas fa-user-plus fa-2x text-info opacity-75"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Filters -->
-  <div class="filter-section">
-    <form method="get" class="row g-3" id="filterForm">
-      <div class="col-md-3">
-        <label class="form-label">Search</label>
-        {{ filter_form.search }}
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Role</label>
-        {{ filter_form.role }}
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Status</label>
-        {{ filter_form.status }}
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Joined From</label>
-        {{ filter_form.date_joined_from }}
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Joined To</label>
-        {{ filter_form.date_joined_to }}
-      </div>
-      <div class="col-md-1">
-        <label class="form-label">&nbsp;</label>
-        <div class="d-grid">
-          <button type="submit" class="btn btn-outline-primary">
-            <i class="fas fa-search"></i>
-          </button>
-        </div>
-      </div>
-    </form>
-  </div>
-
-  <!-- Bulk Actions -->
-  <div class="bulk-actions" id="bulkActions">
-    <div class="row align-items-center">
-      <div class="col">
-        <span class="fw-bold">Bulk Actions:</span>
-        <span id="selectedCount">0</span> users selected
-      </div>
-      <div class="col-auto">
-        {% if user|can_do:"users:change" %}
-        <button type="button" class="btn btn-sm btn-success" onclick="bulkAction('activate')">
-          <i class="fas fa-check"></i> Activate
-        </button>
-        <button type="button" class="btn btn-sm btn-warning" onclick="bulkAction('deactivate')">
-          <i class="fas fa-ban"></i> Deactivate
-        </button>
-        <button type="button" class="btn btn-sm btn-info" onclick="bulkAction('require_password_change')">
-          <i class="fas fa-key"></i> Require Password Change
-        </button>
-        <button type="button" class="btn btn-sm btn-secondary" onclick="bulkAction('unlock_accounts')">
-          <i class="fas fa-unlock"></i> Unlock
-        </button>
-        {% endif %}
-        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">
-          <i class="fas fa-times"></i> Clear
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Users Table -->
-  <div class="card">
-    <div class="card-body">
-      <table id="usersTable" class="table table-striped table-hover" width="100%">
-        <thead>
-          <tr>
-            {% if can_bulk_actions %}
-            <th width="30">
-              <input type="checkbox" id="selectAll" class="form-check-input">
-            </th>
-            {% endif %}
-            <th>User</th>
-            <th>Email</th>
-            <th>Roles</th>
-            <th>Status</th>
-            <th>Last Login</th>
-            <th>Joined</th>
-            <th width="120">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for user_obj in users %}
-          <tr>
-            {% if can_bulk_actions %}
-            <td>
-              <input type="checkbox" name="user_ids" value="{{ user_obj.id }}" class="form-check-input user-checkbox">
-            </td>
-            {% endif %}
-            <td>
-              <div class="d-flex align-items-center">
-                <img src="{% user_avatar_url user_obj 32 %}" alt="{{ user_obj.get_display_name }}"
-                  class="user-avatar me-2">
-                <div>
-                  <div class="fw-bold">{{ user_obj.get_display_name }}</div>
-                  <small class="text-muted">@{{ user_obj.username }}</small>
-                  {% user_activity_indicator user_obj %}
-                </div>
-              </div>
-            </td>
-            <td>
-              <div>{{ user_obj.email }}</div>
-              {% verification_status_badges user_obj %}
-            </td>
-            <td>
-              {% user_roles_badges user_obj %}
-            </td>
-            <td>
-              {% account_status_badge user_obj %}
-              {% security_status_badge user_obj %}
-            </td>
-            <td>
-              {% if user_obj.last_login %}
-              <span title="{{ user_obj.last_login }}">
-                {{ user_obj.last_login|time_since_filter }}
-              </span>
-              {% else %}
-              <span class="text-muted">Never</span>
-              {% endif %}
-            </td>
-            <td>
-              <span title="{{ user_obj.date_joined }}">
-                {{ user_obj.date_joined|date:"M d, Y" }}
-              </span>
-            </td>
-            <td>
-              <div class="table-actions">
-                <a href="{% url 'accounts:user_detail' user_obj.pk %}" class="btn btn-sm btn-outline-primary btn-action"
-                  title="View Details">
-                  <i class="fas fa-eye"></i>
-                </a>
-                {% if user|can_do:"users:change" %}
-                <a href="{% url 'accounts:user_update' user_obj.pk %}"
-                  class="btn btn-sm btn-outline-secondary btn-action" title="Edit">
-                  <i class="fas fa-edit"></i>
-                </a>
-                <button type="button" class="btn btn-sm btn-outline-warning btn-action"
-                  onclick="toggleUserStatus({{ user_obj.id }}, {{ user_obj.is_active|yesno:'false,true' }})"
-                  title="{% if user_obj.is_active %}Deactivate{% else %}Activate{% endif %}">
-                  <i class="fas fa-{% if user_obj.is_active %}ban{% else %}check{% endif %}"></i>
-                </button>
-                {% endif %}
-                {% if user|can_do:"users:delete" and user_obj != user %}
-                <a href="{% url 'accounts:user_delete' user_obj.pk %}" class="btn btn-sm btn-outline-danger btn-action"
-                  title="Delete">
-                  <i class="fas fa-trash"></i>
-                </a>
-                {% endif %}
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<!-- Bulk Import Modal -->
-<div class="modal fade" id="bulkImportModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Bulk Import Users</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <p>Upload a CSV file to import multiple users at once.</p>
-        <div class="alert alert-info">
-          <i class="fas fa-info-circle me-2"></i>
-          <strong>Required columns:</strong> email, first_name, last_name<br>
-          <strong>Optional columns:</strong> username, phone_number, address, gender
-        </div>
-        <a href="{% url 'accounts:bulk_import_users' %}" class="btn btn-primary">
-          <i class="fas fa-upload me-2"></i>Go to Bulk Import
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>User Management</h2>
+        <a href="{% url 'accounts:user_create' %}" class="btn btn-primary">
+          <i class="fas fa-plus"></i> Add User
         </a>
       </div>
+
+      <!-- Filters -->
+      <div class="card mb-4">
+        <div class="card-body">
+          <form method="get" class="row g-3">
+            <div class="col-md-3">
+              <input type="text" name="search" class="form-control" placeholder="Search users..."
+                value="{{ search_query }}">
+            </div>
+            <div class="col-md-2">
+              <select name="role" class="form-select">
+                <option value="">All Roles</option>
+                {% for role in roles %}
+                <option value="{{ role.name }}" {% if selected_role == role.name %}selected{% endif %}>
+                  {{ role.name }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-2">
+              <select name="status" class="form-select">
+                <option value="">All Status</option>
+                <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
+                <option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>Inactive</option>
+                <option value="locked" {% if selected_status == 'locked' %}selected{% endif %}>Locked</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <button type="submit" class="btn btn-outline-primary">Filter</button>
+              <a href="{% url 'accounts:user_list' %}" class="btn btn-outline-secondary">Clear</a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Statistics -->
+      <div class="row mb-4">
+        <div class="col-md-3">
+          <div class="card text-white bg-primary">
+            <div class="card-body">
+              <h5>{{ active_users_count }}</h5>
+              <p class="mb-0">Active Users</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-white bg-secondary">
+            <div class="card-body">
+              <h5>{{ inactive_users_count }}</h5>
+              <p class="mb-0">Inactive Users</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-white bg-success">
+            <div class="card-body">
+              <h5>{{ new_users_count }}</h5>
+              <p class="mb-0">New This Month</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users Table -->
+      <div class="card">
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Email</th>
+                  <th>Roles</th>
+                  <th>Status</th>
+                  <th>Last Login</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for user in users %}
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      {% if user.profile_picture %}
+                      <img src="{{ user.profile_picture.url }}" class="rounded-circle me-2" width="32" height="32">
+                      {% else %}
+                      <div
+                        class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2"
+                        style="width: 32px; height: 32px; font-size: 14px;">
+                        {{ user.get_initials }}
+                      </div>
+                      {% endif %}
+                      <div>
+                        <strong>{{ user.get_full_name }}</strong><br>
+                        <small class="text-muted">{{ user.username }}</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>{{ user.email }}</td>
+                  <td>
+                    {% for role in user.active_roles %}
+                    <span class="badge bg-secondary me-1">{{ role.role.name }}</span>
+                    {% endfor %}
+                  </td>
+                  <td>
+                    {% if user.is_active %}
+                    <span class="badge bg-success">Active</span>
+                    {% else %}
+                    <span class="badge bg-danger">Inactive</span>
+                    {% endif %}
+                    {% if user.is_account_locked %}
+                    <span class="badge bg-warning">Locked</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if user.last_login %}
+                    {{ user.last_login|date:"M j, Y H:i" }}
+                    {% else %}
+                    <em>Never</em>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <a href="{% url 'accounts:user_detail' user.pk %}" class="btn btn-outline-primary">View</a>
+                      <a href="{% url 'accounts:user_update' user.pk %}" class="btn btn-outline-secondary">Edit</a>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="6" class="text-center py-4">
+                    <em>No users found.</em>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          {% if is_paginated %}
+          <nav aria-label="User pagination">
+            <ul class="pagination justify-content-center">
+              {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link"
+                  href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">First</a>
+              </li>
+              <li class="page-item">
+                <a class="page-link"
+                  href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Previous</a>
+              </li>
+              {% endif %}
+
+              <li class="page-item active">
+                <span class="page-link">
+                  Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </span>
+              </li>
+
+              {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link"
+                  href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Next</a>
+              </li>
+              <li class="page-item">
+                <a class="page-link"
+                  href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Last</a>
+              </li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
+        </div>
+      </div>
     </div>
   </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
-
-<script>
-  $(document).ready(function () {
-    // Initialize DataTable
-    var table = $('#usersTable').DataTable({
-      responsive: true,
-      order: [[{% if can_bulk_actions %}6{% else %}5{% endif %}, 'desc']], // Sort by date joined
-    pageLength: 25,
-    lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
-    dom: 'Bfrtip',
-    buttons: [
-    {
-      extend: 'pageLength',
-      className: 'btn-outline-secondary'
-    },
-    {
-      extend: 'colvis',
-      text: 'Columns',
-      className: 'btn-outline-secondary'
-    }
-  ],
-    columnDefs: [
-    {% if can_bulk_actions %}
-  { orderable: false, targets: [0, -1] }, // Disable sorting on checkbox and actions
-  {% else %}
-  { orderable: false, targets: [-1] }, // Disable sorting on actions
-  {% endif %}
-  { responsivePriority: 1, targets: [1, -1] } // Keep user and actions visible on mobile
-        ],
-  language: {
-    search: "Search users:",
-      lengthMenu: "Show _MENU_ users per page",
-        info: "Showing _START_ to _END_ of _TOTAL_ users",
-          infoEmpty: "No users found",
-            infoFiltered: "(filtered from _MAX_ total users)"
-  }
-    });
-
-  // Handle select all checkbox
-  $('#selectAll').on('change', function () {
-    $('.user-checkbox').prop('checked', this.checked);
-    updateBulkActions();
-  });
-
-  // Handle individual checkboxes
-  $(document).on('change', '.user-checkbox', function () {
-    updateBulkActions();
-
-    // Update select all checkbox
-    var totalCheckboxes = $('.user-checkbox').length;
-    var checkedCheckboxes = $('.user-checkbox:checked').length;
-
-    $('#selectAll').prop('indeterminate', checkedCheckboxes > 0 && checkedCheckboxes < totalCheckboxes);
-    $('#selectAll').prop('checked', checkedCheckboxes === totalCheckboxes);
-  });
-
-  // Clear filters button
-  $('#clearFilters').on('click', function () {
-    $('#filterForm')[0].reset();
-    table.search('').draw();
-  });
-});
-
-  function updateBulkActions() {
-    var selectedCount = $('.user-checkbox:checked').length;
-    $('#selectedCount').text(selectedCount);
-
-    if (selectedCount > 0) {
-      $('#bulkActions').show();
-    } else {
-      $('#bulkActions').hide();
-    }
-  }
-
-  function clearSelection() {
-    $('.user-checkbox, #selectAll').prop('checked', false);
-    updateBulkActions();
-  }
-
-  function bulkAction(action) {
-    var selectedIds = $('.user-checkbox:checked').map(function () {
-      return this.value;
-    }).get();
-
-    if (selectedIds.length === 0) {
-      alert('Please select users first.');
-      return;
-    }
-
-    var actionText = {
-      'activate': 'activate',
-      'deactivate': 'deactivate',
-      'require_password_change': 'require password change for',
-      'unlock_accounts': 'unlock'
-    };
-
-    if (confirm(`Are you sure you want to ${actionText[action]} ${selectedIds.length} user(s)?`)) {
-      $.post('{% url "accounts:bulk_action" %}', {
-        'action': action,
-        'user_ids': selectedIds,
-        'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
-      }).done(function (response) {
-        if (response.success) {
-          showAlert('success', response.message);
-          location.reload();
-        } else {
-          showAlert('danger', response.error || 'An error occurred.');
-        }
-      }).fail(function () {
-        showAlert('danger', 'Failed to perform bulk action.');
-      });
-    }
-  }
-
-  function toggleUserStatus(userId, newStatus) {
-    var action = newStatus ? 'activate' : 'deactivate';
-
-    if (confirm(`Are you sure you want to ${action} this user?`)) {
-      $.post(`/accounts/users/${userId}/toggle-status/`, {
-        'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
-      }).done(function (response) {
-        if (response.success) {
-          showAlert('success', response.message);
-          location.reload();
-        } else {
-          showAlert('danger', response.error || 'An error occurred.');
-        }
-      }).fail(function () {
-        showAlert('danger', 'Failed to update user status.');
-      });
-    }
-  }
-
-  function showAlert(type, message) {
-    var alertHtml = `
-        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    `;
-
-    // Insert at top of container
-    $('.container-fluid').prepend(alertHtml);
-
-    // Auto-dismiss after 5 seconds
-    setTimeout(function () {
-      $('.alert').fadeOut();
-    }, 5000);
-  }
-</script>
 {% endblock %}

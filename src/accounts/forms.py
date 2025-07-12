@@ -1,6 +1,3 @@
-# src/accounts/forms.py
-
-import re
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import (
@@ -13,7 +10,7 @@ from django.contrib.auth.forms import (
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.utils.translation import gettext_lazy as _
-from .services.authentication_service import UnifiedAuthenticationService
+
 from .constants import PERMISSION_SCOPES
 from .models import UserProfile, UserRole, UserRoleAssignment
 from .utils import validate_password_strength
@@ -21,341 +18,58 @@ from .utils import validate_password_strength
 User = get_user_model()
 
 
-class CustomAuthenticationForm(forms.Form):
-    """
-    Enhanced authentication form supporting multiple identifier types:
-    - Email address
-    - Phone number
-    - Username
-    - Admission number (for students)
+class CustomAuthenticationForm(AuthenticationForm):
+    """Custom login form with additional styling and validation."""
 
-    Note: This inherits from forms.Form instead of AuthenticationForm to avoid
-    conflicts with Django's built-in username field handling.
-    """
-
-    identifier = forms.CharField(
-        label=_("Email, Phone, Username, or Admission Number"),
-        max_length=254,
+    username = forms.CharField(
+        label=_("Username or Email"),
         widget=forms.TextInput(
             attrs={
-                "class": "form-control form-control-lg",
-                "placeholder": "Enter your email, phone, username, or admission number",
+                "class": "form-control",
+                "placeholder": "Username or Email",
                 "autofocus": True,
                 "autocomplete": "username",
             }
         ),
-        help_text=_(
-            "You can login using:<br>"
-            "• Your email address<br>"
-            "• Your phone number<br>"
-            "• Your username<br>"
-            "• Your admission number (for students)"
-        ),
     )
-
     password = forms.CharField(
         label=_("Password"),
-        strip=False,
         widget=forms.PasswordInput(
             attrs={
-                "class": "form-control form-control-lg",
-                "placeholder": "Enter your password",
+                "class": "form-control",
+                "placeholder": "Password",
                 "autocomplete": "current-password",
             }
         ),
     )
-
     remember_me = forms.BooleanField(
         label=_("Remember me"),
         required=False,
-        widget=forms.CheckboxInput(
-            attrs={
-                "class": "form-check-input",
-            }
-        ),
-        help_text=_("Keep me logged in for 2 weeks"),
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
     )
 
     error_messages = {
         "invalid_login": _(
-            "Please enter a correct identifier and password. Note that both "
+            "Please enter a correct %(username)s and password. Note that both "
             "fields may be case-sensitive."
         ),
         "inactive": _("This account is inactive."),
-        "account_locked": _(
-            "This account has been locked due to multiple failed login attempts. "
-            "Please contact administrator or try again later."
-        ),
-        "user_not_found": _("No account found with this identifier."),
-        "invalid_credentials": _("Invalid password provided."),
-        "student_inactive": _(
-            "Your student account is inactive. Please contact administration."
-        ),
     }
 
-    def __init__(self, request=None, *args, **kwargs):
-        """Initialize form with request for logging purposes."""
-        self.request = request
-        self.user_cache = None
-        super().__init__(*args, **kwargs)
-
-        # Set required attribute for better validation
-        self.fields["identifier"].required = True
-        self.fields["password"].required = True
-
-    def clean_identifier(self):
-        """Validate and clean the identifier field."""
-        identifier = self.cleaned_data.get("identifier", "").strip()
-
-        if not identifier:
-            raise forms.ValidationError(_("This field is required."))
-
-        # Provide specific validation feedback based on identifier type
-        identifier_type = self._detect_identifier_type(identifier)
-
-        if identifier_type == "email":
-            self._validate_email_format(identifier)
-        elif identifier_type == "phone":
-            self._validate_phone_format(identifier)
-        elif identifier_type == "admission":
-            self._validate_admission_format(identifier)
-        # Username needs no specific format validation
-
-        return identifier
-
-    def clean(self):
-        """Authenticate using identifier and password."""
-        identifier = self.cleaned_data.get("identifier")
-        password = self.cleaned_data.get("password")
-
-        if identifier and password:
-            # Use our unified authentication service
-            user, result = UnifiedAuthenticationService.authenticate_user(
-                identifier, password, self.request
-            )
-
-            if result == "success" and user:
-                self.user_cache = user
-                self.confirm_login_allowed(user)
-            else:
-                # Handle different authentication results
-                error_messages = {
-                    "user_not_found": _("No account found with this identifier."),
-                    "account_locked": _(
-                        "Account is locked due to multiple failed attempts. "
-                        "Please contact administrator or try again later."
-                    ),
-                    "account_inactive": _("This account is inactive."),
-                    "invalid_credentials": _("Invalid password provided."),
-                    "authentication_error": _(
-                        "Authentication failed due to system error."
-                    ),
-                }
-
-                error_message = error_messages.get(result, _("Authentication failed."))
-
-                # Add helpful context based on identifier type
-                identifier_type = self._detect_identifier_type(identifier)
-                if result == "user_not_found":
-                    if identifier_type == "admission":
-                        error_message = _(
-                            "No student found with this admission number."
-                        )
-                    elif identifier_type == "email":
-                        error_message = _("No account found with this email address.")
-                    elif identifier_type == "phone":
-                        error_message = _("No account found with this phone number.")
-
-                raise forms.ValidationError(error_message, code="invalid_login")
-
-        return self.cleaned_data
-
-    def confirm_login_allowed(self, user):
-        """Additional checks for login permission."""
-        if not user.is_active:
-            raise ValidationError(
-                self.error_messages["inactive"],
-                code="inactive",
-            )
-
-        if hasattr(user, "is_account_locked") and user.is_account_locked():
-            raise ValidationError(
-                self.error_messages["account_locked"],
-                code="account_locked",
-            )
-
-    def get_user(self):
-        """Return the authenticated user."""
-        return self.user_cache
-
-    def _detect_identifier_type(self, identifier):
-        """Detect the type of identifier provided."""
-        if UnifiedAuthenticationService._is_email(identifier):
-            return "email"
-        elif UnifiedAuthenticationService._is_phone_number(identifier):
-            return "phone"
-        elif UnifiedAuthenticationService._is_admission_number(identifier):
-            return "admission"
-        else:
-            return "username"
-
-    def _validate_email_format(self, email):
-        """Validate email format."""
-        try:
-            validate_email(email)
-        except ValidationError:
-            raise forms.ValidationError(_("Please enter a valid email address."))
-
-    def _validate_phone_format(self, phone):
-        """Validate phone number format."""
-        # Remove common phone number characters for validation
-        clean_phone = re.sub(r"[\s\-\(\)\+]", "", phone)
-
-        if not clean_phone.isdigit():
-            raise forms.ValidationError(
-                _(
-                    "Phone number should contain only digits, spaces, hyphens, and parentheses."
-                )
-            )
-
-        if len(clean_phone) < 10:
-            raise forms.ValidationError(
-                _("Please enter a valid phone number with at least 10 digits.")
-            )
-
-        if len(clean_phone) > 15:
-            raise forms.ValidationError(
-                _("Phone number is too long. Maximum 15 digits allowed.")
-            )
-
-    def _validate_admission_format(self, admission_number):
-        """Validate admission number format."""
-        # Basic validation - adjust patterns based on your institution's format
-        if len(admission_number.strip()) < 3:
-            raise forms.ValidationError(_("Admission number is too short."))
-
-        if len(admission_number.strip()) > 20:
-            raise forms.ValidationError(_("Admission number is too long."))
-
-    def get_identifier_type_display(self):
-        """Get user-friendly display name for the identifier type used."""
-        if not hasattr(self, "cleaned_data") or not self.cleaned_data.get("identifier"):
-            return None
-
-        identifier = self.cleaned_data["identifier"]
-        identifier_type = self._detect_identifier_type(identifier)
-
-        type_mapping = {
-            "email": _("Email Address"),
-            "phone": _("Phone Number"),
-            "admission": _("Admission Number"),
-            "username": _("Username"),
-        }
-
-        return type_mapping.get(identifier_type, _("Identifier"))
+    def clean_username(self):
+        """Allow login with either username or email."""
+        username = self.cleaned_data.get("username")
+        if "@" in username:
+            # If it looks like an email, validate it
+            try:
+                validate_email(username)
+            except ValidationError:
+                raise forms.ValidationError(_("Please enter a valid email address."))
+        return username
 
 
-class QuickLoginForm(forms.Form):
-    """
-    Simplified login form for mobile apps or quick access.
-    """
-
-    identifier = forms.CharField(
-        max_length=254,
-        widget=forms.TextInput(
-            attrs={
-                "placeholder": "Email, Phone, Username, or Admission #",
-                "class": "form-control",
-            }
-        ),
-    )
-
-    password = forms.CharField(
-        widget=forms.PasswordInput(
-            attrs={
-                "placeholder": "Password",
-                "class": "form-control",
-            }
-        )
-    )
-
-    def clean(self):
-        """Simple authentication using unified service."""
-        identifier = self.cleaned_data.get("identifier")
-        password = self.cleaned_data.get("password")
-
-        if identifier and password:
-            user, result = UnifiedAuthenticationService.authenticate_user(
-                identifier, password
-            )
-
-            if result == "success" and user:
-                self.user_cache = user
-            else:
-                raise forms.ValidationError(_("Invalid login credentials."))
-
-        return self.cleaned_data
-
-    def get_user(self):
-        """Return the authenticated user."""
-        return getattr(self, "user_cache", None)
-
-
-class IdentifierValidationForm(forms.Form):
-    """
-    Form for validating identifier format before password entry.
-    Useful for multi-step login processes.
-    """
-
-    identifier = forms.CharField(
-        max_length=254,
-        widget=forms.TextInput(
-            attrs={
-                "placeholder": "Enter your email, phone, username, or admission number",
-                "class": "form-control form-control-lg",
-                "autofocus": True,
-            }
-        ),
-    )
-
-    def clean_identifier(self):
-        """Validate identifier and check if user exists."""
-        identifier = self.cleaned_data.get("identifier", "").strip()
-
-        if not identifier:
-            raise forms.ValidationError(_("This field is required."))
-
-        # Check if user exists
-        user = UnifiedAuthenticationService._find_user_by_identifier(identifier)
-        if not user:
-            identifier_type = UnifiedAuthenticationService._get_identifier_type(
-                identifier
-            )
-            if identifier_type == UnifiedAuthenticationService.IDENTIFIER_ADMISSION:
-                raise forms.ValidationError(
-                    _("No student found with this admission number.")
-                )
-            else:
-                raise forms.ValidationError(_("No account found with this identifier."))
-
-        # Store user for next step
-        self.user_cache = user
-        return identifier
-
-    def get_user(self):
-        """Return the found user."""
-        return getattr(self, "user_cache", None)
-
-    def get_identifier_type(self):
-        """Get the type of identifier entered."""
-        identifier = self.cleaned_data.get("identifier")
-        if identifier:
-            return UnifiedAuthenticationService._get_identifier_type(identifier)
-        return None
-
-
-class EnhancedUserCreationForm(UserCreationForm):
-    """Enhanced user creation form with additional fields and validation."""
+class CustomUserCreationForm(UserCreationForm):
+    """Custom user creation form with additional fields."""
 
     email = forms.EmailField(
         label=_("Email"),
@@ -363,7 +77,6 @@ class EnhancedUserCreationForm(UserCreationForm):
             attrs={"class": "form-control", "placeholder": "Email"}
         ),
         required=True,
-        help_text=_("Required. Must be a valid email address."),
     )
     first_name = forms.CharField(
         label=_("First Name"),
@@ -384,11 +97,10 @@ class EnhancedUserCreationForm(UserCreationForm):
     phone_number = forms.CharField(
         label=_("Phone Number"),
         widget=forms.TextInput(
-            attrs={"class": "form-control", "placeholder": "+1234567890"}
+            attrs={"class": "form-control", "placeholder": "Phone Number"}
         ),
         required=False,
         max_length=20,
-        help_text=_("Optional. Include country code for international numbers."),
     )
     address = forms.CharField(
         label=_("Address"),
@@ -412,22 +124,15 @@ class EnhancedUserCreationForm(UserCreationForm):
         label=_("Profile Picture"),
         widget=forms.FileInput(attrs={"class": "form-control"}),
         required=False,
-        help_text=_("Max 2MB, JPEG/PNG only"),
     )
     roles = forms.ModelMultipleChoiceField(
-        queryset=UserRole.objects.filter(is_system_role=False, is_active=True),
+        queryset=UserRole.objects.all(),
         widget=forms.CheckboxSelectMultiple,
         required=False,
         label=_("User Roles"),
     )
     send_welcome_email = forms.BooleanField(
         label=_("Send welcome email"),
-        initial=True,
-        required=False,
-        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
-    )
-    requires_password_change = forms.BooleanField(
-        label=_("Require password change on first login"),
         initial=True,
         required=False,
         widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -456,58 +161,27 @@ class EnhancedUserCreationForm(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["username"].help_text = _(
-            "Optional. If not provided, one will be generated automatically."
-        )
-        self.fields["username"].required = False
+        # Only show non-system roles for assignment
+        self.fields["roles"].queryset = UserRole.objects.filter(is_system_role=False)
 
     def clean_email(self):
-        """Validate email uniqueness."""
         email = self.cleaned_data.get("email")
         if User.objects.filter(email=email).exists():
             raise forms.ValidationError(_("This email address is already in use."))
-        return email.lower()
+        return email
 
     def clean_username(self):
-        """Validate username or generate one if not provided."""
-        username = self.cleaned_data.get("username", "").strip()
-
-        if username:
-            if User.objects.filter(username=username).exists():
-                raise forms.ValidationError(_("This username is already taken."))
-            if len(username) < 3:
-                raise forms.ValidationError(
-                    _("Username must be at least 3 characters long.")
-                )
-        else:
-            # Generate username from email or names
-            email = self.cleaned_data.get("email", "")
-            first_name = self.cleaned_data.get("first_name", "")
-            last_name = self.cleaned_data.get("last_name", "")
-
-            username = self._generate_username(first_name, last_name, email)
-
+        username = self.cleaned_data.get("username")
+        if User.objects.filter(username=username).exists():
+            raise forms.ValidationError(_("This username is already taken."))
+        # Add custom username validation
+        if len(username) < 3:
+            raise forms.ValidationError(
+                _("Username must be at least 3 characters long.")
+            )
         return username
 
-    def clean_phone_number(self):
-        """Validate and normalize phone number."""
-        phone = self.cleaned_data.get("phone_number", "").strip()
-
-        if phone:
-            # Normalize phone number
-            clean_phone = re.sub(r"[^\d+]", "", phone)
-            if not clean_phone.startswith("+"):
-                clean_phone = "+" + clean_phone
-
-            # Check uniqueness
-            if User.objects.filter(phone_number=clean_phone).exists():
-                raise forms.ValidationError(_("This phone number is already in use."))
-
-            return clean_phone
-        return phone
-
     def clean_password1(self):
-        """Validate password strength."""
         password = self.cleaned_data.get("password1")
         if password:
             validation = validate_password_strength(password)
@@ -516,7 +190,6 @@ class EnhancedUserCreationForm(UserCreationForm):
         return password
 
     def clean_profile_picture(self):
-        """Validate profile picture."""
         picture = self.cleaned_data.get("profile_picture")
         if picture:
             # Validate file size (2MB max)
@@ -530,61 +203,12 @@ class EnhancedUserCreationForm(UserCreationForm):
 
         return picture
 
-    def _generate_username(self, first_name, last_name, email):
-        """Generate a unique username."""
-        base_username = ""
-
-        if first_name and last_name:
-            base_username = f"{first_name.lower()}.{last_name.lower()}"
-        elif email:
-            base_username = email.split("@")[0].lower()
-        else:
-            base_username = "user"
-
-        # Clean username
-        base_username = re.sub(r"[^a-zA-Z0-9_]", "", base_username)
-
-        # Ensure uniqueness
-        username = base_username
-        counter = 1
-        while User.objects.filter(username=username).exists():
-            username = f"{base_username}{counter}"
-            counter += 1
-
-        return username
-
-    def save(self, commit=True):
-        """Save user with additional processing."""
-        user = super().save(commit=False)
-
-        # Set additional fields
-        user.requires_password_change = self.cleaned_data.get(
-            "requires_password_change", True
-        )
-
-        if commit:
-            user.save()
-
-            # Assign roles
-            roles = self.cleaned_data.get("roles", [])
-            for role in roles:
-                UserRoleAssignment.objects.create(
-                    user=user, role=role, assigned_by=getattr(self, "created_by", None)
-                )
-
-            # Send welcome email if requested
-            if self.cleaned_data.get("send_welcome_email", True):
-                # This would be handled by a signal or service
-                pass
-
-        return user
-
 
 class UserUpdateForm(forms.ModelForm):
-    """Enhanced form for updating existing users."""
+    """Form for updating existing users."""
 
     roles = forms.ModelMultipleChoiceField(
-        queryset=UserRole.objects.filter(is_active=True),
+        queryset=UserRole.objects.all(),
         widget=forms.CheckboxSelectMultiple,
         required=False,
         label=_("User Roles"),
@@ -603,10 +227,6 @@ class UserUpdateForm(forms.ModelForm):
             "profile_picture",
             "is_active",
             "requires_password_change",
-            "email_notifications",
-            "sms_notifications",
-            "timezone_preference",
-            "language_preference",
         )
         widgets = {
             "first_name": forms.TextInput(
@@ -633,14 +253,6 @@ class UserUpdateForm(forms.ModelForm):
             "requires_password_change": forms.CheckboxInput(
                 attrs={"class": "form-check-input"}
             ),
-            "email_notifications": forms.CheckboxInput(
-                attrs={"class": "form-check-input"}
-            ),
-            "sms_notifications": forms.CheckboxInput(
-                attrs={"class": "form-check-input"}
-            ),
-            "timezone_preference": forms.Select(attrs={"class": "form-control"}),
-            "language_preference": forms.Select(attrs={"class": "form-control"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -652,36 +264,14 @@ class UserUpdateForm(forms.ModelForm):
             ).values_list("role", flat=True)
 
     def clean_email(self):
-        """Validate email uniqueness."""
         email = self.cleaned_data.get("email")
         if User.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
             raise forms.ValidationError(_("This email address is already in use."))
-        return email.lower()
-
-    def clean_phone_number(self):
-        """Validate phone number uniqueness."""
-        phone = self.cleaned_data.get("phone_number", "").strip()
-
-        if phone:
-            # Normalize phone number
-            clean_phone = re.sub(r"[^\d+]", "", phone)
-            if not clean_phone.startswith("+"):
-                clean_phone = "+" + clean_phone
-
-            # Check uniqueness
-            if (
-                User.objects.filter(phone_number=clean_phone)
-                .exclude(pk=self.instance.pk)
-                .exists()
-            ):
-                raise forms.ValidationError(_("This phone number is already in use."))
-
-            return clean_phone
-        return phone
+        return email
 
 
-class ProfileForm(forms.ModelForm):
-    """Form for user profile self-management."""
+class UserProfileForm(forms.ModelForm):
+    """Form for updating user profile information."""
 
     class Meta:
         model = User
@@ -694,10 +284,6 @@ class ProfileForm(forms.ModelForm):
             "date_of_birth",
             "gender",
             "profile_picture",
-            "email_notifications",
-            "sms_notifications",
-            "timezone_preference",
-            "language_preference",
         )
         widgets = {
             "first_name": forms.TextInput(attrs={"class": "form-control"}),
@@ -710,46 +296,15 @@ class ProfileForm(forms.ModelForm):
             ),
             "gender": forms.Select(attrs={"class": "form-control"}),
             "profile_picture": forms.FileInput(attrs={"class": "form-control"}),
-            "email_notifications": forms.CheckboxInput(
-                attrs={"class": "form-check-input"}
-            ),
-            "sms_notifications": forms.CheckboxInput(
-                attrs={"class": "form-check-input"}
-            ),
-            "timezone_preference": forms.Select(attrs={"class": "form-control"}),
-            "language_preference": forms.Select(attrs={"class": "form-control"}),
         }
 
     def clean_email(self):
-        """Validate email uniqueness."""
         email = self.cleaned_data.get("email")
         if User.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
             raise forms.ValidationError(_("This email address is already in use."))
-        return email.lower()
-
-    def clean_phone_number(self):
-        """Validate phone number."""
-        phone = self.cleaned_data.get("phone_number", "").strip()
-
-        if phone:
-            # Normalize phone number
-            clean_phone = re.sub(r"[^\d+]", "", phone)
-            if not clean_phone.startswith("+"):
-                clean_phone = "+" + clean_phone
-
-            # Check uniqueness
-            if (
-                User.objects.filter(phone_number=clean_phone)
-                .exclude(pk=self.instance.pk)
-                .exists()
-            ):
-                raise forms.ValidationError(_("This phone number is already in use."))
-
-            return clean_phone
-        return phone
+        return email
 
     def clean_profile_picture(self):
-        """Validate profile picture."""
         picture = self.cleaned_data.get("profile_picture")
         if picture:
             # Validate file size (2MB max)
@@ -764,8 +319,8 @@ class ProfileForm(forms.ModelForm):
         return picture
 
 
-class ExtendedProfileForm(forms.ModelForm):
-    """Form for extended profile information."""
+class UserProfileExtendedForm(forms.ModelForm):
+    """Extended profile form including UserProfile fields."""
 
     # User fields
     first_name = forms.CharField(
@@ -780,6 +335,22 @@ class ExtendedProfileForm(forms.ModelForm):
         required=False,
         widget=forms.TextInput(attrs={"class": "form-control"}),
     )
+    address = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+    )
+    date_of_birth = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+    )
+    gender = forms.ChoiceField(
+        choices=[("", "-- Select Gender --")] + list(User.GENDER_CHOICES),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    profile_picture = forms.ImageField(
+        required=False, widget=forms.FileInput(attrs={"class": "form-control"})
+    )
 
     class Meta:
         model = UserProfile
@@ -787,14 +358,10 @@ class ExtendedProfileForm(forms.ModelForm):
             "bio",
             "website",
             "location",
-            "education_level",
-            "institution",
-            "occupation",
-            "department",
-            "employee_id",
-            "emergency_contact_name",
-            "emergency_contact_phone",
-            "emergency_contact_relationship",
+            "language",
+            "timezone",
+            "email_notifications",
+            "sms_notifications",
             "linkedin_url",
             "twitter_url",
             "facebook_url",
@@ -816,15 +383,13 @@ class ExtendedProfileForm(forms.ModelForm):
             "location": forms.TextInput(
                 attrs={"class": "form-control", "placeholder": "City, Country"}
             ),
-            "education_level": forms.Select(attrs={"class": "form-control"}),
-            "institution": forms.TextInput(attrs={"class": "form-control"}),
-            "occupation": forms.TextInput(attrs={"class": "form-control"}),
-            "department": forms.TextInput(attrs={"class": "form-control"}),
-            "employee_id": forms.TextInput(attrs={"class": "form-control"}),
-            "emergency_contact_name": forms.TextInput(attrs={"class": "form-control"}),
-            "emergency_contact_phone": forms.TextInput(attrs={"class": "form-control"}),
-            "emergency_contact_relationship": forms.TextInput(
-                attrs={"class": "form-control"}
+            "language": forms.Select(attrs={"class": "form-control"}),
+            "timezone": forms.Select(attrs={"class": "form-control"}),
+            "email_notifications": forms.CheckboxInput(
+                attrs={"class": "form-check-input"}
+            ),
+            "sms_notifications": forms.CheckboxInput(
+                attrs={"class": "form-check-input"}
             ),
             "linkedin_url": forms.URLInput(
                 attrs={
@@ -856,20 +421,12 @@ class ExtendedProfileForm(forms.ModelForm):
             self.fields["last_name"].initial = self.user.last_name
             self.fields["email"].initial = self.user.email
             self.fields["phone_number"].initial = self.user.phone_number
-
-    def clean_employee_id(self):
-        """Validate employee ID uniqueness."""
-        employee_id = self.cleaned_data.get("employee_id")
-        if employee_id:
-            existing = UserProfile.objects.filter(employee_id=employee_id)
-            if self.instance:
-                existing = existing.exclude(pk=self.instance.pk)
-            if existing.exists():
-                raise forms.ValidationError(_("This employee ID is already in use."))
-        return employee_id
+            self.fields["address"].initial = self.user.address
+            self.fields["date_of_birth"].initial = self.user.date_of_birth
+            self.fields["gender"].initial = self.user.gender
+            self.fields["profile_picture"].initial = self.user.profile_picture
 
     def save(self, commit=True):
-        """Save profile and update user fields."""
         profile = super().save(commit=False)
 
         if self.user:
@@ -878,6 +435,15 @@ class ExtendedProfileForm(forms.ModelForm):
             self.user.last_name = self.cleaned_data["last_name"]
             self.user.email = self.cleaned_data["email"]
             self.user.phone_number = self.cleaned_data["phone_number"]
+            self.user.address = self.cleaned_data["address"]
+            self.user.date_of_birth = self.cleaned_data["date_of_birth"]
+            self.user.gender = self.cleaned_data["gender"]
+
+            if (
+                "profile_picture" in self.cleaned_data
+                and self.cleaned_data["profile_picture"]
+            ):
+                self.user.profile_picture = self.cleaned_data["profile_picture"]
 
             if commit:
                 self.user.save()
@@ -891,7 +457,7 @@ class ExtendedProfileForm(forms.ModelForm):
 
 
 class CustomPasswordChangeForm(PasswordChangeForm):
-    """Enhanced password change form with strength validation."""
+    """Custom password change form with improved styling and validation."""
 
     old_password = forms.CharField(
         label=_("Current Password"),
@@ -912,9 +478,6 @@ class CustomPasswordChangeForm(PasswordChangeForm):
                 "autocomplete": "new-password",
             }
         ),
-        help_text=_(
-            "Password must be at least 8 characters with uppercase, lowercase, numbers, and special characters."
-        ),
     )
     new_password2 = forms.CharField(
         label=_("Confirm New Password"),
@@ -928,7 +491,6 @@ class CustomPasswordChangeForm(PasswordChangeForm):
     )
 
     def clean_new_password1(self):
-        """Validate password strength."""
         password = self.cleaned_data.get("new_password1")
         if password:
             validation = validate_password_strength(password)
@@ -938,71 +500,31 @@ class CustomPasswordChangeForm(PasswordChangeForm):
 
 
 class CustomPasswordResetForm(PasswordResetForm):
-    """Enhanced password reset form with identifier support."""
+    """Custom password reset form with improved styling."""
 
-    identifier = forms.CharField(
-        label=_("Email, Username, or Admission Number"),
-        widget=forms.TextInput(
+    email = forms.EmailField(
+        label=_("Email"),
+        widget=forms.EmailInput(
             attrs={
                 "class": "form-control",
-                "placeholder": "Email, username, or admission number",
+                "placeholder": "Email",
                 "autocomplete": "email",
             }
         ),
         max_length=254,
-        help_text=_(
-            "Enter your email address, username, or admission number (for students) to reset your password."
-        ),
     )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Remove the email field from parent class
-        if "email" in self.fields:
-            del self.fields["email"]
-
-    def clean_identifier(self):
-        """Find user by identifier and return email."""
-        identifier = self.cleaned_data.get("identifier", "").strip()
-
-        # Try to find user by email, username, or admission number
-        user = None
-        if "@" in identifier:
-            try:
-                validate_email(identifier)
-                user = User.objects.filter(email=identifier, is_active=True).first()
-            except ValidationError:
-                pass
-
-        if not user:
-            user = User.objects.filter(username=identifier, is_active=True).first()
-
-        # Try admission number if still not found
-        if not user and re.match(r"^[A-Z0-9]{6,20}$", identifier, re.IGNORECASE):
-            from .validators import find_user_by_admission_number
-
-            user = find_user_by_admission_number(identifier)
-
-        if not user:
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if not User.objects.filter(email=email, is_active=True).exists():
             raise forms.ValidationError(
-                _("No active account found with this identifier.")
+                _("No active account with this email address exists.")
             )
-
-        # Return the email for the reset process
-        self.cleaned_data["email"] = user.email
-        return identifier
-
-    def get_users(self, email):
-        """Return matching user(s) who should receive a reset."""
-        active_users = User.objects.filter(
-            email__iexact=email,
-            is_active=True,
-        )
-        return (u for u in active_users if u.has_usable_password())
+        return email
 
 
 class CustomSetPasswordForm(SetPasswordForm):
-    """Enhanced set password form with strength validation."""
+    """Custom set password form with improved styling."""
 
     new_password1 = forms.CharField(
         label=_("New Password"),
@@ -1013,9 +535,6 @@ class CustomSetPasswordForm(SetPasswordForm):
                 "autocomplete": "new-password",
             }
         ),
-        help_text=_(
-            "Password must be at least 8 characters with uppercase, lowercase, numbers, and special characters."
-        ),
     )
     new_password2 = forms.CharField(
         label=_("Confirm New Password"),
@@ -1029,7 +548,6 @@ class CustomSetPasswordForm(SetPasswordForm):
     )
 
     def clean_new_password1(self):
-        """Validate password strength."""
         password = self.cleaned_data.get("new_password1")
         if password:
             validation = validate_password_strength(password)
@@ -1039,28 +557,18 @@ class CustomSetPasswordForm(SetPasswordForm):
 
 
 class UserRoleForm(forms.ModelForm):
-    """Enhanced form for creating and updating user roles."""
+    """Form for creating and updating user roles."""
 
     class Meta:
         model = UserRole
-        fields = ("name", "description", "color_code", "parent_role")
+        fields = ("name", "description")
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
-            "color_code": forms.TextInput(
-                attrs={"class": "form-control", "type": "color"}
-            ),
-            "parent_role": forms.Select(attrs={"class": "form-control"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        # Exclude self from parent role choices to prevent circular references
-        if self.instance and self.instance.pk:
-            self.fields["parent_role"].queryset = UserRole.objects.exclude(
-                pk=self.instance.pk
-            ).filter(is_active=True)
 
         # Dynamically create permission fields
         for resource, actions in PERMISSION_SCOPES.items():
@@ -1075,7 +583,7 @@ class UserRoleForm(forms.ModelForm):
                     attrs={"class": "form-check-input"}
                 ),
                 required=False,
-                label=resource.title().replace("_", " ") + " Permissions",
+                label=resource.title().replace("_", " ") + " Management",
             )
 
             # Set initial values if editing existing role
@@ -1084,9 +592,7 @@ class UserRoleForm(forms.ModelForm):
                 self.fields[field_name].initial = initial_perms
 
     def clean_name(self):
-        """Validate role name."""
         name = self.cleaned_data.get("name")
-
         # Check if it's a system role and prevent editing
         if self.instance and self.instance.pk and self.instance.is_system_role:
             if name != self.instance.name:
@@ -1103,24 +609,7 @@ class UserRoleForm(forms.ModelForm):
             raise forms.ValidationError(_("A role with this name already exists."))
         return name
 
-    def clean_parent_role(self):
-        """Validate parent role to prevent circular references."""
-        parent_role = self.cleaned_data.get("parent_role")
-
-        if parent_role and self.instance:
-            # Check for circular reference
-            current_role = parent_role
-            while current_role:
-                if current_role == self.instance:
-                    raise forms.ValidationError(
-                        _("Cannot create circular role inheritance.")
-                    )
-                current_role = current_role.parent_role
-
-        return parent_role
-
     def save(self, commit=True):
-        """Save role with permissions."""
         role = super().save(commit=False)
 
         # Build permissions from form data
@@ -1140,26 +629,25 @@ class UserRoleForm(forms.ModelForm):
 
 
 class BulkUserImportForm(forms.Form):
-    """Enhanced form for bulk user import via CSV."""
+    """Form for bulk user import via CSV."""
 
     csv_file = forms.FileField(
         label=_("CSV File"),
         widget=forms.FileInput(attrs={"class": "form-control", "accept": ".csv"}),
         help_text=_(
-            "Upload a CSV file with user data. Required columns: email, first_name, last_name. "
-            "Optional: username, phone_number, address, gender"
+            "Upload a CSV file with user data. Required columns: username, email, first_name, last_name"
         ),
     )
     default_password = forms.CharField(
         label=_("Default Password"),
         widget=forms.PasswordInput(attrs={"class": "form-control"}),
-        initial="TempPass123!",
+        initial="changeme123",
         help_text=_(
             "Default password for all imported users (they will be required to change it)"
         ),
     )
     default_roles = forms.ModelMultipleChoiceField(
-        queryset=UserRole.objects.filter(is_system_role=False, is_active=True),
+        queryset=UserRole.objects.filter(is_system_role=False),
         widget=forms.CheckboxSelectMultiple,
         required=False,
         label=_("Default Roles"),
@@ -1177,18 +665,10 @@ class BulkUserImportForm(forms.Form):
         initial=False,
         required=False,
         widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
-        help_text=_("Update existing users if email matches"),
-    )
-    dry_run = forms.BooleanField(
-        label=_("Dry run (preview only)"),
-        initial=False,
-        required=False,
-        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
-        help_text=_("Preview import without actually creating users"),
+        help_text=_("Update existing users if username or email matches"),
     )
 
     def clean_csv_file(self):
-        """Validate CSV file."""
         csv_file = self.cleaned_data.get("csv_file")
         if csv_file:
             # Validate file type
@@ -1209,7 +689,7 @@ class BulkUserImportForm(forms.Form):
                 csv_reader = csv.DictReader(StringIO(content))
 
                 # Check required columns
-                required_columns = ["email", "first_name", "last_name"]
+                required_columns = ["username", "email", "first_name", "last_name"]
                 if not all(col in csv_reader.fieldnames for col in required_columns):
                     raise forms.ValidationError(
                         _("CSV must contain columns: {}").format(
@@ -1225,22 +705,9 @@ class BulkUserImportForm(forms.Form):
 
         return csv_file
 
-    def clean_default_password(self):
-        """Validate default password strength."""
-        password = self.cleaned_data.get("default_password")
-        if password:
-            validation = validate_password_strength(password)
-            if not validation["is_valid"]:
-                raise forms.ValidationError(
-                    _("Default password is too weak: {}").format(
-                        ", ".join(validation["feedback"])
-                    )
-                )
-        return password
-
 
 class UserFilterForm(forms.Form):
-    """Enhanced form for filtering users in list view."""
+    """Form for filtering users in list view."""
 
     search = forms.CharField(
         max_length=100,
@@ -1248,13 +715,13 @@ class UserFilterForm(forms.Form):
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
-                "placeholder": "Search users by name, email, username, or phone...",
+                "placeholder": "Search users...",
                 "data-filter": "search",
             }
         ),
     )
     role = forms.ModelChoiceField(
-        queryset=UserRole.objects.filter(is_active=True),
+        queryset=UserRole.objects.all(),
         required=False,
         empty_label="All Roles",
         widget=forms.Select(attrs={"class": "form-control", "data-filter": "role"}),
@@ -1266,8 +733,6 @@ class UserFilterForm(forms.Form):
             ("inactive", "Inactive"),
             ("locked", "Locked"),
             ("password_change", "Requires Password Change"),
-            ("email_unverified", "Email Unverified"),
-            ("phone_unverified", "Phone Unverified"),
         ],
         required=False,
         widget=forms.Select(attrs={"class": "form-control", "data-filter": "status"}),
@@ -1277,103 +742,10 @@ class UserFilterForm(forms.Form):
         widget=forms.DateInput(
             attrs={"class": "form-control", "type": "date", "data-filter": "date_from"}
         ),
-        label=_("Joined From"),
     )
     date_joined_to = forms.DateField(
         required=False,
         widget=forms.DateInput(
             attrs={"class": "form-control", "type": "date", "data-filter": "date_to"}
         ),
-        label=_("Joined To"),
     )
-    last_login_from = forms.DateField(
-        required=False,
-        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
-        label=_("Last Login From"),
-    )
-    last_login_to = forms.DateField(
-        required=False,
-        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
-        label=_("Last Login To"),
-    )
-
-
-class TwoFactorSetupForm(forms.Form):
-    """Form for setting up two-factor authentication."""
-
-    verification_code = forms.CharField(
-        label=_("Verification Code"),
-        max_length=6,
-        min_length=6,
-        widget=forms.TextInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "123456",
-                "autocomplete": "one-time-code",
-            }
-        ),
-        help_text=_("Enter the 6-digit code from your authenticator app"),
-    )
-
-    def clean_verification_code(self):
-        """Validate verification code format."""
-        code = self.cleaned_data.get("verification_code")
-        if code and not code.isdigit():
-            raise forms.ValidationError(
-                _("Verification code must contain only digits.")
-            )
-        return code
-
-
-class EmailVerificationForm(forms.Form):
-    """Form for email verification."""
-
-    verification_code = forms.CharField(
-        label=_("Verification Code"),
-        max_length=6,
-        min_length=6,
-        widget=forms.TextInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "123456",
-                "autocomplete": "one-time-code",
-            }
-        ),
-        help_text=_("Enter the 6-digit code sent to your email"),
-    )
-
-    def clean_verification_code(self):
-        """Validate verification code format."""
-        code = self.cleaned_data.get("verification_code")
-        if code and not code.isdigit():
-            raise forms.ValidationError(
-                _("Verification code must contain only digits.")
-            )
-        return code
-
-
-class PhoneVerificationForm(forms.Form):
-    """Form for phone number verification."""
-
-    verification_code = forms.CharField(
-        label=_("Verification Code"),
-        max_length=6,
-        min_length=6,
-        widget=forms.TextInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "123456",
-                "autocomplete": "one-time-code",
-            }
-        ),
-        help_text=_("Enter the 6-digit code sent to your phone"),
-    )
-
-    def clean_verification_code(self):
-        """Validate verification code format."""
-        code = self.cleaned_data.get("verification_code")
-        if code and not code.isdigit():
-            raise forms.ValidationError(
-                _("Verification code must contain only digits.")
-            )
-        return code

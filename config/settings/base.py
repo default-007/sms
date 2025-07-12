@@ -115,60 +115,62 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
+# ==============================================================================
+# CONTENT SECURITY POLICY SETTINGS (FIXED)
+# ==============================================================================
+
+# Updated CSP to allow all necessary script sources
 CONTENT_SECURITY_POLICY = {
     "DIRECTIVES": {
         "default-src": ("'self'",),
         "script-src": (
             "'self'",
-            "'unsafe-inline'",  # Needed for some Django admin and inline scripts
-            "'unsafe-eval'",  # Needed for some JavaScript libraries
+            "'unsafe-inline'",  # Needed for inline scripts
+            "'unsafe-eval'",  # Needed for some libraries
+            # CDN Sources - Add all the CDNs you're using
             "cdn.jsdelivr.net",
             "cdnjs.cloudflare.com",
             "unpkg.com",
-            "code.jquery.com",  # jQuery
-            "ajax.googleapis.com",  # Google Libraries
-            "stackpath.bootstrapcdn.com",  # Bootstrap
-            "maxcdn.bootstrapcdn.com",  # If using Bootstrap from here
-            # Google Services (common sources of violations)
-            "www.google-analytics.com",
-            "www.googletagmanager.com",
-            "www.google.com",  # reCAPTCHA
-            "www.gstatic.com",
-            "apis.google.com",
-            # Social Media Widgets
-            "connect.facebook.net",
-            "platform.twitter.com",
-            # Payment Processors
+            "stackpath.bootstrapcdn.com",
+            "code.jquery.com",
+            "maxcdn.bootstrapcdn.com",
+            "ajax.googleapis.com",
             "js.stripe.com",
             "checkout.stripe.com",
-            # Common Widget Providers
-            "widget.intercom.io",  # Intercom chat
-            "js.driftt.com",  # Drift chat
-            "static.hotjar.com",
-            # Additional domains you might need
-            "cdn.datatables.net",  # If using DataTables
-            "chartjs-cdn.org",  # If using Chart.js
-            "cdn.plot.ly",  # If using Plotly
-            "d3js.org",  # If using D3.js
-            "momentjs.com",  # If using Moment.js
-            "cdn.tiny.cloud",
+            # Chart.js and data visualization
+            "cdn.plot.ly",
+            "d3js.org",
+            "cdn.datatables.net",
+            # Bootstrap and UI libraries
+            "getbootstrap.com",
+            "bootstrap.min.js",
+            # Analytics (if you use them)
+            "www.google-analytics.com",
+            "www.googletagmanager.com",
+            "connect.facebook.net",
+            # Add any other CDNs you're using
         ),
         "style-src": (
             "'self'",
-            "'unsafe-inline'",  # Needed for Django admin and inline styles
+            "'unsafe-inline'",  # Needed for inline styles and some libraries
             "cdn.jsdelivr.net",
             "cdnjs.cloudflare.com",
-            "fonts.googleapis.com",  # Google Fonts CSS
+            "fonts.googleapis.com",
             "unpkg.com",
-            "stackpath.bootstrapcdn.com",  # Bootstrap CSS
+            "stackpath.bootstrapcdn.com",
             "maxcdn.bootstrapcdn.com",
+            "getbootstrap.com",
+            "cdn.datatables.net",
+            # Add any other style CDNs
         ),
         "font-src": (
             "'self'",
             "cdn.jsdelivr.net",
             "cdnjs.cloudflare.com",
-            "fonts.googleapis.com",  # Google Fonts
-            "fonts.gstatic.com",  # Google Fonts assets
+            "fonts.googleapis.com",
+            "fonts.gstatic.com",
+            "use.fontawesome.com",
+            "ka-f.fontawesome.com",
         ),
         "img-src": (
             "'self'",
@@ -176,49 +178,62 @@ CONTENT_SECURITY_POLICY = {
             "blob:",  # Blob URLs
             "cdn.jsdelivr.net",
             "cdnjs.cloudflare.com",
-            "www.google-analytics.com",  # Google Analytics tracking pixels
+            "via.placeholder.com",  # Placeholder images
+            "picsum.photos",  # Lorem Picsum
+            "images.unsplash.com",  # Unsplash
+            # Analytics tracking pixels
+            "www.google-analytics.com",
             "www.googletagmanager.com",
+            "connect.facebook.net",
             # Add your media/image CDN domains here
         ),
         "connect-src": (
             "'self'",
             "api.iconify.design",
-            "api.simplesvg.com",  # Add this line
+            "api.simplesvg.com",
             "api.unisvg.com",
-            # Add API domains here if needed
+            # API endpoints you might need
+            # CDN endpoints (these were missing!)
+            "cdn.jsdelivr.net",
+            "cdnjs.cloudflare.com",
+            "unpkg.com",
+            "code.jquery.com",
+            "ajax.googleapis.com",
+            "stackpath.bootstrapcdn.com",
+            "maxcdn.bootstrapcdn.com",
+            # Analytics
+            "www.google-analytics.com",
+            "www.googletagmanager.com",
+            # Add your API domains here
         ),
-        "media-src": ("'self'",),
+        "media-src": ("'self'", "blob:", "data:"),
         "object-src": ("'none'",),
         "base-uri": ("'self'",),
         "form-action": ("'self'",),
-        # Optional: Force HTTPS in production
-        # 'upgrade-insecure-requests': True,
+        "frame-ancestors": ("'none'",),  # Prevents clickjacking
+        "upgrade-insecure-requests": True,  # Force HTTPS in production
     }
 }
 
+# Development vs Production settings
 if DEBUG:
-    CONTENT_SECURITY_POLICY["DIRECTIVES"].update(
-        {
-            "script-src": CONTENT_SECURITY_POLICY["DIRECTIVES"]["script-src"]
-            + ("'unsafe-eval'",),  # Allow eval() for development tools
-            "style-src": CONTENT_SECURITY_POLICY["DIRECTIVES"]["style-src"]
-            + ("'unsafe-inline'",),  # Allow inline styles for development
-        }
+    # Add development-specific sources for local development
+    CONTENT_SECURITY_POLICY["DIRECTIVES"]["script-src"] += (
+        "localhost:*",
+        "127.0.0.1:*",
+    )
+    CONTENT_SECURITY_POLICY["DIRECTIVES"]["connect-src"] += (
+        "localhost:*",  # ✅ Allows local API calls
+        "127.0.0.1:*",  # ✅ Allows local development server
+        "ws:",  # ✅ WebSocket for development tools
+        "wss:",  # ✅ Secure WebSocket
     )
 
-    # Enable report-only mode for development testing
+    # Optional: Enable report-only mode for testing new policies
     # CONTENT_SECURITY_POLICY_REPORT_ONLY = True
 
-# For production - more restrictive
 else:
-    # Remove unsafe-eval from production
-    script_src = list(CONTENT_SECURITY_POLICY["DIRECTIVES"]["script-src"])
-    if "'unsafe-eval'" in script_src:
-        script_src.remove("'unsafe-eval'")
-
-    CONTENT_SECURITY_POLICY["DIRECTIVES"]["script-src"] = tuple(script_src)
-
-    # Force HTTPS in production
+    # Production settings - force HTTPS
     CONTENT_SECURITY_POLICY["DIRECTIVES"]["upgrade-insecure-requests"] = True
 
 # ==============================================================================
@@ -265,7 +280,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # The first backend that successfully authenticates will be used
 AUTHENTICATION_BACKENDS = [
     # Primary unified backend supporting all identifier types
-    "src.accounts.authentication.UnifiedAuthenticationBackend",
+    # "src.accounts.authentication.UnifiedAuthenticationBackend",
     # Fallback to Django's default backend for admin/superuser accounts
     "django.contrib.auth.backends.ModelBackend",
     # Specialized backends (optional - for specific use cases)
@@ -418,18 +433,42 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5MB
 # ==============================================================================
 
 # Cache configuration
+# Cache configuration - Use django-redis consistently
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": "redis://127.0.0.1:6379/1",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "CONNECTION_POOL_KWARGS": {"max_connections": 50},
+            "IGNORE_EXCEPTIONS": True,  # Don't crash if Redis is unavailable
         },
         "KEY_PREFIX": "sms",
         "TIMEOUT": 300,  # 5 minutes default timeout
-    }
+    },
+    "sessions": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/2",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "CONNECTION_POOL_KWARGS": {"max_connections": 20},
+            "IGNORE_EXCEPTIONS": True,
+        },
+        "KEY_PREFIX": "sms_session",
+        "TIMEOUT": 3600,  # 1 hour
+    },
+    "finance": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/3",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "CONNECTION_POOL_KWARGS": {"max_connections": 20},
+            "IGNORE_EXCEPTIONS": True,
+        },
+        "KEY_PREFIX": "finance",
+        "TIMEOUT": 3600,
+    },
 }
-
 # Cache timeouts for specific functions
 CACHE_TIMEOUTS = {
     "user_permissions": 3600,  # 1 hour
@@ -437,6 +476,14 @@ CACHE_TIMEOUTS = {
     "role_statistics": 1800,  # 30 minutes
 }
 
+# Session configuration to use Redis
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "sessions"
+
+# Redis connection settings
+REDIS_HOST = "127.0.0.1"
+REDIS_PORT = 6379
+REDIS_DB = 0
 
 # ==============================================================================
 # DJANGO REST FRAMEWORK SETTINGS
@@ -472,7 +519,11 @@ REST_FRAMEWORK = {
 # ==============================================================================
 # LOGGING SETTINGS
 # ==============================================================================
+# Ensure logs directory exists
+LOGS_DIR = BASE_DIR / "logs"
+LOGS_DIR.mkdir(exist_ok=True)
 
+# Robust logging configuration
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -485,10 +536,9 @@ LOGGING = {
             "format": "{levelname} {message}",
             "style": "{",
         },
-    },
-    "filters": {
-        "require_debug_false": {
-            "()": "django.utils.log.RequireDebugFalse",
+        "audit": {
+            "format": "{asctime} {levelname} {module} {message}",
+            "style": "{",
         },
     },
     "handlers": {
@@ -499,49 +549,93 @@ LOGGING = {
         },
         "file": {
             "level": "INFO",
-            "class": "logging.FileHandler",
-            "filename": "logs/accounts.log",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": str(LOGS_DIR / "accounts.log"),
+            "maxBytes": 1024 * 1024 * 15,  # 15MB
+            "backupCount": 5,
             "formatter": "verbose",
+        },
+        "core_file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": str(LOGS_DIR / "core.log"),
+            "maxBytes": 1024 * 1024 * 10,  # 10MB
+            "backupCount": 5,
+            "formatter": "verbose",
+        },
+        "audit_file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": str(LOGS_DIR / "audit.log"),
+            "maxBytes": 1024 * 1024 * 10,  # 10MB
+            "backupCount": 10,
+            "formatter": "audit",
         },
         "security_file": {
             "level": "WARNING",
-            "class": "logging.FileHandler",
-            "filename": "logs/security.log",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": str(LOGS_DIR / "security.log"),
+            "maxBytes": 1024 * 1024 * 5,  # 5MB
+            "backupCount": 10,
             "formatter": "verbose",
         },
-        "mail_admins": {
-            "level": "ERROR",
-            "class": "django.utils.log.AdminEmailHandler",
-            "filters": ["require_debug_false"],
+        "finance_file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": str(LOGS_DIR / "finance.log"),
+            "maxBytes": 1024 * 1024 * 15,  # 15MB
+            "backupCount": 10,
+            "formatter": "verbose",
+        },
+        "exam_file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": str(LOGS_DIR / "exams.log"),
+            "maxBytes": 1024 * 1024 * 10,  # 10MB
+            "backupCount": 5,
             "formatter": "verbose",
         },
     },
     "loggers": {
-        "accounts": {
+        "django": {
             "handlers": ["console", "file"],
             "level": "INFO",
             "propagate": True,
         },
-        "accounts.security": {
-            "handlers": ["security_file", "mail_admins"],
+        "accounts": {
+            "handlers": ["file", "console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "core": {
+            "handlers": ["core_file", "console"],
+            "level": "INFO",
+            "propagate": True,
+        },
+        "core.services.audit": {
+            "handlers": ["audit_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "core.services.security": {
+            "handlers": ["security_file", "console"],
             "level": "WARNING",
             "propagate": False,
         },
-        "accounts.tasks": {
-            "handlers": ["console", "file"],
+        "finance": {
+            "handlers": ["finance_file", "console"],
             "level": "INFO",
             "propagate": True,
         },
-        "csp": {
-            "handlers": ["console", "file"],
-            "level": "WARNING",
+        "exams": {
+            "handlers": ["exam_file", "console"],
+            "level": "INFO",
             "propagate": True,
         },
-        "django.security": {
-            "handlers": ["console", "file"],
-            "level": "WARNING",
-            "propagate": True,
-        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "WARNING",
     },
 }
 
@@ -716,7 +810,7 @@ UNIFIED_AUTH_SETTINGS = {
 AUTH_FEATURE_FLAGS = {
     "UNIFIED_LOGIN": True,  # Enable unified login system
     "PHONE_LOGIN": True,  # Allow login with phone numbers
-    "ADMISSION_LOGIN": True,  # Allow login with admission numbers
+    "ADMISSION_LOGIN": False,  # Allow login with admission numbers
     "USERNAME_LOGIN": True,  # Allow login with usernames
     "EMAIL_LOGIN": True,  # Allow login with email addresses
     "REMEMBER_ME": True,  # Enable "remember me" functionality

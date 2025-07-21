@@ -16,7 +16,35 @@ User = get_user_model()
 
 
 class StudentUtils:
-    """Utility functions for student-related operations"""
+    """Utility functions for student-related operations (no user account management)"""
+
+    @staticmethod
+    def validate_admission_number(admission_number):
+        """
+        Validate admission number format
+
+        Args:
+            admission_number (str): Admission number to validate
+
+        Returns:
+            bool: True if valid, False otherwise
+        """
+        if not admission_number:
+            return False
+
+        # Remove whitespace and convert to uppercase
+        admission_number = admission_number.strip().upper()
+
+        # Pattern: STU-YYYY-XXXXXX or similar variations
+        patterns = [
+            r"^[A-Z]{2,5}-\d{4}-[A-Z0-9]{4,8}(-\d{2})?$",  # STU-2024-ABC123-01
+            r"^[A-Z]{2,5}\d{4}[A-Z0-9]{4,8}$",  # STU2024ABC123
+            r"^\d{4}[A-Z0-9]{4,8}$",  # 2024ABC123
+            r"^\d{7,12}$",  # 202400001
+            r"^[A-Z]{2,5}/\d{4}/\d{3,6}$",  # STU/2024/001
+        ]
+
+        return any(re.match(pattern, admission_number) for pattern in patterns)
 
     @staticmethod
     def generate_admission_number(prefix="STU", year=None):
@@ -52,19 +80,24 @@ class StudentUtils:
         return admission_number
 
     @staticmethod
-    def validate_admission_number(admission_number):
+    def generate_registration_number(admission_year, prefix="REG"):
         """
-        Validate admission number format
+        Generate a unique registration number
 
         Args:
-            admission_number (str): Admission number to validate
+            admission_year (int): Year of admission
+            prefix (str): Prefix for registration number
 
         Returns:
-            bool: True if valid, False otherwise
+            str: Generated registration number
         """
-        # Pattern: STU-YYYY-XXXXXX or similar
-        pattern = r"^[A-Z]{2,5}-\d{4}-[A-Z0-9]{4,8}(-\d{2})?$"
-        return bool(re.match(pattern, admission_number))
+        # Generate unique ID
+        unique_id = str(uuid.uuid4().hex)[:8].upper()
+
+        # Format: REG-2024-ABCD1234
+        registration_number = f"{prefix}-{admission_year}-{unique_id}"
+
+        return registration_number
 
     @staticmethod
     def parse_name_components(full_name):
@@ -84,35 +117,58 @@ class StudentUtils:
         elif len(name_parts) == 1:
             return name_parts[0], ""
         else:
-            return name_parts[0], " ".join(name_parts[1:])
+            # First part is first name, rest is last name
+            first_name = name_parts[0]
+            last_name = " ".join(name_parts[1:])
+            return first_name, last_name
 
     @staticmethod
-    def format_phone_number(phone):
+    def format_phone_number(phone_number, country_code="+1"):
         """
-        Format phone number to a standard format
+        Format phone number to standard format
 
         Args:
-            phone (str): Raw phone number
+            phone_number (str): Phone number to format
+            country_code (str): Default country code
 
         Returns:
             str: Formatted phone number
         """
-        if not phone:
+        if not phone_number:
             return ""
 
-        # Remove all non-digit characters except +
-        cleaned = re.sub(r"[^\d+]", "", phone)
+        # Remove all non-digit characters
+        digits_only = re.sub(r"\D", "", phone_number)
 
-        # Handle different formats
-        if cleaned.startswith("+"):
-            return cleaned
-        elif cleaned.startswith("0"):
-            # Remove leading 0 and add country code
-            return f"+91{cleaned[1:]}"  # Assuming India (+91)
-        elif len(cleaned) == 10:
-            return f"+91{cleaned}"
+        # If no country code, add default
+        if not digits_only.startswith(country_code.replace("+", "")):
+            if len(digits_only) == 10:  # US format
+                digits_only = country_code.replace("+", "") + digits_only
+
+        # Format as +1-234-567-8900
+        if len(digits_only) == 11 and digits_only.startswith("1"):
+            return f"+{digits_only[0]}-{digits_only[1:4]}-{digits_only[4:7]}-{digits_only[7:]}"
+        elif len(digits_only) == 10:
+            return f"+1-{digits_only[:3]}-{digits_only[3:6]}-{digits_only[6:]}"
         else:
-            return cleaned
+            return f"+{digits_only}"
+
+    @staticmethod
+    def validate_email_format(email):
+        """
+        Validate email format
+
+        Args:
+            email (str): Email to validate
+
+        Returns:
+            bool: True if valid format
+        """
+        if not email:
+            return True  # Email is optional for students
+
+        pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+        return bool(re.match(pattern, email))
 
     @staticmethod
     def calculate_age(date_of_birth):
@@ -137,71 +193,78 @@ class StudentUtils:
         ):
             age -= 1
 
-        return max(0, age)
+        return age
 
     @staticmethod
-    def validate_email_domain(email, allowed_domains=None):
+    def validate_age(date_of_birth, min_age=3, max_age=25):
         """
-        Validate email domain against allowed list
+        Validate if age is within acceptable range for students
 
         Args:
-            email (str): Email to validate
-            allowed_domains (list): List of allowed domains
+            date_of_birth (date): Date of birth
+            min_age (int): Minimum acceptable age
+            max_age (int): Maximum acceptable age
 
         Returns:
-            bool: True if valid, False otherwise
+            bool: True if age is valid
         """
-        if not email or not allowed_domains:
-            return True
+        if not date_of_birth:
+            return True  # Date of birth is optional
 
-        domain = email.split("@")[-1].lower()
-        return domain in [d.lower() for d in allowed_domains]
+        age = StudentUtils.calculate_age(date_of_birth)
+        return min_age <= age <= max_age
 
     @staticmethod
-    def generate_student_slug(student):
+    def generate_student_email(
+        first_name, last_name, admission_number, domain="student.school.edu"
+    ):
         """
-        Generate a URL-friendly slug for a student
+        Generate a suggested email address for student
 
         Args:
-            student: Student instance
+            first_name (str): Student's first name
+            last_name (str): Student's last name
+            admission_number (str): Student's admission number
+            domain (str): Email domain
 
         Returns:
-            str: URL slug
+            str: Suggested email address
         """
-        name_slug = slugify(f"{student.user.first_name} {student.user.last_name}")
-        return f"{student.admission_number}-{name_slug}".lower()
+        # Create email from name and admission number
+        name_part = f"{first_name.lower()}.{last_name.lower()}"
+        name_part = re.sub(r"[^a-z.]", "", name_part)  # Remove non-alphabetic chars
+
+        # Extract year from admission number
+        year_match = re.search(r"\d{4}", admission_number)
+        year = year_match.group() if year_match else ""
+
+        return f"{name_part}.{year}@{domain}"
 
     @staticmethod
-    def process_profile_image(image_file, max_size=(800, 800), quality=85):
+    def process_profile_picture(image_file, max_size=(300, 300), quality=85):
         """
-        Process uploaded profile image
+        Process and optimize student profile picture
 
         Args:
-            image_file: Uploaded image file
+            image_file: Image file object
             max_size (tuple): Maximum dimensions (width, height)
             quality (int): JPEG quality (1-100)
 
         Returns:
-            BytesIO: Processed image data
+            io.BytesIO: Processed image buffer
         """
         try:
-            # Open and process the image
+            # Open and process image
             image = Image.open(image_file)
 
             # Convert to RGB if necessary
             if image.mode in ("RGBA", "LA", "P"):
-                background = Image.new("RGB", image.size, (255, 255, 255))
-                if image.mode == "P":
-                    image = image.convert("RGBA")
-                background.paste(
-                    image, mask=image.split()[-1] if image.mode == "RGBA" else None
-                )
-                image = background
+                image = image.convert("RGB")
 
-            # Resize if larger than max_size
+            # Resize image while maintaining aspect ratio
             image.thumbnail(max_size, Image.Resampling.LANCZOS)
 
-            # Save to BytesIO
+            # Save to buffer
             output = io.BytesIO()
             image.save(output, format="JPEG", quality=quality, optimize=True)
             output.seek(0)
@@ -212,63 +275,264 @@ class StudentUtils:
             raise ValidationError(f"Error processing image: {str(e)}")
 
     @staticmethod
+    def validate_emergency_contact(contact_name, contact_number):
+        """
+        Validate emergency contact information
+
+        Args:
+            contact_name (str): Emergency contact name
+            contact_number (str): Emergency contact phone number
+
+        Returns:
+            bool: True if valid
+        """
+        if not contact_name or not contact_name.strip():
+            return False
+
+        if not contact_number or not contact_number.strip():
+            return False
+
+        # Validate phone number format
+        phone_pattern = r"^\+?[\d\s\-\(\)]{10,15}$"
+        return bool(re.match(phone_pattern, contact_number))
+
+    @staticmethod
+    def format_student_display_name(first_name, last_name, admission_number):
+        """
+        Format student name for display purposes
+
+        Args:
+            first_name (str): First name
+            last_name (str): Last name
+            admission_number (str): Admission number
+
+        Returns:
+            str: Formatted display name
+        """
+        full_name = f"{first_name} {last_name}".strip()
+        if not full_name:
+            return admission_number
+        return f"{full_name} ({admission_number})"
+
+    @staticmethod
+    def sanitize_student_data(data):
+        """
+        Sanitize student data input
+
+        Args:
+            data (dict): Student data dictionary
+
+        Returns:
+            dict: Sanitized data
+        """
+        sanitized = {}
+
+        # Text fields that need stripping and title case
+        text_fields = [
+            "first_name",
+            "last_name",
+            "emergency_contact_name",
+            "emergency_contact_relationship",
+        ]
+        for field in text_fields:
+            if field in data and data[field]:
+                sanitized[field] = data[field].strip().title()
+
+        # Fields that need stripping only
+        strip_fields = [
+            "email",
+            "phone_number",
+            "admission_number",
+            "roll_number",
+            "previous_school",
+        ]
+        for field in strip_fields:
+            if field in data and data[field]:
+                sanitized[field] = data[field].strip()
+
+        # Email to lowercase
+        if "email" in sanitized and sanitized["email"]:
+            sanitized["email"] = sanitized["email"].lower()
+
+        # Admission number to uppercase
+        if "admission_number" in sanitized and sanitized["admission_number"]:
+            sanitized["admission_number"] = sanitized["admission_number"].upper()
+
+        # Text areas that need stripping
+        textarea_fields = ["address", "medical_conditions"]
+        for field in textarea_fields:
+            if field in data and data[field]:
+                sanitized[field] = data[field].strip()
+
+        # Copy other fields as-is
+        for field, value in data.items():
+            if field not in sanitized:
+                sanitized[field] = value
+
+        return sanitized
+
+    @staticmethod
+    def validate_student_data_completeness(data, required_fields=None):
+        """
+        Validate that required student data is complete
+
+        Args:
+            data (dict): Student data dictionary
+            required_fields (list): List of required fields
+
+        Returns:
+            tuple: (is_valid, missing_fields)
+        """
+        if required_fields is None:
+            required_fields = [
+                "first_name",
+                "last_name",
+                "admission_number",
+                "emergency_contact_name",
+                "emergency_contact_number",
+            ]
+
+        missing_fields = []
+
+        for field in required_fields:
+            if field not in data or not data[field] or not str(data[field]).strip():
+                missing_fields.append(field)
+
+        return len(missing_fields) == 0, missing_fields
+
+    @staticmethod
+    def generate_csv_header():
+        """
+        Generate CSV header for student data export
+
+        Returns:
+            list: List of CSV column headers
+        """
+        return [
+            "admission_number",
+            "first_name",
+            "last_name",
+            "email",
+            "phone_number",
+            "date_of_birth",
+            "gender",
+            "address",
+            "current_class",
+            "roll_number",
+            "blood_group",
+            "status",
+            "admission_date",
+            "emergency_contact_name",
+            "emergency_contact_number",
+            "emergency_contact_relationship",
+            "previous_school",
+            "medical_conditions",
+        ]
+
+    @staticmethod
+    def student_to_csv_row(student):
+        """
+        Convert student object to CSV row
+
+        Args:
+            student: Student model instance
+
+        Returns:
+            list: List of values for CSV row
+        """
+        return [
+            student.admission_number,
+            student.first_name,
+            student.last_name,
+            student.email or "",
+            student.phone_number or "",
+            student.date_of_birth.strftime("%Y-%m-%d") if student.date_of_birth else "",
+            student.get_gender_display() if student.gender else "",
+            student.address or "",
+            str(student.current_class) if student.current_class else "",
+            student.roll_number or "",
+            student.blood_group,
+            student.status,
+            student.admission_date.strftime("%Y-%m-%d"),
+            student.emergency_contact_name,
+            student.emergency_contact_number,
+            student.emergency_contact_relationship or "",
+            student.previous_school or "",
+            student.medical_conditions or "",
+        ]
+
+    @staticmethod
+    def is_valid_blood_group(blood_group):
+        """
+        Validate blood group
+
+        Args:
+            blood_group (str): Blood group to validate
+
+        Returns:
+            bool: True if valid
+        """
+        valid_groups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"]
+        return blood_group in valid_groups
+
+    @staticmethod
+    def normalize_blood_group(blood_group):
+        """
+        Normalize blood group format
+
+        Args:
+            blood_group (str): Blood group to normalize
+
+        Returns:
+            str: Normalized blood group
+        """
+        if not blood_group:
+            return "Unknown"
+
+        # Remove spaces and convert to uppercase
+        normalized = blood_group.replace(" ", "").upper()
+
+        # Map common variations
+        blood_group_map = {
+            "A+": "A+",
+            "A-": "A-",
+            "B+": "B+",
+            "B-": "B-",
+            "AB+": "AB+",
+            "AB-": "AB-",
+            "O+": "O+",
+            "O-": "O-",
+            "APOSITIVE": "A+",
+            "ANEGATIVE": "A-",
+            "BPOSITIVE": "B+",
+            "BNEGATIVE": "B-",
+            "ABPOSITIVE": "AB+",
+            "ABNEGATIVE": "AB-",
+            "OPOSITIVE": "O+",
+            "ONEGATIVE": "O-",
+        }
+
+        return blood_group_map.get(normalized, "Unknown")
+
+    @staticmethod
     def generate_qr_code_data(student):
         """
         Generate QR code data for student
 
         Args:
-            student: Student instance
+            student: Student model instance
 
         Returns:
-            str: QR code data string
+            dict: Data to encode in QR code
         """
-        data = {
-            "id": str(student.id),
+        return {
+            "type": "student",
             "admission_number": student.admission_number,
-            "name": student.get_full_name(),
+            "name": student.full_name,
             "class": str(student.current_class) if student.current_class else "",
             "emergency_contact": student.emergency_contact_number,
+            "blood_group": student.blood_group,
         }
-
-        # Create a formatted string
-        qr_string = "\n".join([f"{k}: {v}" for k, v in data.items()])
-        return qr_string
-
-    @staticmethod
-    def mask_sensitive_data(data, fields_to_mask=None):
-        """
-        Mask sensitive data for logging/display
-
-        Args:
-            data (dict): Data to mask
-            fields_to_mask (list): List of field names to mask
-
-        Returns:
-            dict: Masked data
-        """
-        if fields_to_mask is None:
-            fields_to_mask = [
-                "phone_number",
-                "emergency_contact_number",
-                "work_phone",
-                "email",
-                "address",
-            ]
-
-        masked_data = data.copy()
-
-        for field in fields_to_mask:
-            if field in masked_data and masked_data[field]:
-                value = str(masked_data[field])
-                if "@" in value:  # Email
-                    parts = value.split("@")
-                    masked_data[field] = f"{parts[0][:2]}***@{parts[1]}"
-                elif len(value) > 4:  # Phone or other
-                    masked_data[field] = f"{value[:2]}***{value[-2:]}"
-                else:
-                    masked_data[field] = "***"
-
-        return masked_data
 
 
 class ParentUtils:

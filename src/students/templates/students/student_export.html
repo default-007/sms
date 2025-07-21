@@ -1,0 +1,192 @@
+<!-- students/templates/students/import_export/student_export.html -->
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Export Students{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'students:student-list' %}">Students</a></li>
+    <li class="breadcrumb-item active">Export Students</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header bg-success text-white">
+          <h4 class="mb-0">
+            <i class="fas fa-file-download mr-2"></i>
+            Export Students
+          </h4>
+        </div>
+        <div class="card-body">
+          <!-- System Changes Notice -->
+          <div class="alert alert-info">
+            <h6><i class="fas fa-info-circle mr-2"></i>Export Information</h6>
+            <p class="mb-0">
+              Student exports now include direct student fields (no user account data).
+              Email addresses are included only if provided for direct communication.
+            </p>
+          </div>
+
+          <form method="post">
+            {% csrf_token %}
+
+            <!-- Export Format -->
+            <div class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0">Export Format</h5>
+              </div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label for="{{ form.export_format.id_for_label }}">
+                    Choose Export Format
+                  </label>
+                  {{ form.export_format }}
+                  {% if form.export_format.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.export_format.errors.0 }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Fields to Include -->
+            <div class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0">Fields to Include</h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  {% for field in form.include_fields %}
+                  <div class="col-md-6 col-lg-4">
+                    <div class="form-check">
+                      {{ field.tag }}
+                      <label class="form-check-label" for="{{ field.id_for_label }}">
+                        {{ field.choice_label }}
+                      </label>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+
+                {% if form.include_fields.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.include_fields.errors.0 }}
+                </div>
+                {% endif %}
+
+                <div class="mt-3">
+                  <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllFields()">
+                    Select All
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary ml-2" onclick="selectNoneFields()">
+                    Select None
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-info ml-2" onclick="selectBasicFields()">
+                    Select Basic Fields
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0">Filters</h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-4">
+                    <div class="form-group">
+                      <label for="{{ form.class_filter.id_for_label }}">
+                        Class Filter
+                      </label>
+                      {{ form.class_filter }}
+                      {% if form.class_filter.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.class_filter.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-group">
+                      <label for="{{ form.status_filter.id_for_label }}">
+                        Status Filter
+                      </label>
+                      {{ form.status_filter }}
+                      {% if form.status_filter.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.status_filter.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-group">
+                      <div class="form-check mt-4">
+                        {{ form.include_inactive }}
+                        <label class="form-check-label" for="{{ form.include_inactive.id_for_label }}">
+                          Include Inactive Students
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="text-center">
+              <button type="submit" class="btn btn-success btn-lg">
+                <i class="fas fa-download mr-2"></i>
+                Export Students
+              </button>
+              <a href="{% url 'students:student-list' %}" class="btn btn-secondary btn-lg ml-3">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to Student List
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function selectAllFields() {
+    $('input[name="include_fields"]').prop('checked', true);
+  }
+
+  function selectNoneFields() {
+    $('input[name="include_fields"]').prop('checked', false);
+  }
+
+  function selectBasicFields() {
+    selectNoneFields();
+    const basicFields = ['admission_number', 'first_name', 'last_name', 'email', 'current_class', 'status', 'emergency_contact_name', 'emergency_contact_number'];
+    basicFields.forEach(function (field) {
+      $(`input[value="${field}"]`).prop('checked', true);
+    });
+  }
+
+  $(document).ready(function () {
+    // Form submission with loading state
+    $('form').submit(function () {
+      const submitBtn = $(this).find('button[type="submit"]');
+      submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Generating Export...');
+    });
+  });
+</script>
+{% endblock %>

@@ -1,0 +1,301 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Import Students{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'students:student-list' %}">Students</a></li>
+    <li class="breadcrumb-item active">Import Students</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0">
+            <i class="fas fa-file-upload mr-2"></i>
+            Import Students
+          </h4>
+        </div>
+        <div class="card-body">
+          <!-- Important Notice -->
+          <div class="alert alert-info">
+            <h6><i class="fas fa-info-circle mr-2"></i>Important Changes</h6>
+            <ul class="mb-0">
+              <li><strong>No User Accounts:</strong> Students will be created without login accounts</li>
+              <li><strong>Direct Information:</strong> All student data is stored directly (no user relationship)</li>
+              <li><strong>Email Optional:</strong> Student email addresses are optional but recommended for
+                communication</li>
+              <li><strong>Parent Management:</strong> Parents will manage student information through their own accounts
+              </li>
+            </ul>
+          </div>
+
+          <form method="post" enctype="multipart/form-data" id="import-form">
+            {% csrf_token %}
+
+            <!-- File Upload Section -->
+            <div class="row">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label for="{{ form.import_file.id_for_label }}" class="required">
+                    Import File <span class="text-danger">*</span>
+                  </label>
+                  {{ form.import_file }}
+                  {% if form.import_file.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.import_file.errors.0 }}
+                  </div>
+                  {% endif %}
+                  <small class="form-text text-muted">
+                    Supported formats: CSV, Excel (.xlsx, .xls). Maximum size: 5MB
+                  </small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Import Options -->
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="{{ form.default_class.id_for_label }}">
+                    Default Class
+                  </label>
+                  {{ form.default_class }}
+                  {% if form.default_class.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.default_class.errors.0 }}
+                  </div>
+                  {% endif %}
+                  <small class="form-text text-muted">
+                    Used for students without class specified in file
+                  </small>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <div class="form-check">
+                    {{ form.send_welcome_emails }}
+                    <label class="form-check-label" for="{{ form.send_welcome_emails.id_for_label }}">
+                      Send Welcome Emails
+                    </label>
+                  </div>
+                  <small class="form-text text-muted">
+                    Emails will be sent to students with email addresses
+                  </small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Advanced Options -->
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <div class="form-check">
+                    {{ form.update_existing }}
+                    <label class="form-check-label" for="{{ form.update_existing.id_for_label }}">
+                      Update Existing Students
+                    </label>
+                  </div>
+                  <small class="form-text text-muted">
+                    Update students with matching admission numbers
+                  </small>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <div class="form-check">
+                    {{ form.validate_before_import }}
+                    <label class="form-check-label" for="{{ form.validate_before_import.id_for_label }}">
+                      Validate Before Import
+                    </label>
+                  </div>
+                  <small class="form-text text-muted">
+                    Recommended to catch errors before import
+                  </small>
+                </div>
+              </div>
+            </div>
+
+            <!-- File Validation Results -->
+            <div id="validation-results" class="mt-3" style="display: none;">
+              <div class="card">
+                <div class="card-header">
+                  <h6 class="mb-0">File Validation Results</h6>
+                </div>
+                <div class="card-body" id="validation-content">
+                  <!-- Validation results will be inserted here -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="mt-4">
+              <button type="button" id="validate-btn" class="btn btn-outline-primary mr-2">
+                <i class="fas fa-check-circle mr-1"></i>
+                Validate File
+              </button>
+              <button type="submit" class="btn btn-primary" id="import-btn" disabled>
+                <i class="fas fa-upload mr-1"></i>
+                Import Students
+              </button>
+              <a href="{% url 'students:student-list' %}" class="btn btn-secondary ml-2">
+                <i class="fas fa-times mr-1"></i>
+                Cancel
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar with Instructions -->
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-question-circle mr-2"></i>
+            Import Instructions
+          </h5>
+        </div>
+        <div class="card-body">
+          <h6>Required Fields</h6>
+          <ul class="list-unstyled">
+            <li><i class="fas fa-check text-success mr-1"></i> First Name</li>
+            <li><i class="fas fa-check text-success mr-1"></i> Last Name</li>
+            <li><i class="fas fa-check text-success mr-1"></i> Admission Number</li>
+            <li><i class="fas fa-check text-success mr-1"></i> Emergency Contact Name</li>
+            <li><i class="fas fa-check text-success mr-1"></i> Emergency Contact Number</li>
+          </ul>
+
+          <h6 class="mt-3">Optional Fields</h6>
+          <ul class="list-unstyled">
+            <li><i class="fas fa-circle text-muted mr-1"></i> Email</li>
+            <li><i class="fas fa-circle text-muted mr-1"></i> Phone Number</li>
+            <li><i class="fas fa-circle text-muted mr-1"></i> Date of Birth</li>
+            <li><i class="fas fa-circle text-muted mr-1"></i> Gender</li>
+            <li><i class="fas fa-circle text-muted mr-1"></i> Address</li>
+            <li><i class="fas fa-circle text-muted mr-1"></i> Class Name</li>
+            <li><i class="fas fa-circle text-muted mr-1"></i> Blood Group</li>
+            <li><i class="fas fa-circle text-muted mr-1"></i> Medical Conditions</li>
+          </ul>
+
+          <div class="mt-3">
+            <a href="{% url 'students:download-import-template' %}" class="btn btn-outline-success btn-block">
+              <i class="fas fa-download mr-1"></i>
+              Download Template
+            </a>
+          </div>
+
+          <h6 class="mt-3">Format Examples</h6>
+          <small>
+            <strong>Admission Number:</strong> STU-2024-ABC123<br>
+            <strong>Date Format:</strong> YYYY-MM-DD<br>
+            <strong>Gender:</strong> M, F, or O<br>
+            <strong>Blood Group:</strong> A+, A-, B+, B-, AB+, AB-, O+, O-, Unknown
+          </small>
+        </div>
+      </div>
+
+      <!-- System Changes Notice -->
+      <div class="card mt-3">
+        <div class="card-header bg-warning text-dark">
+          <h6 class="mb-0">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            System Updates
+          </h6>
+        </div>
+        <div class="card-body">
+          <p class="small mb-2"><strong>Students No Longer Login:</strong></p>
+          <ul class="small mb-0">
+            <li>Students don't get user accounts</li>
+            <li>No passwords or login credentials</li>
+            <li>Parents manage all student info</li>
+            <li>Direct email communication with students</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // File validation
+    $('#validate-btn').click(function () {
+      const fileInput = $('#id_import_file')[0];
+      if (!fileInput.files.length) {
+        alert('Please select a file first.');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('import_file', fileInput.files[0]);
+      formData.append('csrfmiddlewaretoken', $('[name=csrfmiddlewaretoken]').val());
+
+      $.ajax({
+        url: "{% url 'students:validate-import-file' %}",
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (response) {
+          $('#validation-results').show();
+
+          if (response.valid) {
+            $('#validation-content').html(`
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-check-circle mr-2"></i>File is Valid</h6>
+                            <p class="mb-0">${response.message}</p>
+                            ${response.row_count ? `<p class="mb-0">Rows to import: ${response.row_count}</p>` : ''}
+                        </div>
+                    `);
+            $('#import-btn').prop('disabled', false);
+          } else {
+            $('#validation-content').html(`
+                        <div class="alert alert-danger">
+                            <h6><i class="fas fa-exclamation-circle mr-2"></i>Validation Failed</h6>
+                            <p class="mb-0">${response.message}</p>
+                        </div>
+                    `);
+            $('#import-btn').prop('disabled', true);
+          }
+        },
+        error: function () {
+          $('#validation-results').show();
+          $('#validation-content').html(`
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-circle mr-2"></i>Validation Error</h6>
+                        <p class="mb-0">Unable to validate file. Please try again.</p>
+                    </div>
+                `);
+        }
+      });
+    });
+
+    // Auto-validate when file changes
+    $('#id_import_file').change(function () {
+      $('#validation-results').hide();
+      $('#import-btn').prop('disabled', true);
+    });
+
+    // Form submission
+    $('#import-form').submit(function (e) {
+      if (!confirm('Are you sure you want to import these students? This action cannot be undone.')) {
+        e.preventDefault();
+      } else {
+        $('#import-btn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Importing...');
+      }
+    });
+  });
+</script>
+{% endblock %}

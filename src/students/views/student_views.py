@@ -1,12 +1,18 @@
 # students/views/student_views.py
+import csv
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Prefetch, Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 from django.views.decorators.cache import cache_page
 from django.views.generic import (
     CreateView,
@@ -21,75 +27,74 @@ from django.views.generic import (
 from src.students.exceptions import *
 from src.students.services.analytics_service import StudentAnalyticsService
 
-from ..forms import QuickStudentAddForm, StudentForm, StudentPromotionForm
+from ..forms import (
+    BulkStudentImportForm,
+    QuickStudentForm,
+    StudentForm,
+    StudentParentRelationForm,
+    StudentPromotionForm,
+    StudentSearchForm,
+)
 from ..models import Parent, Student, StudentParentRelation
-from ..services.student_service import StudentService
+from ..services.student_service import InvalidStudentDataError, StudentService
 
 
 class StudentListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
+    """List view for students with search and filtering"""
+
     model = Student
     permission_required = "students.view_student"
-    context_object_name = "students"
     template_name = "students/student_list.html"
-    paginate_by = 25
+    context_object_name = "students"
+    paginate_by = 20
 
     def get_queryset(self):
         queryset = Student.objects.with_related().with_parents()
 
-        # Apply search filter
-        search_query = self.request.GET.get("search", "")
-        if search_query:
-            queryset = queryset.search(search_query)
+        # Apply search and filters
+        form = StudentSearchForm(self.request.GET)
+        if form.is_valid():
+            query = form.cleaned_data.get("query")
+            class_filter = form.cleaned_data.get("class_filter")
+            status_filter = form.cleaned_data.get("status_filter")
+            blood_group_filter = form.cleaned_data.get("blood_group_filter")
 
-        # Apply other filters
-        for filter_name in ["status", "blood_group"]:
-            filter_value = self.request.GET.get(filter_name)
-            if filter_value:
-                queryset = queryset.filter(**{filter_name: filter_value})
+            if query:
+                queryset = queryset.search(query)
 
-        # Apply class filter
-        class_filter = self.request.GET.get("class")
-        if class_filter:
-            queryset = queryset.filter(current_class_id=class_filter)
+            if class_filter:
+                queryset = queryset.filter(current_class=class_filter)
 
-        return queryset.order_by("admission_number")
+            if status_filter:
+                queryset = queryset.filter(status=status_filter)
+
+            if blood_group_filter:
+                queryset = queryset.filter(blood_group=blood_group_filter)
+
+        return queryset.order_by("-date_joined")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        # Add filter choices and current filters
-        context.update(
-            {
-                "status_choices": Student.STATUS_CHOICES,
-                "blood_group_choices": Student.BLOOD_GROUP_CHOICES,
-                "current_filters": {
-                    key: self.request.GET.get(key, "")
-                    for key in ["search", "status", "class", "blood_group"]
-                },
-            }
+        context["search_form"] = StudentSearchForm(self.request.GET)
+        context["total_students"] = Student.objects.count()
+        context["active_students"] = Student.objects.active().count()
+        context["can_add"] = self.request.user.has_perm("students.add_student")
+        context["can_export"] = self.request.user.has_perm(
+            "students.export_student_data"
         )
-
-        # Add available classes
-        from src.academics.models import Class
-
-        context["available_classes"] = Class.objects.filter(
-            academic_year__is_current=True
-        ).select_related("grade", "section")
-
         return context
 
 
-@method_decorator(cache_page(300), name="get")  # Cache for 5 minutes
 class StudentDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
+    """Detail view for a single student"""
+
     model = Student
     permission_required = "students.view_student"
-    context_object_name = "student"
     template_name = "students/student_detail.html"
+    context_object_name = "student"
 
     def get_queryset(self):
-        return Student.objects.select_related(
-            "user", "current_class__grade", "current_class__section"
-        ).prefetch_related(
+        return Student.objects.with_related().prefetch_related(
             Prefetch(
                 "student_parent_relations",
                 queryset=StudentParentRelation.objects.select_related(
@@ -111,6 +116,9 @@ class StudentDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView)
         # Get student-parent relations with details
         context["parent_relations"] = student.student_parent_relations.all()
 
+        # Get analytics
+        context["analytics"] = StudentService.get_student_analytics(student)
+
         # Add action permissions
         context["can_edit"] = self.request.user.has_perm("students.change_student")
         context["can_delete"] = self.request.user.has_perm("students.delete_student")
@@ -131,8 +139,18 @@ class StudentCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView)
     def form_valid(self, form):
         try:
             with transaction.atomic():
-                messages.success(self.request, "Student created successfully!")
-                return super().form_valid(form)
+                # Set created_by
+                form.instance.created_by = self.request.user
+
+                # Save the form
+                response = super().form_valid(form)
+
+                messages.success(
+                    self.request,
+                    f"Student {self.object.full_name} created successfully! "
+                    f"Please complete their profile by editing their details.",
+                )
+                return response
         except ValidationError as e:
             form.add_error(None, str(e))
             return self.form_invalid(form)
@@ -170,7 +188,7 @@ class StudentUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["title"] = f"Edit Student: {self.object.get_full_name()}"
+        context["title"] = f"Edit {self.object.full_name}"
         context["button_label"] = "Update Student"
         return context
 
@@ -180,41 +198,52 @@ class StudentDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView)
     permission_required = "students.delete_student"
     template_name = "students/student_confirm_delete.html"
     success_url = reverse_lazy("students:student-list")
-    context_object_name = "student"
 
     def delete(self, request, *args, **kwargs):
-        student = self.get_object()
+        self.object = self.get_object()
+        student_name = self.object.full_name
 
-        # Check if student has relationships that prevent deletion
-        if student.student_parent_relations.exists():
-            messages.error(
-                request,
-                f"Cannot delete student '{student.get_full_name()}' as they have linked parents. "
-                "Please remove all parent relationships first.",
-            )
-            return redirect("students:student-detail", pk=student.pk)
-
-        messages.success(
-            request,
-            f"Student '{student.get_full_name()}' has been deleted successfully!",
-        )
-        return super().delete(request, *args, **kwargs)
+        try:
+            response = super().delete(request, *args, **kwargs)
+            messages.success(request, f"Student {student_name} deleted successfully.")
+            return response
+        except Exception as e:
+            messages.error(request, f"Error deleting student: {str(e)}")
+            return redirect("students:student-detail", pk=self.object.pk)
 
 
-class QuickStudentAddView(LoginRequiredMixin, PermissionRequiredMixin, FormView):
-    """Quick student addition with minimal required fields"""
+class QuickStudentCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    """Quick student creation with minimal fields"""
 
-    form_class = QuickStudentAddForm
+    model = Student
     permission_required = "students.add_student"
-    template_name = "students/quick_student_add.html"
-    success_url = reverse_lazy("students:student-list")
+    form_class = QuickStudentForm
+    template_name = "students/quick_student_form.html"
+
+    def get_success_url(self):
+        return reverse_lazy("students:student-detail", kwargs={"pk": self.object.pk})
 
     def form_valid(self, form):
         try:
-            student = form.save()
+            # Use the service to create student
+            student_data = {
+                "first_name": form.cleaned_data["first_name"],
+                "last_name": form.cleaned_data["last_name"],
+                "admission_number": form.cleaned_data["admission_number"],
+                "current_class": form.cleaned_data.get("current_class"),
+                "emergency_contact_name": form.cleaned_data["emergency_contact_name"],
+                "emergency_contact_number": form.cleaned_data[
+                    "emergency_contact_number"
+                ],
+            }
+
+            self.object = StudentService.create_student(
+                student_data, created_by=self.request.user
+            )
+
             messages.success(
                 self.request,
-                f"Student '{student.get_full_name()}' created successfully! "
+                f"Student {self.object.full_name} created successfully! "
                 f"Please complete their profile by editing their details.",
             )
             return super().form_valid(form)
@@ -246,7 +275,7 @@ class StudentStatusUpdateView(LoginRequiredMixin, PermissionRequiredMixin, Updat
                 )
 
             return super().form_valid(form)
-        except InvalidStudentStatusError as e:
+        except Exception as e:
             form.add_error("status", str(e))
             return self.form_invalid(form)
 
@@ -300,153 +329,284 @@ class StudentPromotionView(LoginRequiredMixin, PermissionRequiredMixin, FormView
             messages.success(
                 self.request,
                 f"Promoted {result['promoted']} students successfully. "
-                f"{result['errors']} errors occurred.",
+                f"Failed: {result['failed']}",
             )
 
-            if result["errors"] > 0:
-                for error in result.get("error_details", [])[:5]:  # Show first 5 errors
-                    messages.warning(
-                        self.request, f"Error: {error.get('error', 'Unknown error')}"
-                    )
+            if result["errors"]:
+                for error in result["errors"][:5]:  # Show first 5 errors
+                    messages.error(self.request, error)
 
             return super().form_valid(form)
+
         except Exception as e:
-            messages.error(self.request, f"Promotion failed: {str(e)}")
+            messages.error(self.request, f"Error during promotion: {str(e)}")
             return self.form_invalid(form)
 
 
-class StudentGraduationView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
-    """Bulk student graduation view"""
+class BulkStudentImportView(LoginRequiredMixin, PermissionRequiredMixin, FormView):
+    """Bulk import students from CSV"""
 
-    permission_required = "students.graduate_student"
-    template_name = "students/student_graduation.html"
+    form_class = BulkStudentImportForm
+    permission_required = "students.bulk_import_students"
+    template_name = "students/bulk_import.html"
+    success_url = reverse_lazy("students:student-list")
 
-    def post(self, request, *args, **kwargs):
+    def form_valid(self, form):
         try:
-            student_ids = request.POST.getlist("student_ids")
-            send_notifications = request.POST.get("send_notifications") == "on"
+            csv_file = form.cleaned_data["csv_file"]
+            default_class = form.cleaned_data.get("default_class")
+            send_welcome_emails = form.cleaned_data["send_welcome_emails"]
 
-            if not student_ids:
-                messages.error(request, "No students selected for graduation")
-                return self.get(request, *args, **kwargs)
-
-            students = Student.objects.filter(id__in=student_ids)
-            result = StudentService.graduate_students(students, send_notifications)
-
-            messages.success(
-                request,
-                f"Graduated {result['graduated']} students successfully. "
-                f"{result['errors']} errors occurred.",
+            result = StudentService.bulk_import_students(
+                csv_file=csv_file,
+                default_class=default_class,
+                send_welcome_emails=send_welcome_emails,
+                created_by=self.request.user,
             )
 
-            return redirect("students:student-list")
+            messages.success(
+                self.request,
+                f"Import completed! Created: {result['created']}, "
+                f"Failed: {result['failed']}",
+            )
+
+            if result["errors"]:
+                for error in result["errors"][:10]:  # Show first 10 errors
+                    messages.error(self.request, error)
+
+            return super().form_valid(form)
+
         except Exception as e:
-            messages.error(request, f"Graduation failed: {str(e)}")
-            return self.get(request, *args, **kwargs)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        # Get eligible students for graduation (typically final year students)
-        context["eligible_students"] = Student.objects.filter(
-            status="Active"
-        ).select_related("user", "current_class")
-
-        return context
+            messages.error(self.request, f"Import failed: {str(e)}")
+            return self.form_invalid(form)
 
 
-class StudentAutocompleteView(LoginRequiredMixin, ListView):
-    """AJAX autocomplete for students"""
+@login_required
+@permission_required("students.export_student_data")
+def export_students_csv(request):
+    """Export students to CSV"""
+    try:
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="students.csv"'
 
-    def get(self, request, *args, **kwargs):
-        query = request.GET.get("q", "")
-        limit = int(request.GET.get("limit", 10))
+        writer = csv.writer(response)
 
-        students = Student.objects.filter(
-            Q(admission_number__icontains=query)
-            | Q(user__first_name__icontains=query)
-            | Q(user__last_name__icontains=query)
-            | Q(user__email__icontains=query)
-        ).select_related("user", "current_class")[:limit]
+        # Write header
+        writer.writerow(
+            [
+                "Admission Number",
+                "First Name",
+                "Last Name",
+                "Email",
+                "Phone Number",
+                "Date of Birth",
+                "Gender",
+                "Class",
+                "Roll Number",
+                "Blood Group",
+                "Status",
+                "Admission Date",
+                "Emergency Contact Name",
+                "Emergency Contact Number",
+            ]
+        )
+
+        # Write student data
+        students = Student.objects.select_related("current_class").all()
+        for student in students:
+            writer.writerow(
+                [
+                    student.admission_number,
+                    student.first_name,
+                    student.last_name,
+                    student.email or "",
+                    student.phone_number or "",
+                    (
+                        student.date_of_birth.strftime("%Y-%m-%d")
+                        if student.date_of_birth
+                        else ""
+                    ),
+                    student.get_gender_display(),
+                    str(student.current_class) if student.current_class else "",
+                    student.roll_number,
+                    student.blood_group,
+                    student.status,
+                    student.admission_date.strftime("%Y-%m-%d"),
+                    student.emergency_contact_name,
+                    student.emergency_contact_number,
+                ]
+            )
+
+        return response
+
+    except Exception as e:
+        messages.error(request, f"Export failed: {str(e)}")
+        return redirect("students:student-list")
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def student_search_ajax(request):
+    """AJAX endpoint for student search"""
+    query = request.GET.get("q", "").strip()
+
+    if len(query) < 2:
+        return JsonResponse({"students": []})
+
+    try:
+        students = Student.objects.search(query).select_related("current_class")[:10]
 
         results = [
             {
                 "id": str(student.id),
-                "text": f"{student.get_full_name()} ({student.admission_number})",
                 "admission_number": student.admission_number,
-                "class": str(student.current_class) if student.current_class else "",
+                "name": student.full_name,
+                "class": (
+                    str(student.current_class) if student.current_class else "No Class"
+                ),
                 "status": student.status,
-                "email": student.user.email,
             }
             for student in students
         ]
 
-        return JsonResponse({"results": results})
+        return JsonResponse({"students": results})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 
-class StudentFamilyTreeView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
-    """View to display student family relationships"""
+@csrf_exempt
+@require_http_methods(["POST"])
+def toggle_student_status(request, pk):
+    """AJAX endpoint to toggle student active status"""
+    try:
+        student = get_object_or_404(Student, pk=pk)
 
-    model = Student
-    permission_required = "students.view_student"
-    template_name = "students/student_family_tree.html"
-    context_object_name = "student"
+        if not request.user.has_perm("students.change_student"):
+            return JsonResponse({"error": "Permission denied"}, status=403)
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        student = self.get_object()
+        student.is_active = not student.is_active
 
-        # Build family tree data
-        family_tree = {
-            "student": student,
-            "parents": [],
-            "siblings": student.get_siblings(),
-            "relationships": [],
-        }
+        # Update status based on is_active
+        if student.is_active:
+            student.status = "Active"
+        else:
+            student.status = "Inactive"
 
-        # Get all parent relationships with details
-        relations = student.student_parent_relations.select_related("parent__user")
-        for relation in relations:
-            family_tree["parents"].append(
-                {
-                    "parent": relation.parent,
-                    "relation": relation,
-                    "is_primary": relation.is_primary_contact,
-                    "can_pickup": relation.can_pickup,
-                    "emergency_priority": relation.emergency_contact_priority,
-                    "permissions": {
-                        "financial_responsibility": relation.financial_responsibility,
-                        "access_to_grades": relation.access_to_grades,
-                        "access_to_attendance": relation.access_to_attendance,
-                        "access_to_financial_info": relation.access_to_financial_info,
-                    },
-                }
+        student.save()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "is_active": student.is_active,
+                "status": student.status,
+            }
+        )
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+@permission_required("students.view_student_details")
+def student_analytics_view(request, pk):
+    """View for student analytics"""
+    student = get_object_or_404(Student, pk=pk)
+    analytics = StudentService.get_student_analytics(student)
+
+    context = {
+        "student": student,
+        "analytics": analytics,
+    }
+
+    return render(request, "students/student_analytics.html", context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def bulk_student_action(request):
+    """Handle bulk actions on students"""
+    try:
+        action = request.POST.get("action")
+        student_ids = request.POST.getlist("student_ids")
+
+        if not action or not student_ids:
+            messages.error(request, "Invalid bulk action request.")
+            return redirect("students:student-list")
+
+        # Get students
+        students = Student.objects.filter(id__in=student_ids)
+
+        if not students.exists():
+            messages.error(request, "No valid students selected.")
+            return redirect("students:student-list")
+
+        # Execute action based on type
+        if action == "activate":
+            if not request.user.has_perm("students.change_student"):
+                messages.error(request, "Permission denied.")
+                return redirect("students:student-list")
+
+            updated_count = students.update(is_active=True, status="Active")
+            messages.success(request, f"Activated {updated_count} students.")
+
+        elif action == "deactivate":
+            if not request.user.has_perm("students.change_student"):
+                messages.error(request, "Permission denied.")
+                return redirect("students:student-list")
+
+            updated_count = students.update(is_active=False, status="Inactive")
+            messages.success(request, f"Deactivated {updated_count} students.")
+
+        elif action == "export":
+            if not request.user.has_perm("students.export_student_data"):
+                messages.error(request, "Permission denied.")
+                return redirect("students:student-list")
+
+            # Create CSV response for selected students
+            response = HttpResponse(content_type="text/csv")
+            response["Content-Disposition"] = (
+                'attachment; filename="selected_students.csv"'
             )
 
-        context["family_tree"] = family_tree
-        return context
+            writer = csv.writer(response)
 
-
-class StudentAnalyticsView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
-    """Student analytics dashboard"""
-
-    permission_required = "students.view_student"
-    template_name = "students/student_analytics.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        try:
-            # Get comprehensive analytics data
-            context["analytics"] = (
-                StudentAnalyticsService.get_comprehensive_dashboard_data()
+            # Write header
+            writer.writerow(
+                [
+                    "Admission Number",
+                    "First Name",
+                    "Last Name",
+                    "Email",
+                    "Phone Number",
+                    "Class",
+                    "Status",
+                    "Blood Group",
+                ]
             )
-            context["real_time_metrics"] = (
-                StudentAnalyticsService.get_real_time_metrics()
-            )
-        except Exception as e:
-            messages.error(self.request, f"Error loading analytics: {str(e)}")
-            context["analytics"] = {}
-            context["real_time_metrics"] = {}
 
-        return context
+            # Write student data
+            for student in students.select_related("current_class"):
+                writer.writerow(
+                    [
+                        student.admission_number,
+                        student.first_name,
+                        student.last_name,
+                        student.email or "",
+                        student.phone_number or "",
+                        str(student.current_class) if student.current_class else "",
+                        student.status,
+                        student.blood_group,
+                    ]
+                )
+
+            return response
+
+        else:
+            messages.error(request, f"Unknown action: {action}")
+
+        return redirect("students:student-list")
+
+    except Exception as e:
+        messages.error(request, f"Error performing bulk action: {str(e)}")
+        return redirect("students:student-list")

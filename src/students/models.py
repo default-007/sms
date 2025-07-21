@@ -1,5 +1,6 @@
 # students/models.py
 import uuid
+import logging
 
 from django.conf import settings
 from django.core.cache import cache
@@ -32,20 +33,21 @@ class StudentQuerySet(models.QuerySet):
         return self.filter(blood_group=blood_group)
 
     def with_related(self):
-        return self.select_related(
-            "user", "current_class__grade", "current_class__section"
-        )
+        return self.select_related("current_class__grade", "current_class__section")
 
     def with_parents(self):
         return self.prefetch_related("student_parent_relations__parent__user")
 
-    return self.filter(
-        Q(admission_number__icontains=query)
-        | Q(first_name__icontains=query)
-        | Q(last_name__icontains=query)
-        | Q(email__icontains=query)
-        | Q(roll_number__icontains=query)
-    )
+    def search(self, query):
+        if not query:
+            return self
+        return self.filter(
+            Q(admission_number__icontains=query)
+            | Q(first_name__icontains=query)
+            | Q(last_name__icontains=query)
+            | Q(email__icontains=query)
+            | Q(roll_number__icontains=query)
+        )
 
 
 class Student(models.Model):
@@ -56,6 +58,10 @@ class Student(models.Model):
         ("Suspended", "Suspended"),
         ("Expelled", "Expelled"),
         ("Withdrawn", "Withdrawn"),
+    )
+    GENDER_CHOICES = (
+        ("MALE", "MALE"),
+        ("FEMALE", "FEMALE"),
     )
 
     BLOOD_GROUP_CHOICES = (
@@ -89,7 +95,7 @@ class Student(models.Model):
         ],
     )
     date_of_birth = models.DateField(blank=True, null=True, db_index=True)
-    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True)
+    gender = models.CharField(choices=GENDER_CHOICES, blank=True)
     address = models.TextField(blank=True)
     profile_picture = models.ImageField(
         upload_to="student_photos/%Y/%m/", blank=True, null=True

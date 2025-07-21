@@ -12,11 +12,9 @@ from .models import Parent, Student, StudentParentRelation
 
 
 class StudentResource(resources.ModelResource):
-    first_name = fields.Field(column_name="first_name")
-    last_name = fields.Field(column_name="last_name")
-    email = fields.Field(column_name="email")
-    phone_number = fields.Field(column_name="phone_number")
-    current_class__name = fields.Field(column_name="class_name")
+    """Resource for importing/exporting students"""
+
+    current_class_name = fields.Field(column_name="class_name")
 
     class Meta:
         model = Student
@@ -26,12 +24,19 @@ class StudentResource(resources.ModelResource):
             "last_name",
             "email",
             "phone_number",
-            "current_class__name",
+            "current_class_name",
             "roll_number",
             "blood_group",
             "status",
             "admission_date",
+            "date_of_birth",
+            "gender",
+            "emergency_contact_name",
+            "emergency_contact_number",
         )
+
+    def dehydrate_current_class_name(self, student):
+        return str(student.current_class) if student.current_class else ""
 
 
 class StudentParentRelationInline(admin.TabularInline):
@@ -55,253 +60,272 @@ class StudentAdmin(ImportExportModelAdmin):
     list_display = (
         "admission_number",
         "get_full_name",
-        "get_phone",  # Show username (admission number)
         "get_email",
+        "get_phone",
         "current_class",
         "status_badge",
         "blood_group",
         "get_age",
         "get_parent_count",
+        "is_active",
     )
     list_filter = (
         "status",
+        "is_active",
         "blood_group",
+        "gender",
         "current_class__grade",
         "admission_date",
-        "created_at",
+        "date_joined",
     )
     search_fields = (
         "admission_number",
-        "first_name",  # Search in student's direct fields
+        "first_name",
         "last_name",
         "email",
+        "phone_number",
         "roll_number",
+        "registration_number",
+        "emergency_contact_name",
+        "emergency_contact_number",
     )
-    autocomplete_fields = ["user", "current_class", "created_by"]
+    autocomplete_fields = ["current_class", "created_by"]
     readonly_fields = (
         "id",
         "registration_number",
-        "created_at",
-        "updated_at",
-        "get_username_display",
-        "get_email_display",
+        "date_joined",
+        "last_updated",
+        "get_age",
+        "get_full_name",
+        "get_parents_display",
+        "get_siblings_count",
+        "created_by",
     )
-    inlines = [StudentParentRelationInline]
-    date_hierarchy = "admission_date"
-    list_per_page = 50
-    list_select_related = ("user", "current_class__grade", "current_class__section")
-    show_full_result_count = False
-
     fieldsets = (
-        (
-            "Basic Information",
-            {
-                "fields": (
-                    "id",
-                    "admission_number",
-                    "registration_number",
-                    "admission_date",
-                    "current_class",
-                    "roll_number",
-                    "status",
-                )
-            },
-        ),
-        (
-            "User Account Information",
-            {
-                "fields": (("get_username_display", "get_email_display"),),
-                "description": "Student logs in using admission number as username. Email is optional.",
-            },
-        ),
         (
             "Personal Information",
             {
                 "fields": (
-                    "blood_group",
-                    "medical_conditions",
-                    "nationality",
-                    "religion",
-                    "photo",
+                    ("first_name", "last_name"),
+                    ("email", "phone_number"),
+                    ("date_of_birth", "gender"),
+                    "address",
+                    "profile_picture",
                 )
             },
         ),
         (
-            "Contact Information",
+            "Academic Information",
             {
                 "fields": (
-                    "address",
-                    "city",
-                    "state",
-                    "postal_code",
-                    "country",
-                    "emergency_contact_name",
-                    "emergency_contact_number",
+                    ("admission_number", "registration_number"),
+                    ("admission_date", "current_class"),
+                    "roll_number",
+                    "previous_school",
+                    "transfer_certificate_number",
                 )
             },
         ),
         (
-            "Other Information",
-            {"fields": ("previous_school", "created_by", "created_at", "updated_at")},
+            "Health & Emergency",
+            {
+                "fields": (
+                    "blood_group",
+                    "medical_conditions",
+                    ("emergency_contact_name", "emergency_contact_number"),
+                    "emergency_contact_relationship",
+                )
+            },
+        ),
+        (
+            "Status & Metadata",
+            {
+                "fields": (
+                    ("status", "is_active"),
+                    ("date_joined", "last_updated"),
+                    "created_by",
+                )
+            },
+        ),
+        (
+            "Computed Fields",
+            {
+                "fields": (
+                    "get_full_name",
+                    "get_age",
+                    "get_parents_display",
+                    "get_siblings_count",
+                ),
+                "classes": ("collapse",),
+            },
         ),
     )
+    inlines = [StudentParentRelationInline]
+
+    # List settings
+    list_per_page = 50
+    list_max_show_all = 200
+    preserve_filters = True
+
+    # Actions
+    actions = [
+        "activate_students",
+        "deactivate_students",
+        "mark_graduated",
+        "export_selected_students",
+    ]
 
     def get_queryset(self, request):
         return (
             super()
             .get_queryset(request)
-            .select_related("user", "current_class__grade", "current_class__section")
+            .select_related(
+                "current_class__grade", "current_class__section", "created_by"
+            )
             .prefetch_related("student_parent_relations__parent__user")
         )
 
     def get_full_name(self, obj):
-        return obj.get_full_name()
+        """Get student's full name"""
+        return obj.full_name
 
-    get_full_name.short_description = "Name"
-    get_full_name.admin_order_field = "user__first_name"
-
-    def get_username(self, obj):
-        """Display the username (should be admission number)"""
-        return obj.user.username
-
-    get_username.short_description = "Username"
-    get_username.admin_order_field = "user__username"
-
-    def get_username_display(self, obj):
-        """Readonly field to display username"""
-        return obj.user.username
-
-    get_username_display.short_description = "Username (Login ID)"
-
-    def get_email_display(self, obj):
-        """Readonly field to display email status"""
-        return obj.user.email or "No email provided"
-
-    get_email_display.short_description = "Email"
+    get_full_name.short_description = "Full Name"
+    get_full_name.admin_order_field = "first_name"
 
     def get_email(self, obj):
-        """Display email with note if empty"""
-        return obj.user.email or "No email provided"
+        """Get student's email with link"""
+        if obj.email:
+            return format_html('<a href="mailto:{}">{}</a>', obj.email, obj.email)
+        return "-"
 
     get_email.short_description = "Email"
-    get_email.admin_order_field = "user__email"
+    get_email.admin_order_field = "email"
 
-    def get_age(self, obj):
-        return obj.age or "Not provided"
+    def get_phone(self, obj):
+        """Get student's phone number"""
+        return obj.phone_number or "-"
 
-    get_age.short_description = "Age"
+    get_phone.short_description = "Phone"
+    get_phone.admin_order_field = "phone_number"
 
     def status_badge(self, obj):
+        """Display status as colored badge"""
         colors = {
             "Active": "success",
             "Inactive": "secondary",
-            "Graduated": "info",
+            "Graduated": "primary",
             "Suspended": "warning",
             "Expelled": "danger",
-            "Withdrawn": "secondary",
+            "Withdrawn": "info",
         }
         color = colors.get(obj.status, "secondary")
-        return format_html('<span class="badge bg-{}">{}</span>', color, obj.status)
+        return format_html('<span class="badge badge-{}">{}</span>', color, obj.status)
 
     status_badge.short_description = "Status"
+    status_badge.admin_order_field = "status"
+
+    def get_age(self, obj):
+        """Get student's age"""
+        return f"{obj.age} years" if obj.age else "-"
+
+    get_age.short_description = "Age"
 
     def get_parent_count(self, obj):
+        """Get number of parents"""
         count = obj.student_parent_relations.count()
-        if count > 0:
-            url = (
-                reverse("admin:students_studentparentrelation_changelist")
-                + f"?student__id__exact={obj.id}"
-            )
-            return format_html('<a href="{}">{} parent(s)</a>', url, count)
-        return "0 parents"
+        if count == 0:
+            return format_html('<span class="text-danger">No parents</span>')
+        return f"{count} parent{'s' if count != 1 else ''}"
 
     get_parent_count.short_description = "Parents"
 
-    def gender_filter(self, obj):
-        return obj.user.gender if hasattr(obj.user, "gender") else "Not specified"
+    def get_parents_display(self, obj):
+        """Display parents with links"""
+        parents = obj.get_parents()
+        if not parents:
+            return "No parents assigned"
 
-    gender_filter.short_description = "Gender"
+        parent_links = []
+        for parent in parents:
+            url = reverse("admin:students_parent_change", args=[parent.pk])
+            parent_links.append(
+                format_html('<a href="{}">{}</a>', url, parent.full_name)
+            )
 
-    actions = [
-        "mark_as_graduated",
-        "mark_as_active",
-        "export_selected",
-        "reset_passwords",
-    ]
+        return format_html(", ".join(parent_links))
 
-    def mark_as_graduated(self, request, queryset):
-        updated = queryset.update(status="Graduated")
-        self.message_user(request, f"{updated} students marked as graduated.")
+    get_parents_display.short_description = "Parents"
 
-    mark_as_graduated.short_description = "Mark selected students as graduated"
+    def get_siblings_count(self, obj):
+        """Get number of siblings"""
+        siblings = obj.get_siblings()
+        return f"{len(siblings)} sibling{'s' if len(siblings) != 1 else ''}"
 
-    def mark_as_active(self, request, queryset):
-        updated = queryset.update(status="Active")
-        self.message_user(request, f"{updated} students marked as active.")
+    get_siblings_count.short_description = "Siblings"
 
-    mark_as_active.short_description = "Mark selected students as active"
+    # Custom actions
+    def activate_students(self, request, queryset):
+        """Activate selected students"""
+        count = queryset.update(is_active=True, status="Active")
+        self.message_user(request, f"Activated {count} students.")
 
-    def reset_passwords(self, request, queryset):
-        """Reset passwords for selected students"""
-        updated = 0
-        for student in queryset:
-            new_password = User.objects.make_random_password()
-            student.user.set_password(new_password)
-            student.user.save()
-            updated += 1
+    activate_students.short_description = "Activate selected students"
 
-            # Send new password via email if available
-            if student.user.email:
-                try:
-                    send_mail(
-                        subject="Password Reset",
-                        message=f"Your new password is: {new_password}\nUsername: {student.user.username}",
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=[student.user.email],
-                        fail_silently=True,
-                    )
-                except:
-                    pass
+    def deactivate_students(self, request, queryset):
+        """Deactivate selected students"""
+        count = queryset.update(is_active=False, status="Inactive")
+        self.message_user(request, f"Deactivated {count} students.")
 
-        self.message_user(request, f"Reset passwords for {updated} students.")
+    deactivate_students.short_description = "Deactivate selected students"
 
-    reset_passwords.short_description = "Reset passwords for selected students"
+    def mark_graduated(self, request, queryset):
+        """Mark selected students as graduated"""
+        count = queryset.update(status="Graduated")
+        self.message_user(request, f"Marked {count} students as graduated.")
+
+    mark_graduated.short_description = "Mark as graduated"
+
+    def export_selected_students(self, request, queryset):
+        """Export selected students"""
+        # This would integrate with the export functionality
+        self.message_user(request, f"Exporting {queryset.count()} students...")
+
+    export_selected_students.short_description = "Export selected students"
 
 
 class ParentResource(resources.ModelResource):
-    user__first_name = fields.Field(column_name="first_name")
-    user__last_name = fields.Field(column_name="last_name")
-    user__email = fields.Field(column_name="email")
-    user__phone_number = fields.Field(column_name="phone_number")
-    student_count = fields.Field(column_name="student_count")
+    """Resource for importing/exporting parents"""
+
+    user_first_name = fields.Field(column_name="first_name")
+    user_last_name = fields.Field(column_name="last_name")
+    user_email = fields.Field(column_name="email")
+    user_phone_number = fields.Field(column_name="phone_number")
 
     class Meta:
         model = Parent
         fields = (
-            "user__first_name",
-            "user__last_name",
-            "user__email",
-            "user__phone_number",
+            "user_first_name",
+            "user_last_name",
+            "user_email",
+            "user_phone_number",
             "relation_with_student",
             "occupation",
-            "workplace",
-            "work_phone",
+            "annual_income",
+            "education",
             "emergency_contact",
-            "student_count",
         )
 
+    def dehydrate_user_first_name(self, parent):
+        return parent.user.first_name
 
-class StudentParentRelationInlineForParent(admin.TabularInline):
-    model = StudentParentRelation
-    extra = 0
-    autocomplete_fields = ["student"]
-    fields = (
-        "student",
-        "is_primary_contact",
-        "can_pickup",
-        "emergency_contact_priority",
-        "financial_responsibility",
-    )
+    def dehydrate_user_last_name(self, parent):
+        return parent.user.last_name
+
+    def dehydrate_user_email(self, parent):
+        return parent.user.email
+
+    def dehydrate_user_phone_number(self, parent):
+        return parent.user.phone_number
 
 
 @admin.register(Parent)
@@ -313,45 +337,73 @@ class ParentAdmin(ImportExportModelAdmin):
         "get_phone",
         "relation_with_student",
         "occupation",
-        "emergency_contact_badge",
-        "get_student_count",
+        "emergency_contact",
+        "get_children_count",
+        "get_user_status",
     )
     list_filter = (
         "relation_with_student",
         "emergency_contact",
+        "user__is_active",
         "created_at",
     )
-    search_fields = ("user__first_name", "user__last_name", "user__email", "occupation")
+    search_fields = (
+        "user__first_name",
+        "user__last_name",
+        "user__email",
+        "user__phone_number",
+        "occupation",
+        "company_name",
+    )
     autocomplete_fields = ["user", "created_by"]
-    readonly_fields = ("id", "created_at", "updated_at")
-    inlines = [StudentParentRelationInlineForParent]
-    list_per_page = 50
-    list_select_related = ("user",)
-    show_full_result_count = False
-
+    readonly_fields = (
+        "id",
+        "created_at",
+        "updated_at",
+        "get_full_name",
+        "get_children_display",
+        "created_by",
+    )
     fieldsets = (
         (
             "Basic Information",
-            {"fields": ("id", "user", "relation_with_student", "photo")},
+            {
+                "fields": (
+                    "user",
+                    "relation_with_student",
+                    "emergency_contact",
+                    "photo",
+                )
+            },
         ),
         (
             "Professional Information",
             {
                 "fields": (
                     "occupation",
-                    "annual_income",
+                    "company_name",
+                    "office_address",
+                    ("office_phone", "annual_income"),
                     "education",
-                    "workplace",
-                    "work_address",
-                    "work_phone",
                 )
             },
         ),
-        ("Contact Preferences", {"fields": ("emergency_contact",)}),
         (
             "Metadata",
             {
-                "fields": ("created_by", "created_at", "updated_at"),
+                "fields": (
+                    ("created_at", "updated_at"),
+                    "created_by",
+                )
+            },
+        ),
+        (
+            "Related Information",
+            {
+                "fields": (
+                    "get_full_name",
+                    "get_children_display",
+                ),
                 "classes": ("collapse",),
             },
         ),
@@ -361,161 +413,121 @@ class ParentAdmin(ImportExportModelAdmin):
         return (
             super()
             .get_queryset(request)
-            .select_related("user")
-            .annotate(student_count=Count("parent_student_relations"))
+            .select_related("user", "created_by")
+            .prefetch_related("parent_student_relations__student")
         )
 
     def get_full_name(self, obj):
-        return obj.get_full_name()
+        """Get parent's full name"""
+        return obj.full_name
 
-    get_full_name.short_description = "Name"
+    get_full_name.short_description = "Full Name"
     get_full_name.admin_order_field = "user__first_name"
 
     def get_email(self, obj):
-        return obj.user.email
+        """Get parent's email with link"""
+        if obj.user.email:
+            return format_html(
+                '<a href="mailto:{}">{}</a>', obj.user.email, obj.user.email
+            )
+        return "-"
 
     get_email.short_description = "Email"
     get_email.admin_order_field = "user__email"
 
     def get_phone(self, obj):
-        return obj.user.phone_number or "Not provided"
+        """Get parent's phone number"""
+        return obj.user.phone_number or "-"
 
     get_phone.short_description = "Phone"
+    get_phone.admin_order_field = "user__phone_number"
 
-    def emergency_contact_badge(self, obj):
-        if obj.emergency_contact:
-            return format_html('<span class="badge bg-success">Yes</span>')
-        return format_html('<span class="badge bg-secondary">No</span>')
+    def get_user_status(self, obj):
+        """Get user account status"""
+        if obj.user.is_active:
+            return format_html('<span class="badge badge-success">Active</span>')
+        return format_html('<span class="badge badge-danger">Inactive</span>')
 
-    emergency_contact_badge.short_description = "Emergency Contact"
+    get_user_status.short_description = "Account Status"
+    get_user_status.admin_order_field = "user__is_active"
 
-    def get_student_count(self, obj):
-        count = getattr(obj, "student_count", 0)
-        if count > 0:
-            url = (
-                reverse("admin:students_student_changelist")
-                + f"?student_parent_relations__parent__id__exact={obj.id}"
+    def get_children_count(self, obj):
+        """Get number of children"""
+        count = obj.parent_student_relations.count()
+        if count == 0:
+            return format_html('<span class="text-danger">No children</span>')
+        return f"{count} child{'ren' if count != 1 else ''}"
+
+    get_children_count.short_description = "Children"
+
+    def get_children_display(self, obj):
+        """Display children with links"""
+        students = obj.get_students()
+        if not students:
+            return "No children assigned"
+
+        student_links = []
+        for student in students:
+            url = reverse("admin:students_student_change", args=[student.pk])
+            student_links.append(
+                format_html('<a href="{}">{}</a>', url, student.full_name)
             )
-            return format_html('<a href="{}">{} student(s)</a>', url, count)
-        return "0 students"
 
-    get_student_count.short_description = "Students"
+        return format_html(", ".join(student_links))
+
+    get_children_display.short_description = "Children"
 
 
 @admin.register(StudentParentRelation)
 class StudentParentRelationAdmin(admin.ModelAdmin):
     list_display = (
-        "student",
-        "parent",
-        "relation_type",
-        "primary_contact_badge",
-        "pickup_permission_badge",
+        "get_student_name",
+        "get_parent_name",
+        "get_relation_type",
+        "is_primary_contact",
         "emergency_contact_priority",
-        "financial_responsibility_badge",
+        "financial_responsibility",
     )
     list_filter = (
         "is_primary_contact",
-        "can_pickup",
         "financial_responsibility",
+        "emergency_contact_priority",
         "parent__relation_with_student",
         "created_at",
     )
     search_fields = (
-        "student__user__first_name",
-        "student__user__last_name",
+        "student__first_name",
+        "student__last_name",
         "student__admission_number",
         "parent__user__first_name",
         "parent__user__last_name",
     )
-    autocomplete_fields = ["student", "parent", "created_by"]
-    list_editable = ("emergency_contact_priority",)
-    readonly_fields = ("id", "created_at", "updated_at")
+    autocomplete_fields = ["student", "parent"]
+    readonly_fields = ("created_at", "updated_at")
     list_per_page = 50
-    list_select_related = ("student__user", "parent__user")
 
-    fieldsets = (
-        (
-            "Basic Information",
-            {
-                "fields": (
-                    "id",
-                    "student",
-                    "parent",
-                )
-            },
-        ),
-        (
-            "Permissions",
-            {
-                "fields": (
-                    "is_primary_contact",
-                    "can_pickup",
-                    "emergency_contact_priority",
-                    "financial_responsibility",
-                )
-            },
-        ),
-        (
-            "Access Rights",
-            {
-                "fields": (
-                    "access_to_grades",
-                    "access_to_attendance",
-                    "access_to_financial_info",
-                )
-            },
-        ),
-        (
-            "Communication Preferences",
-            {
-                "fields": (
-                    "receive_sms",
-                    "receive_email",
-                    "receive_push_notifications",
-                ),
-                "classes": ("collapse",),
-            },
-        ),
-        (
-            "Metadata",
-            {
-                "fields": (
-                    "created_by",
-                    "created_at",
-                    "updated_at",
-                ),
-                "classes": ("collapse",),
-            },
-        ),
-    )
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("student", "parent__user")
 
-    def relation_type(self, obj):
+    def get_student_name(self, obj):
+        """Get student name with link"""
+        url = reverse("admin:students_student_change", args=[obj.student.pk])
+        return format_html('<a href="{}">{}</a>', url, obj.student.full_name)
+
+    get_student_name.short_description = "Student"
+    get_student_name.admin_order_field = "student__first_name"
+
+    def get_parent_name(self, obj):
+        """Get parent name with link"""
+        url = reverse("admin:students_parent_change", args=[obj.parent.pk])
+        return format_html('<a href="{}">{}</a>', url, obj.parent.full_name)
+
+    get_parent_name.short_description = "Parent"
+    get_parent_name.admin_order_field = "parent__user__first_name"
+
+    def get_relation_type(self, obj):
+        """Get relation type"""
         return obj.parent.relation_with_student
 
-    relation_type.short_description = "Relation"
-
-    def primary_contact_badge(self, obj):
-        if obj.is_primary_contact:
-            return format_html('<span class="badge bg-primary">Primary</span>')
-        return format_html('<span class="badge bg-secondary">Secondary</span>')
-
-    primary_contact_badge.short_description = "Contact Type"
-
-    def pickup_permission_badge(self, obj):
-        if obj.can_pickup:
-            return format_html('<span class="badge bg-success">Allowed</span>')
-        return format_html('<span class="badge bg-danger">Not Allowed</span>')
-
-    pickup_permission_badge.short_description = "Pickup Permission"
-
-    def emergency_priority(self, obj):
-        return f"Priority {obj.emergency_contact_priority}"
-
-    emergency_priority.short_description = "Emergency Priority"
-
-    def financial_responsibility_badge(self, obj):
-        if obj.financial_responsibility:
-            return format_html('<span class="badge bg-info">Responsible</span>')
-        return format_html('<span class="badge bg-secondary">Not Responsible</span>')
-
-    financial_responsibility_badge.short_description = "Financial Responsibility"
+    get_relation_type.short_description = "Relation"
+    get_relation_type.admin_order_field = "parent__relation_with_student"

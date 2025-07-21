@@ -2,6 +2,7 @@
 
 import hashlib
 import logging
+import re
 import secrets
 
 from django.conf import settings

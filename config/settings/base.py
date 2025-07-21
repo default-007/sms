@@ -3,6 +3,7 @@ Base settings for School Management System.
 """
 
 import os
+import logging
 from datetime import timedelta
 from pathlib import Path
 
@@ -427,6 +428,26 @@ PROFILE_PICTURE_ALLOWED_TYPES = ["jpg", "jpeg", "png"]
 
 # General file upload settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5MB
+# File upload settings for student profiles
+FILE_UPLOAD_SETTINGS = {
+    "STUDENT_PROFILE_PICTURES": {
+        "UPLOAD_TO": "student_photos/%Y/%m/",
+        "MAX_SIZE": 5 * 1024 * 1024,  # 5MB
+        "ALLOWED_EXTENSIONS": ["jpg", "jpeg", "png", "gif"],
+        "RESIZE_TO": (300, 300),
+        "QUALITY": 85,
+    },
+    "STUDENT_DOCUMENTS": {
+        "UPLOAD_TO": "student_documents/%Y/%m/",
+        "MAX_SIZE": 10 * 1024 * 1024,  # 10MB
+        "ALLOWED_EXTENSIONS": ["pdf", "doc", "docx", "jpg", "jpeg", "png"],
+    },
+    "BULK_IMPORT_FILES": {
+        "UPLOAD_TO": "imports/%Y/%m/",
+        "MAX_SIZE": 5 * 1024 * 1024,  # 5MB
+        "ALLOWED_EXTENSIONS": ["csv", "xlsx"],
+    },
+}
 
 # ==============================================================================
 # CACHE SETTINGS

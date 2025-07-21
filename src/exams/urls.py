@@ -36,7 +36,7 @@ urlpatterns = [
     path(
         "students/<uuid:student_id>/results/",
         views.student_results,
-        name="student_results",
+        name="student-results",
     ),
     path(
         "students/results/", views.student_results, name="my_results"

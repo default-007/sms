@@ -1,4 +1,6 @@
-#!/home/default_007/Desktop/sms/venv/bin/python3
+#!/bin/sh
+'''exec' "/home/default_007/Desktop/New Folder/sms/venv/bin/python3" "$0" "$@"
+' '''
 # -*- coding: utf-8 -*-
 import re
 import sys

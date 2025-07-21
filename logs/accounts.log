@@ -1977,3 +1977,1244 @@ INFO 2025-07-11 15:03:20,342 autoreload 411144 139780517421184 /home/default_007
 INFO 2025-07-11 15:03:21,428 autoreload 411283 139527423524992 Watching for file changes with StatReloader
 INFO 2025-07-11 15:07:26,653 autoreload 411283 139527423524992 /home/default_007/Desktop/New Folder/sms/src/students/models.py changed, reloading.
 INFO 2025-07-11 15:07:27,772 autoreload 411932 126885949464704 Watching for file changes with StatReloader
+INFO 2025-07-19 16:52:23,690 autoreload 285456 130093229281408 Watching for file changes with StatReloader
+INFO 2025-07-19 16:53:21,873 autoreload 285456 130093229281408 /home/default_007/Desktop/New Folder/sms/src/students/models.py changed, reloading.
+INFO 2025-07-19 16:53:23,458 autoreload 285766 132188489044096 Watching for file changes with StatReloader
+INFO 2025-07-19 16:55:59,811 autoreload 285766 132188489044096 /home/default_007/Desktop/New Folder/sms/src/students/models.py changed, reloading.
+INFO 2025-07-19 16:56:01,006 autoreload 286485 140036270833792 Watching for file changes with StatReloader
+INFO 2025-07-19 16:56:35,963 autoreload 286485 140036270833792 /home/default_007/Desktop/New Folder/sms/src/students/models.py changed, reloading.
+INFO 2025-07-19 16:56:40,391 autoreload 286669 140142121406592 Watching for file changes with StatReloader
+INFO 2025-07-20 17:37:44,948 autoreload 571015 124353154052224 Watching for file changes with StatReloader
+INFO 2025-07-20 17:42:50,530 autoreload 571015 124353154052224 /home/default_007/Desktop/New Folder/sms/src/students/forms.py changed, reloading.
+INFO 2025-07-20 17:42:52,834 autoreload 573563 129565379293312 Watching for file changes with StatReloader
+INFO 2025-07-20 17:43:27,969 autoreload 573563 129565379293312 /home/default_007/Desktop/New Folder/sms/src/students/forms.py changed, reloading.
+INFO 2025-07-20 17:43:30,161 autoreload 573848 126973118005376 Watching for file changes with StatReloader
+INFO 2025-07-20 17:44:32,545 autoreload 573848 126973118005376 /home/default_007/Desktop/New Folder/sms/src/students/views/import_export_views.py changed, reloading.
+INFO 2025-07-20 17:44:34,840 autoreload 574622 135185876234368 Watching for file changes with StatReloader
+INFO 2025-07-20 17:56:40,211 autoreload 574622 135185876234368 /home/default_007/Desktop/New Folder/sms/src/students/forms.py changed, reloading.
+INFO 2025-07-20 17:56:42,718 autoreload 578348 136964083630208 Watching for file changes with StatReloader
+INFO 2025-07-20 17:58:29,595 autoreload 578348 136964083630208 /home/default_007/Desktop/New Folder/sms/src/students/forms.py changed, reloading.
+INFO 2025-07-20 17:58:31,838 autoreload 579198 133966859038848 Watching for file changes with StatReloader
+INFO 2025-07-20 18:09:42,076 autoreload 579198 133966859038848 /home/default_007/Desktop/New Folder/sms/src/students/forms.py changed, reloading.
+INFO 2025-07-20 18:09:44,441 autoreload 581869 136824943849600 Watching for file changes with StatReloader
+INFO 2025-07-20 18:22:12,177 autoreload 581869 136824943849600 /home/default_007/Desktop/New Folder/sms/src/students/views/import_export_views.py changed, reloading.
+INFO 2025-07-20 18:22:14,624 autoreload 583208 140195623366784 Watching for file changes with StatReloader
+INFO 2025-07-20 18:22:50,752 autoreload 583208 140195623366784 /home/default_007/Desktop/New Folder/sms/src/students/views/import_export_views.py changed, reloading.
+INFO 2025-07-20 18:22:53,097 autoreload 583416 137837165432960 Watching for file changes with StatReloader
+INFO 2025-07-20 18:23:28,882 autoreload 583416 137837165432960 /home/default_007/Desktop/New Folder/sms/src/students/views/import_export_views.py changed, reloading.
+INFO 2025-07-20 18:23:31,108 autoreload 583594 123211359346816 Watching for file changes with StatReloader
+INFO 2025-07-20 18:24:03,999 autoreload 583594 123211359346816 /home/default_007/Desktop/New Folder/sms/src/students/views/import_export_views.py changed, reloading.
+INFO 2025-07-20 18:24:06,460 autoreload 583848 130221977215104 Watching for file changes with StatReloader
+INFO 2025-07-20 18:25:14,585 autoreload 583848 130221977215104 /home/default_007/Desktop/New Folder/sms/src/students/views/import_export_views.py changed, reloading.
+INFO 2025-07-20 18:25:16,894 autoreload 584142 127562878742656 Watching for file changes with StatReloader
+INFO 2025-07-20 18:25:57,153 autoreload 584142 127562878742656 /home/default_007/Desktop/New Folder/sms/src/students/views/import_export_views.py changed, reloading.
+INFO 2025-07-20 18:25:59,364 autoreload 584380 140176601632896 Watching for file changes with StatReloader
+INFO 2025-07-20 18:26:23,431 autoreload 584380 140176601632896 /home/default_007/Desktop/New Folder/sms/src/students/views/import_export_views.py changed, reloading.
+INFO 2025-07-20 18:26:25,585 autoreload 584509 135884670496896 Watching for file changes with StatReloader
+INFO 2025-07-20 18:26:35,837 autoreload 584509 135884670496896 /home/default_007/Desktop/New Folder/sms/src/students/views/import_export_views.py changed, reloading.
+INFO 2025-07-20 18:26:37,960 autoreload 584631 129855391797376 Watching for file changes with StatReloader
+INFO 2025-07-20 18:50:01,429 autoreload 595525 129799867203712 Watching for file changes with StatReloader
+INFO 2025-07-20 18:53:18,935 autoreload 595525 129799867203712 /home/default_007/Desktop/New Folder/sms/src/students/views/import_export_views.py changed, reloading.
+INFO 2025-07-20 18:53:23,310 autoreload 596125 125513310969984 Watching for file changes with StatReloader
+INFO 2025-07-20 18:54:19,478 autoreload 596125 125513310969984 /home/default_007/Desktop/New Folder/sms/src/students/views/import_export_views.py changed, reloading.
+INFO 2025-07-20 18:54:23,790 autoreload 596399 135571992842368 Watching for file changes with StatReloader
+INFO 2025-07-20 18:56:41,690 autoreload 596399 135571992842368 /home/default_007/Desktop/New Folder/sms/src/students/views/student_views.py changed, reloading.
+INFO 2025-07-20 18:56:46,044 autoreload 596875 130292968358016 Watching for file changes with StatReloader
+INFO 2025-07-20 18:57:15,745 autoreload 596875 130292968358016 /home/default_007/Desktop/New Folder/sms/src/students/views/student_views.py changed, reloading.
+INFO 2025-07-20 18:57:20,766 autoreload 597070 134470720499840 Watching for file changes with StatReloader
+INFO 2025-07-20 18:57:45,009 autoreload 597070 134470720499840 /home/default_007/Desktop/New Folder/sms/src/students/views/student_views.py changed, reloading.
+INFO 2025-07-20 18:57:49,859 autoreload 597207 131221426655360 Watching for file changes with StatReloader
+INFO 2025-07-20 18:58:15,818 autoreload 597207 131221426655360 /home/default_007/Desktop/New Folder/sms/src/students/views/student_views.py changed, reloading.
+INFO 2025-07-20 18:58:20,693 autoreload 597308 128995038163072 Watching for file changes with StatReloader
+INFO 2025-07-20 18:59:09,970 autoreload 597308 128995038163072 /home/default_007/Desktop/New Folder/sms/src/students/views/student_views.py changed, reloading.
+INFO 2025-07-20 18:59:14,553 autoreload 597598 127771326079104 Watching for file changes with StatReloader
+INFO 2025-07-20 19:00:43,093 autoreload 597598 127771326079104 /home/default_007/Desktop/New Folder/sms/src/students/urls.py changed, reloading.
+INFO 2025-07-20 19:00:50,177 autoreload 597970 134694856532096 Watching for file changes with StatReloader
+INFO 2025-07-20 19:01:14,725 autoreload 597970 134694856532096 /home/default_007/Desktop/New Folder/sms/src/students/urls.py changed, reloading.
+INFO 2025-07-20 19:01:19,239 autoreload 598146 132243717779584 Watching for file changes with StatReloader
+INFO 2025-07-20 19:02:07,925 autoreload 598146 132243717779584 /home/default_007/Desktop/New Folder/sms/src/students/urls.py changed, reloading.
+INFO 2025-07-20 19:02:12,216 autoreload 598337 131065263853696 Watching for file changes with StatReloader
+INFO 2025-07-20 19:02:19,944 autoreload 598337 131065263853696 /home/default_007/Desktop/New Folder/sms/src/students/urls.py changed, reloading.
+INFO 2025-07-20 19:02:24,279 autoreload 598422 134432750014592 Watching for file changes with StatReloader
+INFO 2025-07-20 23:00:19,774 autoreload 617462 129484984483968 Watching for file changes with StatReloader
+INFO 2025-07-20 23:00:53,048 autoreload 617462 129484984483968 /home/default_007/Desktop/New Folder/sms/src/students/urls.py changed, reloading.
+INFO 2025-07-20 23:00:56,306 autoreload 617623 125601331048576 Watching for file changes with StatReloader
+INFO 2025-07-20 23:01:53,285 autoreload 617623 125601331048576 /home/default_007/Desktop/New Folder/sms/src/students/urls.py changed, reloading.
+INFO 2025-07-20 23:01:56,699 autoreload 617843 138010170536064 Watching for file changes with StatReloader
+INFO 2025-07-20 23:03:32,896 autoreload 617843 138010170536064 /home/default_007/Desktop/New Folder/sms/src/students/models.py changed, reloading.
+INFO 2025-07-20 23:03:36,249 autoreload 618211 140637584023680 Watching for file changes with StatReloader
+INFO 2025-07-20 23:04:28,092 autoreload 618211 140637584023680 /home/default_007/Desktop/New Folder/sms/src/exams/models.py changed, reloading.
+INFO 2025-07-20 23:04:31,514 autoreload 618338 128627919794304 Watching for file changes with StatReloader
+INFO 2025-07-20 23:04:57,507 autoreload 618338 128627919794304 /home/default_007/Desktop/New Folder/sms/src/exams/models.py changed, reloading.
+INFO 2025-07-20 23:05:00,782 autoreload 618527 124629181419648 Watching for file changes with StatReloader
+INFO 2025-07-20 23:05:49,587 autoreload 618527 124629181419648 /home/default_007/Desktop/New Folder/sms/src/exams/models.py changed, reloading.
+INFO 2025-07-20 23:05:52,961 autoreload 618736 131955955249280 Watching for file changes with StatReloader
+INFO 2025-07-20 23:06:19,671 autoreload 618736 131955955249280 /home/default_007/Desktop/New Folder/sms/src/exams/models.py changed, reloading.
+INFO 2025-07-20 23:06:22,962 autoreload 618920 126065656160384 Watching for file changes with StatReloader
+INFO 2025-07-20 23:09:24,683 autoreload 619694 123926326255744 Watching for file changes with StatReloader
+INFO 2025-07-20 23:10:00,104 autoreload 619694 123926326255744 /home/default_007/Desktop/New Folder/sms/config/settings/base.py changed, reloading.
+INFO 2025-07-20 23:10:42,262 autoreload 620200 129832508547200 Watching for file changes with StatReloader
+INFO 2025-07-20 23:13:24,617 autoreload 620880 131890396569728 Watching for file changes with StatReloader
+INFO 2025-07-20 23:13:41,276 autoreload 621098 132820675231872 Watching for file changes with StatReloader
+INFO 2025-07-20 23:18:49,696 autoreload 622191 132444713513088 Watching for file changes with StatReloader
+INFO 2025-07-20 23:20:04,160 autoreload 623360 126531452907648 Watching for file changes with StatReloader
+INFO 2025-07-20 23:23:23,225 autoreload 624911 132067321139328 Watching for file changes with StatReloader
+INFO 2025-07-20 23:24:39,595 autoreload 625891 132614463078528 Watching for file changes with StatReloader
+INFO 2025-07-20 23:30:45,715 autoreload 625891 132614463078528 /home/default_007/Desktop/New Folder/sms/src/finance/apps.py changed, reloading.
+INFO 2025-07-20 23:30:48,655 autoreload 626667 127522253803648 Watching for file changes with StatReloader
+INFO 2025-07-20 23:33:13,157 autoreload 628014 125389640663168 Watching for file changes with StatReloader
+INFO 2025-07-21 00:29:59,416 autoreload 637630 132683043000448 Watching for file changes with StatReloader
+INFO 2025-07-21 00:30:45,636 autoreload 638391 125645804597376 Watching for file changes with StatReloader
+INFO 2025-07-21 00:31:22,584 autoreload 638391 125645804597376 /home/default_007/Desktop/New Folder/sms/src/finance/models.py changed, reloading.
+INFO 2025-07-21 00:31:25,166 autoreload 638587 133035115126912 Watching for file changes with StatReloader
+INFO 2025-07-21 00:36:25,538 autoreload 638587 133035115126912 /home/default_007/Desktop/New Folder/sms/src/finance/apps.py changed, reloading.
+INFO 2025-07-21 00:36:28,304 autoreload 639286 132742348705920 Watching for file changes with StatReloader
+INFO 2025-07-21 06:28:39,733 autoreload 642905 133470470008960 Watching for file changes with StatReloader
+INFO 2025-07-21 06:29:38,392 autoreload 642905 133470470008960 /home/default_007/Desktop/New Folder/sms/src/finance/apps.py changed, reloading.
+INFO 2025-07-21 06:29:41,670 autoreload 643076 137068394569856 Watching for file changes with StatReloader
+INFO 2025-07-21 06:30:07,039 autoreload 643357 123835630088320 Watching for file changes with StatReloader
+INFO 2025-07-21 08:10:00,590 autoreload 643357 123835630088320 /home/default_007/Desktop/New Folder/sms/src/finance/__init__.py changed, reloading.
+INFO 2025-07-21 08:10:03,377 autoreload 651608 127430916485248 Watching for file changes with StatReloader
+INFO 2025-07-21 08:10:24,006 autoreload 651608 127430916485248 /home/default_007/Desktop/New Folder/sms/src/academics/__init__.py changed, reloading.
+INFO 2025-07-21 08:10:26,173 autoreload 651715 132710023094400 Watching for file changes with StatReloader
+INFO 2025-07-21 08:10:39,719 autoreload 651944 123787416092800 Watching for file changes with StatReloader
+INFO 2025-07-21 08:11:47,698 autoreload 651944 123787416092800 /home/default_007/Desktop/New Folder/sms/src/finance/apps.py changed, reloading.
+INFO 2025-07-21 08:11:49,412 autoreload 652125 131242026078336 Watching for file changes with StatReloader
+INFO 2025-07-21 08:12:28,950 autoreload 652696 136096626970752 Watching for file changes with StatReloader
+INFO 2025-07-21 09:44:41,270 basehttp 652696 136095832471232 "GET / HTTP/1.1" 302 0
+INFO 2025-07-21 09:44:41,375 basehttp 652696 136095832471232 "GET /accounts/login/?next=/ HTTP/1.1" 200 20599
+INFO 2025-07-21 09:44:41,500 basehttp 652696 136095832471232 "GET /static/assets/css/styles.css HTTP/1.1" 200 938794
+INFO 2025-07-21 09:44:41,536 basehttp 652696 136095832471232 "GET /static/assets/images/logos/favicon.png HTTP/1.1" 304 0
+INFO 2025-07-21 09:44:41,554 basehttp 652696 136095824078528 "GET /static/assets/images/logos/logo-icon.svg HTTP/1.1" 304 0
+INFO 2025-07-21 09:44:41,557 basehttp 652696 136095814637248 "GET /static/debug_toolbar/js/toolbar.js HTTP/1.1" 200 14819
+INFO 2025-07-21 09:44:41,830 basehttp 652696 136095832471232 "GET /static/assets/js/theme/theme.js HTTP/1.1" 304 0
+INFO 2025-07-21 09:44:41,830 basehttp 652696 136095824078528 "GET /static/debug_toolbar/css/toolbar.css HTTP/1.1" 200 21683
+INFO 2025-07-21 09:44:41,830 basehttp 652696 136095814637248 "GET /static/assets/libs/simplebar/dist/simplebar.min.js HTTP/1.1" 304 0
+INFO 2025-07-21 09:44:41,849 basehttp 652696 136095814637248 "GET /static/assets/js/theme/app.init.js HTTP/1.1" 304 0
+INFO 2025-07-21 09:44:41,862 basehttp 652696 136095832471232 "GET /static/assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js HTTP/1.1" 304 0
+INFO 2025-07-21 09:44:41,906 basehttp 652696 136095832471232 "GET /static/assets/js/theme/app.min.js HTTP/1.1" 304 0
+INFO 2025-07-21 09:44:42,830 basehttp 652696 136095814637248 "GET /static/debug_toolbar/js/utils.js HTTP/1.1" 200 4692
+INFO 2025-07-21 09:44:42,830 basehttp 652696 136095824078528 "GET /static/debug_toolbar/css/print.css HTTP/1.1" 200 43
+INFO 2025-07-21 09:44:42,924 basehttp 652696 136095832471232 "GET /static/assets/fonts/font-awesome/webfonts/fa-solid-900.woff2 HTTP/1.1" 200 177929
+WARNING 2025-07-21 09:44:42,996 basehttp 652696 136095832471232 "GET /static/assets/fonts/font-awesome/webfonts/fa-solid-900.woff HTTP/1.1" 404 2083
+INFO 2025-07-21 09:44:43,045 basehttp 652696 136095814637248 "GET /static/assets/fonts/font-awesome/webfonts/fa-solid-900.ttf HTTP/1.1" 200 177886
+INFO 2025-07-21 09:45:01,972 basehttp 652696 136095814637248 "POST /accounts/login/ HTTP/1.1" 302 0
+ERROR 2025-07-21 09:45:02,585 log 652696 136095814637248 Internal Server Error: /
+Traceback (most recent call last):
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 210, in render
+    return template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 173, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'student-quick-add' not found. 'student-quick-add' is not a valid view function or pattern name.
+ERROR 2025-07-21 09:45:02,707 basehttp 652696 136095814637248 "GET / HTTP/1.1" 500 217606
+WARNING 2025-07-21 09:45:03,907 log 652696 136095814637248 Not Found: /favicon.ico
+WARNING 2025-07-21 09:45:03,907 basehttp 652696 136095814637248 "GET /favicon.ico HTTP/1.1" 404 23385
+ERROR 2025-07-21 09:45:49,429 log 652696 136095814637248 Internal Server Error: /
+Traceback (most recent call last):
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 210, in render
+    return template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 173, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'student-quick-add' not found. 'student-quick-add' is not a valid view function or pattern name.
+ERROR 2025-07-21 09:45:49,529 basehttp 652696 136095814637248 "GET / HTTP/1.1" 500 217634
+ERROR 2025-07-21 09:46:09,864 log 652696 136095814637248 Internal Server Error: /
+Traceback (most recent call last):
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 210, in render
+    return template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 173, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'student-promotion' not found. 'student-promotion' is not a valid view function or pattern name.
+ERROR 2025-07-21 09:46:09,950 basehttp 652696 136095814637248 "GET / HTTP/1.1" 500 217500
+ERROR 2025-07-21 09:46:32,536 log 652696 136095814637248 Internal Server Error: /
+Traceback (most recent call last):
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 210, in render
+    return template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 173, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'relation-create' not found. 'relation-create' is not a valid view function or pattern name.
+ERROR 2025-07-21 09:46:32,621 basehttp 652696 136095814637248 "GET / HTTP/1.1" 500 217372
+ERROR 2025-07-21 09:47:35,712 log 652696 136095814637248 Internal Server Error: /
+Traceback (most recent call last):
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 210, in render
+    return template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 173, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'relation-create' not found. 'relation-create' is not a valid view function or pattern name.
+ERROR 2025-07-21 09:47:35,805 basehttp 652696 136095814637248 "GET / HTTP/1.1" 500 217382
+INFO 2025-07-21 09:48:00,939 basehttp 652696 136095814637248 "GET / HTTP/1.1" 200 147067
+INFO 2025-07-21 09:48:01,021 basehttp 652696 136095814637248 "GET /static/assets/images/logos/dark-logo.svg HTTP/1.1" 304 0
+INFO 2025-07-21 09:48:01,143 basehttp 652696 136095824078528 "GET /static/assets/js/theme/sidebarmenu.js HTTP/1.1" 304 0
+INFO 2025-07-21 09:48:01,164 basehttp 652696 136095824078528 "GET /static/assets/images/logos/light-logo.svg HTTP/1.1" 304 0
+INFO 2025-07-21 09:48:01,200 basehttp 652696 136095832471232 "GET /static/assets/js/vendor.min.js HTTP/1.1" 304 0
+INFO 2025-07-21 09:48:01,263 basehttp 652696 136095824078528 "GET /static/assets/images/profile/user-1.jpg HTTP/1.1" 304 0
+INFO 2025-07-21 09:48:01,296 basehttp 652696 136095814637248 "GET /static/assets/libs/apexcharts/dist/apexcharts.min.js HTTP/1.1" 200 516143
+INFO 2025-07-21 09:48:01,364 basehttp 652696 136095814637248 "GET /static/assets/js/dashboards/scripts.js HTTP/1.1" 304 0
+INFO 2025-07-21 09:48:01,364 basehttp 652696 136095824078528 "GET /static/assets/images/svgs/icon-dd-chat.svg HTTP/1.1" 304 0
+INFO 2025-07-21 09:48:01,563 basehttp 652696 136095824078528 "GET /static/assets/images/svgs/icon-dd-invoice.svg HTTP/1.1" 304 0
+INFO 2025-07-21 09:48:01,564 basehttp 652696 136095832471232 "GET /static/assets/images/svgs/icon-dd-mobile.svg HTTP/1.1" 304 0
+INFO 2025-07-21 09:48:01,564 basehttp 652696 136095814637248 "GET /static/assets/images/svgs/icon-dd-message-box.svg HTTP/1.1" 304 0
+INFO 2025-07-21 09:48:01,609 basehttp 652696 136095814637248 "GET /static/assets/images/svgs/icon-dd-cart.svg HTTP/1.1" 304 0
+INFO 2025-07-21 09:48:01,633 basehttp 652696 136095814637248 "GET /static/assets/images/svgs/icon-dd-date.svg HTTP/1.1" 304 0
+INFO 2025-07-21 09:48:01,677 basehttp 652696 136095814637248 "GET /static/assets/images/svgs/icon-dd-lifebuoy.svg HTTP/1.1" 304 0
+INFO 2025-07-21 09:48:01,722 basehttp 652696 136095814637248 "GET /static/assets/images/svgs/icon-dd-application.svg HTTP/1.1" 304 0
+INFO 2025-07-21 09:48:01,766 basehttp 652696 136095814637248 "GET /static/assets/images/profile/user-6.jpg HTTP/1.1" 304 0
+INFO 2025-07-21 09:48:01,828 basehttp 652696 136095814637248 "GET /static/assets/images/profile/user-2.jpg HTTP/1.1" 304 0
+INFO 2025-07-21 09:48:01,881 basehttp 652696 136095814637248 "GET /static/assets/images/profile/user-3.jpg HTTP/1.1" 304 0
+INFO 2025-07-21 09:48:01,941 basehttp 652696 136095814637248 "GET /static/assets/images/profile/user-4.jpg HTTP/1.1" 304 0
+INFO 2025-07-21 09:48:01,998 basehttp 652696 136095814637248 "GET /static/assets/images/profile/user-5.jpg HTTP/1.1" 304 0
+WARNING 2025-07-21 09:48:02,050 basehttp 652696 136095814637248 "GET /static/assets/fonts/font-awesome/webfonts/fa-solid-900.woff HTTP/1.1" 404 2083
+ERROR 2025-07-21 09:48:19,578 log 652696 136095832471232 Internal Server Error: /students/
+Traceback (most recent call last):
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 134, in render
+    compiled_parent = self.get_parent(context)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 131, in get_parent
+    return self.find_template(parent, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 109, in find_template
+    template, origin = context.template.engine.find_template(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/engine.py", line 163, in find_template
+    raise TemplateDoesNotExist(name, tried=tried)
+django.template.exceptions.TemplateDoesNotExist: core/base.html
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 109, in render
+    reraise(exc, self.backend)
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 130, in reraise
+    raise new from exc
+django.template.exceptions.TemplateDoesNotExist: core/base.html
+ERROR 2025-07-21 09:48:19,636 basehttp 652696 136095832471232 "GET /students/ HTTP/1.1" 500 184014
+ERROR 2025-07-21 09:48:40,139 log 652696 136095832471232 Internal Server Error: /students/
+Traceback (most recent call last):
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1075, in render
+    output = self.filter_expression.resolve(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 749, in resolve
+    new_obj = func(obj, *arg_vals)
+              ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/defaultfilters.py", line 632, in length
+    return len(value)
+           ^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/db/models/query.py", line 366, in __len__
+    self._fetch_all()
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/db/models/query.py", line 1945, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/db/models/query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1610, in execute_sql
+    sql, params = self.as_sql()
+                  ^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 766, in as_sql
+    extra_select, order_by, group_by = self.pre_sql_setup(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 85, in pre_sql_setup
+    self.setup_query(with_col_aliases=with_col_aliases)
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 74, in setup_query
+    self.select, self.klass_info, self.annotation_col_map = self.get_select(
+                                                            ^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 299, in get_select
+    related_klass_infos = self.get_related_selections(select, select_mask)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1396, in get_related_selections
+    raise FieldError(
+django.core.exceptions.FieldError: Invalid field name(s) given in select_related: 'user'. Choices are: current_class, created_by
+ERROR 2025-07-21 09:48:40,215 basehttp 652696 136095832471232 "GET /students/ HTTP/1.1" 500 264225
+INFO 2025-07-21 10:00:35,387 autoreload 652696 136096626970752 /home/default_007/Desktop/New Folder/sms/src/students/models.py changed, reloading.
+INFO 2025-07-21 10:00:38,853 autoreload 661844 125054167957632 Watching for file changes with StatReloader
+ERROR 2025-07-21 10:00:45,212 log 661844 125053378229952 Internal Server Error: /students/
+Traceback (most recent call last):
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'bulk-action' not found. 'bulk-action' is not a valid view function or pattern name.
+ERROR 2025-07-21 10:00:45,293 basehttp 661844 125053378229952 "GET /students/ HTTP/1.1" 500 210234
+INFO 2025-07-21 10:07:02,105 autoreload 661844 125054167957632 /home/default_007/Desktop/New Folder/sms/src/students/views/student_views.py changed, reloading.
+INFO 2025-07-21 10:07:04,015 autoreload 662685 134481515757696 Watching for file changes with StatReloader
+INFO 2025-07-21 10:09:41,597 autoreload 662685 134481515757696 /home/default_007/Desktop/New Folder/sms/src/students/urls.py changed, reloading.
+INFO 2025-07-21 10:09:43,258 autoreload 663120 127212824690816 Watching for file changes with StatReloader
+INFO 2025-07-21 10:10:42,902 autoreload 663120 127212824690816 /home/default_007/Desktop/New Folder/sms/src/students/urls.py changed, reloading.
+INFO 2025-07-21 10:10:44,535 autoreload 663277 123327135457408 Watching for file changes with StatReloader
+INFO 2025-07-21 10:11:17,749 autoreload 663277 123327135457408 /home/default_007/Desktop/New Folder/sms/src/students/urls.py changed, reloading.
+INFO 2025-07-21 10:11:19,403 autoreload 663400 124649623748736 Watching for file changes with StatReloader
+INFO 2025-07-21 10:12:49,245 autoreload 663984 130216923050112 Watching for file changes with StatReloader
+ERROR 2025-07-21 10:12:55,141 log 663984 130216133392064 Internal Server Error: /students/
+Traceback (most recent call last):
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'toggle-status' with arguments '(0,)' not found. 1 pattern(s) tried: ['students/ajax/toggle\\-status/(?P<pk>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/\\Z']
+ERROR 2025-07-21 10:12:55,235 basehttp 663984 130216133392064 "GET /students/ HTTP/1.1" 500 214316
+INFO 2025-07-21 10:17:35,092 autoreload 663984 130216923050112 /home/default_007/Desktop/New Folder/sms/src/students/views/student_views.py changed, reloading.
+INFO 2025-07-21 10:17:37,002 autoreload 664639 133520548094080 Watching for file changes with StatReloader
+INFO 2025-07-21 10:17:46,656 basehttp 664639 133519826220736 "GET /students/ HTTP/1.1" 200 152633
+WARNING 2025-07-21 10:17:47,335 basehttp 664639 133519826220736 "GET /static/assets/fonts/font-awesome/webfonts/fa-solid-900.woff HTTP/1.1" 404 2083
+ERROR 2025-07-21 10:17:59,317 log 664639 133519817828032 Internal Server Error: /students/create/
+Traceback (most recent call last):
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 134, in render
+    compiled_parent = self.get_parent(context)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 131, in get_parent
+    return self.find_template(parent, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 109, in find_template
+    template, origin = context.template.engine.find_template(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/engine.py", line 163, in find_template
+    raise TemplateDoesNotExist(name, tried=tried)
+django.template.exceptions.TemplateDoesNotExist: core/base.html
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 109, in render
+    reraise(exc, self.backend)
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 130, in reraise
+    raise new from exc
+django.template.exceptions.TemplateDoesNotExist: core/base.html
+ERROR 2025-07-21 10:17:59,371 basehttp 664639 133519817828032 "GET /students/create/ HTTP/1.1" 500 189620
+INFO 2025-07-21 10:18:45,488 basehttp 664639 133519817828032 "GET /students/create/ HTTP/1.1" 200 155479
+WARNING 2025-07-21 10:18:45,778 basehttp 664639 133519817828032 "GET /static/assets/fonts/font-awesome/webfonts/fa-solid-900.woff HTTP/1.1" 404 2083
+INFO 2025-07-21 10:20:18,942 basehttp 664639 133519826220736 "POST /students/create/ HTTP/1.1" 200 155859
+WARNING 2025-07-21 10:20:19,212 basehttp 664639 133519826220736 "GET /static/assets/fonts/font-awesome/webfonts/fa-solid-900.woff HTTP/1.1" 404 2083
+INFO 2025-07-21 10:20:49,173 basehttp 664639 133519817828032 "POST /students/create/ HTTP/1.1" 200 155626
+WARNING 2025-07-21 10:20:49,415 basehttp 664639 133519817828032 "GET /static/assets/fonts/font-awesome/webfonts/fa-solid-900.woff HTTP/1.1" 404 2083
+INFO 2025-07-21 10:21:25,760 basehttp 664639 133519826220736 "POST /students/create/ HTTP/1.1" 200 155622
+WARNING 2025-07-21 10:21:26,081 basehttp 664639 133519826220736 "GET /static/assets/fonts/font-awesome/webfonts/fa-solid-900.woff HTTP/1.1" 404 2083
+INFO 2025-07-21 10:21:44,876 basehttp 664639 133519817828032 "GET /static/assets/fonts/tabler-icons/fonts/tabler-icons.woff2?v2.11.0 HTTP/1.1" 200 653424
+INFO 2025-07-21 10:30:06,539 autoreload 667977 127913273991296 Watching for file changes with StatReloader
+INFO 2025-07-21 10:30:16,554 basehttp 667977 127912482174656 "GET /students/ HTTP/1.1" 200 152633
+WARNING 2025-07-21 10:30:17,156 basehttp 667977 127912482174656 "GET /static/assets/fonts/font-awesome/webfonts/fa-solid-900.woff HTTP/1.1" 404 2083
+INFO 2025-07-21 10:30:23,119 basehttp 667977 127912473781952 "GET /students/create/ HTTP/1.1" 200 155480
+WARNING 2025-07-21 10:30:23,436 basehttp 667977 127912473781952 "GET /static/assets/fonts/font-awesome/webfonts/fa-solid-900.woff HTTP/1.1" 404 2083
+INFO 2025-07-21 10:31:10,579 basehttp 667977 127912482174656 "POST /students/create/ HTTP/1.1" 302 0
+INFO 2025-07-21 10:31:11,335 basehttp 667977 127912482174656 "GET /students/ HTTP/1.1" 200 155620
+WARNING 2025-07-21 10:31:11,758 basehttp 667977 127912482174656 "GET /static/assets/fonts/font-awesome/webfonts/fa-solid-900.woff HTTP/1.1" 404 2083
+ERROR 2025-07-21 10:31:31,057 log 667977 127912473781952 Internal Server Error: /students/a36d64de-843c-4536-a9b0-3134435359c4/
+Traceback (most recent call last):
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 134, in render
+    compiled_parent = self.get_parent(context)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 131, in get_parent
+    return self.find_template(parent, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 109, in find_template
+    template, origin = context.template.engine.find_template(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/engine.py", line 163, in find_template
+    raise TemplateDoesNotExist(name, tried=tried)
+django.template.exceptions.TemplateDoesNotExist: core/base.html
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 109, in render
+    reraise(exc, self.backend)
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 130, in reraise
+    raise new from exc
+django.template.exceptions.TemplateDoesNotExist: core/base.html
+ERROR 2025-07-21 10:31:31,184 basehttp 667977 127912473781952 "GET /students/a36d64de-843c-4536-a9b0-3134435359c4/ HTTP/1.1" 500 191787
+ERROR 2025-07-21 10:32:08,762 log 667977 127912473781952 Internal Server Error: /students/a36d64de-843c-4536-a9b0-3134435359c4/
+Traceback (most recent call last):
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'student-attendance' not found. 'student-attendance' is not a valid view function or pattern name.
+ERROR 2025-07-21 10:32:08,842 basehttp 667977 127912473781952 "GET /students/a36d64de-843c-4536-a9b0-3134435359c4/ HTTP/1.1" 500 220721
+ERROR 2025-07-21 10:33:41,883 log 667977 127912473781952 Internal Server Error: /students/a36d64de-843c-4536-a9b0-3134435359c4/
+Traceback (most recent call last):
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'student-report' with arguments '(UUID('a36d64de-843c-4536-a9b0-3134435359c4'),)' not found. 1 pattern(s) tried: ['attendance/student/(?P<student_id>[0-9]+)/\\Z']
+ERROR 2025-07-21 10:33:41,962 basehttp 667977 127912473781952 "GET /students/a36d64de-843c-4536-a9b0-3134435359c4/ HTTP/1.1" 500 224342
+INFO 2025-07-21 10:38:08,223 autoreload 667977 127913273991296 /home/default_007/Desktop/New Folder/sms/src/attendance/urls.py changed, reloading.
+INFO 2025-07-21 10:38:09,940 autoreload 669365 134940151287936 Watching for file changes with StatReloader
+ERROR 2025-07-21 10:38:13,647 log 669365 134939432449728 Internal Server Error: /students/a36d64de-843c-4536-a9b0-3134435359c4/
+Traceback (most recent call last):
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'student-report' with arguments '(UUID('a36d64de-843c-4536-a9b0-3134435359c4'),)' not found. 1 pattern(s) tried: ['attendance/student/(?P<student_id>[0-9]+)/\\Z']
+ERROR 2025-07-21 10:38:13,792 basehttp 669365 134939432449728 "GET /students/a36d64de-843c-4536-a9b0-3134435359c4/ HTTP/1.1" 500 224342
+ERROR 2025-07-21 10:38:22,845 log 669365 134939432449728 Internal Server Error: /students/a36d64de-843c-4536-a9b0-3134435359c4/
+Traceback (most recent call last):
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'student-report' with arguments '(UUID('a36d64de-843c-4536-a9b0-3134435359c4'),)' not found. 1 pattern(s) tried: ['attendance/student/(?P<student_id>[0-9]+)/\\Z']
+ERROR 2025-07-21 10:38:22,921 basehttp 669365 134939432449728 "GET /students/a36d64de-843c-4536-a9b0-3134435359c4/ HTTP/1.1" 500 224342
+INFO 2025-07-21 10:38:39,261 autoreload 669365 134940151287936 /home/default_007/Desktop/New Folder/sms/src/attendance/urls.py changed, reloading.
+INFO 2025-07-21 10:38:40,985 autoreload 669484 135030071443584 Watching for file changes with StatReloader
+ERROR 2025-07-21 10:38:45,399 log 669484 135029275489984 Internal Server Error: /students/a36d64de-843c-4536-a9b0-3134435359c4/
+Traceback (most recent call last):
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'student-results' not found. 'student-results' is not a valid view function or pattern name.
+ERROR 2025-07-21 10:38:45,537 basehttp 669484 135029275489984 "GET /students/a36d64de-843c-4536-a9b0-3134435359c4/ HTTP/1.1" 500 220519
+INFO 2025-07-21 10:40:30,034 autoreload 669484 135030071443584 /home/default_007/Desktop/New Folder/sms/src/exams/urls.py changed, reloading.
+INFO 2025-07-21 10:40:31,776 autoreload 669852 127232896372864 Watching for file changes with StatReloader
+ERROR 2025-07-21 10:40:37,523 log 669852 127232097908416 Internal Server Error: /students/a36d64de-843c-4536-a9b0-3134435359c4/
+Traceback (most recent call last):
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/defaulttags.py", line 327, in render
+    return nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/default_007/Desktop/New Folder/sms/venv/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'add-parent-relation' not found. 'add-parent-relation' is not a valid view function or pattern name.
+ERROR 2025-07-21 10:40:37,653 basehttp 669852 127232097908416 "GET /students/a36d64de-843c-4536-a9b0-3134435359c4/ HTTP/1.1" 500 235686

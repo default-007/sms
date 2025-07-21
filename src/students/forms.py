@@ -414,12 +414,12 @@ class StudentSearchForm(forms.Form):
         widget=forms.Select(attrs={"class": "form-control"}),
     )
     status_filter = forms.ChoiceField(
-        choices=[("", "All Status")] + Student.STATUS_CHOICES,
+        choices=(("", "All Status"),) + Student.STATUS_CHOICES,
         required=False,
         widget=forms.Select(attrs={"class": "form-control"}),
     )
     blood_group_filter = forms.ChoiceField(
-        choices=[("", "All Blood Groups")] + Student.BLOOD_GROUP_CHOICES,
+        choices=(("", "All Blood Groups"),) + Student.BLOOD_GROUP_CHOICES,
         required=False,
         widget=forms.Select(attrs={"class": "form-control"}),
     )
@@ -641,41 +641,406 @@ class StudentParentRelationForm(forms.ModelForm):
 
 
 class BulkStudentImportForm(forms.Form):
-    """Form for bulk importing students from CSV"""
+    """
+    Form for bulk importing students from CSV/Excel files
+    Updated to work without user account creation
+    """
 
-    csv_file = forms.FileField(
+    import_file = forms.FileField(
+        label="Import File",
+        help_text="Upload CSV or Excel file with student data",
         widget=forms.FileInput(
             attrs={
                 "class": "form-control",
-                "accept": ".csv",
+                "accept": ".csv,.xlsx,.xls",
             }
         ),
-        help_text="Upload a CSV file with student data",
     )
+
     default_class = forms.ModelChoiceField(
         queryset=Class.objects.all(),
         required=False,
+        empty_label="Select default class (optional)",
+        help_text="Default class for students without class specified in file",
         widget=forms.Select(attrs={"class": "form-control"}),
-        help_text="Default class for students without class specified",
     )
+
     send_welcome_emails = forms.BooleanField(
         required=False,
-        initial=True,
-        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        initial=False,
         help_text="Send welcome emails to students with email addresses",
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
     )
 
-    def clean_csv_file(self):
-        csv_file = self.cleaned_data.get("csv_file")
+    update_existing = forms.BooleanField(
+        required=False,
+        initial=False,
+        help_text="Update existing students with matching admission numbers",
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
 
-        if csv_file:
-            if not csv_file.name.endswith(".csv"):
-                raise ValidationError("File must be a CSV file")
+    validate_before_import = forms.BooleanField(
+        required=False,
+        initial=True,
+        help_text="Validate all data before importing (recommended)",
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
 
-            if csv_file.size > 5 * 1024 * 1024:  # 5MB limit
-                raise ValidationError("File size must be less than 5MB")
+    def clean_import_file(self):
+        import_file = self.cleaned_data.get("import_file")
 
-        return csv_file
+        if not import_file:
+            raise ValidationError("Please select a file to import.")
+
+        # Check file size (5MB limit)
+        if import_file.size > 5 * 1024 * 1024:
+            raise ValidationError("File size must be less than 5MB.")
+
+        # Check file extension
+        allowed_extensions = [".csv", ".xlsx", ".xls"]
+        file_extension = None
+
+        for ext in allowed_extensions:
+            if import_file.name.lower().endswith(ext):
+                file_extension = ext
+                break
+
+        if not file_extension:
+            raise ValidationError(
+                f"Invalid file format. Allowed formats: {', '.join(allowed_extensions)}"
+            )
+
+        return import_file
+
+
+class StudentExportForm(forms.Form):
+    """
+    Form for exporting student data
+    Updated to export direct student fields instead of user fields
+    """
+
+    EXPORT_FORMAT_CHOICES = [
+        ("csv", "CSV File"),
+        ("excel", "Excel File (.xlsx)"),
+        ("json", "JSON File"),
+    ]
+
+    export_format = forms.ChoiceField(
+        choices=EXPORT_FORMAT_CHOICES,
+        initial="csv",
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    # Updated field choices to reflect direct student fields
+    FIELD_CHOICES = [
+        ("admission_number", "Admission Number"),
+        ("first_name", "First Name"),
+        ("last_name", "Last Name"),
+        ("full_name", "Full Name"),
+        ("email", "Email Address"),
+        ("phone_number", "Phone Number"),
+        ("date_of_birth", "Date of Birth"),
+        ("age", "Age"),
+        ("gender", "Gender"),
+        ("address", "Address"),
+        ("admission_date", "Admission Date"),
+        ("current_class", "Current Class"),
+        ("roll_number", "Roll Number"),
+        ("blood_group", "Blood Group"),
+        ("medical_conditions", "Medical Conditions"),
+        ("emergency_contact_name", "Emergency Contact Name"),
+        ("emergency_contact_number", "Emergency Contact Number"),
+        ("emergency_contact_relationship", "Emergency Contact Relationship"),
+        ("previous_school", "Previous School"),
+        ("status", "Status"),
+        ("is_active", "Is Active"),
+        ("date_joined", "Date Joined"),
+        ("parents", "Parents/Guardians"),
+    ]
+
+    include_fields = forms.MultipleChoiceField(
+        choices=FIELD_CHOICES,
+        initial=[
+            "admission_number",
+            "first_name",
+            "last_name",
+            "email",
+            "current_class",
+            "status",
+            "emergency_contact_name",
+            "emergency_contact_number",
+        ],
+        widget=forms.CheckboxSelectMultiple(attrs={"class": "form-check-input"}),
+        help_text="Select fields to include in export",
+    )
+
+    class_filter = forms.ModelChoiceField(
+        queryset=Class.objects.all(),
+        required=False,
+        empty_label="All Classes",
+        help_text="Export students from specific class only",
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    status_filter = forms.ChoiceField(
+        choices=(("", "All Status"),) + Student.STATUS_CHOICES,
+        required=False,
+        help_text="Export students with specific status only",
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    include_inactive = forms.BooleanField(
+        required=False,
+        initial=False,
+        help_text="Include inactive students in export",
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
+
+    def clean_include_fields(self):
+        include_fields = self.cleaned_data.get("include_fields")
+
+        if not include_fields:
+            raise ValidationError("Please select at least one field to export.")
+
+        return include_fields
+
+
+class StudentImportMappingForm(forms.Form):
+    """
+    Form for mapping CSV columns to student fields
+    Used when column headers don't match expected field names
+    """
+
+    def __init__(self, csv_headers, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Student field choices for mapping
+        STUDENT_FIELD_CHOICES = [
+            ("", "-- Skip this column --"),
+            ("first_name", "First Name"),
+            ("last_name", "Last Name"),
+            ("email", "Email Address"),
+            ("phone_number", "Phone Number"),
+            ("date_of_birth", "Date of Birth"),
+            ("gender", "Gender"),
+            ("address", "Address"),
+            ("admission_number", "Admission Number"),
+            ("admission_date", "Admission Date"),
+            ("class_name", "Class Name"),
+            ("roll_number", "Roll Number"),
+            ("blood_group", "Blood Group"),
+            ("medical_conditions", "Medical Conditions"),
+            ("emergency_contact_name", "Emergency Contact Name"),
+            ("emergency_contact_number", "Emergency Contact Number"),
+            ("emergency_contact_relationship", "Emergency Contact Relationship"),
+            ("previous_school", "Previous School"),
+            ("status", "Status"),
+        ]
+
+        # Create a field for each CSV header
+        for header in csv_headers:
+            field_name = f"mapping_{header}"
+            self.fields[field_name] = forms.ChoiceField(
+                choices=STUDENT_FIELD_CHOICES,
+                required=False,
+                label=f"Map '{header}' to:",
+                widget=forms.Select(attrs={"class": "form-control"}),
+            )
+
+            # Try to auto-detect mapping based on header name
+            header_lower = header.lower().replace(" ", "_")
+            for choice_value, choice_label in STUDENT_FIELD_CHOICES[
+                1:
+            ]:  # Skip "Skip" option
+                if choice_value == header_lower:
+                    self.fields[field_name].initial = choice_value
+                    break
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        # Check that required fields are mapped
+        required_fields = [
+            "first_name",
+            "last_name",
+            "admission_number",
+            "emergency_contact_name",
+            "emergency_contact_number",
+        ]
+        mapped_fields = []
+
+        for field_name, value in cleaned_data.items():
+            if field_name.startswith("mapping_") and value:
+                mapped_fields.append(value)
+
+        missing_required = [
+            field for field in required_fields if field not in mapped_fields
+        ]
+
+        if missing_required:
+            raise ValidationError(
+                f"The following required fields must be mapped: {', '.join(missing_required)}"
+            )
+
+        # Check for duplicate mappings
+        field_counts = {}
+        for field_name, value in cleaned_data.items():
+            if field_name.startswith("mapping_") and value:
+                field_counts[value] = field_counts.get(value, 0) + 1
+
+        duplicates = [field for field, count in field_counts.items() if count > 1]
+        if duplicates:
+            raise ValidationError(
+                f"The following fields are mapped multiple times: {', '.join(duplicates)}"
+            )
+
+        return cleaned_data
+
+
+class StudentImportPreviewForm(forms.Form):
+    """
+    Form for previewing student import data before final import
+    """
+
+    confirm_import = forms.BooleanField(
+        required=True,
+        label="I confirm that the data is correct and want to proceed with import",
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
+
+    send_welcome_emails = forms.BooleanField(
+        required=False,
+        initial=False,
+        label="Send welcome emails to students with email addresses",
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
+
+    update_existing = forms.BooleanField(
+        required=False,
+        initial=False,
+        label="Update existing students with matching admission numbers",
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
+
+
+class StudentDataValidationForm(forms.Form):
+    """
+    Form for validating student data integrity
+    """
+
+    VALIDATION_TYPE_CHOICES = [
+        ("all", "Run all validations"),
+        ("required_fields", "Check required fields"),
+        ("email_format", "Validate email formats"),
+        ("admission_numbers", "Check admission number formats"),
+        ("duplicate_check", "Check for duplicates"),
+        ("parent_relations", "Validate parent relationships"),
+        ("class_assignments", "Check class assignments"),
+    ]
+
+    validation_types = forms.MultipleChoiceField(
+        choices=VALIDATION_TYPE_CHOICES,
+        initial=["all"],
+        widget=forms.CheckboxSelectMultiple(attrs={"class": "form-check-input"}),
+        label="Select validation checks to run",
+    )
+
+    fix_errors = forms.BooleanField(
+        required=False,
+        initial=False,
+        label="Automatically fix correctable errors",
+        help_text="This will fix issues like formatting admission numbers, normalizing blood groups, etc.",
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
+
+    export_report = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="Export validation report",
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
+
+
+class BulkStudentUpdateForm(forms.Form):
+    """
+    Form for bulk updating student fields
+    """
+
+    students = forms.ModelMultipleChoiceField(
+        queryset=Student.objects.none(),
+        widget=forms.MultipleHiddenInput(),
+        required=True,
+    )
+
+    UPDATE_FIELD_CHOICES = [
+        ("", "-- Select field to update --"),
+        ("status", "Status"),
+        ("current_class", "Current Class"),
+        ("blood_group", "Blood Group"),
+        ("is_active", "Active Status"),
+    ]
+
+    update_field = forms.ChoiceField(
+        choices=UPDATE_FIELD_CHOICES,
+        required=True,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    # Dynamic fields that will be shown based on update_field selection
+    new_status = forms.ChoiceField(
+        choices=Student.STATUS_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    new_class = forms.ModelChoiceField(
+        queryset=Class.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    new_blood_group = forms.ChoiceField(
+        choices=Student.BLOOD_GROUP_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    new_active_status = forms.BooleanField(
+        required=False, widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
+    )
+
+    send_notifications = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="Send notifications to parents about changes",
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        selected_students = kwargs.pop("selected_students", None)
+        super().__init__(*args, **kwargs)
+
+        if selected_students:
+            self.fields["students"].queryset = selected_students
+
+    def clean(self):
+        cleaned_data = super().clean()
+        update_field = cleaned_data.get("update_field")
+
+        # Validate that the appropriate value field is provided
+        if update_field == "status" and not cleaned_data.get("new_status"):
+            raise ValidationError("Please select a new status value.")
+        elif update_field == "current_class" and not cleaned_data.get("new_class"):
+            raise ValidationError("Please select a new class.")
+        elif update_field == "blood_group" and not cleaned_data.get("new_blood_group"):
+            raise ValidationError("Please select a new blood group.")
+        elif (
+            update_field == "is_active"
+            and cleaned_data.get("new_active_status") is None
+        ):
+            raise ValidationError("Please specify the active status.")
+
+        return cleaned_data
 
 
 class ParentBulkImportForm(forms.Form):

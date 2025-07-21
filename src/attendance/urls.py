@@ -20,7 +20,7 @@ urlpatterns = [
     ),
     # Attendance reports
     path(
-        "student/<int:student_id>/",
+        "student/<uuid:student_id>/",
         views.student_attendance_report_view,
         name="student-report",
     ),

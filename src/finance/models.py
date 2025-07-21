@@ -37,6 +37,7 @@ class FeeCategory(models.Model):
         verbose_name = _("Fee Category")
         verbose_name_plural = _("Fee Categories")
         ordering = ["name"]
+        app_label = "finance"
 
     def __str__(self):
         return self.name
@@ -87,6 +88,7 @@ class FeeStructure(models.Model):
         verbose_name_plural = _("Fee Structures")
         unique_together = ["academic_year", "grade", "fee_category"]
         ordering = ["academic_year", "grade", "fee_category"]
+        app_label = "finance"
 
     def __str__(self):
         return (
@@ -129,6 +131,7 @@ class Scholarship(models.Model):
         verbose_name = _("Scholarship")
         verbose_name_plural = _("Scholarships")
         ordering = ["name"]
+        app_label = "finance"
 
     def __str__(self):
         return self.name
@@ -175,6 +178,7 @@ class StudentScholarship(models.Model):
         verbose_name = _("Student Scholarship")
         verbose_name_plural = _("Student Scholarships")
         ordering = ["-approval_date"]
+        app_label = "finance"
 
     def __str__(self):
         return f"{self.student} - {self.scholarship}"

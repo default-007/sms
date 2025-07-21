@@ -283,7 +283,7 @@ class StudentExamResult(models.Model):
 
     class Meta:
         db_table = "student_exam_results"
-        ordering = ["-percentage", "student__user__last_name"]
+        ordering = ["-percentage", "student__last_name"]
         unique_together = ["student", "exam_schedule"]
 
     def __str__(self):

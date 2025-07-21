@@ -1,665 +1,503 @@
-{% extends "base.html" %}
+<!-- students/templates/students/student_form.html -->
+{% extends 'base.html' %}
 {% load static %}
-{% load student_tags %}
+{% load widget_tweaks %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block title %}{{ title|default:"Student Form" }}{% endblock %}
 
-{% block extra_css %}
-<style>
-  .form-section {
-    background: #f8f9fa;
-    border-left: 4px solid #007bff;
-    padding: 1rem;
-    margin-bottom: 2rem;
-    border-radius: 0 10px 10px 0;
-  }
-
-  .form-section h5 {
-    color: #007bff;
-    margin-bottom: 1rem;
-  }
-
-  .required-field::after {
-    content: " *";
-    color: #dc3545;
-  }
-
-  .help-text {
-    font-size: 0.875rem;
-    color: #6c757d;
-    margin-top: 0.25rem;
-  }
-
-  .image-preview {
-    max-width: 150px;
-    max-height: 150px;
-    border: 2px dashed #dee2e6;
-    border-radius: 10px;
-    padding: 10px;
-    text-align: center;
-  }
-
-  .form-floating-custom {
-    position: relative;
-  }
-
-  .form-floating-custom label {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    padding: 1rem 0.75rem;
-    pointer-events: none;
-    border: 1px solid transparent;
-    transform-origin: 0 0;
-    transition: opacity 0.1s ease-in-out, transform 0.1s ease-in-out;
-    color: #6c757d;
-  }
-</style>
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'students:student-list' %}">Students</a></li>
+    <li class="breadcrumb-item active">{{ title|default:"Student Form" }}</li>
+  </ol>
+</nav>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-  <!-- Header Section -->
-  <div class="row mb-4">
-    <div class="col-12">
-      <div class="d-flex justify-content-between align-items-center">
-        <div>
-          <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-              <li class="breadcrumb-item"><a href="{% url 'students:student-list' %}">Students</a></li>
-              {% if form.instance.pk %}
-              <li class="breadcrumb-item"><a
-                  href="{% url 'students:student-detail' form.instance.pk %}">{{ form.instance.get_full_name }}</a></li>
-              <li class="breadcrumb-item active">Edit</li>
-              {% else %}
-              <li class="breadcrumb-item active">Add New Student</li>
-              {% endif %}
-            </ol>
-          </nav>
-          <h2 class="mb-1">
-            <i class="fas fa-user-plus text-primary me-2"></i>
-            {{ title }}
-          </h2>
-          <p class="text-muted mb-0">Fill in the student information below. Fields marked with * are required.</p>
+  <div class="row justify-content-center">
+    <div class="col-md-10">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0">
+            <i class="fas fa-user-plus mr-2"></i>
+            {{ title|default:"Student Form" }}
+          </h4>
         </div>
-        <div>
-          <a href="{% url 'students:student-list' %}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-2"></i>Back to List
-          </a>
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+
+            <!-- Form Errors -->
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+              <ul class="mb-0">
+                {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+
+            <!-- Personal Information Section -->
+            <div class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0">
+                  <i class="fas fa-user mr-2"></i>
+                  Personal Information
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="{{ form.first_name.id_for_label }}" class="required">
+                        First Name <span class="text-danger">*</span>
+                      </label>
+                      {{ form.first_name|add_class:"form-control" }}
+                      {% if form.first_name.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.first_name.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="{{ form.last_name.id_for_label }}" class="required">
+                        Last Name <span class="text-danger">*</span>
+                      </label>
+                      {{ form.last_name|add_class:"form-control" }}
+                      {% if form.last_name.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.last_name.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="{{ form.email.id_for_label }}">
+                        Email Address
+                        <small class="text-muted">(Optional)</small>
+                      </label>
+                      {{ form.email|add_class:"form-control" }}
+                      {% if form.email.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.email.errors.0 }}
+                      </div>
+                      {% endif %}
+                      <small class="form-text text-muted">
+                        Email address for direct communication with student
+                      </small>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="{{ form.phone_number.id_for_label }}">
+                        Phone Number
+                      </label>
+                      {{ form.phone_number|add_class:"form-control" }}
+                      {% if form.phone_number.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.phone_number.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-4">
+                    <div class="form-group">
+                      <label for="{{ form.date_of_birth.id_for_label }}">
+                        Date of Birth
+                      </label>
+                      {{ form.date_of_birth|add_class:"form-control" }}
+                      {% if form.date_of_birth.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.date_of_birth.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-group">
+                      <label for="{{ form.gender.id_for_label }}">
+                        Gender
+                      </label>
+                      {{ form.gender|add_class:"form-control" }}
+                      {% if form.gender.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.gender.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-group">
+                      <label for="{{ form.profile_picture.id_for_label }}">
+                        Profile Picture
+                      </label>
+                      {{ form.profile_picture|add_class:"form-control-file" }}
+                      {% if form.profile_picture.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.profile_picture.errors.0 }}
+                      </div>
+                      {% endif %}
+                      <small class="form-text text-muted">
+                        Recommended size: 300x300 pixels
+                      </small>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="{{ form.address.id_for_label }}">
+                    Address
+                  </label>
+                  {{ form.address|add_class:"form-control" }}
+                  {% if form.address.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.address.errors.0 }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Academic Information Section -->
+            <div class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0">
+                  <i class="fas fa-graduation-cap mr-2"></i>
+                  Academic Information
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="{{ form.admission_number.id_for_label }}" class="required">
+                        Admission Number <span class="text-danger">*</span>
+                      </label>
+                      {{ form.admission_number|add_class:"form-control" }}
+                      {% if form.admission_number.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.admission_number.errors.0 }}
+                      </div>
+                      {% endif %}
+                      <small class="form-text text-muted">
+                        Format: STU-2024-ABC123
+                      </small>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="{{ form.admission_date.id_for_label }}" class="required">
+                        Admission Date <span class="text-danger">*</span>
+                      </label>
+                      {{ form.admission_date|add_class:"form-control" }}
+                      {% if form.admission_date.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.admission_date.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="{{ form.current_class.id_for_label }}">
+                        Current Class
+                      </label>
+                      {{ form.current_class|add_class:"form-control" }}
+                      {% if form.current_class.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.current_class.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="{{ form.roll_number.id_for_label }}">
+                        Roll Number
+                      </label>
+                      {{ form.roll_number|add_class:"form-control" }}
+                      {% if form.roll_number.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.roll_number.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="{{ form.previous_school.id_for_label }}">
+                        Previous School
+                      </label>
+                      {{ form.previous_school|add_class:"form-control" }}
+                      {% if form.previous_school.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.previous_school.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="{{ form.transfer_certificate_number.id_for_label }}">
+                        Transfer Certificate Number
+                      </label>
+                      {{ form.transfer_certificate_number|add_class:"form-control" }}
+                      {% if form.transfer_certificate_number.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.transfer_certificate_number.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Health & Emergency Information Section -->
+            <div class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0">
+                  <i class="fas fa-heart mr-2"></i>
+                  Health & Emergency Information
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="{{ form.blood_group.id_for_label }}">
+                        Blood Group
+                      </label>
+                      {{ form.blood_group|add_class:"form-control" }}
+                      {% if form.blood_group.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.blood_group.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="{{ form.status.id_for_label }}">
+                        Status
+                      </label>
+                      {{ form.status|add_class:"form-control" }}
+                      {% if form.status.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.status.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="{{ form.medical_conditions.id_for_label }}">
+                    Medical Conditions / Allergies
+                  </label>
+                  {{ form.medical_conditions|add_class:"form-control" }}
+                  {% if form.medical_conditions.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.medical_conditions.errors.0 }}
+                  </div>
+                  {% endif %}
+                  <small class="form-text text-muted">
+                    Please list any medical conditions, allergies, or special needs
+                  </small>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="{{ form.emergency_contact_name.id_for_label }}" class="required">
+                        Emergency Contact Name <span class="text-danger">*</span>
+                      </label>
+                      {{ form.emergency_contact_name|add_class:"form-control" }}
+                      {% if form.emergency_contact_name.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.emergency_contact_name.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="{{ form.emergency_contact_number.id_for_label }}" class="required">
+                        Emergency Contact Number <span class="text-danger">*</span>
+                      </label>
+                      {{ form.emergency_contact_number|add_class:"form-control" }}
+                      {% if form.emergency_contact_number.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ form.emergency_contact_number.errors.0 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="{{ form.emergency_contact_relationship.id_for_label }}">
+                    Emergency Contact Relationship
+                  </label>
+                  {{ form.emergency_contact_relationship|add_class:"form-control" }}
+                  {% if form.emergency_contact_relationship.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.emergency_contact_relationship.errors.0 }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="card">
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-12">
+                    <div class="d-flex justify-content-between">
+                      <a href="{% url 'students:student-list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left mr-1"></i>
+                        Cancel
+                      </a>
+                      <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save mr-1"></i>
+                        {{ button_label|default:"Save Student" }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
         </div>
       </div>
     </div>
   </div>
+</div>
 
-  <form method="post" enctype="multipart/form-data" id="studentForm" novalidate>
-    {% csrf_token %}
-
-    <!-- Form Errors -->
-    {% if form.non_field_errors %}
-    <div class="alert alert-danger">
-      <i class="fas fa-exclamation-triangle me-2"></i>
-      <strong>Please correct the following errors:</strong>
-      {{ form.non_field_errors }}
-    </div>
-    {% endif %}
-
-    <div class="row">
-      <!-- Main Form -->
-      <div class="col-lg-8">
-        <!-- Personal Information -->
-        <div class="card mb-4">
-          <div class="card-header bg-primary text-white">
-            <h5 class="card-title mb-0">
-              <i class="fas fa-user me-2"></i>Personal Information
-            </h5>
-          </div>
-          <div class="card-body">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <div class="form-floating">
-                  {{ form.first_name }}
-                  <label for="{{ form.first_name.id_for_label }}" class="required-field">First Name</label>
-                </div>
-                {% if form.first_name.errors %}
-                <div class="text-danger small">{{ form.first_name.errors }}</div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <div class="form-floating">
-                  {{ form.last_name }}
-                  <label for="{{ form.last_name.id_for_label }}" class="required-field">Last Name</label>
-                </div>
-                {% if form.last_name.errors %}
-                <div class="text-danger small">{{ form.last_name.errors }}</div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <div class="form-floating">
-                  {{ form.email }}
-                  <label for="{{ form.email.id_for_label }}" class="required-field">Email Address</label>
-                </div>
-                {% if form.email.errors %}
-                <div class="text-danger small">{{ form.email.errors }}</div>
-                {% endif %}
-                <div class="help-text">This will be used for login and communications</div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-floating">
-                  {{ form.phone_number }}
-                  <label for="{{ form.phone_number.id_for_label }}">Phone Number</label>
-                </div>
-                {% if form.phone_number.errors %}
-                <div class="text-danger small">{{ form.phone_number.errors }}</div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <label for="{{ form.date_of_birth.id_for_label }}" class="form-label">Date of Birth</label>
-                {{ form.date_of_birth }}
-                {% if form.date_of_birth.errors %}
-                <div class="text-danger small">{{ form.date_of_birth.errors }}</div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <label for="{{ form.gender.id_for_label }}" class="form-label">Gender</label>
-                {{ form.gender }}
-                {% if form.gender.errors %}
-                <div class="text-danger small">{{ form.gender.errors }}</div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <div class="form-floating">
-                  {{ form.nationality }}
-                  <label for="{{ form.nationality.id_for_label }}">Nationality</label>
-                </div>
-                {% if form.nationality.errors %}
-                <div class="text-danger small">{{ form.nationality.errors }}</div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <div class="form-floating">
-                  {{ form.religion }}
-                  <label for="{{ form.religion.id_for_label }}">Religion</label>
-                </div>
-                {% if form.religion.errors %}
-                <div class="text-danger small">{{ form.religion.errors }}</div>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Academic Information -->
-        <div class="card mb-4">
-          <div class="card-header bg-success text-white">
-            <h5 class="card-title mb-0">
-              <i class="fas fa-graduation-cap me-2"></i>Academic Information
-            </h5>
-          </div>
-          <div class="card-body">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <div class="form-floating">
-                  {{ form.admission_number }}
-                  <label for="{{ form.admission_number.id_for_label }}" class="required-field">Admission Number</label>
-                </div>
-                {% if form.admission_number.errors %}
-                <div class="text-danger small">{{ form.admission_number.errors }}</div>
-                {% endif %}
-                <div class="help-text">Unique identifier for the student</div>
-              </div>
-              <div class="col-md-6">
-                <label for="{{ form.admission_date.id_for_label }}" class="form-label required-field">Admission
-                  Date</label>
-                {{ form.admission_date }}
-                {% if form.admission_date.errors %}
-                <div class="text-danger small">{{ form.admission_date.errors }}</div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <label for="{{ form.current_class.id_for_label }}" class="form-label">Current Class</label>
-                {{ form.current_class }}
-                {% if form.current_class.errors %}
-                <div class="text-danger small">{{ form.current_class.errors }}</div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <div class="form-floating">
-                  {{ form.roll_number }}
-                  <label for="{{ form.roll_number.id_for_label }}">Roll Number</label>
-                </div>
-                {% if form.roll_number.errors %}
-                <div class="text-danger small">{{ form.roll_number.errors }}</div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <label for="{{ form.blood_group.id_for_label }}" class="form-label">Blood Group</label>
-                {{ form.blood_group }}
-                {% if form.blood_group.errors %}
-                <div class="text-danger small">{{ form.blood_group.errors }}</div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
-                {{ form.status }}
-                {% if form.status.errors %}
-                <div class="text-danger small">{{ form.status.errors }}</div>
-                {% endif %}
-              </div>
-              <div class="col-12">
-                <div class="form-floating">
-                  {{ form.previous_school }}
-                  <label for="{{ form.previous_school.id_for_label }}">Previous School</label>
-                </div>
-                {% if form.previous_school.errors %}
-                <div class="text-danger small">{{ form.previous_school.errors }}</div>
-                {% endif %}
-              </div>
-              <div class="col-12">
-                <label for="{{ form.medical_conditions.id_for_label }}" class="form-label">Medical Conditions</label>
-                {{ form.medical_conditions }}
-                {% if form.medical_conditions.errors %}
-                <div class="text-danger small">{{ form.medical_conditions.errors }}</div>
-                {% endif %}
-                <div class="help-text">Please mention any allergies, chronic conditions, or special medical needs</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Address Information -->
-        <div class="card mb-4">
-          <div class="card-header bg-info text-white">
-            <h5 class="card-title mb-0">
-              <i class="fas fa-map-marker-alt me-2"></i>Address Information
-            </h5>
-          </div>
-          <div class="card-body">
-            <div class="row g-3">
-              <div class="col-12">
-                <label for="{{ form.address_line.id_for_label }}" class="form-label">Street Address</label>
-                {{ form.address_line }}
-                {% if form.address_line.errors %}
-                <div class="text-danger small">{{ form.address_line.errors }}</div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <div class="form-floating">
-                  {{ form.city }}
-                  <label for="{{ form.city.id_for_label }}">City</label>
-                </div>
-                {% if form.city.errors %}
-                <div class="text-danger small">{{ form.city.errors }}</div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <div class="form-floating">
-                  {{ form.state }}
-                  <label for="{{ form.state.id_for_label }}">State/Province</label>
-                </div>
-                {% if form.state.errors %}
-                <div class="text-danger small">{{ form.state.errors }}</div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <div class="form-floating">
-                  {{ form.postal_code }}
-                  <label for="{{ form.postal_code.id_for_label }}">Postal Code</label>
-                </div>
-                {% if form.postal_code.errors %}
-                <div class="text-danger small">{{ form.postal_code.errors }}</div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <div class="form-floating">
-                  {{ form.country }}
-                  <label for="{{ form.country.id_for_label }}">Country</label>
-                </div>
-                {% if form.country.errors %}
-                <div class="text-danger small">{{ form.country.errors }}</div>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Emergency Contact -->
-        <div class="card mb-4">
-          <div class="card-header bg-danger text-white">
-            <h5 class="card-title mb-0">
-              <i class="fas fa-phone me-2"></i>Emergency Contact
-            </h5>
-          </div>
-          <div class="card-body">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <div class="form-floating">
-                  {{ form.emergency_contact_name }}
-                  <label for="{{ form.emergency_contact_name.id_for_label }}" class="required-field">Contact
-                    Name</label>
-                </div>
-                {% if form.emergency_contact_name.errors %}
-                <div class="text-danger small">{{ form.emergency_contact_name.errors }}</div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <div class="form-floating">
-                  {{ form.emergency_contact_number }}
-                  <label for="{{ form.emergency_contact_number.id_for_label }}" class="required-field">Contact
-                    Number</label>
-                </div>
-                {% if form.emergency_contact_number.errors %}
-                <div class="text-danger small">{{ form.emergency_contact_number.errors }}</div>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Account Settings -->
-        {% if not form.instance.pk %}
-        <div class="card mb-4">
-          <div class="card-header bg-warning text-dark">
-            <h5 class="card-title mb-0">
-              <i class="fas fa-key me-2"></i>Account Settings
-            </h5>
-          </div>
-          <div class="card-body">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <div class="form-floating">
-                  {{ form.password }}
-                  <label for="{{ form.password.id_for_label }}">Password</label>
-                </div>
-                {% if form.password.errors %}
-                <div class="text-danger small">{{ form.password.errors }}</div>
-                {% endif %}
-                <div class="help-text">Leave blank to auto-generate a secure password</div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-floating">
-                  {{ form.confirm_password }}
-                  <label for="{{ form.confirm_password.id_for_label }}">Confirm Password</label>
-                </div>
-                {% if form.confirm_password.errors %}
-                <div class="text-danger small">{{ form.confirm_password.errors }}</div>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-        </div>
-        {% endif %}
-      </div>
-
-      <!-- Sidebar -->
-      <div class="col-lg-4">
-        <!-- Photo Upload -->
-        <div class="card mb-4">
-          <div class="card-header">
-            <h6 class="card-title mb-0">
-              <i class="fas fa-camera me-2"></i>Profile Photo
-            </h6>
-          </div>
-          <div class="card-body text-center">
-            <div class="image-preview mb-3" id="imagePreview">
-              {% if form.instance.photo %}
-              <img src="{{ form.instance.photo.url }}" class="img-fluid rounded" alt="Current photo">
-              {% else %}
-              <i class="fas fa-user fa-4x text-muted mb-2"></i>
-              <p class="text-muted">No photo uploaded</p>
-              {% endif %}
-            </div>
-            {{ form.photo }}
-            {% if form.photo.errors %}
-            <div class="text-danger small">{{ form.photo.errors }}</div>
-            {% endif %}
-            <div class="help-text">Supported formats: JPG, PNG, GIF (Max: 2MB)</div>
-          </div>
-        </div>
-
-        <!-- Form Actions -->
-        <div class="card mb-4">
-          <div class="card-header">
-            <h6 class="card-title mb-0">Actions</h6>
-          </div>
-          <div class="card-body">
-            <div class="d-grid gap-2">
-              <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save me-2"></i>{{ button_label }}
-              </button>
-              <button type="button" class="btn btn-outline-secondary" onclick="validateForm()">
-                <i class="fas fa-check me-2"></i>Validate Form
-              </button>
-              <a href="{% url 'students:student-list' %}" class="btn btn-outline-danger">
-                <i class="fas fa-times me-2"></i>Cancel
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Form Progress -->
-        <div class="card">
-          <div class="card-header">
-            <h6 class="card-title mb-0">Form Completion</h6>
-          </div>
-          <div class="card-body">
-            <div class="progress mb-2">
-              <div class="progress-bar" id="formProgress" style="width: 0%"></div>
-            </div>
-            <div class="d-flex justify-content-between">
-              <small>Required fields</small>
-              <small id="progressText">0%</small>
-            </div>
-            <div class="mt-3">
-              <h6>Required Fields:</h6>
-              <ul class="list-unstyled small" id="requiredFieldsList">
-                <li><i class="fas fa-square text-muted me-2"></i>First Name</li>
-                <li><i class="fas fa-square text-muted me-2"></i>Last Name</li>
-                <li><i class="fas fa-square text-muted me-2"></i>Email</li>
-                <li><i class="fas fa-square text-muted me-2"></i>Admission Number</li>
-                <li><i class="fas fa-square text-muted me-2"></i>Admission Date</li>
-                <li><i class="fas fa-square text-muted me-2"></i>Emergency Contact Name</li>
-                <li><i class="fas fa-square text-muted me-2"></i>Emergency Contact Number</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </form>
+<!-- Important Note Alert -->
+<div class="mt-4">
+  <div class="alert alert-info">
+    <h6><i class="fas fa-info-circle mr-2"></i>Important Note</h6>
+    <p class="mb-0">
+      Students do not have login accounts in this system. All student information is managed
+      by parents, teachers, and administrators. Parents can view their children's information
+      through their own parent accounts.
+    </p>
+  </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
   $(document).ready(function () {
-    // Form validation and progress tracking
-    updateFormProgress();
+    // Form validation feedback
+    $('form').on('submit', function (e) {
+      let isValid = true;
 
-    // Update progress on field changes
-    $('input, select, textarea').on('input change', function () {
-      updateFormProgress();
-    });
+      // Check required fields
+      $('input[required], select[required]').each(function () {
+        if (!$(this).val()) {
+          $(this).addClass('is-invalid');
+          isValid = false;
+        } else {
+          $(this).removeClass('is-invalid');
+        }
+      });
 
-    // Photo preview functionality
-    $('#{{ form.photo.id_for_label }}').on('change', function (event) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          $('#imagePreview').html('<img src="' + e.target.result + '" class="img-fluid rounded" alt="Preview">');
-        };
-        reader.readAsDataURL(file);
+      // Validate email format if provided
+      const email = $('#id_email').val();
+      if (email && !isValidEmail(email)) {
+        $('#id_email').addClass('is-invalid');
+        isValid = false;
       }
-    });
 
-    // Form submission with validation
-    $('#studentForm').on('submit', function (e) {
-      if (!validateForm()) {
+      // Validate admission number format
+      const admissionNumber = $('#id_admission_number').val();
+      if (admissionNumber && !isValidAdmissionNumber(admissionNumber)) {
+        $('#id_admission_number').addClass('is-invalid');
+        isValid = false;
+      }
+
+      if (!isValid) {
         e.preventDefault();
-        showValidationErrors();
-      } else {
-        // Show loading state
-        $('button[type="submit"]').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Saving...');
+        $('html, body').animate({
+          scrollTop: $('.is-invalid').first().offset().top - 100
+        }, 500);
       }
     });
 
-    // Auto-generate admission number if empty
-    $('#{{ form.admission_number.id_for_label }}').on('blur', function () {
-      if (!this.value) {
-        generateAdmissionNumber();
-      }
-    });
+    // Real-time validation for admission number
+    $('#id_admission_number').on('input', function () {
+      const value = $(this).val().toUpperCase();
+      $(this).val(value);
 
-    // Password confirmation validation
-    $('#{{ form.confirm_password.id_for_label }}').on('input', function () {
-      const password = $('#{{ form.password.id_for_label }}').val();
-      const confirmPassword = this.value;
-
-      if (password && confirmPassword && password !== confirmPassword) {
-        this.setCustomValidity('Passwords do not match');
+      if (value && !isValidAdmissionNumber(value)) {
         $(this).addClass('is-invalid');
       } else {
-        this.setCustomValidity('');
         $(this).removeClass('is-invalid');
       }
     });
 
-    // Phone number formatting
-    $('#{{ form.phone_number.id_for_label }}, #{{ form.emergency_contact_number.id_for_label }}').on('input', function () {
-      this.value = formatPhoneNumber(this.value);
+    // Real-time validation for email
+    $('#id_email').on('input', function () {
+      const value = $(this).val();
+      if (value && !isValidEmail(value)) {
+        $(this).addClass('is-invalid');
+      } else {
+        $(this).removeClass('is-invalid');
+      }
     });
 
-    // Email validation
-    $('#{{ form.email.id_for_label }}').on('blur', function () {
-      if (this.value) {
-        checkEmailExists(this.value);
+    // Profile picture preview
+    $('#id_profile_picture').on('change', function () {
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          // Show preview if needed
+          console.log('Profile picture selected:', file.name);
+        };
+        reader.readAsDataURL(file);
       }
     });
   });
-
-  function updateFormProgress() {
-    const requiredFields = [
-      '#{{ form.first_name.id_for_label }}',
-      '#{{ form.last_name.id_for_label }}',
-      '#{{ form.email.id_for_label }}',
-      '#{{ form.admission_number.id_for_label }}',
-      '#{{ form.admission_date.id_for_label }}',
-      '#{{ form.emergency_contact_name.id_for_label }}',
-      '#{{ form.emergency_contact_number.id_for_label }}'
-    ];
-
-    let completedFields = 0;
-    const totalFields = requiredFields.length;
-
-    requiredFields.forEach((fieldId, index) => {
-      const field = $(fieldId);
-      const listItem = $('#requiredFieldsList li').eq(index);
-
-      if (field.val() && field.val().trim() !== '') {
-        completedFields++;
-        listItem.find('i').removeClass('fa-square text-muted').addClass('fa-check-square text-success');
-      } else {
-        listItem.find('i').removeClass('fa-check-square text-success').addClass('fa-square text-muted');
-      }
-    });
-
-    const progress = Math.round((completedFields / totalFields) * 100);
-    $('#formProgress').css('width', progress + '%');
-    $('#progressText').text(progress + '%');
-
-    // Update progress bar color
-    if (progress < 50) {
-      $('#formProgress').removeClass('bg-warning bg-success').addClass('bg-danger');
-    } else if (progress < 100) {
-      $('#formProgress').removeClass('bg-danger bg-success').addClass('bg-warning');
-    } else {
-      $('#formProgress').removeClass('bg-danger bg-warning').addClass('bg-success');
-    }
-  }
-
-  function validateForm() {
-    let isValid = true;
-    const requiredFields = [
-      '#{{ form.first_name.id_for_label }}',
-      '#{{ form.last_name.id_for_label }}',
-      '#{{ form.email.id_for_label }}',
-      '#{{ form.admission_number.id_for_label }}',
-      '#{{ form.admission_date.id_for_label }}',
-      '#{{ form.emergency_contact_name.id_for_label }}',
-      '#{{ form.emergency_contact_number.id_for_label }}'
-    ];
-
-    // Clear previous validation states
-    $('.is-invalid').removeClass('is-invalid');
-
-    requiredFields.forEach(fieldId => {
-      const field = $(fieldId);
-      if (!field.val() || field.val().trim() === '') {
-        field.addClass('is-invalid');
-        isValid = false;
-      }
-    });
-
-    // Validate email format
-    const email = $('#{{ form.email.id_for_label }}').val();
-    if (email && !isValidEmail(email)) {
-      $('#{{ form.email.id_for_label }}').addClass('is-invalid');
-      isValid = false;
-    }
-
-    // Validate password confirmation
-    const password = $('#{{ form.password.id_for_label }}').val();
-    const confirmPassword = $('#{{ form.confirm_password.id_for_label }}').val();
-    if (password && confirmPassword && password !== confirmPassword) {
-      $('#{{ form.confirm_password.id_for_label }}').addClass('is-invalid');
-      isValid = false;
-    }
-
-    return isValid;
-  }
-
-  function showValidationErrors() {
-    const firstInvalidField = $('.is-invalid').first();
-    if (firstInvalidField.length) {
-      $('html, body').animate({
-        scrollTop: firstInvalidField.offset().top - 100
-      }, 500);
-      firstInvalidField.focus();
-    }
-  }
-
-  function generateAdmissionNumber() {
-    const year = new Date().getFullYear();
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    const admissionNumber = `STU-${year}-${random}`;
-    $('#{{ form.admission_number.id_for_label }}').val(admissionNumber);
-    updateFormProgress();
-  }
-
-  function formatPhoneNumber(phone) {
-    // Remove all non-digit characters except +
-    const cleaned = phone.replace(/[^\d+]/g, '');
-
-    // Basic formatting for display
-    if (cleaned.length === 10) {
-      return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
-    }
-
-    return cleaned;
-  }
 
   function isValidEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   }
 
-  function checkEmailExists(email) {
-    // This would make an AJAX call to check if email exists
-    // For now, just validate format
-    if (!isValidEmail(email)) {
-      $('#{{ form.email.id_for_label }}').addClass('is-invalid');
-    }
+  function isValidAdmissionNumber(admissionNumber) {
+    // Basic pattern validation for admission number
+    const patterns = [
+      /^[A-Z]{2,5}-\d{4}-[A-Z0-9]{4,8}(-\d{2})?$/,
+      /^[A-Z]{2,5}\d{4}[A-Z0-9]{4,8}$/,
+      /^\d{4}[A-Z0-9]{4,8}$/,
+      /^\d{7,12}$/,
+      /^[A-Z]{2,5}\/\d{4}\/\d{3,6}$/
+    ];
+
+    return patterns.some(pattern => pattern.test(admissionNumber));
   }
 </script>
 {% endblock %}

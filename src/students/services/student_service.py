@@ -26,64 +26,75 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
+class InvalidStudentDataError(Exception):
+    """Exception raised when student data is invalid"""
+
+    pass
+
+
 class StudentService:
+
     @staticmethod
-    def create_student(student_data, user_data=None, created_by=None):
+    def create_student(student_data, created_by=None):
         """
-        Create a new student without associated user account
+        Create a new student with direct fields (no user account)
+
+        Args:
+            student_data (dict): Student information
+            created_by (User): User who created the student
+
+        Returns:
+            Student: Created student instance
         """
         with transaction.atomic():
             try:
-                # Get admission number for validation
-                admission_number = student_data.get("admission_number")
-                if not admission_number:
-                    raise ValueError("Admission number is required")
+                # Validate required fields
+                required_fields = [
+                    "first_name",
+                    "last_name",
+                    "admission_number",
+                    "emergency_contact_name",
+                    "emergency_contact_number",
+                ]
 
-                # Remove user creation logic completely
-                # if user_data:
-                #     # REMOVE ALL USER CREATION CODE
-                # else:
-                #     user = student_data.get("user")  # REMOVE THIS
+                for field in required_fields:
+                    if not student_data.get(field):
+                        raise InvalidStudentDataError(f"{field} is required")
 
-                # Create student directly with personal data
-                student_data.update(
-                    {
-                        "first_name": (
-                            user_data.get("first_name", "") if user_data else ""
-                        ),
-                        "last_name": (
-                            user_data.get("last_name", "") if user_data else ""
-                        ),
-                        "email": user_data.get("email", "") if user_data else "",
-                        "phone_number": (
-                            user_data.get("phone_number", "") if user_data else ""
-                        ),
-                        "date_of_birth": (
-                            user_data.get("date_of_birth") if user_data else None
-                        ),
-                        "gender": user_data.get("gender", "") if user_data else "",
-                    }
-                )
+                # Set defaults
+                if "admission_date" not in student_data:
+                    student_data["admission_date"] = timezone.now().date()
 
-                # Remove user field from student_data
-                student_data.pop("user", None)
+                if "status" not in student_data:
+                    student_data["status"] = "Active"
 
+                if "is_active" not in student_data:
+                    student_data["is_active"] = True
+
+                # Add created_by if provided
+                if created_by:
+                    student_data["created_by"] = created_by
+
+                # Create student
                 student = Student.objects.create(**student_data)
 
-                # Remove user role assignment
-                # if student.user:
-                #     RoleService.assign_role_to_user(student.user, "Student")  # REMOVE THIS
+                logger.info(f"Student created successfully: {student.admission_number}")
+
+                # Send welcome email if email is provided
+                if student.email and getattr(
+                    settings, "ENABLE_EMAIL_NOTIFICATIONS", True
+                ):
+                    try:
+                        StudentService.send_welcome_email(student)
+                    except Exception as e:
+                        logger.error(f"Failed to send welcome email: {str(e)}")
 
                 return student
 
             except Exception as e:
                 logger.error(f"Error creating student: {str(e)}")
-                raise e
+                raise InvalidStudentDataError(f"Failed to create student: {str(e)}")
 
-    @staticmethod
-    def bulk_import_students(
-        csv_file, send_notifications=False, update_existing=False, created_by=None
-    ):
         """
         Import students from a CSV file with admission_number as username
         """
@@ -231,126 +242,234 @@ class StudentService:
         }
 
     @staticmethod
-    def update_student(student, student_data, user_data=None, updated_by=None):
+    def update_student(student, student_data, updated_by=None):
         """
-        Update a student and associated user account
+        Update student information
 
         Args:
             student (Student): Student instance to update
-            student_data (dict): Student model fields
-            user_data (dict): User model fields (optional)
-            updated_by (User): User updating the student
+            student_data (dict): Updated student data
+            updated_by (User): User who updated the student
 
         Returns:
-            Student: The updated student instance
+            Student: Updated student instance
         """
         with transaction.atomic():
             try:
-                # Update user data if provided
-                if user_data and student.user:
-                    for key, value in user_data.items():
-                        if key == "password" and value:
-                            student.user.set_password(value)
-                        elif key != "password":
-                            setattr(student.user, key, value)
-                    student.user.save()
-
-                # Update student data
-                for key, value in student_data.items():
-                    if key != "user":
-                        setattr(student, key, value)
+                # Update fields
+                for field, value in student_data.items():
+                    if hasattr(student, field):
+                        setattr(student, field, value)
 
                 student.save()
 
-                # Clear related cache
-                cache_keys = [
-                    f"student_attendance_percentage_{student.id}",
-                    f"student_siblings_{student.id}",
-                    f"student_parents_{student.id}",
-                ]
-                cache.delete_many(cache_keys)
-
-                logger.info(f"Updated student: {student.admission_number}")
+                logger.info(f"Student updated successfully: {student.admission_number}")
                 return student
 
             except Exception as e:
-                logger.error(
-                    f"Error updating student {student.admission_number}: {str(e)}"
-                )
-                raise
+                logger.error(f"Error updating student: {str(e)}")
+                raise InvalidStudentDataError(f"Failed to update student: {str(e)}")
+
+    def send_welcome_email(student):
+        """
+        Send welcome email to student (if email provided)
+
+        Args:
+            student (Student): Student instance
+        """
+        if not student.email:
+            logger.info(f"No email address for student {student.admission_number}")
+            return
+
+        try:
+            subject = f'Welcome to {getattr(settings, "SCHOOL_NAME", "School")}'
+
+            context = {
+                "student": student,
+                "school_name": getattr(settings, "SCHOOL_NAME", "School"),
+                "admission_number": student.admission_number,
+                "contact_email": getattr(settings, "SCHOOL_CONTACT_EMAIL", ""),
+                "current_year": timezone.now().year,
+            }
+
+            # Try to render HTML template, fallback to plain text
+            try:
+                message = render_to_string("emails/student_welcome.html", context)
+                html_message = message
+                message = render_to_string("emails/student_welcome.txt", context)
+            except:
+                message = f"""
+    Welcome to {context['school_name']}!
+
+    Dear {student.first_name} {student.last_name},
+
+    We are pleased to welcome you to our school. Your admission number is: {student.admission_number}
+
+    Please contact us if you have any questions.
+
+    Best regards,
+    {context['school_name']} Administration
+                    """.strip()
+                html_message = None
+
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[student.email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+
+            logger.info(f"Welcome email sent to {student.email}")
+
+        except Exception as e:
+            logger.error(f"Failed to send welcome email to {student.email}: {str(e)}")
+            raise
 
     @staticmethod
-    def _send_bulk_welcome_emails(email_list):
-        """Send welcome emails to newly created students"""
-        try:
-            for email in email_list:
+    def promote_students(students, target_class, send_notifications=True):
+        """
+        Promote multiple students to a new class
+
+        Args:
+            students (QuerySet): Students to promote
+            target_class (Class): Target class
+            send_notifications (bool): Whether to send notifications
+
+        Returns:
+            dict: Results summary
+        """
+        promoted_count = 0
+        failed_count = 0
+        errors = []
+
+        with transaction.atomic():
+            for student in students:
                 try:
-                    send_mail(
-                        subject="Welcome to School Management System",
-                        message=render_to_string(
-                            "emails/student_welcome.txt",
-                            {"school_name": getattr(settings, "SCHOOL_NAME", "School")},
-                        ),
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=[email],
-                        fail_silently=False,
-                    )
+                    old_class = student.current_class
+                    student.current_class = target_class
+                    student.save()
+
+                    promoted_count += 1
+
+                    # Send notification email if enabled and email exists
+                    if (
+                        send_notifications
+                        and student.email
+                        and getattr(settings, "ENABLE_EMAIL_NOTIFICATIONS", True)
+                    ):
+                        try:
+                            StudentService.send_promotion_email(
+                                student, old_class, target_class
+                            )
+                        except Exception as e:
+                            logger.error(f"Failed to send promotion email: {str(e)}")
+
                 except Exception as e:
-                    logger.error(f"Failed to send welcome email to {email}: {str(e)}")
+                    failed_count += 1
+                    errors.append(f"{student.admission_number}: {str(e)}")
+                    logger.error(
+                        f"Failed to promote student {student.admission_number}: {str(e)}"
+                    )
+
+        return {
+            "promoted": promoted_count,
+            "failed": failed_count,
+            "errors": errors,
+        }
+
+    def send_promotion_email(student, old_class, new_class):
+        """
+        Send promotion notification email to student
+
+        Args:
+            student (Student): Student instance
+            old_class (Class): Previous class
+            new_class (Class): New class
+        """
+        if not student.email:
+            return
+
+        try:
+            subject = f"Class Promotion - {getattr(settings, 'SCHOOL_NAME', 'School')}"
+
+            context = {
+                "student": student,
+                "old_class": old_class,
+                "new_class": new_class,
+                "school_name": getattr(settings, "SCHOOL_NAME", "School"),
+            }
+
+            message = f"""
+Dear {student.first_name} {student.last_name},
+
+Congratulations! You have been promoted from {old_class} to {new_class}.
+
+Your admission number: {student.admission_number}
+
+Best regards,
+{context['school_name']} Administration
+            """.strip()
+
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[student.email],
+                fail_silently=False,
+            )
+
         except Exception as e:
-            logger.error(f"Error in bulk email sending: {str(e)}")
+            logger.error(f"Failed to send promotion email: {str(e)}")
+            raise
 
     @staticmethod
     def generate_student_id_card(student):
         """
-        Generate an enhanced PDF ID card for a student
+        Generate student ID card PDF
 
         Args:
             student (Student): Student instance
 
         Returns:
-            str: Path to the generated PDF file
+            str: Path to generated PDF file
         """
         try:
-            # Create file path
-            filename = (
-                f"student_id_{student.admission_number}_{uuid.uuid4().hex[:8]}.pdf"
-            )
-            filepath = os.path.join(settings.MEDIA_ROOT, "id_cards", filename)
-            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            # Create directory if it doesn't exist
+            id_cards_dir = os.path.join(settings.MEDIA_ROOT, "id_cards")
+            os.makedirs(id_cards_dir, exist_ok=True)
 
-            # Create PDF document
-            doc = SimpleDocTemplate(
-                filepath,
-                pagesize=letter,
-                rightMargin=30,
-                leftMargin=30,
-                topMargin=30,
-                bottomMargin=30,
-            )
+            # Generate filename
+            filename = f"id_card_{student.admission_number}_{timezone.now().strftime('%Y%m%d')}.pdf"
+            file_path = os.path.join(id_cards_dir, filename)
 
-            # Prepare content
+            # Create PDF
+            doc = SimpleDocTemplate(file_path, pagesize=A4)
             styles = getSampleStyleSheet()
-            content = []
+            story = []
 
-            # School header
-            school_name = getattr(settings, "SCHOOL_NAME", "School Management System")
-            header_style = ParagraphStyle(
-                "CustomHeader",
-                parent=styles["Heading1"],
-                fontSize=18,
+            # Title
+            title_style = ParagraphStyle(
+                "CustomTitle",
+                parent=styles["Title"],
+                fontSize=16,
+                spaceAfter=20,
                 textColor=colors.darkblue,
-                alignment=1,  # Center alignment
-                spaceAfter=10,
             )
-            content.append(Paragraph(school_name, header_style))
-            content.append(Paragraph("STUDENT IDENTIFICATION CARD", styles["Heading2"]))
-            content.append(Spacer(1, 20))
+
+            story.append(
+                Paragraph(
+                    f"{getattr(settings, 'SCHOOL_NAME', 'School')} - Student ID Card",
+                    title_style,
+                )
+            )
+            story.append(Spacer(1, 12))
 
             # Student information table
             data = [
-                ["Name:", student.get_full_name()],
-                ["Admission No:", student.admission_number],
+                ["Admission Number:", student.admission_number],
+                ["Name:", student.full_name],
                 [
                     "Class:",
                     (
@@ -364,209 +483,182 @@ class StudentService:
                 ["Contact Number:", student.emergency_contact_number],
             ]
 
-            # Add parent information
-            primary_parent = student.get_primary_parent()
-            if primary_parent:
-                data.extend(
-                    [
-                        ["Parent/Guardian:", primary_parent.get_full_name()],
-                        [
-                            "Parent Phone:",
-                            primary_parent.user.phone_number or "Not provided",
-                        ],
-                    ]
+            if student.date_of_birth:
+                data.append(
+                    ["Date of Birth:", student.date_of_birth.strftime("%d/%m/%Y")]
                 )
 
-            # Create table
-            table = Table(data, colWidths=[2 * 72, 4 * 72])
+            table = Table(data, colWidths=[2 * 72, 3 * 72])
             table.setStyle(
                 TableStyle(
                     [
-                        ("BACKGROUND", (0, 0), (0, -1), colors.lightgrey),
-                        ("TEXTCOLOR", (0, 0), (-1, -1), colors.black),
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
                         ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-                        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-                        ("FONTNAME", (1, 0), (1, -1), "Helvetica"),
-                        ("FONTSIZE", (0, 0), (-1, -1), 10),
-                        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-                        ("TOPPADDING", (0, 0), (-1, -1), 8),
+                        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                        ("FONTSIZE", (0, 0), (-1, 0), 12),
+                        ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                        ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
                         ("GRID", (0, 0), (-1, -1), 1, colors.black),
                     ]
                 )
             )
 
-            content.append(table)
-            content.append(Spacer(1, 30))
+            story.append(table)
+            story.append(Spacer(1, 20))
 
-            # Generate QR code with student information
-            qr_data = f"Student:{student.admission_number}|Name:{student.get_full_name()}|Class:{student.current_class}"
-            qr = qrcode.QRCode(version=1, box_size=4, border=1)
-            qr.add_data(qr_data)
+            # QR Code with admission number
+            qr = qrcode.QRCode(version=1, box_size=10, border=5)
+            qr.add_data(student.admission_number)
             qr.make(fit=True)
 
             qr_img = qr.make_image(fill_color="black", back_color="white")
-            qr_path = os.path.join(
-                settings.MEDIA_ROOT, "temp", f"qr_{student.admission_number}.png"
-            )
-            os.makedirs(os.path.dirname(qr_path), exist_ok=True)
+            qr_path = os.path.join(id_cards_dir, f"qr_{student.admission_number}.png")
             qr_img.save(qr_path)
 
-            # Add QR code to PDF
-            from reportlab.platypus import Image
-
-            qr_image = Image(qr_path, width=1 * 72, height=1 * 72)
-            content.append(qr_image)
-
-            # Add validity information
-            content.append(Spacer(1, 20))
-            issue_date = timezone.now().date()
-            expiry_date = issue_date.replace(year=issue_date.year + 1)
-
-            validity_style = ParagraphStyle(
-                "Validity",
-                parent=styles["Normal"],
-                fontSize=9,
-                alignment=1,
-            )
-
-            content.append(
-                Paragraph(f"Issued: {issue_date.strftime('%d/%m/%Y')}", validity_style)
-            )
-            content.append(
-                Paragraph(
-                    f"Valid Until: {expiry_date.strftime('%d/%m/%Y')}", validity_style
-                )
-            )
-
-            # Add footer
-            content.append(Spacer(1, 30))
-            footer_style = ParagraphStyle(
-                "Footer",
-                parent=styles["Normal"],
-                fontSize=8,
-                alignment=1,
-                textColor=colors.grey,
-            )
-            content.append(
-                Paragraph(
-                    "This card is the property of the school. If found, please return to the school office.",
-                    footer_style,
-                )
+            story.append(
+                Paragraph("Scan QR Code for quick identification:", styles["Normal"])
             )
 
             # Build PDF
-            doc.build(content)
+            doc.build(story)
 
-            # Clean up QR code temp file
-            if os.path.exists(qr_path):
-                os.remove(qr_path)
-
-            # Return relative path
-            relative_path = os.path.join("id_cards", filename)
-            logger.info(f"Generated ID card for student: {student.admission_number}")
-            return relative_path
+            logger.info(f"ID card generated for student {student.admission_number}")
+            return file_path
 
         except Exception as e:
-            logger.error(
-                f"Error generating ID card for {student.admission_number}: {str(e)}"
-            )
+            logger.error(f"Error generating ID card: {str(e)}")
             raise
 
     @staticmethod
-    def promote_students(students, new_class, send_notifications=False):
+    def bulk_import_students(
+        csv_file, default_class=None, send_welcome_emails=True, created_by=None
+    ):
         """
-        Promote multiple students to a new class
+        Import students from CSV file
 
         Args:
-            students (QuerySet): Student instances
-            new_class (Class): The new class
-            send_notifications (bool): Send notification emails
+            csv_file: CSV file object
+            default_class (Class): Default class for students
+            send_welcome_emails (bool): Whether to send welcome emails
+            created_by (User): User who imported the students
 
         Returns:
-            dict: Promotion statistics
+            dict: Import results
         """
-        promoted_count = 0
+        created_count = 0
+        failed_count = 0
         errors = []
-        promoted_students = []
 
-        with transaction.atomic():
-            for student in students:
-                try:
-                    old_class = student.current_class
-                    student.promote_to_next_class(new_class)
-                    promoted_count += 1
-                    promoted_students.append(
-                        {
-                            "student": student,
-                            "old_class": old_class,
-                            "new_class": new_class,
+        try:
+            # Read CSV
+            csv_content = csv_file.read().decode("utf-8")
+            csv_reader = csv.DictReader(io.StringIO(csv_content))
+
+            with transaction.atomic():
+                for row_num, row in enumerate(csv_reader, start=2):
+                    try:
+                        # Extract student data from CSV row
+                        student_data = {
+                            "first_name": row.get("first_name", "").strip(),
+                            "last_name": row.get("last_name", "").strip(),
+                            "email": row.get("email", "").strip() or None,
+                            "phone_number": row.get("phone_number", "").strip() or None,
+                            "admission_number": row.get("admission_number", "").strip(),
+                            "emergency_contact_name": row.get(
+                                "emergency_contact_name", ""
+                            ).strip(),
+                            "emergency_contact_number": row.get(
+                                "emergency_contact_number", ""
+                            ).strip(),
+                            "blood_group": row.get("blood_group", "Unknown"),
+                            "gender": row.get("gender", "").strip()[:1].upper() or "",
                         }
-                    )
-                except Exception as e:
-                    errors.append(
-                        {"student": student.admission_number, "error": str(e)}
-                    )
-                    logger.error(
-                        f"Error promoting student {student.admission_number}: {str(e)}"
-                    )
 
-        # Send notification emails
-        if send_notifications and promoted_students:
-            StudentService._send_promotion_notifications(promoted_students)
+                        # Set class
+                        class_name = row.get("class_name", "").strip()
+                        if class_name:
+                            from src.academics.models import Class
 
-        logger.info(f"Promoted {promoted_count} students to {new_class}")
+                            try:
+                                student_data["current_class"] = Class.objects.get(
+                                    name=class_name
+                                )
+                            except Class.DoesNotExist:
+                                if default_class:
+                                    student_data["current_class"] = default_class
+                        elif default_class:
+                            student_data["current_class"] = default_class
+
+                        # Create student
+                        student = StudentService.create_student(
+                            student_data, created_by
+                        )
+                        created_count += 1
+
+                        # Send welcome email if enabled
+                        if (
+                            send_welcome_emails
+                            and student.email
+                            and getattr(settings, "ENABLE_EMAIL_NOTIFICATIONS", True)
+                        ):
+                            try:
+                                StudentService.send_welcome_email(student)
+                            except Exception as e:
+                                logger.error(f"Failed to send welcome email: {str(e)}")
+
+                    except Exception as e:
+                        failed_count += 1
+                        error_msg = f"Row {row_num}: {str(e)}"
+                        errors.append(error_msg)
+                        logger.error(f"Failed to import student from {error_msg}")
+
+        except Exception as e:
+            logger.error(f"Error during bulk import: {str(e)}")
+            raise InvalidStudentDataError(f"Import failed: {str(e)}")
+
         return {
-            "promoted": promoted_count,
-            "errors": len(errors),
-            "error_details": errors,
+            "created": created_count,
+            "failed": failed_count,
+            "errors": errors,
         }
 
     @staticmethod
-    def _send_promotion_notifications(promoted_students):
-        """Send promotion notification emails"""
-        try:
-            for item in promoted_students:
-                student = item["student"]
-                try:
-                    # Send to student
-                    send_mail(
-                        subject="Class Promotion Notification",
-                        message=render_to_string(
-                            "emails/student_promotion.txt",
-                            {
-                                "student": student,
-                                "old_class": item["old_class"],
-                                "new_class": item["new_class"],
-                            },
-                        ),
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=[student.user.email],
-                        fail_silently=True,
-                    )
+    def get_student_analytics(student):
+        """
+        Get analytics data for a student
 
-                    # Send to parents
-                    for parent in student.get_parents():
-                        send_mail(
-                            subject=f"Class Promotion - {student.get_full_name()}",
-                            message=render_to_string(
-                                "emails/parent_promotion_notification.txt",
-                                {
-                                    "student": student,
-                                    "parent": parent,
-                                    "old_class": item["old_class"],
-                                    "new_class": item["new_class"],
-                                },
-                            ),
-                            from_email=settings.DEFAULT_FROM_EMAIL,
-                            recipient_list=[parent.user.email],
-                            fail_silently=True,
-                        )
-                except Exception as e:
-                    logger.error(
-                        f"Failed to send promotion notification for {student.admission_number}: {str(e)}"
-                    )
-        except Exception as e:
-            logger.error(f"Error in promotion notifications: {str(e)}")
+        Args:
+            student (Student): Student instance
+
+        Returns:
+            dict: Analytics data
+        """
+        cache_key = f"student_analytics_{student.id}"
+        analytics = cache.get(cache_key)
+
+        if analytics is None:
+            try:
+                analytics = {
+                    "attendance_percentage": student.get_attendance_percentage(),
+                    "siblings_count": len(student.get_siblings()),
+                    "parents_count": student.get_parents().count(),
+                    "age": student.age,
+                    "days_since_admission": (
+                        (timezone.now().date() - student.admission_date).days
+                        if student.admission_date
+                        else 0
+                    ),
+                }
+
+                # Cache for 30 minutes
+                cache.set(cache_key, analytics, 1800)
+
+            except Exception as e:
+                logger.error(f"Error calculating student analytics: {str(e)}")
+                analytics = {}
+
+        return analytics
 
     @staticmethod
     def graduate_students(students, send_notifications=False):

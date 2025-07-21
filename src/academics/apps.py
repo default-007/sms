@@ -7,7 +7,7 @@ initialization tasks including signal registration.
 
 import logging
 from django.apps import AppConfig
-from django.core.checks import register, Warning, Error
+from django.core.checks import register, Warning, Error, Tags
 
 logger = logging.getLogger(__name__)
 
@@ -26,19 +26,24 @@ class AcademicsConfig(AppConfig):
         Called when Django starts up. Used to register signals and
         perform any necessary initialization.
         """
-        try:
-            # Import signals to register them
-            from . import signals
+        if not hasattr(self, "_ready_called"):
+            try:
+                # Import signals to register them
+                from . import signals
 
-            # Register custom system checks (but don't run database queries here!)
-            register(self.check_academic_structure_consistency, "academics")
+                # Register custom system checks with proper tags
+                register(Tags.models, Tags.database)(
+                    self.check_academic_structure_consistency
+                )
 
-            logger.info("Academics app initialized successfully")
+                logger.info("Academics app initialized successfully")
 
-        except ImportError as e:
-            logger.warning(f"Could not import academics signals: {e}")
-        except Exception as e:
-            logger.error(f"Error initializing academics app: {e}")
+                self._ready_called = True
+
+            except ImportError as e:
+                logger.warning(f"Could not import academics signals: {e}")
+            except Exception as e:
+                logger.error(f"Error initializing academics app: {e}")
 
     def check_academic_structure_consistency(self, app_configs, **kwargs):
         """
@@ -63,7 +68,6 @@ class AcademicsConfig(AppConfig):
             # Only run checks if all required tables exist
             if not all(table in table_names for table in required_tables):
                 # Tables don't exist yet (probably before migrations)
-                # This is normal during initial setup, so we just return empty errors
                 return errors
 
             # Now it's safe to import models and run queries
@@ -81,24 +85,15 @@ class AcademicsConfig(AppConfig):
                 )
 
             # Check for grades without classes
-            grades_without_classes = Grade.objects.filter(class__isnull=True).count()
+            grades_without_classes = (
+                Grade.objects.filter(classes__isnull=True).distinct().count()
+            )
             if grades_without_classes > 0:
                 errors.append(
                     Warning(
                         f"{grades_without_classes} grades have no classes assigned",
                         hint="Consider creating classes for all grades",
                         id="academics.W002",
-                    )
-                )
-
-            # Check for sections without grades
-            sections_without_grades = Section.objects.filter(grade__isnull=True).count()
-            if sections_without_grades > 0:
-                errors.append(
-                    Warning(
-                        f"{sections_without_grades} sections have no grades assigned",
-                        hint="Consider creating grades for all sections",
-                        id="academics.W003",
                     )
                 )
 

@@ -9,11 +9,14 @@ class FinanceConfig(AppConfig):
     verbose_name = "Finance Management"
 
     def ready(self):
-        # Import signals only once
-        if not hasattr(self, "_signals_imported"):
-            try:
-                import finance.signals  # noqa
+        # Use a flag to prevent multiple signal imports
+        if hasattr(self, "_ready_called"):
+            return
 
-                self._signals_imported = True
-            except ImportError:
-                pass
+        try:
+            # Import your existing signals file
+            from . import signals  # noqa
+
+            self._ready_called = True
+        except ImportError:
+            pass

@@ -210,7 +210,7 @@ class StudentService:
 
                             # Only add to success emails if email is provided
                             if user_data.get("email") and send_notifications:
-                                success_emails.append(student.user.email)
+                                success_emails.append(student.email)
 
                 except Exception as e:
                     error_count += 1
@@ -707,22 +707,23 @@ Best regards,
         try:
             for student in graduated_students:
                 try:
-                    # Send to student
-                    send_mail(
-                        subject="Graduation Confirmation",
-                        message=render_to_string(
-                            "emails/student_graduation.txt",
-                            {
-                                "student": student,
-                                "school_name": getattr(
-                                    settings, "SCHOOL_NAME", "School"
-                                ),
-                            },
-                        ),
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=[student.user.email],
-                        fail_silently=True,
-                    )
+                    # Send to student (if email provided)
+                    if student.email:
+                        send_mail(
+                            subject="Graduation Confirmation",
+                            message=render_to_string(
+                                "emails/student_graduation.txt",
+                                {
+                                    "student": student,
+                                    "school_name": getattr(
+                                        settings, "SCHOOL_NAME", "School"
+                                    ),
+                                },
+                            ),
+                            from_email=settings.DEFAULT_FROM_EMAIL,
+                            recipient_list=[student.email],
+                            fail_silently=True,
+                        )
 
                     # Send to parents
                     for parent in student.get_parents():
@@ -795,7 +796,7 @@ Best regards,
         writer.writeheader()
 
         for student in queryset.select_related(
-            "user", "current_class"
+            "current_class"
         ).prefetch_related("student_parent_relations__parent__user"):
             primary_parent = student.get_primary_parent()
 
@@ -803,25 +804,25 @@ Best regards,
                 {
                     "admission_number": student.admission_number,
                     "registration_number": student.registration_number or "",
-                    "first_name": student.user.first_name,
-                    "last_name": student.user.last_name,
-                    "email": student.user.email,
-                    "phone_number": student.user.phone_number or "",
-                    "date_of_birth": student.user.date_of_birth or "",
-                    "gender": getattr(student.user, "gender", ""),
+                    "first_name": student.first_name,
+                    "last_name": student.last_name,
+                    "email": student.email or "",
+                    "phone_number": student.phone_number or "",
+                    "date_of_birth": student.date_of_birth or "",
+                    "gender": student.gender or "",
                     "status": student.status,
                     "current_class": (
                         str(student.current_class) if student.current_class else ""
                     ),
                     "roll_number": student.roll_number or "",
                     "blood_group": student.blood_group,
-                    "nationality": student.nationality or "",
-                    "religion": student.religion or "",
+                    "nationality": "",  # Removed field
+                    "religion": "",  # Removed field
                     "address": student.address or "",
-                    "city": student.city or "",
-                    "state": student.state or "",
-                    "postal_code": student.postal_code or "",
-                    "country": student.country or "",
+                    "city": "",  # Removed field
+                    "state": "",  # Removed field
+                    "postal_code": "",  # Removed field
+                    "country": "",  # Removed field
                     "emergency_contact_name": student.emergency_contact_name,
                     "emergency_contact_number": student.emergency_contact_number,
                     "medical_conditions": student.medical_conditions or "",
@@ -833,7 +834,7 @@ Best regards,
                     "primary_parent_phone": (
                         primary_parent.user.phone_number if primary_parent else ""
                     ),
-                    "created_at": student.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                    "created_at": student.date_joined.strftime("%Y-%m-%d %H:%M:%S"),
                 }
             )
 
@@ -852,8 +853,8 @@ Best regards,
             "graduated_students": Student.objects.filter(status="Graduated").count(),
             "suspended_students": Student.objects.filter(status="Suspended").count(),
             "withdrawn_students": Student.objects.filter(status="Withdrawn").count(),
-            "students_with_photos": Student.objects.exclude(photo__isnull=True)
-            .exclude(photo="")
+            "students_with_photos": Student.objects.exclude(profile_picture__isnull=True)
+            .exclude(profile_picture="")
             .count(),
             "students_without_parents": Student.objects.filter(
                 student_parent_relations__isnull=True

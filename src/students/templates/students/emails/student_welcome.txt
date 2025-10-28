@@ -7,8 +7,8 @@ Your student account has been successfully created. Here are your login details:
 Username: {{ student.admission_number }}
 Login Instructions: Use your admission number as your username to access the student portal.
 
-{% if student.user.email %}
-Email: {{ student.user.email }}
+{% if student.email %}
+Email: {{ student.email }}
 {% else %}
 Note: No email address is associated with your account. Please contact the school office if you need to add one.
 {% endif %}

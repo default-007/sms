@@ -101,7 +101,7 @@ class Command(BaseCommand):
                                 relation.delete()
 
                         # Delete the duplicate
-                        student.user.delete()  # This will cascade delete the student
+                        student.delete()  # This will cascade delete the student
 
                     self.stdout.write(
                         f"    Kept oldest record, removed {len(students_to_delete)} duplicates"
@@ -112,7 +112,7 @@ class Command(BaseCommand):
         # Find students with same email
         email_duplicates = {}
         for student in Student.objects.select_related("user"):
-            email = student.user.email
+            email = student.email
             if email in email_duplicates:
                 email_duplicates[email].append(student)
             else:

@@ -81,8 +81,8 @@ class StudentModelTest(TestCase):
 
     def test_student_age_calculation(self):
         # Set date of birth
-        self.user.date_of_birth = timezone.now().date().replace(year=2005)
-        self.user.save()
+        self.date_of_birth = timezone.now().date().replace(year=2005)
+        # self.user.save() - No user for students
 
         # Age should be calculated correctly
         expected_age = timezone.now().year - 2005
@@ -337,8 +337,8 @@ class StudentServiceTest(TestCase):
 
         self.assertIsInstance(student, Student)
         self.assertEqual(student.admission_number, "NEW-001")
-        self.assertEqual(student.user.first_name, "New")
-        self.assertEqual(student.user.last_name, "Student")
+        self.assertEqual(student.first_name, "New")
+        self.assertEqual(student.last_name, "Student")
 
     @patch("students.services.student_service.send_mail")
     def test_bulk_import_students(self, mock_send_mail):
@@ -487,8 +487,8 @@ class StudentViewsTest(TransactionTestCase):
 
         # Verify the student was created correctly
         new_student = Student.objects.get(admission_number="NEW-001")
-        self.assertEqual(new_student.user.first_name, "New")
-        self.assertEqual(new_student.user.last_name, "Student")
+        self.assertEqual(new_student.first_name, "New")
+        self.assertEqual(new_student.last_name, "Student")
 
     def test_student_update_view(self):
         response = self.client.get(
@@ -502,7 +502,7 @@ class StudentViewsTest(TransactionTestCase):
             {
                 "first_name": "Updated",
                 "last_name": "Student",
-                "email": self.student.user.email,
+                "email": self.student.email,
                 "admission_number": self.student.admission_number,
                 "admission_date": self.student.admission_date,
                 "emergency_contact_name": "Updated Contact",
@@ -516,7 +516,7 @@ class StudentViewsTest(TransactionTestCase):
 
         # Verify the update
         self.student.refresh_from_db()
-        self.assertEqual(self.student.user.first_name, "Updated")
+        self.assertEqual(self.student.first_name, "Updated")
         self.assertEqual(self.student.emergency_contact_name, "Updated Contact")
 
     def test_student_delete_view(self):

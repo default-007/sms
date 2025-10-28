@@ -10,8 +10,8 @@ Admission Details:
 Login Information:
 - Username: {{ student.admission_number }}
 - Login Method: Use your admission number to access student portal
-{% if student.user.email %}
-- Email: {{ student.user.email }}
+{% if student.email %}
+- Email: {{ student.email }}
 {% endif %}
 
 Next Steps:

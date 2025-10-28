@@ -214,9 +214,9 @@ class StudentReportingService:
                 issues = []
 
                 # Check missing basic info
-                if not student.user.date_of_birth:
+                if not student.date_of_birth:
                     issues.append("Date of Birth")
-                if not student.user.phone_number:
+                if not student.phone_number:
                     issues.append("Phone Number")
                 if not student.photo:
                     issues.append("Photo")
@@ -327,7 +327,7 @@ class StudentReportingService:
             ],
             ["Status:", student.status],
             ["Blood Group:", student.blood_group],
-            ["Date of Birth:", student.user.date_of_birth or "Not provided"],
+            ["Date of Birth:", student.date_of_birth or "Not provided"],
             ["Age:", f"{student.age} years" if student.age else "Not calculated"],
         ]
 
@@ -504,8 +504,8 @@ class StudentReportingService:
                 student.admission_number,
                 student.get_full_name(),
                 student.blood_group,
-                student.user.email,
-                student.user.phone_number or "",
+                student.email,
+                student.phone_number or "",
             ]
 
             if context["include_parents"]:
@@ -531,13 +531,13 @@ class StudentReportingService:
         total_fields = 12
         completed = 0
 
-        if student.user.first_name:
+        if student.first_name:
             completed += 1
-        if student.user.last_name:
+        if student.last_name:
             completed += 1
-        if student.user.email:
+        if student.email:
             completed += 1
-        if student.user.date_of_birth:
+        if student.date_of_birth:
             completed += 1
         if student.emergency_contact_name:
             completed += 1

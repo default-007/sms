@@ -524,13 +524,13 @@ class StudentAnalyticsService:
                 score = 0
                 total_fields = 10
 
-                if student.user.first_name:
+                if student.first_name:
                     score += 1
-                if student.user.last_name:
+                if student.last_name:
                     score += 1
-                if student.user.email:
+                if student.email:
                     score += 1
-                if student.user.date_of_birth:
+                if student.date_of_birth:
                     score += 1
                 if student.emergency_contact_name:
                     score += 1

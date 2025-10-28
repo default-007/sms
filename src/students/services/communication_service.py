@@ -42,7 +42,7 @@ class CommunicationService:
             }
 
             # Send to student
-            if send_email and student.user.email:
+            if send_email and student.email:
                 try:
                     send_mail(
                         subject=f'Admission Confirmation - {context["school_name"]}',
@@ -50,7 +50,7 @@ class CommunicationService:
                             "emails/student_admission.txt", context
                         ),
                         from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=[student.user.email],
+                        recipient_list=[student.email],
                         fail_silently=False,
                     )
                     notifications_sent["email"] += 1
@@ -268,7 +268,7 @@ class CommunicationService:
 
             for student in students:
                 # Send to student if they have email
-                if send_email and student.user.email:
+                if send_email and student.email:
                     student_context = {
                         **context,
                         "student": student,
@@ -281,7 +281,7 @@ class CommunicationService:
                                 "emails/bulk_announcement.txt", student_context
                             ),
                             settings.DEFAULT_FROM_EMAIL,
-                            [student.user.email],
+                            [student.email],
                         )
                     )
 

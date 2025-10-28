@@ -65,12 +65,10 @@ class StudentListSerializer(serializers.ModelSerializer):
 
 
 class StudentDetailSerializer(serializers.ModelSerializer):
-    """Detailed serializer for student CRUD operations"""
+    """Detailed serializer for student CRUD operations (students have direct fields, no user)"""
 
-    user = UserSerializer()
-    full_name = serializers.CharField(source="get_full_name", read_only=True)
+    full_name = serializers.CharField(source="full_name", read_only=True)
     age = serializers.IntegerField(read_only=True)
-    full_address = serializers.CharField(source="get_full_address", read_only=True)
     attendance_percentage = serializers.SerializerMethodField()
     siblings = serializers.SerializerMethodField()
     parents = serializers.SerializerMethodField()
@@ -79,7 +77,14 @@ class StudentDetailSerializer(serializers.ModelSerializer):
         model = Student
         fields = [
             "id",
-            "user",
+            "first_name",
+            "last_name",
+            "email",
+            "phone_number",
+            "date_of_birth",
+            "gender",
+            "address",
+            "profile_picture",
             "admission_number",
             "registration_number",
             "admission_date",
@@ -89,26 +94,20 @@ class StudentDetailSerializer(serializers.ModelSerializer):
             "medical_conditions",
             "emergency_contact_name",
             "emergency_contact_number",
+            "emergency_contact_relationship",
             "previous_school",
+            "transfer_certificate_number",
             "status",
-            "nationality",
-            "religion",
-            "address",
-            "city",
-            "state",
-            "postal_code",
-            "country",
-            "photo",
+            "is_active",
             "full_name",
             "age",
-            "full_address",
             "attendance_percentage",
             "siblings",
             "parents",
-            "created_at",
-            "updated_at",
+            "date_joined",
+            "last_updated",
         ]
-        read_only_fields = ["id", "registration_number", "created_at", "updated_at"]
+        read_only_fields = ["id", "registration_number", "date_joined", "last_updated"]
 
     def get_attendance_percentage(self, obj):
         try:
@@ -149,10 +148,7 @@ class StudentDetailSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         # Custom validation using validators
-        user_data = attrs.get("user", {})
-        student_data = {k: v for k, v in attrs.items() if k != "user"}
-
-        errors = validate_student_data(student_data, user_data)
+        errors = validate_student_data(attrs, {})
         if errors:
             raise serializers.ValidationError({"validation_errors": errors})
 
@@ -160,33 +156,13 @@ class StudentDetailSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
-        user_data = validated_data.pop("user")
-
-        # Create user
-        user = User.objects.create(**user_data)
-        user.set_password(User.objects.make_random_password())
-        user.save()
-
-        # Create student
-        student = Student.objects.create(user=user, **validated_data)
-
-        # Assign student role
-        from src.accounts.services import RoleService
-
-        RoleService.assign_role_to_user(user, "Student")
-
+        # Create student directly with all fields
+        student = Student.objects.create(**validated_data)
         return student
 
     @transaction.atomic
     def update(self, instance, validated_data):
-        user_data = validated_data.pop("user", {})
-
-        # Update user
-        for attr, value in user_data.items():
-            setattr(instance.user, attr, value)
-        instance.user.save()
-
-        # Update student
+        # Update student fields directly
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
@@ -244,11 +220,11 @@ class ParentDetailSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at", "updated_at"]
 
     def get_students(self, obj):
-        relations = obj.parent_student_relations.select_related("student__user")
+        relations = obj.parent_student_relations.select_related("student")
         return [
             {
                 "id": str(relation.student.id),
-                "name": relation.student.get_full_name(),
+                "name": relation.student.full_name,
                 "admission_number": relation.student.admission_number,
                 "class": (
                     str(relation.student.current_class)

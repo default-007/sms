@@ -19,9 +19,13 @@ logger = logging.getLogger(__name__)
 
 @shared_task
 def send_welcome_email_to_student(student_id):
-    """Send welcome email to a newly created student"""
+    """Send welcome email to a newly created student (if email provided)"""
     try:
         student = Student.objects.get(id=student_id)
+
+        if not student.email:
+            logger.info(f"Student {student.admission_number} has no email address")
+            return "No email address provided for student"
 
         subject = f'Welcome to {getattr(settings, "SCHOOL_NAME", "School")}!'
         message = render_to_string(
@@ -36,12 +40,12 @@ def send_welcome_email_to_student(student_id):
             subject=subject,
             message=message,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[student.user.email],
+            recipient_list=[student.email],
             fail_silently=False,
         )
 
         logger.info(f"Welcome email sent to student {student.admission_number}")
-        return f"Email sent to {student.user.email}"
+        return f"Email sent to {student.email}"
 
     except Student.DoesNotExist:
         logger.error(f"Student with id {student_id} not found")
@@ -276,11 +280,16 @@ def send_bulk_notification_to_students(
 ):
     """Send bulk notifications to multiple students"""
     try:
-        students = Student.objects.filter(id__in=student_ids).select_related("user")
+        students = Student.objects.filter(id__in=student_ids)
         emails = []
 
         for student in students:
             try:
+                # Skip students without email
+                if not student.email:
+                    logger.info(f"Student {student.admission_number} has no email address")
+                    continue
+
                 # Prepare context for each student
                 context = {
                     "student": student,
@@ -296,7 +305,7 @@ def send_bulk_notification_to_students(
                         subject,
                         message,
                         settings.DEFAULT_FROM_EMAIL,
-                        [student.user.email],
+                        [student.email],
                     )
                 )
 
@@ -326,11 +335,11 @@ def cleanup_inactive_students(days_inactive=90):
     try:
         cutoff_date = timezone.now() - timezone.timedelta(days=days_inactive)
 
-        # Find students who haven't logged in for the specified period
-        # and are marked as inactive
+        # Find students who have been inactive for the specified period
+        # (Students don't have user accounts, so we check last_updated date)
         inactive_students = Student.objects.filter(
-            status="Inactive", user__last_login__lt=cutoff_date
-        ).select_related("user")
+            status="Inactive", last_updated__lt=cutoff_date
+        )
 
         cleanup_results = {
             "reviewed": inactive_students.count(),
@@ -480,8 +489,8 @@ def sync_student_data_with_external_system(system_name, student_ids=None):
 
                 sync_data = {
                     "admission_number": student.admission_number,
-                    "name": student.get_full_name(),
-                    "date_of_birth": student.user.date_of_birth,
+                    "name": student.full_name,
+                    "date_of_birth": student.date_of_birth,
                     "class": (
                         str(student.current_class) if student.current_class else None
                     ),

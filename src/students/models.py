@@ -376,7 +376,7 @@ class ParentQuerySet(models.QuerySet):
         return self.select_related("user")
 
     def with_students(self):
-        return self.prefetch_related("parent_student_relations__student__user")
+        return self.prefetch_related("parent_student_relations__student")
 
     def search(self, query):
         if not query:

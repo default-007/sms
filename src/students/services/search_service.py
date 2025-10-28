@@ -607,7 +607,7 @@ class StudentSearchService:
                     "id": str(student.id),
                     "admission_number": student.admission_number,
                     "name": student.get_full_name(),
-                    "email": student.user.email,
+                    "email": student.email,
                     "status": student.status,
                     "class": (
                         str(student.current_class) if student.current_class else None

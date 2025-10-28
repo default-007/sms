@@ -217,11 +217,11 @@ def student_profile_completion(student):
     completed_fields = 0
 
     # Check required fields
-    if student.user.first_name:
+    if student.first_name:
         completed_fields += 1
-    if student.user.last_name:
+    if student.last_name:
         completed_fields += 1
-    if student.user.email:
+    if student.email:
         completed_fields += 1
     if student.emergency_contact_name:
         completed_fields += 1
@@ -231,7 +231,7 @@ def student_profile_completion(student):
     # Check optional but important fields
     if student.photo:
         completed_fields += 1
-    if student.user.date_of_birth:
+    if student.date_of_birth:
         completed_fields += 1
     if student.address:
         completed_fields += 1

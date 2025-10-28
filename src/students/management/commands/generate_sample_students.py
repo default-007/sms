@@ -267,7 +267,7 @@ class Command(BaseCommand):
             for j in range(num_parents):
                 # Generate parent data
                 first_name = fake.first_name()
-                last_name = student.user.last_name  # Use student's last name
+                last_name = student.last_name  # Use student's last name
                 email = f"{first_name.lower()}.{last_name.lower()}.sample.parent{j}@example.com"
 
                 # Create parent user

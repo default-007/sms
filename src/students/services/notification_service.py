@@ -133,11 +133,11 @@ class NotificationService:
             try:
                 if recipient_type == "student":
                     student = Student.objects.get(id=recipient_id)
-                    if "email" in config["channels"] and student.user.email:
+                    if "email" in config["channels"] and student.email:
                         email_recipients.append(
                             {
-                                "email": student.user.email,
-                                "name": student.get_full_name(),
+                                "email": student.email,
+                                "name": student.full_name,
                                 "context": {
                                     **base_context,
                                     "student": student,
@@ -146,11 +146,11 @@ class NotificationService:
                             }
                         )
 
-                    if "sms" in config["channels"] and student.user.phone_number:
+                    if "sms" in config["channels"] and student.phone_number:
                         sms_recipients.append(
                             {
-                                "phone": student.user.phone_number,
-                                "name": student.get_full_name(),
+                                "phone": student.phone_number,
+                                "name": student.full_name,
                                 "context": {
                                     **base_context,
                                     "student": student,

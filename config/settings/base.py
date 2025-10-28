@@ -244,16 +244,25 @@ else:
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("DB_NAME", "school_db"),
-        "USER": os.environ.get("DB_USER", "default_007"),
-        "PASSWORD": os.environ.get("DB_PASSWORD", "expandebles7"),
-        "HOST": os.environ.get("DB_HOST", "localhost"),
-        "PORT": os.environ.get("DB_PORT", "5432"),
+# Database configuration - Use SQLite for development, PostgreSQL for production
+if os.environ.get("USE_SQLITE", "False").lower() == "true":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("DB_NAME", "school_db"),
+            "USER": os.environ.get("DB_USER", "default_007"),
+            "PASSWORD": os.environ.get("DB_PASSWORD", "expandebles7"),
+            "HOST": os.environ.get("DB_HOST", "localhost"),
+            "PORT": os.environ.get("DB_PORT", "5432"),
+        }
+    }
 
 # Static files optimization
 STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"

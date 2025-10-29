@@ -109,6 +109,83 @@
     </div>
   </div>
 
+  <!-- Additional Statistics for Admins -->
+  {% if user_role == "system_admin" or user_role == "school_admin" or user_role == "superuser" %}
+  <div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-danger shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                Inactive Students
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ inactive_students|default:0 }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-user-times fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-secondary shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                Graduated
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ graduated_students|default:0 }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-graduation-cap fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-info shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                Today's Attendance
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ todays_attendance|default:0 }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-warning shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                This Week's Assignments
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ this_week_assignments|default:0 }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-tasks fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Role-specific Dashboard Content -->
   {% if user_role == "system_admin" or user_role == "school_admin" or user_role == "superuser" %}
   <!-- Admin Dashboard -->
@@ -289,7 +366,7 @@
               <div class="card">
                 <div class="card-body">
                   <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="card-title mb-0">{{ child_data.student.user.get_full_name }}</h6>
+                    <h6 class="card-title mb-0">{{ child_data.student.full_name }}</h6>
                     <span class="badge badge-info">{{ child_data.relation_type }}</span>
                   </div>
                   <p class="text-muted">{{ child_data.student.current_class }}</p>
@@ -316,76 +393,10 @@
     </div>
   </div>
 
-  {% elif user_role == "student" %}
-  <!-- Student Dashboard -->
-  <div class="row">
-    <div class="col-lg-8">
-      <div class="card shadow mb-4">
-        <div class="card-header py-3">
-          <h6 class="m-0 font-weight-bold text-primary">My Performance</h6>
-        </div>
-        <div class="card-body">
-          {% if performance %}
-          <div class="row">
-            <div class="col-md-4 mb-3">
-              <div class="text-center">
-                <div class="h4 mb-0 font-weight-bold text-primary">
-                  {{ performance.average_marks|floatformat:1 }}%
-                </div>
-                <div class="small text-muted">Average Marks</div>
-              </div>
-            </div>
-            <div class="col-md-4 mb-3">
-              <div class="text-center">
-                <div class="h4 mb-0 font-weight-bold text-success">
-                  {{ performance.attendance_percentage|floatformat:1 }}%
-                </div>
-                <div class="small text-muted">Attendance</div>
-              </div>
-            </div>
-            <div class="col-md-4 mb-3">
-              <div class="text-center">
-                <div class="h4 mb-0 font-weight-bold text-info">
-                  {{ performance.ranking_in_class|default:"-" }}
-                </div>
-                <div class="small text-muted">Class Rank</div>
-              </div>
-            </div>
-          </div>
-          {% else %}
-          <p class="text-muted">No performance data available.</p>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-4">
-      <div class="card shadow mb-4">
-        <div class="card-header py-3">
-          <h6 class="m-0 font-weight-bold text-primary">Recent Assignments</h6>
-        </div>
-        <div class="card-body">
-          {% if recent_assignments %}
-          {% for assignment in recent_assignments %}
-          <div class="mb-3">
-            <div class="font-weight-bold">{{ assignment.assignment.title }}</div>
-            <div class="small text-muted">
-              Submitted: {{ assignment.submission_date|date:"M d, Y" }}
-            </div>
-            {% if assignment.marks_obtained %}
-            <div class="small">
-              Marks: {{ assignment.marks_obtained }}/{{ assignment.assignment.total_marks }}
-            </div>
-            {% endif %}
-          </div>
-          {% endfor %}
-          {% else %}
-          <p class="text-muted small">No recent assignments.</p>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
   {% endif %}
+
+  <!-- Note: Students don't have login accounts in this system -->
+  <!-- Student information is accessed through parent/guardian accounts -->
 
   <!-- Quick Actions -->
   <div class="row">
@@ -462,22 +473,6 @@
             <div class="col-md-4 mb-2">
               <a href="#" class="btn btn-outline-info btn-block">
                 <i class="fas fa-money-bill"></i><br>Fees
-              </a>
-            </div>
-            {% elif user_role == "student" %}
-            <div class="col-md-4 mb-2">
-              <a href="#" class="btn btn-outline-primary btn-block">
-                <i class="fas fa-tasks"></i><br>Assignments
-              </a>
-            </div>
-            <div class="col-md-4 mb-2">
-              <a href="#" class="btn btn-outline-success btn-block">
-                <i class="fas fa-calendar-check"></i><br>Attendance
-              </a>
-            </div>
-            <div class="col-md-4 mb-2">
-              <a href="#" class="btn btn-outline-info btn-block">
-                <i class="fas fa-graduation-cap"></i><br>Grades
               </a>
             </div>
             {% endif %}

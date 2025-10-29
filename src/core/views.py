@@ -90,8 +90,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             {
                 "current_academic_year": current_year,
                 "current_term": current_term,
-                "total_students": Student.objects.filter(status="active").count(),
-                "total_teachers": Teacher.objects.filter(status="active").count(),
+                "total_students": Student.objects.filter(status="Active").count(),
+                "total_teachers": Teacher.objects.filter(status="Active").count(),
                 "total_classes": (
                     Class.objects.filter(academic_year=current_year).count()
                     if current_year
@@ -113,8 +113,6 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             context.update(self.get_teacher_dashboard_data())
         elif hasattr(self.request.user, "parent"):
             context.update(self.get_parent_dashboard_data())
-        elif hasattr(self.request.user, "student"):
-            context.update(self.get_student_dashboard_data())
 
         return context
 
@@ -132,46 +130,81 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             return "teacher"
         elif hasattr(user, "parent"):
             return "parent"
-        elif hasattr(user, "student"):
-            return "student"
         else:
             return "user"
 
     def get_admin_dashboard_data(self, current_year, current_term):
         """Get dashboard data for administrators"""
+        from src.students.models import Student
+        from src.teachers.models import Teacher
+        from src.assignments.models import Assignment
+        from src.exams.models import Exam
+        from src.attendance.models import Attendance
+        from django.utils import timezone
+        from datetime import timedelta
+
         data = {}
+
+        # Student statistics
+        data["active_students"] = Student.objects.filter(status="Active").count()
+        data["inactive_students"] = Student.objects.filter(status="Inactive").count()
+        data["graduated_students"] = Student.objects.filter(status="Graduated").count()
+
+        # Teacher statistics
+        data["active_teachers"] = Teacher.objects.filter(status="Active").count()
+        data["inactive_teachers"] = Teacher.objects.filter(status="Inactive").count()
+
+        # Today's statistics
+        today = timezone.now().date()
+        data["todays_attendance"] = Attendance.objects.filter(
+            date=today
+        ).count()
+
+        # This week's statistics
+        week_start = today - timedelta(days=today.weekday())
+        data["this_week_assignments"] = Assignment.objects.filter(
+            created_at__gte=week_start
+        ).count()
 
         if current_year and current_term:
             # Financial summary
-            financial_analytics = FinancialAnalytics.objects.filter(
-                academic_year=current_year, term=current_term
-            ).aggregate(
-                total_expected=Sum("total_expected_revenue"),
-                total_collected=Sum("total_collected_revenue"),
-                avg_collection_rate=Avg("collection_rate"),
-            )
-
-            data["financial_summary"] = financial_analytics
+            try:
+                financial_analytics = FinancialAnalytics.objects.filter(
+                    academic_year=current_year, term=current_term
+                ).aggregate(
+                    total_expected=Sum("total_expected_revenue"),
+                    total_collected=Sum("total_collected_revenue"),
+                    avg_collection_rate=Avg("collection_rate"),
+                )
+                data["financial_summary"] = financial_analytics
+            except:
+                data["financial_summary"] = None
 
             # Performance summary
-            student_analytics = StudentPerformanceAnalytics.objects.filter(
-                academic_year=current_year, term=current_term, subject__isnull=True
-            ).aggregate(
-                avg_performance=Avg("average_marks"),
-                avg_attendance=Avg("attendance_percentage"),
-            )
-
-            data["performance_summary"] = student_analytics
+            try:
+                student_analytics = StudentPerformanceAnalytics.objects.filter(
+                    academic_year=current_year, term=current_term, subject__isnull=True
+                ).aggregate(
+                    avg_performance=Avg("average_marks"),
+                    avg_attendance=Avg("attendance_percentage"),
+                )
+                data["performance_summary"] = student_analytics
+            except:
+                data["performance_summary"] = None
 
         # System health
-        latest_health = SystemHealthMetrics.objects.first()
-        data["system_health"] = latest_health
+        try:
+            latest_health = SystemHealthMetrics.objects.first()
+            data["system_health"] = latest_health
+        except:
+            data["system_health"] = None
 
         # Recent activity
-        recent_logs = AuditLog.objects.select_related("user").order_by("-timestamp")[
-            :10
-        ]
-        data["recent_activity"] = recent_logs
+        try:
+            recent_logs = AuditLog.objects.select_related("user").order_by("-timestamp")[:10]
+            data["recent_activity"] = recent_logs
+        except:
+            data["recent_activity"] = []
 
         return data
 
@@ -201,7 +234,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         children_relations = StudentParentRelation.objects.filter(
             parent=parent
-        ).select_related("student__user", "student__current_class")
+        ).select_related("student", "student__current_class")
 
         children_data = []
         for relation in children_relations:
@@ -226,33 +259,11 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         return {"children": children_data, "children_count": len(children_data)}
 
-    def get_student_dashboard_data(self):
-        """Get dashboard data for students"""
-        student = self.request.user.student
-
-        # Get latest performance
-        latest_performance = (
-            StudentPerformanceAnalytics.objects.filter(
-                student=student, subject__isnull=True
-            )
-            .order_by("-calculated_at")
-            .first()
-        )
-
-        # Get recent assignments
-        from src.assignments.models import AssignmentSubmission
-
-        recent_assignments = (
-            AssignmentSubmission.objects.filter(student=student)
-            .select_related("assignment")
-            .order_by("-submission_date")[:5]
-        )
-
-        return {
-            "student": student,
-            "performance": latest_performance,
-            "recent_assignments": recent_assignments,
-        }
+    # NOTE: Students don't have user accounts, so no student dashboard
+    # Students are managed by parents and administrators
+    # def get_student_dashboard_data(self):
+    #     """Get dashboard data for students (DEPRECATED - students don't have accounts)"""
+    #     pass
 
 
 class SystemAdminView(SystemAdminMixin, TemplateView):

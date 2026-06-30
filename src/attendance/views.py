@@ -78,7 +78,7 @@ class AttendanceRecordDetailView(
         attendance_record = self.get_object()
         student_attendances = StudentAttendance.objects.filter(
             attendance_record=attendance_record
-        ).select_related("student", "student__user")
+        ).select_related("student")
 
         context["student_attendances"] = student_attendances
         return context
@@ -179,7 +179,7 @@ def attendance_dashboard_view(request):
     # Low attendance students
     low_attendance_students = []
     students = Student.objects.filter(status="active").select_related(
-        "user", "current_class"
+        "current_class"
     )
 
     for student in students:
@@ -308,7 +308,7 @@ def mark_attendance_view(request, class_id=None):
         selected_class = form.cleaned_data["class_obj"]
 
     if selected_class:
-        students = selected_class.students.select_related("user").all()
+        students = selected_class.students.all()
 
         # If formset is not bound or not valid, initialize it with student data
         if request.method != "POST" or not formset.is_valid():

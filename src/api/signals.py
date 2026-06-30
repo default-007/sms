@@ -20,7 +20,7 @@ def clear_model_cache(sender, instance, **kwargs):
         cache_patterns = [
             f"{model_name}_list_*",
             f"{model_name}_detail_{instance.pk}",
-            f"user_perm_{instance.user.pk}_*" if hasattr(instance, "user") else None,
+            f"user_perm_{instance.user.pk}_*" if getattr(instance, "user", None) else None,
         ]
 
         for pattern in cache_patterns:

@@ -1,0 +1,51 @@
+{% extends "core/base.html" %}
+{% block title %}{{ title|default:"Announcements" }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0">{{ title|default:"Announcements" }}</h3>
+    <a href="{% url 'communications:announcement_create' %}" class="btn btn-primary">
+      <i class="fas fa-plus me-1"></i> New Announcement
+    </a>
+  </div>
+
+  <form method="get" class="row g-2 mb-3">
+    <div class="col-md-6">
+      <input type="text" name="search" value="{{ search_query }}" class="form-control" placeholder="Search announcements...">
+    </div>
+    <div class="col-md-3">
+      <select name="status" class="form-select">
+        <option value="">All statuses</option>
+        <option value="active" {% if status_filter == "active" %}selected{% endif %}>Active</option>
+        <option value="inactive" {% if status_filter == "inactive" %}selected{% endif %}>Inactive</option>
+      </select>
+    </div>
+    <div class="col-md-3"><button class="btn btn-outline-secondary w-100" type="submit">Filter</button></div>
+  </form>
+
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead><tr><th>Title</th><th>Audience</th><th>Priority</th><th>Recipients</th><th>Status</th><th>Created</th></tr></thead>
+        <tbody>
+          {% for a in announcements %}
+          <tr>
+            <td><a href="{% url 'communications:announcement_detail' a.pk %}">{{ a.title }}</a></td>
+            <td>{{ a.target_audience }}</td>
+            <td><span class="badge bg-secondary">{{ a.priority }}</span></td>
+            <td>{{ a.total_recipients|default:0 }}</td>
+            <td>{% if a.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
+            <td>{{ a.created_at|date:"M d, Y" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center text-muted py-4">No announcements found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% include "communications/_pagination.html" %}
+</div>
+{% endblock %}

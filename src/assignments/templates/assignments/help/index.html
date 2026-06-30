@@ -1,0 +1,19 @@
+{% extends "core/base.html" %}
+{% block title %}Assignments Help{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0"><i class="fas fa-circle-question me-2"></i>Assignments Help</h3>
+    <div class="btn-group btn-group-sm">
+      <a href="{% url 'assignments:help' %}" class="btn btn-outline-secondary">Overview</a>
+      <a href="{% url 'assignments:help_teacher' %}" class="btn btn-outline-secondary">For Teachers</a>
+      <a href="{% url 'assignments:help_student' %}" class="btn btn-outline-secondary">For Students</a>
+      <a href="{% url 'assignments:help_grading' %}" class="btn btn-outline-secondary">Grading</a>
+    </div>
+  </div>
+  <div class="card"><div class="card-body">
+    <p class="lead">Welcome to the Assignments help center.</p><p>Use the links above to learn how to create, submit, and grade assignments. Select the guide that matches your role.</p><ul><li><strong>Teachers</strong> &mdash; create assignments, set due dates, review submissions, and publish grades.</li><li><strong>Students</strong> &mdash; view assigned work, upload submissions, and track grades and feedback.</li><li><strong>Grading</strong> &mdash; rubrics, scoring, and returning feedback.</li></ul>
+  </div></div>
+</div>
+{% endblock %}

@@ -33,9 +33,11 @@ def create_user_communication_preferences(sender, instance, created, **kwargs):
     """
     if created:
         try:
-            # Create default preferences
-            CommunicationPreference.objects.create(
+            # Create default preferences (idempotent: avoid UNIQUE violation if a
+            # preference row already exists for this user).
+            CommunicationPreference.objects.get_or_create(
                 user=instance,
+                defaults=dict(
                 email_enabled=True,
                 sms_enabled=True,
                 push_enabled=True,
@@ -47,6 +49,7 @@ def create_user_communication_preferences(sender, instance, created, **kwargs):
                 marketing_messages=False,
                 preferred_language="en",
                 digest_frequency="immediate",
+                ),
             )
 
             logger.info(

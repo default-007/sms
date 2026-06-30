@@ -347,7 +347,7 @@ class AttendanceService:
         ).order_by("date")
 
         # Get all students in the class
-        students = class_obj.students.select_related("user").all()
+        students = class_obj.students.all()
 
         # Build report data
         report_data = {

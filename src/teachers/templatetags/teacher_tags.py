@@ -31,6 +31,7 @@ register = template.Library()
 # =============================================================================
 
 
+@register.simple_tag
 @register.filter
 def teacher_status_badge(status):
     """Return a Bootstrap badge for teacher status with appropriate styling."""
@@ -46,6 +47,7 @@ def teacher_status_badge(status):
     )
 
 
+@register.simple_tag
 @register.filter
 def contract_type_badge(contract_type):
     """Return a Bootstrap badge for contract type."""
@@ -130,6 +132,7 @@ def workload_indicator(teacher, academic_year=None):
         )
 
 
+@register.simple_tag
 @register.filter
 def experience_level_badge(experience_years):
     """Return experience level badge based on years of experience."""
@@ -189,7 +192,7 @@ def format_teacher_name(teacher, format_type="full"):
         return teacher.get_full_name()
 
 
-@register.filter
+@register.simple_tag
 def teacher_avatar(teacher, size=40):
     """Generate teacher avatar HTML with fallback to initials."""
     if teacher.get_avatar_url():
@@ -227,6 +230,7 @@ def teacher_avatar(teacher, size=40):
 # =============================================================================
 
 
+@register.simple_tag
 @register.filter
 def evaluation_trend_icon(teacher, months=6):
     """Show trend icon based on recent evaluations."""
@@ -263,6 +267,7 @@ def evaluation_trend_icon(teacher, months=6):
     )
 
 
+@register.simple_tag
 @register.filter
 def evaluation_status_badge(status):
     """Return badge for evaluation status."""

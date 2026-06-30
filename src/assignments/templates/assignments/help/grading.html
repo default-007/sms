@@ -1,0 +1,19 @@
+{% extends "core/base.html" %}
+{% block title %}Assignments Help &mdash; Grading{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0"><i class="fas fa-circle-question me-2"></i>Assignments Help &mdash; Grading</h3>
+    <div class="btn-group btn-group-sm">
+      <a href="{% url 'assignments:help' %}" class="btn btn-outline-secondary">Overview</a>
+      <a href="{% url 'assignments:help_teacher' %}" class="btn btn-outline-secondary">For Teachers</a>
+      <a href="{% url 'assignments:help_student' %}" class="btn btn-outline-secondary">For Students</a>
+      <a href="{% url 'assignments:help_grading' %}" class="btn btn-outline-secondary">Grading</a>
+    </div>
+  </div>
+  <div class="card"><div class="card-body">
+    <h5>Grading submissions</h5><ol><li>Open a submission from the assignment detail page.</li><li>Apply the rubric (if configured) or enter a score directly.</li><li>Add written feedback and save.</li><li>Publish grades to make them visible to students.</li></ol><p class="text-muted">Rubrics let you score consistently across multiple criteria.</p>
+  </div></div>
+</div>
+{% endblock %}

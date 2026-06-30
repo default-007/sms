@@ -172,6 +172,12 @@ class RateLimitMiddleware(MiddlewareMixin):
         if not limit_type:
             return None
 
+        # Only rate-limit actual submissions, not page loads. Counting GET
+        # requests would lock users out of the login/password-reset pages just
+        # for refreshing the form (the limit is only a handful per window).
+        if limit_type in ("login", "password_reset") and request.method != "POST":
+            return None
+
         # Get rate limit configuration
         rate_config = self.rate_limits.get(limit_type)
         if not rate_config:

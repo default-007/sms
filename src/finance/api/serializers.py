@@ -541,7 +541,7 @@ class PaymentProcessingSerializer(serializers.Serializer):
     """Serializer for payment processing."""
 
     invoice_id = serializers.IntegerField()
-    amount = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=0.01)
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal("0.01"))
     payment_method = serializers.ChoiceField(choices=Payment.PAYMENT_METHOD_CHOICES)
     transaction_id = serializers.CharField(
         max_length=100, required=False, allow_blank=True

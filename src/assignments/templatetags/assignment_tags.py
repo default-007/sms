@@ -205,7 +205,7 @@ def has_submitted(assignment, student):
     return assignment.is_submitted_by_student(student)
 
 
-@register.filter
+@register.simple_tag
 def get_student_submission(assignment, student):
     """
     Get student's submission for assignment

@@ -16,13 +16,13 @@ def admin_required(view_func):
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
             messages.error(request, _("You need to login to access this page."))
-            return redirect("login")
+            return redirect("accounts:login")
 
-        if not request.user.has_role("Admin"):
+        if not (request.user.is_superuser or request.user.has_role("Admin")):
             messages.error(
                 request, _("You need administrative privileges to access this page.")
             )
-            return redirect("dashboard")
+            return redirect("core:dashboard")
 
         return view_func(request, *args, **kwargs)
 
@@ -43,13 +43,16 @@ def permission_required(resource, action):
         def wrapper(request, *args, **kwargs):
             if not request.user.is_authenticated:
                 messages.error(request, _("You need to login to access this page."))
-                return redirect("login")
+                return redirect("accounts:login")
 
-            if not RoleService.check_permission(request.user, resource, action):
+            if not (
+                request.user.is_superuser
+                or RoleService.check_permission(request.user, resource, action)
+            ):
                 messages.error(
                     request, _("You do not have permission to access this page.")
                 )
-                return redirect("dashboard")
+                return redirect("core:dashboard")
 
             return view_func(request, *args, **kwargs)
 

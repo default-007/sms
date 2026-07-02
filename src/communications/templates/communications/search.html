@@ -1,0 +1,43 @@
+{% extends "core/base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}{{ title|default:"Search Communications" }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <h3 class="mb-4">{{ title|default:"Search Communications" }}</h3>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <form method="get">
+        {{ form|crispy }}
+        <button type="submit" class="btn btn-primary mt-2"><i class="fas fa-search me-1"></i> Search</button>
+      </form>
+    </div>
+  </div>
+
+  {% if total_results %}
+  <p class="text-muted">{{ total_results }} result{{ total_results|pluralize }}</p>
+  {% endif %}
+
+  <div class="card">
+    <div class="list-group list-group-flush">
+      {% for r in results %}
+      <div class="list-group-item">
+        <div class="d-flex justify-content-between">
+          <h6 class="mb-1">
+            <span class="badge bg-info me-1">{{ r.type }}</span>
+            {% if r.url %}<a href="{{ r.url }}">{{ r.title }}</a>{% else %}{{ r.title }}{% endif %}
+          </h6>
+          <small class="text-muted">{{ r.created_at|date:"M d, Y" }}</small>
+        </div>
+        <p class="mb-0 text-muted small">{{ r.content }}</p>
+      </div>
+      {% empty %}
+      <div class="list-group-item text-muted text-center py-4">No results.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% include "communications/_pagination.html" %}
+</div>
+{% endblock %}

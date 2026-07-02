@@ -172,6 +172,14 @@ After starting the server, test these features:
 
 ## Known Issues & Warnings
 
+> ⚠️ **Accuracy note (2026-06-30):** The "0 issues / all features work" claim
+> below is **not correct**. `manage.py check` passes, but 6 of the 12 wired web
+> modules (teachers, subjects, scheduling, assignments, finance, communications)
+> return HTTP 500 on their landing page, and several runtime errors fire during
+> normal use. See [`docs/KNOWN_BUGS.md`](./docs/KNOWN_BUGS.md) for the verified
+> list and [`docs/MODULE_STATUS.md`](./docs/MODULE_STATUS.md) for the real
+> module status.
+
 ### Non-Critical Warnings ⚠️
 These warnings appear during startup but don't affect functionality:
 

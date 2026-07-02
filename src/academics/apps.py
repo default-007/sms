@@ -31,9 +31,17 @@ class AcademicsConfig(AppConfig):
                 # Import signals to register them
                 from . import signals
 
-                # Register custom system checks with proper tags
+                # Register custom system checks with proper tags.
+                # NOTE: register() sets a `.tags` attribute on the callable, which
+                # is not allowed on bound methods ("'method' object has no
+                # attribute 'tags'"). Wrap the bound method in a plain function.
+                check_consistency = self.check_academic_structure_consistency
+
+                def _check_academic_structure_consistency(app_configs, **kwargs):
+                    return check_consistency(app_configs, **kwargs)
+
                 register(Tags.models, Tags.database)(
-                    self.check_academic_structure_consistency
+                    _check_academic_structure_consistency
                 )
 
                 logger.info("Academics app initialized successfully")

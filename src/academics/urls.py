@@ -65,4 +65,15 @@ urlpatterns = [
     # Utility URLs
     path("structure/", views.AcademicStructureView.as_view(), name="structure"),
     path("calendar/", views.AcademicCalendarView.as_view(), name="calendar"),
+    # AJAX endpoints (dependent dropdowns)
+    path(
+        "ajax/grades-by-section/",
+        views.get_grades_by_section,
+        name="ajax_grades_by_section",
+    ),
+    path(
+        "ajax/classes-by-grade/",
+        views.get_classes_by_grade,
+        name="ajax_classes_by_grade",
+    ),
 ]

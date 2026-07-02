@@ -1,0 +1,55 @@
+{% extends "core/base.html" %}
+{% block title %}{{ title|default:"Communications Analytics" }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0">{{ title|default:"Communications Analytics" }}</h3>
+    <form method="get" class="d-flex align-items-center gap-2">
+      <label class="text-muted small mb-0">Range:</label>
+      <select name="days" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+        <option value="7" {% if days == 7 %}selected{% endif %}>7 days</option>
+        <option value="30" {% if days == 30 %}selected{% endif %}>30 days</option>
+        <option value="90" {% if days == 90 %}selected{% endif %}>90 days</option>
+      </select>
+    </form>
+  </div>
+  <p class="text-muted">{{ date_range }}</p>
+
+  <div class="row">
+    {% with s=summary %}
+    <div class="col-md-3 col-sm-6 mb-3"><div class="card"><div class="card-body"><h4>{{ s.total_announcements|default:0 }}</h4><small class="text-muted">Announcements</small></div></div></div>
+    <div class="col-md-3 col-sm-6 mb-3"><div class="card"><div class="card-body"><h4>{{ s.total_emails|default:0 }}</h4><small class="text-muted">Emails</small></div></div></div>
+    <div class="col-md-3 col-sm-6 mb-3"><div class="card"><div class="card-body"><h4>{{ s.total_sms|default:0 }}</h4><small class="text-muted">SMS</small></div></div></div>
+    <div class="col-md-3 col-sm-6 mb-3"><div class="card"><div class="card-body"><h4>{{ s.total_push|default:0 }}</h4><small class="text-muted">Push</small></div></div></div>
+    <div class="col-md-4 col-sm-6 mb-3"><div class="card"><div class="card-body"><h4>{{ s.avg_read_rate|default:0|floatformat:1 }}%</h4><small class="text-muted">Avg read rate</small></div></div></div>
+    <div class="col-md-4 col-sm-6 mb-3"><div class="card"><div class="card-body"><h4>{{ s.avg_email_delivery_rate|default:0|floatformat:1 }}%</h4><small class="text-muted">Email delivery rate</small></div></div></div>
+    <div class="col-md-4 col-sm-6 mb-3"><div class="card"><div class="card-body"><h4>{{ s.avg_sms_delivery_rate|default:0|floatformat:1 }}%</h4><small class="text-muted">SMS delivery rate</small></div></div></div>
+    {% endwith %}
+  </div>
+
+  <div class="card">
+    <div class="card-header d-flex justify-content-between">
+      <h6 class="mb-0">Daily Breakdown</h6>
+      <a href="{% url 'communications:export_analytics' %}" class="btn btn-sm btn-outline-secondary">Export</a>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Date</th><th>Emails</th><th>SMS</th><th>Push</th></tr></thead>
+        <tbody>
+          {% for row in analytics %}
+          <tr>
+            <td>{{ row.date|date:"M d, Y" }}</td>
+            <td>{{ row.total_emails_sent|default:0 }}</td>
+            <td>{{ row.total_sms_sent|default:0 }}</td>
+            <td>{{ row.total_push_sent|default:0 }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center text-muted py-4">No analytics data for this range.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
